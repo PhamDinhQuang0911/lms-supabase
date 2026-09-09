@@ -301,7 +301,7 @@
                                   <h4 class="font-bold text-purple-800 flex items-center gap-2"><i class="fa-solid fa-list-check"></i> Phần Trắc Nghiệm</h4>
                                   <div>
                                     <label class="block text-xs font-bold text-gray-600 mb-1">Tổng điểm Trắc nghiệm (Điểm tối đa)</label>
-                                    <input type="number" id="settingTnScore" value="6" min="0" max="100" step="1" class="form-input font-bold text-purple-700 w-28 text-right">
+                                    <input type="number" id="settingTnScore" value="100" min="0" max="100" step="1" class="form-input font-bold text-purple-700 w-28 text-right">
                                   </div>
                                 </div>
                                 <p class="text-xs text-purple-700 mb-3">Đã nạp <span id="mixedTnCount" class="font-bold text-purple-900 bg-purple-200 px-2 py-0.5 rounded">0</span> câu trắc nghiệm cho bài hỗn hợp này.</p>
@@ -2870,7 +2870,7 @@
                     // Dữ liệu cho loại bài Hỗn hợp (mixed)
                     tlFileUrl: document.getElementById('settingTlFileUrl') ? document.getElementById('settingTlFileUrl').value : '',
                     tlSolutionUrl: document.getElementById('settingTlSolutionUrl') ? document.getElementById('settingTlSolutionUrl').value : '',
-                    tlScore: parseFloat(document.getElementById('settingTlScore')?.value) || 4,
+                    tlScore: parseFloat(document.getElementById('settingTlScore')?.value) || 100,
                     tnScore: parseFloat(document.getElementById('settingTnScore')?.value) || 100,
                     tlDesc: document.getElementById('settingTlDesc') ? document.getElementById('settingTlDesc').value : '',
                     tlQuestions: window.mixedTlQuestions || []
