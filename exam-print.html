@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xem &amp; In Đề Thi - QMath</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- MathJax config giống hệ thống chính -->
+    <script>
+    window.MathJax = {
+        loader: { load: ['[tex]/noerrors'] },
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true,
+            packages: {'[+]': ['noerrors']},
+            macros: {
+                heva: ["\\left\\{\\begin{aligned}#1\\end{aligned}\\right.", 1],
+                hoac: ["\\left[\\begin{aligned}#1\\end{aligned}\\right.", 1],
+                tich: "\\cdot",
+                deg: "^\\circ",
+                R: "\\mathbb{R}",
+                N: "\\mathbb{N}",
+                Z: "\\mathbb{Z}",
+                vectors: ["\\overrightarrow{#1}", 1],
+                mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1]
+            }
+        },
+        options: { ignoreHtmlClass: 'tex2jax_ignore', processHtmlClass: 'tex2jax_process' },
+        startup: { typeset: false }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        /* ===== BASE ===== */
+        :root {
+            --primary: #13796A;
+            --a4-width: 210mm;
+            --a4-margin: 18mm;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #e8eaed; min-height: 100vh; }
+
+        /* ===== TOOLBAR ===== */
+        #toolbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            background: #1f2937; color: white;
+            padding: 10px 20px; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+        }
+        #toolbar .logo { font-weight: 900; font-size: 18px; color: #34d399; letter-spacing: -0.5px; }
+        #toolbar .title { flex: 1; font-size: 14px; color: #d1d5db; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .toolbar-btn {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700;
+            cursor: pointer; border: none; transition: all 0.2s;
+        }
+        .toolbar-btn.primary { background: #34d399; color: #064e3b; }
+        .toolbar-btn.primary:hover { background: #10b981; }
+        .toolbar-btn.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .toolbar-btn.secondary { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .toolbar-btn.secondary:hover { background: rgba(255,255,255,0.2); }
+
+        /* ===== OPTIONS PANEL ===== */
+        #optionsPanel {
+            position: fixed; top: 52px; right: 0; width: 270px;
+            background: #1f2937; border-left: 1px solid #374151;
+            height: calc(100vh - 52px); padding: 16px; overflow-y: auto; z-index: 999;
+            transition: transform 0.3s;
+        }
+        #optionsPanel.hidden { transform: translateX(100%); }
+        .opt-section-title { font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px; }
+        .opt-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #374151; }
+        .opt-label { font-size: 13px; color: #d1d5db; font-weight: 500; }
+        .toggle { position: relative; width: 40px; height: 22px; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; inset: 0; background: #4b5563; border-radius: 11px; cursor: pointer; transition: 0.3s; }
+        .toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+        .toggle input:checked + .toggle-slider { background: #34d399; }
+        .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+        .opt-input { width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid #374151; background: #111827; color: white; font-size: 12px; font-family: Inter, sans-serif; }
+        .opt-textarea { resize: vertical; min-height: 60px; }
+
+        /* ===== PREVIEW AREA ===== */
+        #previewArea {
+            padding-top: 68px; padding-bottom: 40px;
+            display: flex; flex-direction: column; align-items: center; gap: 16px;
+            transition: padding-right 0.3s;
+        }
+        #previewArea.panel-open { padding-right: 270px; }
+
+        /* ===== TRANG A4 ===== */
+        .a4-page {
+            width: 210mm; min-height: 297mm; background: white;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+            padding: var(--a4-margin); position: relative;
+            page-break-after: always;
+        }
+
+        /* ===== HEADER ĐỀ THI ===== */
+        .exam-header { text-align: center; border-bottom: 2px solid #1f2937; padding-bottom: 12px; margin-bottom: 14px; }
+        .exam-header .school-name { font-size: 13pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #111; }
+        .exam-header .exam-title { font-size: 15pt; font-weight: 900; text-transform: uppercase; color: #111; margin: 4px 0 2px; }
+        .exam-header .exam-meta { font-size: 10.5pt; color: #374151; display: flex; justify-content: center; gap: 24px; margin-top: 4px; flex-wrap: wrap; }
+        .exam-code-badge { position: absolute; top: var(--a4-margin); right: var(--a4-margin); border: 2px solid #1f2937; padding: 4px 10px; text-align: center; font-size: 9pt; font-weight: 700; }
+
+        /* ===== THÔNG TIN THÍ SINH ===== */
+        .candidate-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 4px; margin-bottom: 16px; background: #fafafa; }
+        .candidate-info .info-row { font-size: 10.5pt; color: #374151; display: flex; align-items: center; gap: 6px; }
+        .candidate-info .info-label { font-weight: 700; white-space: nowrap; }
+        .candidate-info .line { flex: 1; border-bottom: 1px solid #9ca3af; min-width: 60px; height: 18px; }
+
+        /* ===== HƯỚNG DẪN ===== */
+        .exam-notice { font-size: 9pt; color: #6b7280; font-style: italic; padding: 6px 10px; border-left: 3px solid #d1d5db; background: #f9fafb; margin-bottom: 16px; line-height: 1.5; }
+
+        /* ===== SECTION TITLE ===== */
+        :root { --primary: #172554; } /* Xanh cổ vịt */
+        .section-title { font-size: 11pt; font-weight: 800; text-transform: uppercase; color: white; background: var(--primary); padding: 5px 12px; margin: 16px 0 12px; letter-spacing: 0.5px; }
+
+        /* ===== 2 CỘT ===== */
+        .questions-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+
+        /* ===== BLOCK CÂU HỎI ===== */
+        .question-block { margin-bottom: 14px; }
+        .question-block .q-header { font-size: 10.5pt; color: #111; margin-bottom: 4px; display: flex; gap: 8px; align-items: baseline; }
+        .question-block .q-num { background: var(--primary); color: white; font-size: 9pt; font-weight: 800; padding: 2px 7px; border-radius: 3px; white-space: nowrap; flex-shrink: 0; }
+        .question-block .q-content { font-size: 10.5pt; color: #111; line-height: 1.55; font-weight: normal; }
+        .question-block .q-content img { max-width: 45%; max-height: 220px; object-fit: contain; display: block; margin: 8px auto; }
+
+        /* ===== MC OPTIONS ===== */
+        .mc-options-inline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 6px; }
+        .mc-options-block { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin-top: 6px; }
+        .mc-options-1col { display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 6px; }
+        .mc-option { font-size: 10pt; color: #111; display: inline-block; break-inside: avoid; line-height: 1.4; }
+        .mc-option .opt-letter { font-weight: 800; margin-right: 4px; }
+
+        /* Bảng biểu LaTeX & MathJax */
+        table.js-scale-table { border-collapse: collapse; margin: 0 auto; font-size: 10pt; width: 100%; max-width: 100%; border: 1px solid black; }
+        table.js-scale-table th, table.js-scale-table td { border: 1px solid black !important; padding: 4px 8px; text-align: center; }
+        .js-scale-wrapper { display: flex; justify-content: center; width: 100%; margin: 2px 0; overflow: hidden; }
+        mjx-container { font-size: 100% !important; }
+
+        /* ===== ĐÚNG/SAI ===== */
+        .tf-statements { margin-top: 6px; }
+        .tf-statement { font-size: 10pt; color: #111; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; break-inside: avoid; }
+        .tf-statement .tf-letter { font-weight: 800; min-width: 16px; }
+        .tf-choices { display: flex; gap: 14px; margin-left: auto; flex-shrink: 0; font-size: 9pt; font-weight: 600; color: #374151; }
+        .tf-choice-item { display: flex; align-items: center; gap: 4px; }
+        .tf-box { width: 13px; height: 13px; border: 1.5px solid #6b7280; border-radius: 2px; }
+
+        /* ===== TỰ LUẬN ===== */
+        .essay-lines { margin-top: 8px; }
+        .essay-line { height: 22px; border-bottom: 1px solid #d1d5db; margin-bottom: 2px; }
+
+        .solution-block { margin-top: 8px; font-size: 9.5pt; color: #374151; background: #f9fafb; padding: 8px 12px; border-radius: 4px; border-left: 3px solid var(--primary); display: none; break-inside: avoid; line-height: 1.5; }
+        body.show-solution .solution-block { display: block; }
+        .solution-block b { color: var(--primary); }
+
+        .answer-key-section { display: none; break-before: always; }
+        body.show-answer-key .answer-key-section { display: block; }
+        .answer-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; text-align: center; break-inside: avoid; }
+        .answer-table th, .answer-table td { border: 1px solid #d1d5db; padding: 4px; }
+        .answer-table th { background: var(--primary); color: white; font-weight: 600; width: 10%; }
+        .answer-table td { background: white; }
+
+        /* ===== FOOTER ===== */
+        .exam-footer { margin-top: 20px; padding-top: 10px; border-top: 1.5px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 9pt; color: #6b7280; }
+
+        /* ===== LOADING ===== */
+        #loadingOverlay { position: fixed; inset: 0; background: rgba(17,24,39,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 16px; }
+        #loadingOverlay .spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.15); border-top: 4px solid #34d399; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        #loadingOverlay .load-text { color: white; font-size: 15px; font-weight: 600; }
+        #loadingOverlay .load-sub { color: #9ca3af; font-size: 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== SOLUTION (ẩn mặc định) ===== */
+        .solution-block { display: none; margin-top: 6px; padding: 6px 10px; background: #f0fdf4; border-left: 3px solid #16a34a; font-size: 9.5pt; color: #374151; }
+        body.show-solution .solution-block { display: block !important; }
+        .answer-key-section { display: none; }
+        body.show-answer-key .answer-key-section { display: block; }
+
+        /* ===== PRINT ===== */
+        @media print {
+            #toolbar, #optionsPanel, #loadingOverlay { display: none !important; }
+            body { background: white !important; }
+            #previewArea { padding: 0 !important; margin: 0 !important; gap: 0 !important; }
+            .a4-page { width: 100%; margin: 0; box-shadow: none; page-break-after: always; }
+            @page { size: A4; margin: 0; }
+        }
+
+        @media (max-width: 768px) {
+            .a4-page { width: 100%; min-height: auto; }
+            #optionsPanel { width: 220px; }
+        }
+    </style>
+<meta name="view-transition" content="same-origin" /></head>
+<body>
+
+<!-- Loading -->
+<div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="load-text" id="loadText">Đang tải đề thi...</div>
+    <div class="load-sub" id="loadSub">Vui lòng chờ trong giây lát</div>
+</div>
+
+<!-- Toolbar -->
+<div id="toolbar">
+    <div class="logo">Q<span style="color:#10b981">M</span></div>
+    <div class="title" id="toolbarTitle">Xem Đề Thi</div>
+    <button class="toolbar-btn secondary" onclick="togglePanel()"><i class="fa-solid fa-sliders"></i> Tùy chọn</button>
+    <button class="toolbar-btn primary" id="printBtn" disabled onclick="doPrint()"><i class="fa-solid fa-print"></i> In / Tải PDF</button>
+</div>
+
+<!-- Options Panel -->
+<div id="optionsPanel" class="hidden">
+    <div class="opt-section-title">Nội dung hiển thị</div>
+    <div class="opt-row"><span class="opt-label">Bảng đáp án cuối</span><label class="toggle"><input type="checkbox" id="optAnswerTable" onchange="reRender()" checked><span class="toggle-slider"></span></label></div>
+    <div class="opt-row"><span class="opt-label">In kèm đáp án</span><label class="toggle"><input type="checkbox" id="optShowAnswer" onchange="toggleAnswerKey()"><span class="toggle-slider"></span></label></div>
+    <div class="opt-row"><span class="opt-label">In kèm lời giải</span><label class="toggle"><input type="checkbox" id="optShowSolution" onchange="toggleSolution()"><span class="toggle-slider"></span></label></div>
+    <div class="opt-row"><span class="opt-label">Hiển thị Logo</span><label class="toggle"><input type="checkbox" id="optShowLogo" checked onchange="reRender()"><span class="toggle-slider"></span></label></div>
+    <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px">Màu chủ đạo</label>
+        <input type="color" id="optColor" value="#172554" onchange="reRender()" class="opt-input" style="height:35px;padding:2px;">
+    </div>
+    <div class="opt-section-title">Trình bày câu hỏi</div>
+    <div class="opt-row"><span class="opt-label">TN 2 cột</span><label class="toggle"><input type="checkbox" id="opt2ColTN" onchange="reRender()"><span class="toggle-slider"></span></label></div>
+    <div class="opt-row"><span class="opt-label">Đáp án TN ngang</span><label class="toggle"><input type="checkbox" id="optInlineOptions" onchange="reRender()"><span class="toggle-slider"></span></label></div>
+    <div class="opt-row"><span class="opt-label">Ô chọn Đúng/Sai</span><label class="toggle"><input type="checkbox" id="optShowTFBoxes" onchange="reRender()" checked><span class="toggle-slider"></span></label></div>
+    <div class="opt-row"><span class="opt-label">Ô điền câu ngắn</span><label class="toggle"><input type="checkbox" id="optShowShortBoxes" onchange="reRender()" checked><span class="toggle-slider"></span></label></div>
+    <div class="opt-row"><span class="opt-label">Dòng kẻ câu hỏi</span><label class="toggle"><input type="checkbox" id="optEssayLines" onchange="reRender()"><span class="toggle-slider"></span></label></div>
+    <div style="margin-bottom:8px;display:flex;align-items:center;gap:10px">
+        <label style="font-size:12px;color:#9ca3af">Số dòng kẻ</label>
+        <input type="number" id="optEssayLineCount" value="3" min="1" max="20" onchange="reRender()" class="opt-input" style="width:60px">
+    </div>
+    <div class="opt-section-title">Thông tin đề</div>
+    <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px">Tên trường / Trung tâm</label>
+        <input type="text" id="optSchoolName" value="TRUNG TÂM QMATH" onchange="reRender()" class="opt-input">
+    </div>
+    <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px">Mã đề</label>
+        <input type="text" id="optExamCode" value="001" onchange="reRender()" class="opt-input">
+    </div>
+    <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px">Hướng dẫn làm bài</label>
+        <textarea id="optNotice" rows="3" onchange="reRender()" class="opt-input opt-textarea">Học sinh làm bài trực tiếp trên đề. Không được sử dụng tài liệu.</textarea>
+    </div>
+    <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px">Tên đề thi</label>
+        <input type="text" id="optExamTitle" value="" onchange="reRender()" class="opt-input" placeholder="Mặc định theo hệ thống">
+    </div>
+    <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px">Thời gian làm bài (phút)</label>
+        <input type="number" id="optDuration" value="" onchange="reRender()" class="opt-input" placeholder="Mặc định theo hệ thống">
+    </div>
+    <div class="opt-section-title">Tiêu đề trang (Header/Footer)</div>
+    <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px">Header (Trái)</label>
+        <input type="text" id="optHeaderLeft" value="Học toán cùng thầy Choang Choang" onchange="reRender()" class="opt-input">
+    </div>
+    <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px">Header (Phải)</label>
+        <input type="text" id="optHeaderRight" value="SĐT: 0337820847" onchange="reRender()" class="opt-input">
+    </div>
+    <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px">Footer</label>
+        <input type="text" id="optFooter" value="Trường TH và THCS Ngọc Lâm-Đường Hào-Hưng Yên" onchange="reRender()" class="opt-input">
+        <button onclick="savePrintConfig()" class="toolbar-btn primary" style="width: 100%; justify-content: center; margin-top: 16px; margin-bottom: 20px;"><i class="fa-solid fa-floppy-disk"></i> Lưu cấu hình mặc định</button>
+</div>
+</div>
+
+<!-- Preview -->
+<div id="previewArea"></div>
+
+<script type="module">
+    import { 
+        initializeApp, getAuth, onAuthStateChanged,
+        getFirestore, doc, getDoc,
+        supabase
+    } from "./supabase-db-compat.js";
+
+    const app = initializeApp({});
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let examData = null;
+    let allQuestions = [];
+    let siteLogoUrl = '';
+    let siteLogoEl = null;
+
+    function setLoad(t, s) {
+        document.getElementById('loadText').textContent = t;
+        document.getElementById('loadSub').textContent = s || '';
+    }
+
+    import { formatContent, autoScaleTables, renderTikz, stripBrAroundBlocks } from "./utils.js?v=8";
+    window.formatContent = (t) => stripBrAroundBlocks(formatContent(t));
+
+    // ===== LOAD =====
+    
+    window.savePrintConfig = function() {
+        const config = {
+            schoolName: document.getElementById('optSchoolName').value,
+            examCode: document.getElementById('optExamCode').value,
+            notice: document.getElementById('optNotice').value,
+            headerLeft: document.getElementById('optHeaderLeft').value,
+            headerRight: document.getElementById('optHeaderRight').value,
+            footer: document.getElementById('optFooter').value,
+            examTitle: document.getElementById('optExamTitle').value,
+            duration: document.getElementById('optDuration').value
+        };
+        localStorage.setItem('qmath_print_config', JSON.stringify(config));
+        alert('Đã lưu cấu hình làm mặc định cho các lần sau!');
+    };
+
+    window.loadPrintConfig = function() {
+        try {
+            const saved = localStorage.getItem('qmath_print_config');
+            if (saved) {
+                const config = JSON.parse(saved);
+                if (config.schoolName) document.getElementById('optSchoolName').value = config.schoolName;
+                if (config.examCode) document.getElementById('optExamCode').value = config.examCode;
+                if (config.notice !== undefined) document.getElementById('optNotice').value = config.notice;
+                if (config.headerLeft !== undefined) document.getElementById('optHeaderLeft').value = config.headerLeft;
+                if (config.headerRight !== undefined) document.getElementById('optHeaderRight').value = config.headerRight;
+                if (config.footer !== undefined) document.getElementById('optFooter').value = config.footer;
+                if (config.examTitle !== undefined) document.getElementById('optExamTitle').value = config.examTitle;
+                if (config.duration !== undefined) document.getElementById('optDuration').value = config.duration;
+            }
+        } catch(e) {}
+    };
+
+    async function loadExam() {
+        window.loadPrintConfig();
+        const examId = new URLSearchParams(location.search).get('id');
+        const mode = new URLSearchParams(location.search).get('mode');
+        
+        if (mode === 'embed') {
+            document.getElementById('toolbar').style.display = 'none';
+            document.getElementById('optionsPanel').style.display = 'none';
+            document.body.style.paddingTop = '20px';
+            document.body.style.background = 'white';
+        }
+
+        if (mode === 'local') {
+            const localData = localStorage.getItem('print_exam_data');
+            if (localData) {
+                examData = JSON.parse(localData);
+                document.getElementById('toolbarTitle').textContent = examData.title || 'Đề thi';
+                document.title = (examData.title || 'Đề thi') + ' - In đề';
+                allQuestions = examData.questions || [];
+                if (examData.tlQuestions && examData.tlQuestions.length > 0) {
+                    examData.tlQuestions.forEach(tq => allQuestions.push({ ...tq, type: 'essay' }));
+                }
+                renderDocument();
+                await waitForMathJax();
+                document.getElementById('optionsPanel').classList.remove('hidden');
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('printBtn').disabled = false;
+                return;
+            }
+        }
+
+        if (!examId) { setLoad('Thiếu ID đề thi', 'Truy cập từ trang quản lý đề'); return; }
+
+        try {
+            setLoad('Đang tải đề thi...', 'Đang xác thực...');
+            const snap = await getDoc(doc(db, 'exams', examId));
+            if (!snap.exists()) throw new Error('Không tìm thấy đề thi');
+            examData = { id: snap.id, ...snap.data() };
+            document.getElementById('toolbarTitle').textContent = examData.title || 'Đề thi';
+            document.title = (examData.title || 'Đề thi') + ' - In đề';
+
+            // Lấy câu hỏi
+            if (mode === 'embed' && window.parent && window.parent.currentQuestions && window.parent.currentQuestions.length > 0) {
+                allQuestions = window.parent.currentQuestions.map(q => {
+                    const newQ = JSON.parse(JSON.stringify(q));
+                    // currentQuestions của parent đã có options theo đúng thứ tự
+                    // học sinh nhìn thấy. Không áp dụng shuffleMap thêm lần nữa.
+                    if (newQ.shuffleMapTF && newQ.statements) {
+                        newQ.statements = newQ.shuffleMapTF.map(idx => q.statements[idx]);
+                    }
+                    return newQ;
+                });
+            } else {
+                let uId = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.uid : null;
+                if (mode === 'embed' && examData.shuffle && uId) {
+                    const shuffleConfigKey = `examConfig_${uId}_${examId}`;
+                    const savedConfig = JSON.parse(localStorage.getItem(shuffleConfigKey) || "null");
+                    if (savedConfig) {
+                        let baseQuestions = examData.questions || [];
+                        allQuestions = savedConfig.questionOrder.map(originalIndex => {
+                            const originalQ = baseQuestions[originalIndex];
+                            if (!originalQ) return null;
+                            const newQ = { ...originalQ };
+                            if (savedConfig.optionMaps && savedConfig.optionMaps[originalIndex]) {
+                                const map = savedConfig.optionMaps[originalIndex];
+                                if (newQ.options) {
+                                    newQ.options = map.map(idx => originalQ.options[idx]);
+                                }
+                                if (newQ.correct !== undefined && newQ.correct !== null && newQ.correct !== '') {
+                                    newQ.correct = map.indexOf(parseInt(newQ.correct));
+                                }
+                            }
+                            if (savedConfig.tfMaps && savedConfig.tfMaps[originalIndex]) {
+                                const mapTF = savedConfig.tfMaps[originalIndex];
+                                if (newQ.statements) {
+                                    newQ.statements = mapTF.map(idx => originalQ.statements[idx]);
+                                }
+                            }
+                            return newQ;
+                        }).filter(q => q !== null);
+                    } else {
+                        allQuestions = examData.questions || [];
+                    }
+                } else {
+                    allQuestions = examData.questions || [];
+                }
+            }
+
+            // Nếu có phần tự luận riêng (mixed type)
+            if (examData.tlQuestions && examData.tlQuestions.length > 0) {
+                examData.tlQuestions.forEach(tq => {
+                    allQuestions.push({ ...tq, type: 'essay' });
+                });
+            }
+
+            // Tải logo từ settings
+            try {
+                const settingSnap = await getDoc(doc(db, 'site_settings', 'homepage_hero'));
+                if (settingSnap.exists() && settingSnap.data().logo) {
+                    siteLogoUrl = settingSnap.data().logo;
+                }
+            } catch(e) { /* Logo là tùy chọn; vẫn tiếp tục in đề khi không có quyền đọc. */ }
+
+            setLoad('Đang render nội dung...', '');
+            renderDocument();
+
+            document.getElementById('loadingOverlay').style.display = 'none';
+            document.getElementById('printBtn').disabled = false;
+            
+            // Chạy ngầm MathJax và tải ảnh
+            waitForMathJax().then(() => waitForImages()).catch(console.error);
+        } catch(e) {
+            setLoad('Lỗi: ' + e.message, 'Thử tải lại trang');
+            console.error(e);
+        }
+    }
+
+    async function waitForMathJax() {
+        return new Promise(resolve => {
+            let attempts = 0;
+            const tryIt = async () => {
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    try { 
+                        if (window.MathJax.startup && window.MathJax.startup.promise) {
+                            await window.MathJax.startup.promise;
+                        } else {
+                            await window.MathJax.typesetPromise(); 
+                        }
+                    } catch(e) {}
+                    if (window.renderTikz) window.renderTikz();
+                    if (window.autoScaleTables) window.autoScaleTables();
+                    resolve();
+                } else if (attempts > 30) {
+                    if (window.renderTikz) window.renderTikz();
+                    if (window.autoScaleTables) window.autoScaleTables();
+                    resolve(); // Timeout sau 9 giây
+                } else { 
+                    attempts++;
+                    setTimeout(tryIt, 300); 
+                }
+            };
+            tryIt();
+        });
+    }
+
+    async function waitForImages() {
+        const imgs = document.querySelectorAll('#previewArea img');
+        await Promise.all(Array.from(imgs).map(img => {
+            if (img.complete || !img.src) return Promise.resolve();
+            return new Promise(r => {
+                const timeout = setTimeout(r, 5000); // Tối đa 5s cho mỗi ảnh
+                img.onload = () => { clearTimeout(timeout); r(); };
+                img.onerror = () => { clearTimeout(timeout); r(); };
+            });
+        }));
+    }
+
+    // ===== RENDER =====
+    window.renderDocument = function() {
+        const area = document.getElementById('previewArea');
+        area.innerHTML = '';
+
+        const schoolName = document.getElementById('optSchoolName')?.value || 'TRUNG TÂM QMATH';
+        const examCode = document.getElementById('optExamCode')?.value || '001';
+        const notice = document.getElementById('optNotice')?.value || '';
+        const show2Col = document.getElementById('opt2ColTN')?.checked;
+        const showInline = document.getElementById('optInlineOptions')?.checked;
+        const isEmbedMode = new URLSearchParams(location.search).get('mode') === 'embed';
+        const showAnswerTbl = !isEmbedMode && (document.getElementById('optAnswerTable')?.checked !== false);
+        const showEssayLines = document.getElementById('optEssayLines')?.checked !== false;
+        const essayLineCount = parseInt(document.getElementById('optEssayLineCount')?.value) || 3;
+        const showTFBoxes = document.getElementById('optShowTFBoxes')?.checked !== false;
+        const showShortBoxes = document.getElementById('optShowShortBoxes')?.checked !== false;
+        const showLogo = document.getElementById('optShowLogo')?.checked !== false;
+
+        const pColor = document.getElementById('optColor')?.value || '#172554';
+        document.documentElement.style.setProperty('--primary', pColor);
+
+        const page = document.createElement('div');
+        page.className = 'a4-page';
+
+        const optHeaderLeft = document.getElementById('optHeaderLeft')?.value || '';
+        const optHeaderRight = document.getElementById('optHeaderRight')?.value || '';
+        const optFooter = document.getElementById('optFooter')?.value || '';
+
+        const tableWrapper = document.createElement('table');
+        tableWrapper.style.width = '100%';
+        tableWrapper.style.borderCollapse = 'collapse';
+        tableWrapper.style.border = 'none';
+        
+        tableWrapper.innerHTML = `
+            <thead class="print-running-header">
+                <tr><td style="border:none; padding:0 0 10px 0;">
+                    <div style="display:flex; justify-content:space-between; border-bottom: 1px solid #ccc; padding-bottom: 5px; font-size: 10pt; font-weight: bold; color: #555;">
+                        <span>${optHeaderLeft}</span>
+                        <span>${optHeaderRight}</span>
+                    </div>
+                </td></tr>
+            </thead>
+            <tfoot class="print-running-footer">
+                <tr><td style="border:none; padding:10px 0 0 0;">
+                    <div style="text-align:center; border-top: 1px solid #ccc; padding-top: 5px; font-size: 10pt; color: #555;">
+                        ${optFooter}
+                    </div>
+                </td></tr>
+            </tfoot>
+            <tbody>
+                <tr><td style="border:none; padding:0;" id="printMainContent">
+                </td></tr>
+            </tbody>
+        `;
+        page.appendChild(tableWrapper);
+        const mainContent = tableWrapper.querySelector('#printMainContent');
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'exam-header';
+        header.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <img id="printLogoImg" src="" style="width: 75px; height: 75px; object-fit: contain; display: none;" />
+                    <div>
+                        <div style="font-weight:700;font-size:12pt;color:var(--primary);text-transform:uppercase;">${schoolName}</div>
+                        <div style="width: 100%; height: 2px; background: var(--primary); margin-top: 4px;"></div>
+                    </div>
+                </div>
+                <div style="text-align: center; border:2px solid var(--primary); padding:4px 15px; border-radius: 6px;">
+                    <div style="font-size:9pt; font-weight:700; color:#555;">MÃ ĐỀ THI</div>
+                    <div style="font-size:14pt; font-weight:800; color:var(--primary);">${examCode}</div>
+                </div>
+            </div>
+            <div style="text-align:center;font-size:15pt;font-weight:800;color:var(--primary);margin-bottom:6px;text-transform:uppercase;">${document.getElementById('optExamTitle')?.value || examData.title || 'ĐỀ THI'}</div>
+            <div style="text-align:center;font-size:10.5pt;color:#374151;margin-bottom:15px;">
+                ${examData.subject ? 'Môn: <b>'+examData.subject+'</b>' : ''}
+                ${examData.grade ? '&nbsp;&nbsp;|&nbsp;&nbsp;Khối: <b>'+examData.grade+'</b>' : ''}
+                ${(document.getElementById('optDuration')?.value || examData.duration) ? '&nbsp;&nbsp;|&nbsp;&nbsp;Thời gian làm bài: <span style="color:var(--primary)"><b>'+(document.getElementById('optDuration')?.value || examData.duration)+' phút</b></span>' : ''}
+            </div>
+            <div class="candidate-info">
+                <div class="info-row" style="flex: 1.5; min-width: 250px;"><span class="info-label">Họ và tên học sinh:</span><div class="line"></div></div>
+                <div class="info-row"><span class="info-label">Số báo danh:</span><div class="line"></div></div>
+                <div class="info-row"><span class="info-label">Lớp:</span><div class="line"></div></div>
+                <div class="info-row"><span class="info-label">Điểm:</span><div class="line"></div></div>
+            </div>
+            ${notice ? `<div class="exam-notice"><i class="fa-solid fa-circle-info"></i> ${notice}</div>` : ''}
+        `;
+        mainContent.appendChild(header);
+
+        // Nạp logo: chỉ dùng logo từ settings/homepage_hero
+        if (showLogo && siteLogoUrl) {
+            const img = document.getElementById('printLogoImg');
+            if (img) { img.src = siteLogoUrl; img.style.display = 'block'; }
+        }
+
+        // Phân loại câu hỏi
+        const mcQs = allQuestions.filter(q => q.type === 'mc' || !q.type);
+        const tfQs = allQuestions.filter(q => q.type === 'tf');
+        const shortQs = allQuestions.filter(q => q.type === 'short');
+        const essayQs = allQuestions.filter(q => q.type === 'essay');
+
+        // Render sections grouped by dangTitle
+        if(mcQs.length>0) {
+            const section = document.createElement('div');
+            section.innerHTML = `<div class="section-title">PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.</div><div class="section-desc">Mỗi câu hỏi thí sinh chỉ chọn một phương án.</div>`;
+            let currentDang = null; let qNum = 1; let dangCount = 0;
+            mcQs.forEach(q => {
+                const dang = q.dangTitle || '';
+                if (dang !== currentDang) {
+                    currentDang = dang; qNum = 1;
+                    if (dang) {
+                        dangCount++;
+                        const dangEl = document.createElement('div');
+                        dangEl.style.cssText = 'font-weight: 700; margin-top: 15px; margin-bottom: 10px; font-size: 11pt; color: #333; font-style: italic;';
+                        dangEl.textContent = `Dạng ${dangCount}: ${dang}`;
+                        section.appendChild(dangEl);
+                    }
+                }
+                section.appendChild(renderMC(q, qNum++, show2Col, showInline, true, showEssayLines, essayLineCount));
+            });
+            mainContent.appendChild(section);
+        }
+        if(tfQs.length>0) {
+            const section = document.createElement('div');
+            section.innerHTML = `<div class="section-title">PHẦN II. Câu trắc nghiệm đúng sai.</div><div class="section-desc">Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.</div>`;
+            let currentDang = null; let qNum = 1; let dangCount = 0;
+            tfQs.forEach(q => {
+                const dang = q.dangTitle || '';
+                if (dang !== currentDang) {
+                    currentDang = dang; qNum = 1;
+                    if (dang) {
+                        dangCount++;
+                        const dangEl = document.createElement('div');
+                        dangEl.style.cssText = 'font-weight: 700; margin-top: 15px; margin-bottom: 10px; font-size: 11pt; color: #333; font-style: italic;';
+                        dangEl.textContent = `Dạng ${dangCount}: ${dang}`;
+                        section.appendChild(dangEl);
+                    }
+                }
+                section.appendChild(renderTF(q, qNum++, true, showTFBoxes, showEssayLines, essayLineCount));
+            });
+            mainContent.appendChild(section);
+        }
+        if(shortQs.length>0) {
+            const section = document.createElement('div');
+            section.innerHTML = `<div class="section-title">PHẦN III. Câu trắc nghiệm trả lời ngắn.</div>`;
+            let currentDang = null; let qNum = 1; let dangCount = 0;
+            shortQs.forEach(q => {
+                const dang = q.dangTitle || '';
+                if (dang !== currentDang) {
+                    currentDang = dang; qNum = 1;
+                    if (dang) {
+                        dangCount++;
+                        const dangEl = document.createElement('div');
+                        dangEl.style.cssText = 'font-weight: 700; margin-top: 15px; margin-bottom: 10px; font-size: 11pt; color: #333; font-style: italic;';
+                        dangEl.textContent = `Dạng ${dangCount}: ${dang}`;
+                        section.appendChild(dangEl);
+                    }
+                }
+                section.appendChild(renderShort(q, qNum++, true, showEssayLines, essayLineCount, showShortBoxes));
+            });
+            mainContent.appendChild(section);
+        }
+        if(essayQs.length>0) {
+            const section = document.createElement('div');
+            section.innerHTML = `<div class="section-title">PHẦN IV. Tự luận.</div>`;
+            essayQs.forEach((q, i) => section.appendChild(renderEssay(q, i+1, true, showEssayLines, essayLineCount)));
+            mainContent.appendChild(section);
+        }
+
+        const het = document.createElement('div');
+        het.className = 'text-center font-bold mt-8 mb-4';
+        het.style.textAlign = 'center';
+        het.style.fontWeight = 'bold';
+        het.style.marginTop = '30px';
+        het.innerHTML = '------------- HẾT -------------';
+        mainContent.appendChild(het);
+
+        // Append main page first
+        area.appendChild(page);
+
+        // Phụ lục đáp án
+        if (showAnswerTbl) {
+            const ansPage = document.createElement('div');
+            ansPage.className = 'a4-page';
+            
+            const ansTableWrapper = document.createElement('table');
+            ansTableWrapper.style.width = '100%';
+            ansTableWrapper.style.borderCollapse = 'collapse';
+            ansTableWrapper.style.border = 'none';
+            ansTableWrapper.innerHTML = `
+                <thead class="print-running-header">
+                    <tr><td style="border:none; padding:0 0 10px 0;">
+                        <div style="display:flex; justify-content:space-between; border-bottom: 1px solid #ccc; padding-bottom: 5px; font-size: 10pt; font-weight: bold; color: #555;">
+                            <span>${optHeaderLeft}</span>
+                            <span>${optHeaderRight}</span>
+                        </div>
+                    </td></tr>
+                </thead>
+                <tfoot class="print-running-footer">
+                    <tr><td style="border:none; padding:10px 0 0 0;">
+                        <div style="text-align:center; border-top: 1px solid #ccc; padding-top: 5px; font-size: 10pt; color: #555;">
+                            ${optFooter}
+                        </div>
+                    </td></tr>
+                </tfoot>
+                <tbody>
+                    <tr><td style="border:none; padding:0;" id="printAnsContent">
+                    </td></tr>
+                </tbody>
+            `;
+            ansPage.appendChild(ansTableWrapper);
+            const ansContent = ansTableWrapper.querySelector('#printAnsContent');
+
+            ansContent.innerHTML += `<div style="text-align:center;font-size:14pt;font-weight:800;color:var(--primary);margin:20px 0;">BẢNG ĐÁP ÁN</div>`;
+            
+            if(mcQs.length>0) {
+                let mcHtml = '<div style="font-weight:bold;margin-bottom:8px">I. Trắc nghiệm nhiều phương án</div><table class="answer-table" style="text-align:left;"><tbody><tr>';
+                mcQs.forEach((q,i) => { 
+                    const correctLtr = q.correct !== undefined && q.correct !== null && q.correct !== '' ? String.fromCharCode(65 + parseInt(q.correct)) : '?';
+                    mcHtml += `<td><b>${i+1}.</b> ${correctLtr}</td>`;
+                    if ((i+1) % 10 === 0 && i !== mcQs.length-1) mcHtml += '</tr><tr>';
+                });
+                const rem = mcQs.length % 10;
+                if (rem > 0) { for(let j=0; j<10-rem; j++) mcHtml += '<td></td>'; }
+                mcHtml += '</tr></tbody></table>';
+                ansContent.innerHTML += mcHtml;
+            }
+            if(tfQs.length>0) {
+                let tfHtml = '<div style="font-weight:bold;margin:15px 0 8px 0">II. Trắc nghiệm đúng sai</div><table class="answer-table" style="text-align:left;"><tbody><tr>';
+                tfQs.forEach((q,i) => {
+                    let y = '';
+                    (q.statements||[]).forEach((s,k) => { 
+                        const isTrue = s.isTrue===true || s.isTrue==='true' || s.isTrue==='Đúng' || s.isTrue==='Đ';
+                        y += `<b>${String.fromCharCode(97+k)}</b> ${isTrue?'Đ':'S'}&nbsp;&nbsp; `; 
+                    });
+                    tfHtml += `<td><div style="white-space:nowrap;"><b>Câu ${i+1}:</b></div><div style="white-space:nowrap;">${y}</div></td>`;
+                    if ((i+1) % 4 === 0 && i !== tfQs.length-1) tfHtml += '</tr><tr>';
+                });
+                const rem = tfQs.length % 4;
+                if (rem > 0) { for(let j=0; j<4-rem; j++) tfHtml += '<td></td>'; }
+                tfHtml += '</tr></tbody></table>';
+                ansContent.innerHTML += tfHtml;
+            }
+            if(shortQs.length>0) {
+                let sHtml = '<div style="font-weight:bold;margin:15px 0 8px 0">III. Trắc nghiệm trả lời ngắn</div><table class="answer-table" style="text-align:left;"><tbody><tr>';
+                shortQs.forEach((q,i) => { 
+                    sHtml += `<td><b>Câu ${i+1}:</b> ${q.answer||'?'}</td>`; 
+                    if ((i+1) % 5 === 0 && i !== shortQs.length-1) sHtml += '</tr><tr>';
+                });
+                const rem = shortQs.length % 5;
+                if (rem > 0) { for(let j=0; j<5-rem; j++) sHtml += '<td></td>'; }
+                sHtml += '</tr></tbody></table>';
+                ansContent.innerHTML += sHtml;
+            }
+            area.appendChild(ansPage);
+        }
+
+        // Re-typeset MathJax
+        if (window.MathJax && window.MathJax.typesetPromise) {
+            window.MathJax.typesetPromise([area]).catch(() => {});
+        }
+    };
+
+    // ===== RENDER FUNCTIONS =====
+    function renderMC(q, num, is2Col, inlineOpts, showSol, showLines, lineCount) {
+        const el = document.createElement('div');
+        el.className = 'question-block';
+        const opts = q.options || [];
+        
+        const stripText = (str) => (str||'').replace(/<[^>]+>/g, '').replace(/\\[a-zA-Z]+/g, 'x').length;
+        const maxLen = Math.max(0, ...opts.map(o => stripText(o)));
+        
+        let layout = 'mc-options-block';
+        if (inlineOpts || maxLen <= 15) layout = 'mc-options-inline';
+        else if (maxLen > 45) layout = 'mc-options-1col';
+
+        const optsHTML = opts.map((o, i) => `
+            <div class="mc-option"><span class="opt-letter">${String.fromCharCode(65+i)}.</span><span>${formatContent(o)}</span></div>
+        `).join('');
+
+        const ansStr = typeof q.correct === 'number' ? String.fromCharCode(65 + q.correct) : (q.correct || '');
+        const linesHtml = showLines ? `<div class="essay-lines">${'<div class="essay-line"></div>'.repeat(lineCount||3)}</div>` : '';
+        el.innerHTML = `
+            <div class="q-header"><span class="q-num">Câu ${num}</span><div class="q-content">${formatContent(q.content||'')}</div></div>
+            <div class="${layout}">${optsHTML}</div>
+            ${linesHtml}
+            ${showSol ? `<div class="solution-block"><b>Đáp án:</b> ${ansStr} ${q.solution ? '<br><b>Lời giải:</b> ' + formatContent(q.solution) : ''}</div>` : ''}
+        `;
+        return el;
+    }
+
+
+
+    function renderTF(q, num, showSol, showBoxes = true, showLines, lineCount) {
+        const el = document.createElement('div');
+        el.className = 'question-block';
+        const stmts = q.statements || [];
+        const stHTML = stmts.map((s, i) => `
+            <div class="tf-statement">
+                <span class="tf-letter">${String.fromCharCode(97+i)})</span>
+                <span style="flex:1">${formatContent(s.text || s)}</span>
+                ${showBoxes ? `<div class="tf-choices">
+                    <span class="tf-choice-item"><span class="tf-box"></span>Đ</span>
+                    <span class="tf-choice-item"><span class="tf-box"></span>S</span>
+                </div>` : ''}
+            </div>
+        `).join('');
+
+        const linesHtml = showLines ? `<div class="essay-lines">${'<div class="essay-line"></div>'.repeat(lineCount||3)}</div>` : '';
+        const sol = showSol ? `<div class="solution-block"><b>Lời giải:</b> ${formatContent(q.solution || q.explanation || '')}</div>` : '';
+        el.innerHTML = `
+            <div class="q-header"><span class="q-num">Câu ${num}</span><div class="q-content">${formatContent(q.content||'')}</div></div>
+            <div class="tf-statements">${stHTML}</div>
+            ${linesHtml}
+            ${sol}
+        `;
+        return el;
+    }
+
+    function renderShort(q, num, showSol, showLines, lineCount = 3, showBoxes = true) {
+        const el = document.createElement('div');
+        el.className = 'question-block';
+        const ansBoxes = showBoxes ? `<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:6px;">${'<div style="width:42px;height:28px;border:1.5px solid #374151;border-radius:3px;"></div>'.repeat(4)}</div>` : '';
+        const essayLinesHtml = showLines ? `<div class="essay-lines">${'<div class="essay-line"></div>'.repeat(lineCount)}</div>` : '';
+        const sol = showSol ? `<div class="solution-block"><b>Đáp án:</b> ${q.answer||q.correct||''} ${q.solution ? '<br><b>Lời giải:</b> '+formatContent(q.solution) : ''}</div>` : '';
+        el.innerHTML = `
+            <div class="q-header"><span class="q-num">Câu ${num}</span><div class="q-content">${formatContent(q.content||'')}</div></div>
+            ${ansBoxes}
+            ${essayLinesHtml}
+            ${sol}
+        `;
+        return el;
+    }
+
+    function renderEssay(q, num, showSol, showLines, lineCount = 3) {
+        const el = document.createElement('div');
+        el.className = 'question-block';
+        const pt = q.point ? `<span style="color:#6b7280;font-size:9pt;margin-left:6px">(${q.point} điểm)</span>` : '';
+        const lines = showLines ? `<div class="essay-lines">${'<div class="essay-line"></div>'.repeat(lineCount)}</div>` : '';
+        const sol = showSol ? `<div class="solution-block"><b>Lời giải:</b> ${formatContent(q.solution || q.explanation || '')}</div>` : '';
+        el.innerHTML = `
+            <div class="q-header"><span class="q-num">Câu ${num}</span><div class="q-content">${formatContent(q.content||'')}${pt}</div></div>
+            ${lines}
+            ${sol}
+        `;
+        return el;
+    }
+
+    function renderAnswerGrid(mcQs) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'answer-key-section';
+        wrapper.style.marginTop = '16px';
+        const COLS = 10;
+        let html = '<div class="section-title" style="font-size:9.5pt;margin:0 0 6px">Bảng đáp án</div>';
+
+        for (let start = 0; start < mcQs.length; start += COLS) {
+            const chunk = mcQs.slice(start, start + COLS);
+            html += `<table class="answer-table" style="margin-top:4px">
+                <thead><tr><th>Câu</th>${chunk.map((_, i) => `<th>${start+i+1}</th>`).join('')}</tr></thead>
+                <tbody><tr><td>ĐA</td>${chunk.map(() => '<td> </td>').join('')}</tr></tbody>
+            </table>`;
+        }
+        wrapper.innerHTML = html;
+        return wrapper;
+    }
+
+    // ===== CONTROLS =====
+    window.togglePanel = function() {
+        document.getElementById('optionsPanel').classList.toggle('hidden');
+        document.getElementById('previewArea').classList.toggle('panel-open');
+    };
+    window.toggleAnswerKey = function() { document.body.classList.toggle('show-answer-key', document.getElementById('optShowAnswer').checked); };
+    window.toggleSolution = function() { document.body.classList.toggle('show-solution', document.getElementById('optShowSolution').checked); };
+
+    let _debounce;
+    window.reRender = function() {
+        clearTimeout(_debounce);
+        _debounce = setTimeout(async () => {
+            document.getElementById('printBtn').disabled = true;
+            renderDocument();
+            await waitForMathJax();
+            await waitForImages();
+            document.getElementById('printBtn').disabled = false;
+        }, 400);
+    };
+
+    window.doPrint = async function() {
+        const btn = document.getElementById('printBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Chuẩn bị...';
+        await waitForMathJax();
+        await waitForImages();
+        btn.innerHTML = '<i class="fa-solid fa-print"></i> In / Tải PDF';
+        btn.disabled = false;
+        window.print();
+    };
+
+    // Start
+    const urlMode = new URLSearchParams(location.search).get('mode');
+    loadExam();
+</script>
+</body>
+</html>

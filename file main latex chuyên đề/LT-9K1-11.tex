@@ -1,0 +1,141 @@
+\setcounter{section}{10}
+\section{TỈ SỐ LƯỢNG GIÁC CỦA GÓC NHỌN}
+\subsection{Kiến thức trọng tâm}
+	\subsubsection{Khái niệm tỉ số lượng giác của góc nhọn}
+	\begin{boxdn}
+		\immini{
+			Cho góc nhọn $\alpha$. Xét tam giác $ABC$ vuông tại $A$ có góc nhọn $B$ bằng $\alpha$. Ta có:
+			\begin{itemize}
+				\item Tỉ số giữa cạnh đối và cạnh huyền gọi là sin của $\alpha$, kí hiệu $\sin \alpha$.
+				\item Tỉ số giữa cạnh kề và cạnh huyền gọi là côsin của $\alpha$, kí hiệu $\cos \alpha$.
+				\item Tỉ số giữa cạnh đối và cạnh kề của góc $\alpha$ gọi là tang của $\alpha$, kí hiệu $\tan \alpha$.
+				\item Tỉ số giữa cạnh kề và cạnh đối của góc $\alpha$ gọi là côtang của $\alpha$, kí hiệu $\cot \alpha$.
+		\end{itemize}}{
+			\begin{tikzpicture}[scale=0.65]
+				\path 
+				(0,0) coordinate (B)
+				(3,0) coordinate (A)
+				(3,4) coordinate (C);
+				\draw (0,0) node[left]{$B$}--(1.5,0) node[below]{cạnh kề}--(3,0) node[right]{$A$}--(3,4) node[above]{$C$}--(0,0);
+				\draw (C)--(B)node[midway,sloped,above]{cạnh huyền};
+				\draw (A)--(C)node[midway,sloped,below]{cạnh đối};
+				\pic[draw, angle radius=3mm]{right angle=B--A--C};
+				\pic[draw, angle radius=3mm]{angle=A--B--C};
+				\draw (0.3,0.3) node[right]{$\alpha$};
+		\end{tikzpicture}}
+	\end{boxdn}
+	\begin{note}
+		\begin{enumEX}[\itemCI]{2}
+			\item $\sin \alpha = \dfrac{\text{cạnh đối}}{\text{cạnh huyền}}$;
+			\item $\cos \alpha = \dfrac{\text{cạnh kề}}{\text{cạnh huyền}}$;
+			\item $\tan \alpha = \dfrac{\text{cạnh đối}}{\text{cạnh kề}}$; 
+			\item $\cot \alpha = \dfrac{\text{cạnh kề}}{\text{cạnh đối}}$;
+			\item $\cot \alpha = \dfrac{1}{\tan \alpha}$.
+			\item! $\sin \alpha$, $\cos \alpha$, $\tan \alpha$, $\cot \alpha$ gọi là các tỉ số lượng giác của góc nhọn $\alpha$.
+		\end{enumEX}
+	\end{note}
+	\begin{note}
+		sin, côsin của góc nhọn luôn dương và bé hơn $1$ vì trong tam giác vuông, cạnh huyền dài nhất.
+	\end{note}
+\begin{vidu}
+		Tính các tỉ số lượng giác của góc nhọn $A$ trong mỗi tam giác vuông $ABC$ có $\widehat{B}=90^\circ$ ở hình sau.
+	\begin{center}
+		\begin{tikzpicture}[declare function={a=2.5;},line join=round,line cap=round,font=\footnotesize,scale=1]
+			\path (0:0) coordinate (B)
+			(0:a) coordinate (C)
+			(B)+(90:0.7*a) coordinate (A)
+			($(B)!0.5!(C)$) coordinate (D) node[below,shift={(-90:0.6cm)}] {a)}
+			;
+			\path pic[draw,angle radius=5pt]{right angle= A--B--C};
+			\path pic[draw,angle radius=7pt]{angle= B--A--C};
+			\draw (A)--(B) node[midway,left] {$3$}
+			--(C) node[midway,below] {$4$}
+			--cycle node[midway,right,yshift=3pt] {$5$}
+			;
+			\foreach \t/\g in {A/90,B/-90,C/-90}{
+				\path (\t) node[shift={(\g:7pt)},font=\scriptsize]{$ \t $};
+			}
+		\end{tikzpicture} \hspace*{3cm}
+		\begin{tikzpicture}[declare function={a=2;},line join=round,line cap=round,font=\footnotesize,scale=1]
+			\path 
+			(0:a) coordinate (C)
+			(180:a) coordinate (B)
+			(150:a) coordinate (A)
+			($(B)!0.5!(C)$) coordinate (D) node[shift={(-90:1cm)}] {b)}
+			;
+			\path pic[angle eccentricity=2,draw,angle radius=12pt]{angle= A--C--B};
+			\path pic[draw,angle radius=5pt]{right angle= B--A--C};
+			\draw 
+			(A)--(B) node[midway,left] {$1$}
+			--(C) node[midway, below] {$\sqrt{17}$}--cycle node[midway, above] {$4$}
+			;
+			\foreach \t/\g/\i in {A/90/B,B/-90/C,C/-90/A}{
+				\path (\t) node[shift={(\g:7pt)}]{$ \i $};
+			}
+		\end{tikzpicture}
+	\end{center}
+	\loigiai{
+		Xét $\triangle ABC$ vuông tại $B$ (Hình a), ta có
+		\begin{enumEX}[\itemCI]{2}
+			\item $\sin A=\dfrac{BC}{AC}=\dfrac{4}{5}$;
+			\item $\cos A=\dfrac{AB}{AC}=\dfrac{3}{5}$;
+			\item $\tan A=\dfrac{BC}{AB}=\dfrac{4}{3}$;
+			\item $\cot A=\dfrac{AB}{BC}=\dfrac{3}{4}$.
+		\end{enumEX}
+		Xét $\triangle ABC$ vuông tại $B$ (Hình b), ta có
+		\begin{enumEX}[\itemCI]{2}
+			\item $\sin A=\dfrac{BC}{AC}=\dfrac{1}{\sqrt{17}}$;
+			\item $\cos A=\dfrac{AB}{AC}=\dfrac{4}{\sqrt{17}}$;
+			\item $\tan A=\dfrac{BC}{AB}=\dfrac{1}{4}$;
+			\item $\cot A=\dfrac{AB}{BC}=\dfrac{4}{1}$.
+		\end{enumEX}
+	}
+\end{vidu}
+	\subsubsection{Tỉ số lượng giác của hai góc phụ nhau}
+	\begin{boxdl}
+		\immini{
+			Nếu hai gọc phụ nhau thì sin góc này bằng côsin góc kia, tang góc này bằng côtang góc kia.
+			\begin{note}
+				Cho $\alpha$ và $\beta$ là hai góc phụ nhau ($\alpha+\beta=90^\circ$), khi đó
+				\begin{itemize}
+					\begin{multicols}{2}
+						\item $\sin \alpha = \cos \beta$
+						\item $\cos \alpha = \sin \beta$
+						\item $\tan \alpha = \cot \beta$
+						\item $\cot \alpha = \tan \beta$.
+					\end{multicols}
+				\end{itemize}
+		\end{note}}{
+			\begin{tikzpicture}[>=stealth,line join=round,line cap=round,font=\footnotesize,scale=0.7]
+				\path 
+				(0,0) coordinate[label=left:$A$] (A)
+				(5,0) coordinate[label=right:$B$] (B);
+				\coordinate (D) at ($(B)!1!-30: (A)$) ;
+				\coordinate (E) at ($(A)!1!60: (B)$) ;
+				\coordinate[label=above:$C$] (C) at (intersection of B--D and A--E);
+				\draw (A)--(B)--(C)--cycle;
+				\pic[draw, angle radius=2mm]{right angle=B--C--A};
+				\pic[draw,double, angle radius=5mm]{angle=C--B--A} node[below] at ($(B) + (145:1.4)$){$\beta$};
+				\pic[draw, angle radius=4mm]{angle=B--A--C} node[below] at ($(A) + (35:1.2)$){$\alpha$};
+			\end{tikzpicture}
+		}
+	\end{boxdl}
+%%%%%%%%%%%%%%%%%%%
+\begin{vidu}
+		So sánh
+	\begin{enumEX}{2}
+		\item $\sin 25^\circ$ và $\cos 65^\circ$;
+		\item $ \cos 25^\circ$ và $\sin 65^\circ$;
+		\item $\tan 25^\circ$ và $\cot 65^\circ$;
+		\item $\cot 25^\circ$ và $\tan 65^\circ$.
+	\end{enumEX}
+	\loigiai{
+		Ta có
+		\begin{enumEX}{2}
+			\item $\sin 25^\circ=\cos (90^\circ-25^\circ)=\cos 65^\circ$;
+			\item $\cos 25^\circ=\sin (90^\circ-25^\circ)=\sin 65^\circ$;
+			\item $\tan 25^\circ=\cot (90^\circ-25^\circ)=\cot 65^\circ$;
+			\item $\cot 25^\circ=\tan (90^\circ-25^\circ)=\tan 65^\circ$.
+		\end{enumEX}
+	}
+\end{vidu}

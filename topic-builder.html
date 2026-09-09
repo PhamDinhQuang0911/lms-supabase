@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xây Chuyên Đề - Thầy Choang</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ea580c">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="stylesheet" href="/styles.css?v=6">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Cấu hình MathJax: DÙNG CHUNG bộ macro với practice.html / exam.html để công thức hiển thị y hệt -->
+    <script>
+        window.MathJax = {
+            loader: { load: ['[tex]/noerrors', '[tex]/noundefined'] },
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                packages: {'[+]': ['noerrors', 'noundefined']},
+                macros: {
+                    heva: ["\\left\\{\\begin{aligned}#1\\end{aligned}\\right.", 1],
+                    hoac: ["\\left[\\begin{aligned}#1\\end{aligned}\\right.", 1],
+                    tich: "\\cdot",
+                    deg: "^\\circ",
+                    R: "\\mathbb{R}",
+                    N: "\\mathbb{N}",
+                    Z: "\\mathbb{Z}",
+                    vectors: ["\\overrightarrow{#1}", 1],
+                    mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1]
+                }
+            },
+            options: { ignoreHtmlClass: 'tex2jax_ignore', processHtmlClass: 'tex2jax_process' },
+            startup: { typeset: false }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <!-- TikZJax giống trình số hóa sách: hỗ trợ hình vẽ TikZ trong tệp TeX -->
+    <link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
+    <script src="https://tikzjax.com/v1/tikzjax.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F1F5F9; }
+        .outline-item.selected { background: linear-gradient(135deg, #14B8A6, #0F766E); color: #fff; box-shadow: 0 4px 12px rgb(13 148 136 / 0.3); }
+        .outline-item.selected .outline-sub { color: rgb(255 255 255 / 0.75); }
+        .outline-item.selected .outline-actions button { color: rgb(255 255 255 / 0.8); }
+        .q-preview-content img { max-width: 100%; height: auto; }
+        .q-preview-content table { margin: 0 auto; }
+        .topic-rendered-image, [data-topic-asset-result] { float: right; width: 42% !important; margin: .4rem 0 .8rem 1rem; }
+        [data-topic-asset-result] img { width: 100% !important; max-width: 100% !important; max-height: 360px !important; object-fit: contain; }
+        .topic-immini-flow { display: block; }
+        .topic-immini-side { float: right; width: clamp(240px, 42%, 440px); margin: .4rem 0 .8rem 1rem; }
+        .topic-immini-side [data-topic-asset-result], .topic-immini-side .topic-rendered-image { float: none; width: 100% !important; margin: 0; }
+        /* Tương thích các câu immini đã nạp trước bản sửa: phá bố cục hai cột cố định. */
+        .q-preview-content .flex.flex-col[class*="md:flex-row"][class*="gap-4"][class*="items-start"] { display: block; }
+        .q-preview-content .flex.flex-col[class*="md:flex-row"][class*="gap-4"][class*="items-start"] > div:first-child { display: block; }
+        .q-preview-content .flex.flex-col[class*="md:flex-row"][class*="gap-4"][class*="items-start"] > div:last-child { float: right; width: clamp(240px, 42%, 440px); margin: .4rem 0 .8rem 1rem; }
+        .q-preview-content .flex.flex-col[class*="md:flex-row"][class*="gap-4"][class*="items-start"]::after { content: ""; display: table; clear: both; }
+        .q-preview-content::after { content: ""; display: table; clear: both; }
+        @media (max-width: 640px) {
+            .topic-rendered-image, [data-topic-asset-result] { float: none; width: 68% !important; margin: .75rem auto; }
+            .topic-immini-side { float: none; width: 68%; margin: .75rem auto; }
+        }
+        .drag-over { outline: 2px dashed #0D9488; outline-offset: 2px; }
+        ::-webkit-scrollbar { width: 8px; }
+    </style>
+<meta name="view-transition" content="same-origin" /></head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- ===================== THANH CÔNG CỤ TRÊN CÙNG ===================== -->
+    <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 gap-3 shrink-0 z-30 shadow-sm">
+        <div class="flex items-center gap-3 min-w-0">
+            <a href="dashboard.html" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 shrink-0" title="Về Dashboard"><i class="fa-solid fa-arrow-left"></i></a>
+            <div class="w-9 h-9 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0"><i class="fa-solid fa-cubes"></i></div>
+            <div class="min-w-0">
+                <h1 class="font-black text-gray-800 leading-tight truncate">Xưởng Xây Chuyên Đề</h1>
+                <p class="text-[11px] text-gray-400 font-bold hidden md:block">Soạn chuyên đề luyện tập từ kho câu hỏi có sẵn</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button onclick="openTopicList()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-bold flex items-center gap-2"><i class="fa-solid fa-folder-open"></i><span class="hidden md:inline">Chuyên đề của tôi</span></button>
+            <button onclick="createNewTopic()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-bold flex items-center gap-2" title="Tạo mới"><i class="fa-solid fa-plus"></i><span class="hidden md:inline">Mới</span></button>
+            <select id="topicStatus" class="border border-gray-200 rounded-xl px-2 py-2 text-sm font-bold text-gray-600 bg-white">
+                <option value="draft">📝 Bản nháp</option>
+                <option value="published">✅ Xuất bản</option>
+            </select>
+            <button onclick="openSellModal()" class="px-3 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-100" title="Đăng chuyên đề lên trang chủ như một khóa học"><i class="fa-solid fa-store"></i><span class="hidden md:inline">Đăng bán</span></button>
+            <button id="btnSave" type="button" onclick="window.saveTopic()" class="px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm hover:bg-teal-700"><i class="fa-solid fa-floppy-disk"></i> Lưu</button>
+        </div>
+    </header>
+
+    <!-- ===================== BỐ CỤC 3 CỘT ===================== -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- ============ CỘT TRÁI: THÔNG TIN + MỤC LỤC ============ -->
+        <aside class="w-[300px] bg-white border-r border-gray-200 flex flex-col shrink-0 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 space-y-2 shrink-0">
+                <input id="topicTitle" type="text" placeholder="Tên chuyên đề (VD: Hệ thức Vi-ét nâng cao)" class="w-full font-black text-gray-800 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-teal-400 outline-none">
+                <textarea id="topicDesc" rows="2" placeholder="Mô tả ngắn cho học sinh..." class="w-full text-xs text-gray-600 border border-gray-200 rounded-xl px-3 py-2 resize-none focus:border-teal-400 outline-none"></textarea>
+                <!-- BANNER CHUYÊN ĐỀ: hiển thị ở trang học sinh & trang chủ khi đăng bán -->
+                <div class="flex items-center gap-2">
+                    <div id="bannerPreview" class="w-20 h-12 rounded-lg bg-gray-100 border border-gray-200 bg-cover bg-center flex items-center justify-center text-gray-300 shrink-0"><i class="fa-regular fa-image"></i></div>
+                    <label class="flex-1 px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold text-center cursor-pointer hover:bg-indigo-100">
+                        <i class="fa-solid fa-panorama"></i> Tải ảnh banner
+                        <input id="bannerInput" type="file" class="hidden" accept=".png,.jpg,.jpeg,.webp" onchange="handleBannerUpload(this)">
+                    </label>
+                </div>
+                <div class="flex gap-2">
+                    <select id="topicGrade" class="flex-1 border border-gray-200 rounded-xl px-2 py-1.5 text-xs font-bold text-gray-600 bg-white">
+                        <option value="6">Lớp 6</option><option value="7">Lớp 7</option><option value="8">Lớp 8</option>
+                        <option value="9" selected>Lớp 9</option><option value="10">Lớp 10</option><option value="11">Lớp 11</option><option value="12">Lớp 12</option>
+                    </select>
+                    <select id="topicSubject" class="flex-1 border border-gray-200 rounded-xl px-2 py-1.5 text-xs font-bold text-gray-600 bg-white">
+                        <option value="D">Đại số</option><option value="H">Hình học</option><option value="X">Xác suất - TK</option><option value="A">Chung</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="px-4 pt-3 pb-2 flex items-center justify-between shrink-0">
+                <h2 class="text-xs font-black text-gray-400 uppercase tracking-wider">Mục lục</h2>
+                <button onclick="addChapter()" class="text-xs font-bold text-teal-600 hover:text-teal-800 flex items-center gap-1"><i class="fa-solid fa-plus"></i> Thêm chương</button>
+            </div>
+            <div id="outlineTree" class="flex-1 overflow-y-auto px-3 pb-4 space-y-1"></div>
+
+            <div class="p-3 border-t border-gray-100 bg-gray-50 text-[11px] text-gray-500 font-bold flex justify-between shrink-0">
+                <span><i class="fa-solid fa-circle-question text-teal-500"></i> <span id="statTotalQ">0</span> câu hỏi</span>
+                <span><i class="fa-solid fa-paperclip text-indigo-500"></i> <span id="statTotalF">0</span> tệp</span>
+                <span><i class="fa-solid fa-note-sticky text-amber-500"></i> <span id="statTotalN">0</span> ghi chú</span>
+            </div>
+        </aside>
+
+        <!-- ============ CỘT GIỮA: NỘI DUNG MỤC ĐANG CHỌN ============ -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+            <div class="h-14 px-5 flex items-center justify-between border-b border-gray-200 bg-white shrink-0">
+                <div class="min-w-0">
+                    <h2 id="sectionTitle" class="font-black text-gray-800 truncate">Chọn một bài trong mục lục</h2>
+                    <p id="sectionSub" class="text-[11px] text-gray-400 font-bold">Nội dung sẽ hiển thị tại đây</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0" id="sectionActions" style="display:none">
+                    <button id="btnProcessTopicTikz" onclick="window.processTopicTikz()" class="px-3 py-1.5 bg-violet-50 text-violet-700 border border-violet-200 rounded-lg text-xs font-bold hover:bg-violet-100 disabled:opacity-50 flex items-center gap-1.5" title="Chuyển các đoạn mã TikZ thành hình"><span class="relative w-5 h-5 flex items-center justify-center"><i class="fa-solid fa-shapes opacity-30"></i><b id="topicTikzCount" class="absolute inset-0 flex items-center justify-center text-[10px]">0</b></span><span id="topicTikzLabel">Biên dịch TikZ</span></button>
+                    <label id="btnTopicImageFolder" class="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-100 cursor-pointer flex items-center gap-1.5" title="Chọn thư mục chứa ảnh được gọi trong tệp TeX"><span class="relative w-5 h-5 flex items-center justify-center"><i class="fa-solid fa-folder opacity-30"></i><b id="topicImageCount" class="absolute inset-0 flex items-center justify-center text-[10px]">0</b></span><span class="hidden xl:inline">Nạp thư mục ảnh</span><input type="file" class="hidden" accept="image/*" multiple webkitdirectory directory onchange="window.topicChooseImageFolder(this)"></label>
+                    <button onclick="window.showTopicAssetReport()" class="px-3 py-1.5 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-100" title="Xem trạng thái toàn bộ hình"><i class="fa-solid fa-table-list"></i> <span class="hidden xl:inline">Bảng hình</span></button>
+                    <button onclick="addNote()" class="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-bold hover:bg-amber-100"><i class="fa-solid fa-note-sticky"></i> Ghi chú/Lý thuyết</button>
+                    <label class="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold hover:bg-indigo-100 cursor-pointer flex items-center gap-1.5" title="Nạp TeX, ảnh đi kèm hoặc đính kèm tài liệu"><i class="fa-solid fa-paperclip"></i><span>Tải tệp lên</span><span class="relative w-5 h-5 flex items-center justify-center rounded bg-violet-100" title="Số hình TikZ cần biên dịch"><i class="fa-solid fa-shapes opacity-20"></i><b id="topicUploadTikzCount" class="absolute inset-0 flex items-center justify-center text-[10px]">0</b></span><span class="relative w-5 h-5 flex items-center justify-center rounded bg-blue-100" title="Số ảnh cần chèn"><i class="fa-solid fa-image opacity-20"></i><b id="topicUploadImageCount" class="absolute inset-0 flex items-center justify-center text-[10px]">0</b></span><input id="fileInput" type="file" class="hidden" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.tex,text/x-tex,image/*" onchange="handleFileUpload(this)"></label>
+                </div>
+            </div>
+            <div id="sectionContent" class="flex-1 overflow-y-auto p-5 space-y-3">
+                <div class="text-center py-20 text-gray-400">
+                    <i class="fa-solid fa-arrow-left text-3xl mb-3 opacity-40"></i>
+                    <p class="font-bold">Chọn một <b>bài</b> ở cột mục lục bên trái để bắt đầu thêm nội dung.</p>
+                    <p class="text-xs mt-1">Cấu trúc: Chuyên đề → Chương → Bài → (Câu hỏi / Ghi chú / Tệp)</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- ============ CỘT PHẢI: KHO CÂU HỎI (lọc phân tầng + preview) ============ -->
+        <aside class="w-[420px] bg-white border-l border-gray-200 flex flex-col shrink-0 overflow-hidden">
+            <div class="p-3 border-b border-gray-100 space-y-2 shrink-0">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-black text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-database text-teal-500"></i> Kho câu hỏi</h2>
+                    <span id="bankCount" class="text-[11px] font-bold text-gray-400">Đang tải...</span>
+                </div>
+                <!-- BỘ LỌC PHÂN TẦNG: Lớp -> Phân môn -> Chương/Bài -> Dạng -->
+                <div class="grid grid-cols-2 gap-1.5">
+                    <select id="fGrade" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-bold text-gray-700 bg-white" onchange="onGradeChange()">
+                        <option value="6">Lớp 6</option><option value="7">Lớp 7</option><option value="8">Lớp 8</option>
+                        <option value="9" selected>Lớp 9</option><option value="10">Lớp 10</option><option value="11">Lớp 11</option><option value="12">Lớp 12</option>
+                    </select>
+                    <select id="fLv1" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-bold text-gray-700 bg-white" onchange="onCascade(1)"><option value="">— Phân môn (tất cả) —</option></select>
+                    <select id="fLv2" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-bold text-gray-700 bg-white" onchange="onCascade(2)"><option value="">— Chương/Bài (tất cả) —</option></select>
+                    <select id="fLv3" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-bold text-gray-700 bg-white" onchange="onCascade(3)"><option value="">— Dạng (tất cả) —</option></select>
+                </div>
+                <div class="flex items-center gap-1.5 flex-wrap" id="levelFilters">
+                    <label class="px-2 py-1 rounded-lg border border-green-200 bg-green-50 text-green-700 text-[11px] font-black cursor-pointer flex items-center gap-1"><input type="checkbox" value="NB" checked class="accent-green-600" onchange="applyBankFilter()">NB</label>
+                    <label class="px-2 py-1 rounded-lg border border-primary-200 bg-primary-50 text-primary-700 text-[11px] font-black cursor-pointer flex items-center gap-1"><input type="checkbox" value="TH" checked class="accent-blue-600" onchange="applyBankFilter()">TH</label>
+                    <label class="px-2 py-1 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 text-[11px] font-black cursor-pointer flex items-center gap-1"><input type="checkbox" value="VD" checked class="accent-orange-600" onchange="applyBankFilter()">VD</label>
+                    <label class="px-2 py-1 rounded-lg border border-red-200 bg-red-50 text-red-700 text-[11px] font-black cursor-pointer flex items-center gap-1"><input type="checkbox" value="VDC" checked class="accent-red-600" onchange="applyBankFilter()">VDC</label>
+                    <input id="bankSearch" type="text" placeholder="Tìm ID..." class="flex-1 min-w-[90px] border border-gray-200 rounded-lg px-2 py-1 text-[11px] font-bold outline-none focus:border-teal-400" oninput="applyBankFilter()">
+                </div>
+                <div class="flex gap-1.5">
+                    <input id="randomCount" type="number" min="1" max="50" value="5" class="w-14 border border-gray-200 rounded-lg px-1 py-1.5 text-xs font-bold text-center outline-none focus:border-teal-400">
+                    <button onclick="addRandomQuestions()" class="flex-1 px-2 py-1.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg text-[11px] font-black hover:bg-teal-100"><i class="fa-solid fa-shuffle"></i> Ngẫu nhiên</button>
+                    <label class="px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 text-[11px] font-black cursor-pointer flex items-center gap-1.5" title="Chọn tất cả câu đang hiển thị"><input type="checkbox" id="checkAllBank" class="accent-teal-600" onchange="toggleCheckAll(this)">Chọn trang</label>
+                </div>
+            </div>
+
+            <div id="bankList" class="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/50">
+                <div class="text-center py-10 text-gray-400 text-xs font-bold">Đang tải kho câu hỏi...</div>
+            </div>
+
+            <!-- THANH THÊM CÂU ĐÃ CHỌN -->
+            <div class="p-3 border-t border-gray-200 bg-white shrink-0">
+                <button id="btnAddChecked" onclick="addCheckedQuestions()" class="w-full py-2.5 bg-teal-600 text-white rounded-xl text-sm font-black shadow-sm hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400" disabled>
+                    <i class="fa-solid fa-plus"></i> Thêm <span id="checkedCount">0</span> câu đã chọn vào bài
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ===================== MODAL XEM TRƯỚC CÂU HỎI ===================== -->
+    <div id="previewModal" class="fixed inset-0 z-[100] hidden bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="font-black text-gray-800">Xem trước</span>
+                    <span id="pvId" class="text-[11px] font-mono font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded truncate"></span>
+                </div>
+                <button onclick="document.getElementById('previewModal').classList.add('hidden')" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="pvBody" class="flex-1 overflow-y-auto p-5 q-preview-content tex2jax_process text-[15px] leading-relaxed text-gray-800"></div>
+            <div class="px-5 py-3 border-t border-gray-100 flex justify-end gap-2 shrink-0">
+                <button onclick="document.getElementById('previewModal').classList.add('hidden')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold">Đóng</button>
+                <button id="pvAddBtn" class="px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-bold"><i class="fa-solid fa-plus"></i> Thêm vào bài</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== MODAL DANH SÁCH CHUYÊN ĐỀ ===================== -->
+    <div id="listModal" class="fixed inset-0 z-[100] hidden bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <span class="font-black text-gray-800"><i class="fa-solid fa-folder-open text-teal-600"></i> Chuyên đề của tôi</span>
+                <button onclick="document.getElementById('listModal').classList.add('hidden')" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="listBody" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- ===================== MODAL SOẠN GHI CHÚ (có preview LaTeX) ===================== -->
+    <div id="noteModal" class="fixed inset-0 z-[100] hidden bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <span class="font-black text-gray-800"><i class="fa-solid fa-note-sticky text-amber-500"></i> Ghi chú / Lý thuyết (hỗ trợ LaTeX: $...$)</span>
+                <button onclick="document.getElementById('noteModal').classList.add('hidden')" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-0">
+                <textarea id="noteInput" class="p-4 text-sm font-mono border-r border-gray-100 outline-none resize-none overflow-y-auto" placeholder="Nhập nội dung... VD: Định lý Vi-ét: $x_1+x_2=-\frac{b}{a}$" oninput="debouncePreviewNote()"></textarea>
+                <div id="notePreview" class="p-4 overflow-y-auto q-preview-content tex2jax_process text-[15px] text-gray-800 bg-gray-50"></div>
+            </div>
+            <div class="px-5 py-3 border-t border-gray-100 flex justify-end gap-2 shrink-0">
+                <button onclick="document.getElementById('noteModal').classList.add('hidden')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold">Hủy</button>
+                <button onclick="confirmNote()" class="px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-bold"><i class="fa-solid fa-check"></i> Lưu ghi chú</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== MODAL ĐĂNG BÁN LÊN TRANG CHỦ ===================== -->
+    <div id="sellModal" class="fixed inset-0 z-[100] hidden bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                <span class="font-black text-gray-800"><i class="fa-solid fa-store text-amber-500"></i> Đăng bán chuyên đề</span>
+                <button onclick="document.getElementById('sellModal').classList.add('hidden')" class="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-400"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 space-y-3">
+                <p class="text-xs text-gray-500">Chuyên đề sẽ xuất hiện trong danh sách khóa học ở <b>trang chủ</b> (và tab Quản lý Khóa học). Đặt giá 0 = Miễn phí.</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-[11px] font-black text-gray-400 uppercase">Giá bán (đ)</label><input id="sellPrice" type="number" min="0" value="0" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-amber-400"></div>
+                    <div><label class="text-[11px] font-black text-gray-400 uppercase">Giá gốc (đ)</label><input id="sellOriginalPrice" type="number" min="0" value="0" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-amber-400"></div>
+                </div>
+                <div><label class="text-[11px] font-black text-gray-400 uppercase">Nhãn hiển thị</label><input id="sellTag" type="text" value="Chuyên đề" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-amber-400"></div>
+                <div id="sellWarn" class="hidden text-[11px] font-bold text-red-500 bg-red-50 border border-red-100 rounded-lg p-2"></div>
+            </div>
+            <div class="px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
+                <button onclick="document.getElementById('sellModal').classList.add('hidden')" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold">Hủy</button>
+                <button id="btnSellConfirm" onclick="confirmSell()" class="px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600"><i class="fa-solid fa-check"></i> Đăng lên trang chủ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notificationContainer" class="fixed top-5 right-5 z-[200] space-y-3 pointer-events-none"></div>
+
+    <script type="module">
+        import { 
+            initializeApp, getAuth, onAuthStateChanged,
+            getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, query, where, getDocs,
+            supabase
+        } from "./supabase-db-compat.js";
+        import { formatContent, compileTikZToImage, cleanTikzCode } from "./utils.js";
+        import { readCache, writeCache } from "./perf-cache.js";
+        import { parseBookTexItems, normalizeTexAssetName } from "./tex-import-utils.js";
+
+        // ====== CẤU HÌNH SUPABASE ======
+        const app = initializeApp({});
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const WORKER_URL = "https://upload-helper.phamngockhanh-942001.workers.dev";
+        const COLLECTION = "custom_topics"; // collection MỚI - không đụng dữ liệu cũ
+
+        // ====== TRẠNG THÁI ======
+        let currentUser = null;
+        let bankMeta = [];            // metadata kho câu hỏi (id, mapId, ...)
+        let topicId = null;           // id doc Firestore của chuyên đề đang mở
+        let outline = [];             // [{id,title,children:[{id,title,items:[...]}]}]
+        let topicPendingAssets = [];  // cùng mô hình hàng đợi hình với Sách Số Hóa
+        let selChapter = null, selLesson = null; // id chương/bài đang chọn
+        const qCache = {};            // cache nội dung câu hỏi đã fetch
+
+        let bannerUrl = "";           // anh banner cua chuyen de
+        const uid = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        function renderBannerPreview() {
+            const el = $('bannerPreview');
+            if (bannerUrl) { el.style.backgroundImage = `url('${bannerUrl}')`; el.innerHTML = ''; }
+            else { el.style.backgroundImage = ''; el.innerHTML = '<i class="fa-regular fa-image"></i>'; }
+        }
+        window.handleBannerUpload = async (input) => {
+            const file = input.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) { showNotification("Ảnh quá lớn (>5MB).", "error"); input.value = ''; return; }
+            showNotification("Đang tải banner lên...", "info");
+            try {
+                const formData = new FormData();
+                const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                formData.append('file', file, `topics/banner_${Date.now()}_${safeName}`);
+                const res = await fetch(`${WORKER_URL}/`, { method: 'PUT', body: formData });
+                if (!res.ok) throw new Error("Lỗi kết nối Cloudflare");
+                const data = await res.json();
+                bannerUrl = data.url || `${WORKER_URL}/${data.key}`;
+                renderBannerPreview();
+                showNotification("Đã cập nhật banner! Nhớ bấm Lưu.");
+            } catch (e) { showNotification("Lỗi tải banner: " + e.message, "error"); }
+            input.value = '';
+        };
+        const $ = (id) => document.getElementById(id);
+
+        // ====== TOAST ======
+        window.showNotification = (msg, type = 'success') => {
+            const color = type === 'success' ? 'green' : (type === 'info' ? 'blue' : 'red');
+            const icon = type === 'success' ? 'check' : (type === 'info' ? 'circle-info' : 'circle-exclamation');
+            const div = document.createElement('div');
+            div.className = `notification-toast pointer-events-auto bg-white border-l-4 border-${color}-500 shadow-xl rounded-lg p-4 w-80 flex items-start gap-3`;
+            div.innerHTML = `<i class="fa-solid fa-${icon} text-${color}-500 mt-1"></i><div><h4 class="font-bold text-gray-800 text-sm">${type === 'success' ? 'Thành công' : type === 'info' ? 'Thông báo' : 'Lỗi'}</h4><p class="text-sm text-gray-600">${msg}</p></div>`;
+            $('notificationContainer').appendChild(div);
+            setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 400); }, 3000);
+        };
+
+        // ====== ĐĂNG NHẬP & KHỞI ĐỘNG ======
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = "index.html"; return; }
+            try {
+                const uSnap = await getDoc(doc(db, "users", user.uid));
+                if (uSnap.exists() && uSnap.data().role === 'student') { window.location.href = "student.html"; return; }
+            } catch (e) { /* không đọc được role -> vẫn cho vào (giáo viên) */ }
+            currentUser = user;
+            loadBank();
+            createNewTopic(); // khởi tạo khung trống
+        });
+
+        let mapTree = [];
+        async function loadBank() {
+            const cachedBank = readCache('topic-builder-bank', 10 * 60 * 1000);
+            const cachedTree = readCache('topic-builder-map-tree', 60 * 60 * 1000);
+            if (cachedBank) bankMeta = cachedBank;
+            if (cachedTree) mapTree = cachedTree;
+            if (cachedBank || cachedTree) {
+                $('bankCount').innerText = bankMeta.length ? `${bankMeta.length} câu trong kho` : 'Đang tải kho';
+                initCascade();
+                applyBankFilter();
+            }
+            try {
+                const [bankResult, treeResult] = await Promise.allSettled([
+                    fetch(`${WORKER_URL}/bank`),
+                    getDoc(doc(db, "configurations", "map_id_tree"))
+                ]);
+                if (bankResult.status === 'fulfilled' && bankResult.value.ok) {
+                    bankMeta = await bankResult.value.json();
+                    if (!Array.isArray(bankMeta)) bankMeta = [];
+                    writeCache('topic-builder-bank', bankMeta);
+                }
+                if (treeResult.status === 'fulfilled' && treeResult.value.exists()) {
+                    mapTree = treeResult.value.data().tree || [];
+                    writeCache('topic-builder-map-tree', mapTree);
+                }
+            } catch (e) { console.error("Không thể làm mới kho chuyên đề:", e); }
+            $('bankCount').innerText = bankMeta.length ? `${bankMeta.length} câu trong kho` : 'Không tải được kho';
+            initCascade();
+            applyBankFilter();
+        }
+
+        // ====== MỨC ĐỘ TỪ ID (giữ NGUYÊN quy ước ID hiện có - chỉ đọc, không sửa) ======
+        const levelOf = (id) => {
+            const s = String(id || "");
+            if (s.includes('VDC')) return 'VDC';
+            if (s.includes('VD')) return 'VD';
+            if (s.includes('TH')) return 'TH';
+            if (s.includes('NB')) return 'NB';
+            return 'TH';
+        };
+        const LEVEL_BADGE = {
+            NB:  'bg-green-50 text-green-600 border-green-100',
+            TH:  'bg-primary-50 text-primary-600 border-primary-100',
+            VD:  'bg-orange-50 text-orange-600 border-orange-100',
+            VDC: 'bg-red-50 text-red-600 border-red-100'
+        };
+        const gradeOf = (meta) => {
+            const src = String(meta.mapId || meta.id || "");
+            const m = src.match(/^(\d+)/);
+            return m ? m[1] : "";
+        };
+
+        // ====== CỘT PHẢI: KHO CÂU HỎI (lọc phân tầng + preview render sẵn) ======
+        const baseOf = (id) => {
+            let raw = String(id || "").split('_')[0];
+            const m = raw.match(/^(\d+[a-zA-Z])/i);
+            if (!m) return raw.toUpperCase();
+            const prefix = m[1].toUpperCase();
+            const parts = raw.substring(prefix.length).match(/\d+/g) || [];
+            return prefix + (parts.length > 0 ? "|" + parts.join("|") : "");
+        };
+
+        // --- Cascade: Lớp -> Phân môn -> Chương/Bài -> Dạng (đi theo cây MapID) ---
+        let cascadeNodes = { 1: [], 2: [], 3: [] }; // node hien co cua tung select
+
+        function fillSelect(sel, nodes, placeholder) {
+            sel.innerHTML = `<option value="">${placeholder}</option>`;
+            nodes.forEach((n, i) => {
+                const name = String(n.name || n.id || '').replace(/<[^>]*>/g, '').slice(0, 60);
+                sel.innerHTML += `<option value="${i}">${name}</option>`;
+            });
+            sel.disabled = nodes.length === 0;
+        }
+
+        window.initCascade = () => {
+            window.onGradeChange();
+        };
+        window.onGradeChange = () => {
+            const grade = $('fGrade').value;
+            const roots = mapTree.filter(n => String(n.name || '').includes(grade));
+            let sections = [];
+            roots.forEach(r => { (r.children || []).forEach(c => sections.push(c)); });
+            cascadeNodes[1] = sections;
+            fillSelect($('fLv1'), sections, '— Phân môn (tất cả) —');
+            cascadeNodes[2] = []; fillSelect($('fLv2'), [], '— Chương/Bài (tất cả) —');
+            cascadeNodes[3] = []; fillSelect($('fLv3'), [], '— Dạng (tất cả) —');
+            applyBankFilter();
+        };
+        window.onCascade = (lv) => {
+            const sel = $(`fLv${lv}`);
+            const idx = sel.value;
+            const node = idx === '' ? null : cascadeNodes[lv][parseInt(idx)];
+            if (lv < 3) {
+                const children = node ? (node.children || []) : [];
+                cascadeNodes[lv + 1] = children;
+                fillSelect($(`fLv${lv + 1}`), children, lv === 1 ? '— Chương/Bài (tất cả) —' : '— Dạng (tất cả) —');
+                if (lv === 1) { cascadeNodes[3] = []; fillSelect($('fLv3'), [], '— Dạng (tất cả) —'); }
+            }
+            applyBankFilter();
+        };
+
+        function selectedPath() {
+            // Duong dan sau nhat dang chon (ghep id cac node bang '|')
+            let path = [];
+            for (let lv = 1; lv <= 3; lv++) {
+                const idx = $(`fLv${lv}`).value;
+                if (idx === '') break;
+                const node = cascadeNodes[lv][parseInt(idx)];
+                if (!node) break;
+                path.push(String(node.id));
+            }
+            return path.length ? baseOf(path.join('|')) : null;
+        }
+
+        // --- Loc + phan trang + preview ---
+        const PAGE_SIZE = 12;
+        let bankPage = 0;
+        let checkedIds = new Set();
+
+        window.applyBankFilter = () => {
+            const kw = $('bankSearch').value.trim().toUpperCase();
+            const levels = Array.from(document.querySelectorAll('#levelFilters input[value]')).filter(c => c.checked).map(c => c.value);
+            const grade = $('fGrade').value;
+            const path = selectedPath();
+
+            const filtered = bankMeta.filter(q => {
+                const id = String(q.id || "").toUpperCase();
+                const mapId = String(q.mapId || q.id || "");
+                if (kw && !id.includes(kw) && !mapId.toUpperCase().includes(kw)) return false;
+                if (!levels.includes(levelOf(id))) return false;
+                if (!mapId.startsWith(grade)) return false;
+                if (path) {
+                    const b = baseOf(mapId);
+                    if (!(b === path || b.startsWith(path + '|'))) return false;
+                }
+                return true;
+            });
+            window._filteredBank = filtered;
+            $('bankCount').innerText = `${filtered.length} câu khớp lọc`;
+            bankPage = 0;
+            checkedIds.clear();
+            updateCheckedBar();
+            $('checkAllBank').checked = false;
+            renderBankPage(true);
+        };
+        window.renderBankList = window.applyBankFilter; // alias cho cac cho goi cu
+
+        function renderBankPage(reset) {
+            const box = $('bankList');
+            if (reset) box.innerHTML = '';
+            const list = window._filteredBank || [];
+            if (list.length === 0) {
+                box.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs font-bold">Không có câu nào khớp bộ lọc.</div>';
+                return;
+            }
+            const usedIds = collectUsedIds();
+            const startI = bankPage * PAGE_SIZE;
+            const pageItems = list.slice(startI, startI + PAGE_SIZE);
+            // Bo nut "tai them" cu neu co
+            const oldMore = $('bankMoreBtn'); if (oldMore) oldMore.remove();
+
+            pageItems.forEach(q => {
+                const lv = levelOf(q.id);
+                const used = usedIds.has(q.id);
+                const card = document.createElement('div');
+                card.className = `bank-card bg-white rounded-xl border ${used ? 'border-teal-300' : 'border-gray-200'} overflow-hidden shadow-sm`;
+                card.innerHTML = `
+                    <div class="px-3 py-2 flex items-center gap-2 border-b border-gray-50 ${used ? 'bg-teal-50/60' : 'bg-gray-50/60'}">
+                        <input type="checkbox" class="w-4 h-4 accent-teal-600 shrink-0" ${used ? 'disabled' : ''} ${checkedIds.has(q.id) ? 'checked' : ''} onchange="toggleCheck('${q.id}', this)">
+                        <span class="font-mono text-[10px] font-black text-gray-600 truncate" title="${q.id}">${q.id}</span>
+                        <span class="text-[9px] font-black px-1.5 py-0.5 rounded border ${LEVEL_BADGE[lv]} shrink-0">${lv}</span>
+                        <span class="flex-1"></span>
+                        ${used ? '<span class="text-[9px] font-black text-teal-600 shrink-0"><i class="fa-solid fa-check"></i> Đã thêm</span>' : `<button class="text-[10px] font-black text-teal-600 hover:text-teal-800 shrink-0" onclick="addQuestion('${q.id}')"><i class="fa-solid fa-plus"></i> Thêm</button>`}
+                        <button class="text-gray-300 hover:text-gray-500 shrink-0" title="Phóng to" onclick="previewQuestion('${q.id}')"><i class="fa-solid fa-expand text-[10px]"></i></button>
+                    </div>
+                    <div class="px-3 py-2 q-preview-content tex2jax_process text-[12.5px] leading-relaxed text-gray-700 max-h-36 overflow-hidden relative" id="bank-body-${q.id.replace(/[^a-zA-Z0-9]/g, '_')}">
+                        <i class="fa-solid fa-spinner fa-spin text-gray-200"></i>
+                    </div>`;
+                box.appendChild(card);
+                // Tai va render noi dung (co cache)
+                fetchQuestion(q.id).then(full => {
+                    const el = $(`bank-body-${q.id.replace(/[^a-zA-Z0-9]/g, '_')}`);
+                    if (!el) return;
+                    if (!full) { el.innerHTML = '<span class="text-[11px] text-gray-300 font-bold">Không tải được nội dung.</span>'; return; }
+                    el.innerHTML = (formatContent ? formatContent(full.content || '') : (full.content || ''))
+                        + '<div class="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent"></div>';
+                    typeset(el);
+                });
+            });
+
+            if (startI + PAGE_SIZE < list.length) {
+                const more = document.createElement('button');
+                more.id = 'bankMoreBtn';
+                more.className = 'w-full py-2 text-xs font-black text-teal-600 hover:text-teal-800 bg-white border border-dashed border-teal-200 rounded-xl';
+                more.innerHTML = `<i class="fa-solid fa-angles-down"></i> Xem thêm (còn ${list.length - startI - PAGE_SIZE} câu)`;
+                more.onclick = () => { bankPage++; renderBankPage(false); };
+                box.appendChild(more);
+            }
+        }
+
+        window.toggleCheck = (qId, cb) => {
+            if (cb.checked) checkedIds.add(qId); else checkedIds.delete(qId);
+            updateCheckedBar();
+        };
+        window.toggleCheckAll = (cb) => {
+            const usedIds = collectUsedIds();
+            const list = (window._filteredBank || []).slice(0, (bankPage + 1) * PAGE_SIZE);
+            list.forEach(q => { if (!usedIds.has(q.id)) { if (cb.checked) checkedIds.add(q.id); else checkedIds.delete(q.id); } });
+            document.querySelectorAll('#bankList input[type="checkbox"]:not(:disabled)').forEach(c => c.checked = cb.checked);
+            updateCheckedBar();
+        };
+        function updateCheckedBar() {
+            $('checkedCount').innerText = checkedIds.size;
+            $('btnAddChecked').disabled = checkedIds.size === 0;
+        }
+        window.addCheckedQuestions = () => {
+            const ls = currentLesson();
+            if (!ls) { showNotification("Hãy chọn một BÀI trong mục lục trước.", "error"); return; }
+            const used = collectUsedIds();
+            let added = 0;
+            checkedIds.forEach(qId => { if (!used.has(qId)) { ls.items.push({ id: uid(), type: 'question', qId }); added++; } });
+            checkedIds.clear();
+            showNotification(`Đã thêm ${added} câu vào "${ls.title}".`);
+            renderSection(); renderOutline(); applyBankFilter(); updateStats();
+        };
+
+        function collectUsedIds() {
+            const s = new Set();
+            outline.forEach(ch => ch.children.forEach(ls => ls.items.forEach(it => { if (it.type === 'question') s.add(it.qId); })));
+            return s;
+        }
+
+        // ====== MỤC LỤC (CHƯƠNG / BÀI) ======
+        window.addChapter = () => {
+            outline.push({ id: uid(), title: `Chương ${outline.length + 1}`, children: [] });
+            renderOutline();
+        };
+        window.addLesson = (chId) => {
+            const ch = outline.find(c => c.id === chId);
+            if (!ch) return;
+            const ls = { id: uid(), title: `Bài ${ch.children.length + 1}`, items: [] };
+            ch.children.push(ls);
+            selectLesson(chId, ls.id);
+        };
+        window.renameNode = (chId, lsId) => {
+            const ch = outline.find(c => c.id === chId);
+            if (!ch) return;
+            const node = lsId ? ch.children.find(l => l.id === lsId) : ch;
+            const name = prompt("Tên mới:", node.title);
+            if (name && name.trim()) { node.title = name.trim(); renderOutline(); if (lsId === selLesson) renderSection(); }
+        };
+        window.deleteNode = (chId, lsId) => {
+            if (!confirm("Xóa mục này (và toàn bộ nội dung bên trong)?")) return;
+            if (lsId) {
+                const ch = outline.find(c => c.id === chId);
+                ch.children = ch.children.filter(l => l.id !== lsId);
+                if (selLesson === lsId) { selLesson = null; selChapter = null; renderSection(); }
+            } else {
+                outline = outline.filter(c => c.id !== chId);
+                if (selChapter === chId) { selLesson = null; selChapter = null; renderSection(); }
+            }
+            renderOutline(); updateStats();
+        };
+        window.moveNode = (chId, lsId, dir) => {
+            if (lsId) {
+                const ch = outline.find(c => c.id === chId);
+                const i = ch.children.findIndex(l => l.id === lsId);
+                const j = i + dir;
+                if (j < 0 || j >= ch.children.length) return;
+                [ch.children[i], ch.children[j]] = [ch.children[j], ch.children[i]];
+            } else {
+                const i = outline.findIndex(c => c.id === chId);
+                const j = i + dir;
+                if (j < 0 || j >= outline.length) return;
+                [outline[i], outline[j]] = [outline[j], outline[i]];
+            }
+            renderOutline();
+        };
+        window.selectLesson = (chId, lsId) => {
+            selChapter = chId; selLesson = lsId;
+            renderOutline(); renderSection();
+        };
+
+        function renderOutline() {
+            const box = $('outlineTree');
+            box.innerHTML = '';
+            if (outline.length === 0) {
+                box.innerHTML = '<div class="text-center py-8 text-gray-300 text-xs font-bold">Bấm "+ Thêm chương" để bắt đầu</div>';
+                return;
+            }
+            outline.forEach((ch, ci) => {
+                const chDiv = document.createElement('div');
+                chDiv.innerHTML = `
+                    <div class="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50 group">
+                        <i class="fa-solid fa-book text-teal-500 text-xs"></i>
+                        <span class="flex-1 text-[13px] font-black text-gray-700 truncate cursor-pointer" ondblclick="renameNode('${ch.id}')" title="${ch.title} (nháy đúp để đổi tên)">${ci + 1}. ${ch.title}</span>
+                        <span class="outline-actions opacity-0 group-hover:opacity-100 flex gap-0.5 transition-opacity">
+                            <button class="w-5 h-5 text-gray-400 hover:text-teal-600" onclick="moveNode('${ch.id}', null, -1)" title="Lên"><i class="fa-solid fa-chevron-up text-[9px]"></i></button>
+                            <button class="w-5 h-5 text-gray-400 hover:text-teal-600" onclick="moveNode('${ch.id}', null, 1)" title="Xuống"><i class="fa-solid fa-chevron-down text-[9px]"></i></button>
+                            <button class="w-5 h-5 text-gray-400 hover:text-teal-600" onclick="renameNode('${ch.id}')" title="Đổi tên"><i class="fa-solid fa-pen text-[9px]"></i></button>
+                            <button class="w-5 h-5 text-gray-400 hover:text-red-500" onclick="deleteNode('${ch.id}')" title="Xóa"><i class="fa-solid fa-trash text-[9px]"></i></button>
+                        </span>
+                    </div>`;
+                const lsWrap = document.createElement('div');
+                lsWrap.className = "ml-4 border-l-2 border-gray-100 pl-2 space-y-0.5";
+                ch.children.forEach((ls, li) => {
+                    const qCount = ls.items.filter(i => i.type === 'question' || i.type === 'tex-question' || i.type === 'tex-example').length;
+                    const isSel = ls.id === selLesson;
+                    const lsDiv = document.createElement('div');
+                    lsDiv.className = `outline-item ${isSel ? 'selected' : ''} flex items-center gap-1.5 px-2.5 py-2 rounded-xl cursor-pointer hover:bg-teal-50 group transition-colors`;
+                    lsDiv.onclick = () => selectLesson(ch.id, ls.id);
+                    lsDiv.innerHTML = `
+                        <i class="fa-solid fa-file-lines text-[10px] ${isSel ? '' : 'text-gray-300'}"></i>
+                        <span class="flex-1 text-xs font-bold truncate">${ci + 1}.${li + 1} ${ls.title}</span>
+                        <span class="outline-sub text-[10px] font-black ${isSel ? '' : 'text-gray-400'}">${qCount} câu</span>
+                        <span class="outline-actions opacity-0 group-hover:opacity-100 flex gap-0.5 transition-opacity">
+                            <button class="w-5 h-5 hover:text-white text-gray-400" onclick="event.stopPropagation(); moveNode('${ch.id}','${ls.id}',-1)"><i class="fa-solid fa-chevron-up text-[9px]"></i></button>
+                            <button class="w-5 h-5 hover:text-white text-gray-400" onclick="event.stopPropagation(); moveNode('${ch.id}','${ls.id}',1)"><i class="fa-solid fa-chevron-down text-[9px]"></i></button>
+                            <button class="w-5 h-5 hover:text-white text-gray-400" onclick="event.stopPropagation(); renameNode('${ch.id}','${ls.id}')"><i class="fa-solid fa-pen text-[9px]"></i></button>
+                            <button class="w-5 h-5 hover:text-red-300 text-gray-400" onclick="event.stopPropagation(); deleteNode('${ch.id}','${ls.id}')"><i class="fa-solid fa-trash text-[9px]"></i></button>
+                        </span>`;
+                    lsWrap.appendChild(lsDiv);
+                });
+                const addLs = document.createElement('button');
+                addLs.className = "text-[11px] font-bold text-gray-400 hover:text-teal-600 px-2 py-1";
+                addLs.innerHTML = '<i class="fa-solid fa-plus"></i> Thêm bài';
+                addLs.onclick = () => addLesson(ch.id);
+                lsWrap.appendChild(addLs);
+                chDiv.appendChild(lsWrap);
+                box.appendChild(chDiv);
+            });
+        }
+
+        // ====== CỘT GIỮA: NỘI DUNG BÀI ======
+        function currentLesson() {
+            const ch = outline.find(c => c.id === selChapter);
+            return ch ? ch.children.find(l => l.id === selLesson) : null;
+        }
+
+        async function renderSection() {
+            const ls = currentLesson();
+            const box = $('sectionContent');
+            if (!ls) {
+                $('sectionTitle').innerText = "Chọn một bài trong mục lục";
+                $('sectionSub').innerText = "Nội dung sẽ hiển thị tại đây";
+                $('sectionActions').style.display = 'none';
+                box.innerHTML = '<div class="text-center py-20 text-gray-400"><p class="font-bold">Chọn một <b>bài</b> ở cột trái để thêm nội dung.</p></div>';
+                return;
+            }
+            const ch = outline.find(c => c.id === selChapter);
+            $('sectionTitle').innerText = ls.title;
+            $('sectionSub').innerText = `${ch.title} • ${ls.items.length} mục — kéo câu hỏi từ kho bên phải hoặc dùng nút phía trên`;
+            $('sectionActions').style.display = 'flex';
+            box.innerHTML = '';
+
+            if (ls.items.length === 0) {
+                box.innerHTML = '<div class="text-center py-16 text-gray-300 font-bold text-sm">Bài này chưa có nội dung.<br><span class="text-xs">Bấm nút <b>+</b> ở kho câu hỏi bên phải, hoặc thêm Ghi chú / Tệp ở góc trên.</span></div>';
+                return;
+            }
+
+            for (let i = 0; i < ls.items.length; i++) {
+                const it = ls.items[i];
+                const card = document.createElement('div');
+                card.id = `topic-item-${it.id}`;
+                card.className = "bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden scroll-mt-20";
+                let head = '', body = '';
+                if (it.type === 'question') {
+                    head = `<span class="font-mono text-[11px] font-black text-teal-700 bg-teal-50 px-2 py-0.5 rounded">${it.qId}</span><span class="text-[9px] font-black px-1.5 py-0.5 rounded border ${LEVEL_BADGE[levelOf(it.qId)]}">${levelOf(it.qId)}</span>`;
+                    body = `<div class="q-preview-content tex2jax_process text-sm text-gray-700 leading-relaxed" id="qbody-${it.id}"><i class="fa-solid fa-spinner fa-spin text-gray-300"></i> Đang tải nội dung...</div>`;
+                } else if (it.type === 'note') {
+                    head = `<span class="text-[11px] font-black text-amber-600"><i class="fa-solid fa-note-sticky"></i> GHI CHÚ / LÝ THUYẾT</span>`;
+                    body = `<div class="q-preview-content tex2jax_process text-sm text-gray-700 leading-relaxed">${formatContent ? formatContent(it.content) : it.content}</div>`;
+                } else if (it.type === 'tex-question' || it.type === 'tex-example') {
+                    const isExample = it.type === 'tex-example';
+                    head = isExample
+                        ? `<span class="text-[11px] font-black text-violet-600"><i class="fa-solid fa-lightbulb"></i> VÍ DỤ TỪ TỆP TEX</span>`
+                        : `<span class="text-[11px] font-black text-teal-600"><i class="fa-solid fa-file-circle-question"></i> BÀI TẬP TỪ TỆP TEX</span>`;
+                    const solution = it.solution ? `<details class="mt-3 border-t border-teal-100 pt-2"><summary class="cursor-pointer text-xs font-black text-teal-700">Xem lời giải</summary><div class="mt-2 q-preview-content tex2jax_process text-sm text-gray-700">${renderTexMarkup(it.solution)}</div></details>` : '';
+                    body = `<div class="q-preview-content tex2jax_process text-sm text-gray-700 leading-relaxed">${renderImportedTexQuestion(it)}</div>${solution}`;
+                } else if (it.type === 'file') {
+                    head = `<span class="text-[11px] font-black text-indigo-600"><i class="fa-solid fa-paperclip"></i> TỆP ĐÍNH KÈM</span>`;
+                    body = `<a href="${it.url}" target="_blank" class="inline-flex items-center gap-2 text-sm font-bold text-indigo-600 hover:underline"><i class="fa-solid fa-file-arrow-down"></i> ${it.name}</a>`;
+                }
+                card.innerHTML = `
+                    <div class="px-4 py-2 bg-gray-50/70 border-b border-gray-100 flex items-center gap-2">
+                        <span class="text-[11px] font-black text-gray-300 w-5">${i + 1}</span>
+                        ${head}
+                        <span class="flex-1"></span>
+                        <button class="w-6 h-6 text-gray-400 hover:text-teal-600" onclick="moveItem('${it.id}', -1)"><i class="fa-solid fa-chevron-up text-[10px]"></i></button>
+                        <button class="w-6 h-6 text-gray-400 hover:text-teal-600" onclick="moveItem('${it.id}', 1)"><i class="fa-solid fa-chevron-down text-[10px]"></i></button>
+                        ${it.type === 'note' ? `<button class="w-6 h-6 text-gray-400 hover:text-amber-600" onclick="editNote('${it.id}')"><i class="fa-solid fa-pen text-[10px]"></i></button>` : ''}
+                        <button class="w-6 h-6 text-gray-400 hover:text-red-500" onclick="removeItem('${it.id}')"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                    </div>
+                    <div class="p-4">${body}</div>`;
+                box.appendChild(card);
+            }
+            typeset(box);
+            activateTikz(box);
+            // Tải nội dung các câu hỏi (có cache)
+            ls.items.filter(it => it.type === 'question').forEach(async (it) => {
+                const q = await fetchQuestion(it.qId);
+                const el = $(`qbody-${it.id}`);
+                if (!el) return;
+                if (!q) { el.innerHTML = '<span class="text-red-400 text-xs font-bold">Không tải được nội dung câu này.</span>'; return; }
+                let html = formatContent ? formatContent(q.content || '') : (q.content || '');
+                if (q.options && Array.isArray(q.options)) {
+                    html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-1.5 mt-3">';
+                    q.options.forEach((op, j) => {
+                        const letter = String.fromCharCode(65 + j);
+                        const correct = (q.correctAnswer === letter) || (q.correct === j);
+                        html += `<div class="px-3 py-1.5 rounded-lg border text-[13px] ${correct ? 'border-green-300 bg-green-50 font-bold' : 'border-gray-100'}"><b>${letter}.</b> ${formatContent ? formatContent(op) : op}</div>`;
+                    });
+                    html += '</div>';
+                }
+                el.innerHTML = html;
+                typeset(el);
+            });
+        }
+
+        function typeset(el) {
+            if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]).catch(() => {});
+        }
+
+        function escapeAttribute(value) {
+            return String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        }
+
+        function readBracedGroups(text, start, amount) {
+            const groups = [];
+            let index = start;
+            while (groups.length < amount) {
+                while (/\s/.test(text[index] || '')) index++;
+                if (text[index] !== '{') return null;
+                const begin = ++index;
+                let depth = 1;
+                while (index < text.length && depth) {
+                    if (text[index] === '{') depth++;
+                    else if (text[index] === '}') depth--;
+                    index++;
+                }
+                if (depth) return null;
+                groups.push(text.slice(begin, index - 1));
+            }
+            return { groups, end: index };
+        }
+
+        // Chuyển các phần TeX thường gặp sang bản xem trước: lựa chọn, toán và TikZ.
+        // Phần còn lại vẫn được MathJax xử lý để không làm mất công thức/bảng của giáo viên.
+        function renderTexMarkup(source) {
+            let text = String(source || '').trim();
+            const choiceAt = text.search(/\\choice\b/i);
+            let choices = null;
+            if (choiceAt >= 0) {
+                const parsed = readBracedGroups(text, choiceAt + text.slice(choiceAt).match(/\\choice\b/i)[0].length, 4);
+                if (parsed) {
+                    choices = parsed.groups;
+                    text = (text.slice(0, choiceAt) + '\n' + text.slice(parsed.end)).trim();
+                }
+            }
+            const tikzPattern = /\\begin\{tikzpicture\}([\s\S]*?)\\end\{tikzpicture\}/gi;
+            let markup = '';
+            let cursor = 0, match;
+            while ((match = tikzPattern.exec(text))) {
+                const before = text.slice(cursor, match.index);
+                markup += formatContent ? formatContent(before) : before;
+                markup += `<div class="my-3 overflow-x-auto" data-topic-tikz="${escapeAttribute('\\begin{tikzpicture}' + match[1] + '\\end{tikzpicture}')}"></div>`;
+                cursor = tikzPattern.lastIndex;
+            }
+            markup += formatContent ? formatContent(text.slice(cursor)) : text.slice(cursor);
+            if (choices) {
+                markup += '<div class="clear-both"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">';
+                choices.forEach((choice, index) => {
+                    const letter = String.fromCharCode(65 + index);
+                    markup += `<div class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"><b>${letter}.</b> ${formatContent ? formatContent(choice.replace(/\\True\b/g, '').trim()) : choice}</div>`;
+                });
+                markup += '</div>';
+            }
+            return markup;
+        }
+
+        function normalizeLegacyImminiHtml(markup) {
+            const holder = document.createElement('div');
+            holder.innerHTML = markup;
+            holder.querySelectorAll('.flex.flex-col.md\\:flex-row.gap-4.items-start').forEach((legacy) => {
+                const textColumn = legacy.children[0];
+                const imageColumn = legacy.children[1];
+                if (!textColumn || !imageColumn) return;
+                const flow = document.createElement('div');
+                flow.className = 'topic-immini-flow text-justify';
+                imageColumn.className = 'topic-immini-side';
+                flow.appendChild(imageColumn);
+                while (textColumn.firstChild) flow.appendChild(textColumn.firstChild);
+                const clear = document.createElement('div');
+                clear.className = 'clear-both';
+                flow.appendChild(clear);
+                legacy.replaceWith(flow);
+            });
+            return holder.innerHTML;
+        }
+
+        function renderImportedTexQuestion(item) {
+            let html = normalizeLegacyImminiHtml(renderTexMarkup(item.content || ''));
+            if (Array.isArray(item.options) && item.options.length) {
+                const isTf = item.questionKind === 'tf';
+                html += `<div class="clear-both"></div><div class="grid ${isTf ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-2 mt-3">`;
+                item.options.forEach((option, index) => {
+                    const label = isTf ? String.fromCharCode(97 + index) : String.fromCharCode(65 + index);
+                    const isCorrect = Array.isArray(item.correct) && item.correct.includes(index);
+                    html += `<div class="rounded-lg border px-3 py-2 ${isCorrect ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'}"><b>${label}${isTf ? ')' : '.'}</b> ${renderTexMarkup(option)}${isTf ? `<span class="ml-2 text-[10px] font-black ${isCorrect ? 'text-green-600' : 'text-red-500'}">${isCorrect ? 'ĐÚNG' : 'SAI'}</span>` : ''}</div>`;
+                });
+                html += '</div>';
+            }
+            if (item.questionKind === 'short') {
+                html += `<div class="mt-3 inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-blue-800"><span class="text-xs font-black uppercase">Trả lời ngắn</span><span>${renderTexMarkup(item.answer || '')}</span></div>`;
+            }
+            return html;
+        }
+
+        function activateTikz(root) {
+            root.querySelectorAll('[data-topic-tikz]').forEach((host) => {
+                if (host.dataset.ready) return;
+                host.dataset.ready = '1';
+                const script = document.createElement('script');
+                script.type = 'text/tikz';
+                script.textContent = host.dataset.topicTikz;
+                host.appendChild(script);
+            });
+        }
+
+        async function fetchQuestion(id) {
+            if (qCache[id]) return qCache[id];
+            try {
+                const res = await fetch(`${WORKER_URL}/bank?id=${encodeURIComponent(id)}`);
+                if (res.ok) { qCache[id] = await res.json(); return qCache[id]; }
+            } catch (e) {}
+            return null;
+        }
+
+        // ====== THÊM / XÓA / DI CHUYỂN NỘI DUNG ======
+        window.addQuestion = (qId) => {
+            const ls = currentLesson();
+            if (!ls) { showNotification("Hãy chọn một BÀI trong mục lục trước (hoặc tạo Chương → Bài).", "error"); return; }
+            if (collectUsedIds().has(qId)) { showNotification("Câu này đã có trong chuyên đề.", "info"); return; }
+            ls.items.push({ id: uid(), type: 'question', qId });
+            renderSection(); renderOutline(); renderBankList(); updateStats();
+        };
+        window.addRandomQuestions = () => {
+            const ls = currentLesson();
+            if (!ls) { showNotification("Hãy chọn một BÀI trong mục lục trước.", "error"); return; }
+            const n = Math.max(1, parseInt($('randomCount').value) || 5);
+            const used = collectUsedIds();
+            const pool = (window._filteredBank || []).filter(q => !used.has(q.id));
+            if (pool.length === 0) { showNotification("Không còn câu phù hợp bộ lọc.", "error"); return; }
+            const picked = pool.sort(() => Math.random() - 0.5).slice(0, n);
+            picked.forEach(q => ls.items.push({ id: uid(), type: 'question', qId: q.id }));
+            showNotification(`Đã thêm ${picked.length} câu vào "${ls.title}".`);
+            renderSection(); renderOutline(); renderBankList(); updateStats();
+        };
+        window.removeItem = (itemId) => {
+            const ls = currentLesson(); if (!ls) return;
+            ls.items = ls.items.filter(i => i.id !== itemId);
+            renderSection(); renderOutline(); renderBankList(); updateStats();
+        };
+        window.moveItem = (itemId, dir) => {
+            const ls = currentLesson(); if (!ls) return;
+            const i = ls.items.findIndex(x => x.id === itemId);
+            const j = i + dir;
+            if (j < 0 || j >= ls.items.length) return;
+            [ls.items[i], ls.items[j]] = [ls.items[j], ls.items[i]];
+            renderSection();
+        };
+
+        // ====== GHI CHÚ (LaTeX live preview) ======
+        let editingNoteId = null, noteTimer = null;
+        window.addNote = () => { editingNoteId = null; $('noteInput').value = ''; $('notePreview').innerHTML = ''; $('noteModal').classList.remove('hidden'); };
+        window.editNote = (itemId) => {
+            const ls = currentLesson(); if (!ls) return;
+            const it = ls.items.find(x => x.id === itemId); if (!it) return;
+            editingNoteId = itemId;
+            $('noteInput').value = it.content;
+            $('noteModal').classList.remove('hidden');
+            previewNote();
+        };
+        window.debouncePreviewNote = () => { clearTimeout(noteTimer); noteTimer = setTimeout(previewNote, 400); };
+        function previewNote() {
+            const el = $('notePreview');
+            el.innerHTML = formatContent ? formatContent($('noteInput').value) : $('noteInput').value;
+            typeset(el);
+        }
+        window.confirmNote = () => {
+            const content = $('noteInput').value.trim();
+            if (!content) { showNotification("Nội dung trống.", "error"); return; }
+            const ls = currentLesson(); if (!ls) return;
+            if (editingNoteId) {
+                const it = ls.items.find(x => x.id === editingNoteId);
+                if (it) it.content = content;
+            } else {
+                ls.items.push({ id: uid(), type: 'note', content });
+            }
+            $('noteModal').classList.add('hidden');
+            renderSection(); updateStats();
+        };
+
+        // ====== TẢI TỆP LÊN (dùng đúng Worker upload sẵn có) ======
+        // ====== NẠP LATEX ======
+        function cleanTexForTopic(source) {
+            let text = String(source || '').replace(/\r\n?/g, '\n');
+            const docMatch = text.match(/\\begin\{document\}([\s\S]*?)\\end\{document\}/);
+            if (docMatch) text = docMatch[1];
+            return text.replace(/(^|[^\\])%.*$/gm, '$1').replace(/\\(label|ref|pageref)\{[^}]*\}/g, '').replace(/\\(tableofcontents|maketitle)\b/g, '').trim();
+        }
+
+        function splitTexByHeading(text, command) {
+            const marker = new RegExp('\\\\' + command + '\\*?\\s*\\{([^{}]*)\\}', 'g');
+            const matches = [...text.matchAll(marker)];
+            return matches.map((match, index) => ({
+                title: match[1].replace(/\\[a-zA-Z]+\{([^{}]*)\}/g, '$1').trim() || 'Không tên',
+                body: text.slice(match.index + match[0].length, index + 1 < matches.length ? matches[index + 1].index : text.length).trim()
+            }));
+        }
+
+        function extractTexSolution(raw) {
+            const marker = raw.search(/\\loigiai\s*\{/i);
+            if (marker < 0) return { content: raw.trim(), solution: '' };
+            const open = raw.indexOf('{', marker);
+            let depth = 0;
+            for (let index = open; index < raw.length; index++) {
+                if (raw[index] === '{') depth++;
+                if (raw[index] === '}') depth--;
+                if (depth === 0) {
+                    return {
+                        content: (raw.slice(0, marker) + raw.slice(index + 1)).trim(),
+                        solution: raw.slice(open + 1, index).trim()
+                    };
+                }
+            }
+            return { content: raw.trim(), solution: '' };
+        }
+
+        function parseTexLessonItems(source) {
+            const parsed = parseBookTexItems(source, uid);
+            topicPendingAssets.push(...parsed.assets);
+            return parsed.items;
+        }
+
+        function removeLegacyTexImportNoise(tree) {
+            const legacyNoise = /\\begin\{name\}|\\end\{name\}|\\Open(?:solution)?file|\\subsubsection|\\documentclass|\\usepackage|\\begin\{document\}|\\end\{document\}/i;
+            (tree || []).forEach((chapter) => (chapter.children || []).forEach((lesson) => {
+                lesson.items = (lesson.items || []).filter((item) => !(item.type === 'note' && legacyNoise.test(item.content || '')));
+            }));
+            return tree || [];
+        }
+
+        function buildOutlineFromTex(source) {
+            const text = cleanTexForTopic(source);
+            const sections = splitTexByHeading(text, 'section');
+            const chapterSource = sections.length ? sections : [{ title: 'Nội dung', body: text }];
+            return chapterSource.map((section, chapterIndex) => {
+                const subsections = splitTexByHeading(section.body, 'subsection');
+                const lessons = subsections.length ? subsections : [{ title: section.title || `Bài ${chapterIndex + 1}`, body: section.body }];
+                return { id: uid(), title: section.title || `Chương ${chapterIndex + 1}`, children: lessons.map((lesson, lessonIndex) => ({
+                    id: uid(), title: lesson.title || `Bài ${lessonIndex + 1}`,
+                    items: parseTexLessonItems(lesson.body)
+                })) };
+            }).filter((chapter) => chapter.children.length);
+        }
+
+        function replaceTopicAsset(assetId, replacementHtml) {
+            const marker = `data-topic-asset="${assetId}"`;
+            const visit = (value) => {
+                if (typeof value === 'string' && value.includes(marker)) {
+                    const holder = document.createElement('div');
+                    holder.innerHTML = value;
+                    const placeholder = holder.querySelector(`[data-topic-asset="${assetId}"]`);
+                    if (placeholder) placeholder.outerHTML = replacementHtml;
+                    return holder.innerHTML;
+                }
+                if (Array.isArray(value)) return value.map(visit);
+                if (value && typeof value === 'object') {
+                    Object.keys(value).forEach((key) => { value[key] = visit(value[key]); });
+                }
+                return value;
+            };
+            visit(outline);
+        }
+
+        function topicImageHtml(asset, url) {
+            return `<div data-topic-asset-result="${asset.id}" class="topic-rendered-image"><img src="${url}" alt="${asset.originalPath || 'Hình minh họa'}" loading="lazy" class="w-full h-auto rounded-lg border border-gray-100 shadow-sm" style="max-height:360px;object-fit:contain"></div>`;
+        }
+
+        function locateTopicAsset(assetId) {
+            for (const chapter of outline) for (const lesson of (chapter.children || [])) {
+                const itemIndex = (lesson.items || []).findIndex((item) => JSON.stringify(item).includes(assetId));
+                if (itemIndex >= 0) return { chapter, lesson, item: lesson.items[itemIndex], itemIndex };
+            }
+            return null;
+        }
+
+        window.jumpToTopicAsset = async (assetId) => {
+            const location = locateTopicAsset(assetId);
+            if (!location) return;
+            selChapter = location.chapter.id; selLesson = location.lesson.id;
+            renderOutline(); await renderSection();
+            document.getElementById(`topic-item-${location.item.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+                const target = document.querySelector(`[data-topic-asset="${assetId}"], [data-topic-asset-result="${assetId}"]`);
+                if (target) { target.classList.add('ring-4', 'ring-blue-300'); setTimeout(() => target.classList.remove('ring-4', 'ring-blue-300'), 1800); }
+            }, 150);
+        };
+
+        function activeTopicAssets() {
+            const seen = new Set();
+            return topicPendingAssets.filter((asset) => {
+                if (!asset?.id || seen.has(asset.id) || !locateTopicAsset(asset.id)) return false;
+                seen.add(asset.id);
+                return true;
+            });
+        }
+
+        window.showTopicAssetReport = () => {
+            document.getElementById('topicAssetReportModal')?.remove();
+            const rows = activeTopicAssets().map((asset, index) => {
+                const location = locateTopicAsset(asset.id);
+                const ok = !!asset._done;
+                const number = location ? location.itemIndex + 1 : index + 1;
+                return `<button onclick="window.jumpToTopicAsset('${asset.id}')" title="Câu ${number}" aria-label="Câu ${number}" class="w-8 h-8 rounded-md border text-xs font-black transition-colors ${ok ? 'border-emerald-300 bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'border-red-300 bg-red-100 text-red-700 hover:bg-red-200'}">${number}</button>`;
+            }).join('');
+            const modal = document.createElement('div');
+            modal.id = 'topicAssetReportModal';
+            modal.className = 'fixed top-20 right-4 z-[300] w-[220px] max-w-[calc(100vw-2rem)]';
+            modal.innerHTML = `<div class="bg-white w-full max-h-[40vh] rounded-xl shadow-xl border border-slate-200 overflow-hidden flex flex-col"><div class="px-2.5 py-2 border-b flex items-center justify-between"><span class="font-black text-xs text-slate-700">Hình TeX</span><button onclick="document.getElementById('topicAssetReportModal').remove()" class="w-6 h-6 rounded-md bg-slate-100 text-slate-500"><i class="fa-solid fa-xmark text-xs"></i></button></div><div class="p-2 overflow-y-auto grid grid-cols-5 gap-1.5">${rows || '<span class="col-span-5 py-2 text-center text-slate-400 text-xs">Không có hình</span>'}</div></div>`;
+            modal.addEventListener('click', (event) => { if (event.target === modal) modal.remove(); });
+            document.body.appendChild(modal);
+        };
+
+        async function uploadTopicAsset(asset, file) {
+            const formData = new FormData();
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            formData.append('file', file, `topics/tex_${Date.now()}_${safeName}`);
+            const response = await fetch(`${WORKER_URL}/`, { method: 'PUT', body: formData });
+            if (!response.ok) throw new Error(`Không tải được ảnh ${file.name}`);
+            const data = await response.json();
+            const url = data.url || `${WORKER_URL}/${data.key}`;
+            asset._done = true;
+            asset.url = url;
+            replaceTopicAsset(asset.id, topicImageHtml(asset, url));
+            return url;
+        }
+
+        window.topicUploadPendingImage = async (assetId, input) => {
+            const file = input.files && input.files[0];
+            const asset = topicPendingAssets.find((entry) => entry.id === assetId);
+            if (!file || !asset) return;
+            try {
+                showNotification(`Đang tải ảnh ${file.name}...`, 'info');
+                await uploadTopicAsset(asset, file);
+                renderSection();
+                updateTopicAssetControls();
+                showNotification('Đã thay ảnh vào đúng vị trí.', 'success');
+            } catch (error) { showNotification(error.message, 'error'); }
+        };
+
+        function updateTopicAssetControls() {
+            const assets = activeTopicAssets();
+            const tikzCount = assets.filter((asset) => asset.type === 'tikz' && !asset._done).length;
+            const imageCount = assets.filter((asset) => asset.type === 'image' && !asset._done).length;
+            const tikzButton = $('btnProcessTopicTikz');
+            const folderButton = $('btnTopicImageFolder');
+            if (tikzButton) tikzButton.disabled = tikzCount === 0;
+            if (folderButton) folderButton.title = imageCount ? `Còn ${imageCount} ảnh cần ghép` : 'Chọn thư mục ảnh cho tệp TeX';
+            const label = $('topicTikzLabel');
+            if (label) label.textContent = 'Biên dịch TikZ';
+            if ($('topicTikzCount')) $('topicTikzCount').textContent = tikzCount;
+            if ($('topicImageCount')) $('topicImageCount').textContent = imageCount;
+            if ($('topicUploadTikzCount')) $('topicUploadTikzCount').textContent = tikzCount;
+            if ($('topicUploadImageCount')) $('topicUploadImageCount').textContent = imageCount;
+        }
+
+        async function resolveTopicImages(imageFiles = []) {
+            const fileMap = new Map(imageFiles.map((file) => [normalizeTexAssetName(file.name), file]));
+            const normalAssets = activeTopicAssets().filter((asset) => asset.type === 'image' && !asset._done);
+            for (const asset of normalAssets) {
+                const file = fileMap.get(normalizeTexAssetName(asset.originalPath));
+                if (file) {
+                    try { await uploadTopicAsset(asset, file); }
+                    catch (error) { console.warn(error); }
+                }
+            }
+
+            renderSection();
+            updateTopicAssetControls();
+        }
+
+        window.processTopicTikz = async () => {
+            const tikzQueue = activeTopicAssets().filter((asset) => asset.type === 'tikz' && !asset._done);
+            if (!tikzQueue.length) return showNotification('Không còn hình TikZ cần xử lý.', 'info');
+            const button = $('btnProcessTopicTikz');
+            if (button) button.disabled = true;
+            let cursor = 0;
+            const workers = Array.from({ length: Math.min(3, tikzQueue.length) }, async () => {
+                while (cursor < tikzQueue.length) {
+                    const asset = tikzQueue[cursor++];
+                    try {
+                        const url = await compileTikZToImage(cleanTikzCode(asset.contentCode));
+                        asset._done = true;
+                        asset.url = url;
+                        replaceTopicAsset(asset.id, topicImageHtml(asset, url));
+                    } catch (error) { console.warn('Không biên dịch được TikZ', asset.id, error); }
+                }
+            });
+            if (workers.length) {
+                showNotification(`Đang xử lý ${tikzQueue.length} hình TikZ...`, 'info');
+                await Promise.all(workers);
+            }
+            renderSection();
+            updateTopicAssetControls();
+            if (button) button.disabled = false;
+            const remaining = activeTopicAssets().filter((asset) => !asset._done).length;
+            if (remaining) showNotification(`Còn ${remaining} ảnh chưa có tệp. Bấm đúp vào khung ảnh để tải lên.`, 'info');
+            else if (topicPendingAssets.length) showNotification('Đã xử lý xong toàn bộ hình TeX.', 'success');
+            window.showTopicAssetReport();
+        };
+
+        window.topicChooseImageFolder = async (input) => {
+            const files = Array.from(input.files || []).filter((file) => file.type.startsWith('image/'));
+            if (!files.length) return;
+            showNotification(`Đang dò ${files.length} ảnh theo tên trong tệp TeX...`, 'info');
+            await resolveTopicImages(files);
+            const remaining = activeTopicAssets().filter((asset) => asset.type === 'image' && !asset._done).length;
+            showNotification(remaining ? `Còn ${remaining} ảnh chưa tìm thấy trong thư mục.` : 'Đã ghép xong các ảnh trong thư mục.', remaining ? 'info' : 'success');
+            window.showTopicAssetReport();
+            input.value = '';
+        };
+
+        window.importTopicTex = async (input) => {
+            const files = Array.from(input.files || []);
+            const texFiles = files.filter((file) => /\.tex$/i.test(file.name) || /tex/.test(file.type));
+            const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+            if (!texFiles.length) { showNotification('Hãy chọn ít nhất một tệp .tex.', 'error'); input.value = ''; return; }
+            try {
+                if (outline.length && !confirm('Nạp tệp TeX sẽ thay thế mục lục chuyên đề đang soạn. Tiếp tục?')) return;
+                topicPendingAssets = [];
+                let source = '';
+                for (const file of texFiles) source += await file.text() + '\n\n';
+                const imported = buildOutlineFromTex(source);
+                if (!imported.length) throw new Error('Không tìm thấy nội dung có thể nạp.');
+                outline = imported; selChapter = outline[0].id; selLesson = outline[0].children[0].id;
+                if (!$('topicTitle').value.trim()) $('topicTitle').value = texFiles[0].name.replace(/\.tex$/i, '').replace(/[_-]+/g, ' ');
+                renderOutline(); renderSection(); updateStats();
+                const tfCount = outline.flatMap((chapter) => chapter.children).flatMap((lesson) => lesson.items).filter((item) => item.questionKind === 'tf').length;
+                const shortCount = outline.flatMap((chapter) => chapter.children).flatMap((lesson) => lesson.items).filter((item) => item.questionKind === 'short').length;
+                showNotification(`Đã nạp ${outline.length} chương · ${tfCount} câu đúng/sai · ${shortCount} câu trả lời ngắn.`);
+                updateTopicAssetControls();
+                resolveTopicImages(imageFiles);
+            } catch (error) { showNotification('Không nạp được TeX: ' + error.message, 'error'); }
+            finally { input.value = ''; }
+        };
+
+        function importTexIntoLesson(text, fileName) {
+            const ls = currentLesson();
+            if (!ls) return;
+            const content = cleanTexForTopic(text);
+            if (!content) throw new Error('Tệp TeX không có nội dung để nạp.');
+            const importedItems = parseTexLessonItems(content);
+            ls.items.push(...importedItems);
+            const questionCount = importedItems.filter((item) => item.type === 'tex-question').length;
+            showNotification(`Đã nạp ${questionCount} câu hỏi TeX từ ${fileName}.`);
+            renderSection(); updateStats();
+        }
+
+        window.handleFileUpload = async (input) => {
+            const files = Array.from(input.files || []);
+            const file = files[0];
+            if (!file) return;
+            if (files.some(item => /\.tex$/i.test(item.name) || /tex/.test(item.type))) {
+                await window.importTopicTex(input);
+                return;
+            }
+            const ls = currentLesson();
+            if (!ls) { showNotification("Hãy chọn một BÀI trước khi tải tệp.", "error"); input.value = ''; return; }
+            if (file.size > 20 * 1024 * 1024) { showNotification("Tệp quá lớn (>20MB).", "error"); input.value = ''; return; }
+            if (/\.tex$/i.test(file.name)) {
+                try { importTexIntoLesson(await file.text(), file.name); }
+                catch (e) { showNotification("Không nạp được TeX: " + e.message, "error"); }
+                input.value = '';
+                return;
+            }
+            showNotification("Đang tải tệp lên...", "info");
+            try {
+                const formData = new FormData();
+                const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                formData.append('file', file, `topics/${Date.now()}_${safeName}`);
+                const res = await fetch(`${WORKER_URL}/`, { method: 'PUT', body: formData });
+                if (!res.ok) throw new Error("Lỗi kết nối Cloudflare");
+                const data = await res.json();
+                ls.items.push({ id: uid(), type: 'file', name: file.name, url: data.url || `${WORKER_URL}/${data.key}` });
+                showNotification("Đã đính kèm tệp!");
+                renderSection(); updateStats();
+            } catch (e) { showNotification("Lỗi tải tệp: " + e.message, "error"); }
+            input.value = '';
+        };
+
+        // ====== XEM TRƯỚC CÂU HỎI ======
+        window.previewQuestion = async (qId) => {
+            $('pvId').innerText = qId;
+            $('pvBody').innerHTML = '<div class="text-center py-8 text-gray-300"><i class="fa-solid fa-spinner fa-spin text-xl"></i></div>';
+            $('previewModal').classList.remove('hidden');
+            $('pvAddBtn').onclick = () => { addQuestion(qId); $('previewModal').classList.add('hidden'); };
+            const q = await fetchQuestion(qId);
+            if (!q) { $('pvBody').innerHTML = '<p class="text-red-400 font-bold text-sm">Không tải được câu hỏi.</p>'; return; }
+            let html = formatContent ? formatContent(q.content || '') : (q.content || '');
+            if (q.options && Array.isArray(q.options)) {
+                html += '<div class="space-y-1.5 mt-4">';
+                q.options.forEach((op, j) => {
+                    const letter = String.fromCharCode(65 + j);
+                    const correct = (q.correctAnswer === letter) || (q.correct === j);
+                    html += `<div class="px-3 py-2 rounded-lg border text-sm ${correct ? 'border-green-300 bg-green-50 font-bold' : 'border-gray-100'}"><b>${letter}.</b> ${formatContent ? formatContent(op) : op}</div>`;
+                });
+                html += '</div>';
+            }
+            if (q.solution) {
+                html += `<div class="mt-4 p-3 bg-teal-50 border border-teal-100 rounded-xl"><div class="text-[11px] font-black text-teal-700 uppercase mb-1"><i class="fa-solid fa-lightbulb"></i> Lời giải</div><div class="text-sm">${formatContent ? formatContent(q.solution) : q.solution}</div></div>`;
+            }
+            $('pvBody').innerHTML = html;
+            typeset($('pvBody'));
+        };
+
+        // ====== THỐNG KÊ ======
+        function updateStats() {
+            let q = 0, f = 0, n = 0;
+            outline.forEach(ch => ch.children.forEach(ls => ls.items.forEach(it => {
+                if (it.type === 'question' || it.type === 'tex-question' || it.type === 'tex-example') q++;
+                else if (it.type === 'file') f++;
+                else n++;
+            })));
+            $('statTotalQ').innerText = q; $('statTotalF').innerText = f; $('statTotalN').innerText = n;
+        }
+
+        // ====== LƯU / TẢI / DANH SÁCH CHUYÊN ĐỀ (collection MỚI: custom_topics) ======
+        window.createNewTopic = () => {
+            topicId = null;
+            outline = [];
+            topicPendingAssets = [];
+            selChapter = null; selLesson = null;
+            $('topicTitle').value = '';
+            $('topicDesc').value = '';
+            $('topicStatus').value = 'draft';
+            bannerUrl = '';
+            renderBannerPreview();
+            addChapter();               // sẵn 1 chương
+            addLesson(outline[0].id);   // sẵn 1 bài + tự chọn
+            updateStats();
+        };
+
+        window.saveTopic = async () => {
+            const title = $('topicTitle').value.trim();
+            if (!title) { showNotification("Nhập tên chuyên đề trước khi lưu.", "error"); return; }
+            const btn = $('btnSave');
+            const og = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...'; btn.disabled = true;
+            try {
+                let qCount = 0;
+                outline.forEach(ch => ch.children.forEach(ls => { qCount += ls.items.filter(i => i.type === 'question' || i.type === 'tex-question' || i.type === 'tex-example').length; }));
+                const data = {
+                    title,
+                    bannerUrl,
+                    desc: $('topicDesc').value.trim(),
+                    grade: $('topicGrade').value,
+                    subject: $('topicSubject').value,
+                    status: $('topicStatus').value,
+                    outline,
+                    pendingAssets: topicPendingAssets,
+                    questionCount: qCount,
+                    createdBy: currentUser.uid,
+                    updatedAt: new Date().toISOString()
+                };
+                const safeData = JSON.parse(JSON.stringify(data, (_key, value) => value === undefined ? null : value));
+                if (topicId) {
+                    await setDoc(doc(db, COLLECTION, topicId), safeData, { merge: true });
+                } else {
+                    safeData.createdAt = new Date().toISOString();
+                    const ref = await addDoc(collection(db, COLLECTION), safeData);
+                    topicId = ref.id;
+                }
+                showNotification(`Đã lưu "${title}" (${qCount} câu).`);
+            } catch (e) {
+                console.error('[topic-builder] Không lưu được chuyên đề:', e);
+                showNotification("Lỗi lưu: " + (e?.message || 'Không xác định'), "error");
+            } finally {
+                btn.innerHTML = og;
+                btn.disabled = false;
+            }
+        };
+
+        window.openTopicList = async () => {
+            $('listBody').innerHTML = '<div class="text-center py-8 text-gray-300"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+            $('listModal').classList.remove('hidden');
+            try {
+                const snap = await getDocs(query(collection(db, COLLECTION), where("createdBy", "==", currentUser.uid)));
+                const topics = [];
+                snap.forEach(d => topics.push({ id: d.id, ...d.data() }));
+                topics.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+                if (topics.length === 0) {
+                    $('listBody').innerHTML = '<p class="text-center py-8 text-gray-400 text-sm font-bold">Chưa có chuyên đề nào. Hãy tạo và bấm Lưu!</p>';
+                    return;
+                }
+                $('listBody').innerHTML = '';
+                topics.forEach(t => {
+                    const row = document.createElement('div');
+                    row.className = "p-3 rounded-xl border border-gray-100 hover:border-teal-300 flex items-center gap-3 transition-colors";
+                    row.innerHTML = `
+                        <div class="w-10 h-10 rounded-xl ${t.status === 'published' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'} flex items-center justify-center shrink-0"><i class="fa-solid ${t.status === 'published' ? 'fa-circle-check' : 'fa-pen-ruler'}"></i></div>
+                        <div class="flex-1 min-w-0 cursor-pointer" onclick="loadTopic('${t.id}')">
+                            <div class="font-black text-sm text-gray-800 truncate">${t.title}</div>
+                            <div class="text-[11px] text-gray-400 font-bold">Lớp ${t.grade} • ${t.questionCount || 0} câu • ${t.status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}</div>
+                        </div>
+                        <button class="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg text-xs font-bold hover:bg-teal-100 shrink-0" onclick="loadTopic('${t.id}')">Mở</button>
+                        <button class="w-8 h-8 text-gray-300 hover:text-red-500 shrink-0" onclick="deleteTopic('${t.id}', '${(t.title || '').replace(/'/g, "\\'")}')"><i class="fa-solid fa-trash text-xs"></i></button>`;
+                    $('listBody').appendChild(row);
+                });
+            } catch (e) { $('listBody').innerHTML = `<p class="text-center py-8 text-red-400 text-sm font-bold">Lỗi tải: ${e.message}</p>`; }
+        };
+
+        window.loadTopic = async (id) => {
+            try {
+                const snap = await getDoc(doc(db, COLLECTION, id));
+                if (!snap.exists()) { showNotification("Không tìm thấy chuyên đề.", "error"); return; }
+                const t = snap.data();
+                topicId = id;
+                $('topicTitle').value = t.title || '';
+                $('topicDesc').value = t.desc || '';
+                $('topicGrade').value = t.grade || '9';
+                $('topicSubject').value = t.subject || 'D';
+                $('topicStatus').value = t.status || 'draft';
+                bannerUrl = t.bannerUrl || '';
+                renderBannerPreview();
+                outline = removeLegacyTexImportNoise(t.outline || []);
+                topicPendingAssets = t.pendingAssets || [];
+                updateTopicAssetControls();
+                selChapter = null; selLesson = null;
+                if (outline[0] && outline[0].children[0]) { selChapter = outline[0].id; selLesson = outline[0].children[0].id; }
+                $('listModal').classList.add('hidden');
+                renderOutline(); renderSection(); renderBankList(); updateStats();
+                showNotification(`Đã mở "${t.title}".`, "info");
+            } catch (e) { showNotification("Lỗi: " + e.message, "error"); }
+        };
+
+        window.deleteTopic = async (id, title) => {
+            if (!confirm(`Xóa vĩnh viễn chuyên đề "${title}"?`)) return;
+            try {
+                await deleteDoc(doc(db, COLLECTION, id));
+                if (topicId === id) createNewTopic();
+                openTopicList();
+                showNotification("Đã xóa chuyên đề.");
+            } catch (e) { showNotification("Lỗi: " + e.message, "error"); }
+        };
+
+        // ===== ĐĂNG BÁN: tạo "khóa học" loại chuyên đề trong public_courses =====
+        window.openSellModal = () => {
+            const warn = $('sellWarn');
+            warn.classList.add('hidden');
+            if (!topicId || !$('topicTitle').value.trim()) {
+                showNotification("Hãy Lưu chuyên đề trước khi đăng bán.", "error"); return;
+            }
+            if ($('topicStatus').value !== 'published') {
+                warn.innerText = "Lưu ý: chuyên đề đang ở trạng thái Bản nháp — nên chuyển sang Xuất bản để học sinh luyện được sau khi mua.";
+                warn.classList.remove('hidden');
+            }
+            $('sellModal').classList.remove('hidden');
+        };
+        window.confirmSell = async () => {
+            const btn = $('btnSellConfirm');
+            const og = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng...'; btn.disabled = true;
+            try {
+                const courseRef = doc(db, "public_courses", `topic_${topicId}`);
+                const existing = await getDoc(courseRef);
+                const data = {
+                    type: 'topic_roadmap',            // loại mới: chuyên đề luyện tập
+                    topicId: topicId,                  // trỏ về custom_topics
+                    title: $('topicTitle').value.trim(),
+                    desc: $('topicDesc').value.trim() || 'Chuyên đề luyện tập do giáo viên biên soạn.',
+                    thumbnail: bannerUrl || '',
+                    price: parseInt($('sellPrice').value) || 0,
+                    originalPrice: parseInt($('sellOriginalPrice').value) || 0,
+                    tag: $('sellTag').value.trim() || 'Chuyên đề',
+                    students: existing.exists() ? (existing.data().students || 0) : 0,
+                    updatedAt: new Date().toISOString()
+                };
+                if (!existing.exists()) data.createdAt = new Date().toISOString();
+                await setDoc(courseRef, data, { merge: true });
+                $('sellModal').classList.add('hidden');
+                showNotification("Đã đăng lên trang chủ! Xem tại index.html và tab Quản lý Khóa học.");
+            } catch (e) { showNotification("Lỗi đăng bán: " + e.message, "error"); }
+            btn.innerHTML = og; btn.disabled = false;
+        };
+
+        // Cảnh báo khi rời trang có thay đổi chưa lưu (đơn giản: luôn hỏi nếu có câu hỏi)
+        window.addEventListener('beforeunload', (e) => {
+            const hasContent = outline.some(ch => ch.children.some(ls => ls.items.length > 0));
+            if (hasContent && $('topicTitle').value.trim()) { e.preventDefault(); e.returnValue = ''; }
+        });
+
+        // Đổi khối lớp -> lọc lại kho
+        $('topicGrade').addEventListener('change', renderBankList);
+    </script>
+
+    <script src="/sw-register.js?v=10"></script>
+</body>
+</html>

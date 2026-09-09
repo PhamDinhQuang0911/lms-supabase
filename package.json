@@ -1,0 +1,17 @@
+{
+  "name": "qmath-lms",
+  "private": true,
+  "description": "QMath - Toan Thay Choang. Script build CSS tinh cho Tailwind.",
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i tailwind-input.css -o styles.css --minify",
+    "watch:css": "tailwindcss -c tailwind.config.js -i tailwind-input.css -o styles.css --watch",
+    "serve": "node local-server.js"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  },
+  "dependencies": {
+    "acorn": "^8.18.0",
+    "mammoth": "^1.12.1"
+  }
+}

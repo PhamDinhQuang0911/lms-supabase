@@ -1,0 +1,126 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- 1. HÀM KIỂM TRA QUYỀN GIÁO VIÊN ---
+    function isTeacher() {
+      return request.auth != null 
+             && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+             && (
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' || 
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+             );
+    }
+
+    // --- MỚI THÊM: CHO PHÉP ĐỌC ZALO UID ---
+    match /zalo_uids/{document=**} {
+      allow read, write: if true;
+    }
+
+    // --- 2. BẢNG USERS ---
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.uid == userId || isTeacher());
+    }
+
+    // --- 3. ĐƠN HÀNG / GHI DANH ---
+    match /orders/{orderId} {
+      // Cho phép Script GAS đọc/sửa (để kích hoạt)
+      allow read, update: if true;
+      
+      // Cho phép BẤT KỲ AI (kể cả khách vãng lai chưa đăng nhập) tạo đơn hàng
+      allow create: if true;
+      
+      // Cho phép XÓA nếu là Giáo viên, Chính chủ đơn hàng, HOẶC đơn chờ thanh toán / đơn hủy (tự động dọn đơn rác bỏ dở)
+      allow delete: if isTeacher() 
+                    || (request.auth != null && resource.data.userId == request.auth.uid)
+                    || resource.data.status == 'pending' 
+                    || resource.data.status == 'cancelled';
+    }
+
+    // --- 4. LỚP HỌC ---
+    match /classes/{classId} {
+      allow read: if request.auth != null; 
+      allow write: if isTeacher();
+    }
+
+    // --- 5. ĐỀ THI ---
+    match /exams/{examId} {
+      allow read: if request.auth != null;
+      allow write: if isTeacher();
+    }
+
+    // --- 6. KẾT QUẢ THI ---
+    match /results/{resultId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete: if isTeacher() || (request.auth != null && resource.data.studentId == request.auth.uid);
+      allow update: if isTeacher();
+    }
+    
+    // --- 7. CÁC MỤC KHÁC ---
+    match /folders/{folderId} {
+      allow read, write: if isTeacher();
+    }
+
+    match /public_courses/{courseId} {
+      allow read: if true; 
+      allow write: if isTeacher();
+    }
+
+    match /site_settings/{docId} {
+      allow read: if true;
+      allow write: if isTeacher();
+    }
+    
+    // --- 8. VOUCHER / MÃ GIẢM GIÁ ---
+    // Cho phép khách vãng lai tra cứu mã giảm giá, chỉ Giáo viên mới được Tạo/Sửa/Xóa
+    match /vouchers/{document=**} {
+      allow read: if true;
+      allow write: if isTeacher();
+    }
+    
+    // (Lưu ý: Đang có 2 block rule cho bảng results, giữ nguyên để tránh ảnh hưởng logic khác)
+    match /results/{document=**} {
+      allow read: if request.auth != null; 
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.studentId;
+    }
+
+    // Rule cho bảng user_progress (Tiến độ học tập)
+    match /user_progress/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Cho phép học sinh lưu nháp bài làm
+    match /exam_attempts/{attemptId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    match /configurations/{configId} {
+      allow read: if true; 
+      allow write: if request.auth != null; 
+    }
+    
+    // Cho phép học sinh gửi yêu cầu xin làm lại
+    match /access_requests/{requestId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    match /practice_results/{document} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Cấp quyền cho Kho Chuyên Đề (Đã được sửa lại vị trí vào đúng bên trong khối)
+    match /topic_bank/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
+    match /tags/{tagId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.teacherId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.teacherId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.teacherId;
+    }
+    
+  } // Kết thúc match /databases/{database}/documents
+} // Kết thúc service cloud.firestore

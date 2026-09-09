@@ -1,0 +1,3258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Khóa học - Thầy Choang</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ea580c">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QMath">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
+        .modal { transition: opacity 0.2s ease; }
+        body.modal-active { overflow: hidden; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        /* Toast Animation */
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
+        .animate-fade-in-up { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Tree View Styles */
+        .tree-line { position: absolute; left: 14px; top: 0; bottom: 0; width: 1px; background: #e2e8f0; }
+        .tree-connector { position: absolute; left: 0; top: 50%; width: 12px; height: 1px; background: #e2e8f0; }
+        /* BƯỚC 2: Thêm vào thẻ <style> */
+.draggable-source { opacity: 0.4; border: 2px dashed #0F766E; }
+.drag-over-top { border-top: 2px solid #0F766E !important; }
+.drag-over-bottom { border-bottom: 2px solid #0F766E !important; }
+.drag-over-inside { background-color: #F0FDFA !important; border: 2px dashed #0F766E !important; }
+    </style>
+    <link rel="stylesheet" href="/styles.css?v=5">
+<meta name="view-transition" content="same-origin" /></head>
+<body class="text-gray-700">
+
+    <div id="toastContainer" class="fixed top-5 right-5 z-[200] space-y-3"></div>
+
+    <div id="confirmModal" class="hidden fixed inset-0 z-[210] flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full transform transition-all scale-100">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Xác nhận hành động</h3>
+                <p id="confirmMessage" class="text-gray-500 text-sm mb-6">Bạn có chắc chắn muốn thực hiện?</p>
+                <div class="flex gap-3 justify-center">
+                    <button onclick="window.closeConfirm(false)" class="px-4 py-2 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50">Hủy bỏ</button>
+                    <button id="confirmBtnYes" class="px-6 py-2 bg-red-600 text-white rounded-xl font-bold shadow-lg hover:bg-red-700">Đồng ý</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+            <div>
+                <h1 class="text-2xl font-extrabold text-gray-800">Quản lý Sản phẩm</h1>
+                <p class="text-gray-500 text-sm mt-1">Hệ thống quản lý Khóa học, Tài liệu & Sách in</p>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                <div class="bg-white p-1 rounded-xl border border-gray-200 shadow-sm flex mr-2">
+                    <button onclick="window.switchCourseView('list')" id="btn-view-list" class="p-2.5 rounded-lg text-brand bg-teal-50 transition-all w-10 h-10 flex items-center justify-center"><i class="fa-solid fa-list"></i></button>
+                    <button onclick="window.switchCourseView('grid')" id="btn-view-grid" class="p-2.5 rounded-lg text-gray-400 hover:text-brand transition-all w-10 h-10 flex items-center justify-center"><i class="fa-solid fa-border-all"></i></button>
+                </div>
+
+                <button onclick="window.openVoucherManager()" class="flex-1 md:flex-none bg-white text-orange-600 border border-orange-100 px-4 py-2.5 rounded-xl hover:bg-orange-50 shadow-sm font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-ticket"></i> <span class="hidden sm:inline">Voucher</span>
+                </button>
+                <button onclick="document.getElementById('courseId').value=''; document.getElementById('cType').value='course'; if(window.toggleProductFields) window.toggleProductFields(); document.getElementById('cTitle').value=''; document.getElementById('cDocFileUrl').value=''; document.getElementById('cBookWeight').value=''; document.getElementById('cThumb').value=''; document.getElementById('thumbPreviewBox').classList.add('hidden'); document.getElementById('thumbEmptyState').classList.remove('hidden'); window.toggleModal('courseModal', true);" class="flex-1 md:flex-none bg-brand text-white px-4 py-2.5 rounded-xl hover:bg-teal-800 shadow-lg shadow-teal-700/20 font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-plus"></i> Thêm mới
+                </button>
+            </div>
+        </div>
+
+        <div id="viewListContainer" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-bold">
+                            <th class="p-4 w-20">Ảnh</th>
+                            <th class="p-4">Tên khóa học</th>
+                            <th class="p-4 whitespace-nowrap">Cấu trúc</th>
+                            <th class="p-4 text-center whitespace-nowrap">Học viên</th>
+                            <th class="p-4 text-right">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="courseListTable" class="text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="viewGridContainer" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        
+        <div id="mainLoading" class="text-center py-12 text-gray-400 hidden">
+            <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+            <p>Đang tải dữ liệu...</p>
+        </div>
+    </div>
+
+    <div id="courseModal" class="modal hidden fixed inset-0 z-50 flex items-end md:items-center justify-center bg-gray-900/60 backdrop-blur-md sm:p-4 transition-all">
+        <div class="bg-white w-full md:max-w-2xl h-full md:h-auto md:max-h-[90vh] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                <div>
+                    <h3 class="font-extrabold text-gray-800 text-xl" id="modalTitle">Thiết lập Khóa học</h3>
+                    <p class="text-xs text-gray-400 font-semibold mt-1">Điền thông tin cơ bản và hình ảnh hiển thị</p>
+                </div>
+                <button onclick="window.toggleModal('courseModal')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <div class="p-8 space-y-6 overflow-y-auto custom-scrollbar">
+                <input type="hidden" id="courseId">
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="col-span-1 md:col-span-3">
+        <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1">Loại Sản Phẩm Đăng Bán</label>
+        <select id="cType" onchange="window.toggleProductFields()" class="w-full px-5 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:border-brand focus:ring-4 focus:ring-brand/10 outline-none transition-all font-bold text-brand">
+            <option value="course">🎬 Khóa học trực tuyến (Có giáo án cấu trúc)</option>
+            <option value="document_soft">📄 Tài liệu bản mềm (Hệ thống tự động gửi File qua Email)</option>
+            <option value="document_hard">📚 Sách bản cứng (Yêu cầu HS điền địa chỉ giao hàng)</option>
+        </select>
+    </div>
+
+    <div class="col-span-1 md:col-span-3">
+        <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1">Tên sản phẩm <span class="text-red-500">*</span></label>
+        <input type="text" id="cTitle" class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:border-brand focus:ring-4 focus:ring-brand/10 outline-none transition-all font-bold text-gray-700 placeholder-gray-300" placeholder="VD: Luyện thi Toán 12 Cấp tốc...">
+    </div>
+
+    <div>
+        <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1">Giá gốc (Niêm yết)</label>
+        <div class="relative">
+            <span class="absolute left-4 top-3 text-gray-400 font-bold line-through">₫</span>
+            <input type="number" id="cOriginalPrice" class="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none font-semibold text-gray-500" placeholder="VD: 500000">
+        </div>
+    </div>
+
+    <div>
+        <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1">Giá bán (Khuyến mãi)</label>
+        <div class="relative">
+            <span class="absolute left-4 top-3 text-brand font-bold">₫</span>
+            <input type="number" id="cPrice" class="w-full pl-8 pr-4 py-3 border border-brand/30 bg-teal-50/30 rounded-xl focus:border-brand outline-none font-bold text-brand" placeholder="VD: 299000">
+        </div>
+    </div>
+
+    <div>
+        <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1">Lượt mua/HV ảo</label>
+        <div class="relative">
+            <span class="absolute left-4 top-3 text-gray-400"><i class="fa-solid fa-users"></i></span>
+            <input type="number" id="cStudents" class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none font-semibold" placeholder="0">
+        </div>
+    </div>
+</div>
+
+            <div id="softDocFields" class="hidden bg-primary-50/50 p-4 rounded-xl border border-primary-100">
+                <label class="block text-xs font-black text-primary-700 uppercase mb-2 ml-1"><i class="fa-solid fa-cloud-arrow-up"></i> Link File Tài Liệu Gốc (Bí mật)</label>
+                <input type="text" id="cDocFileUrl" placeholder="Dán link file gốc trên Google Drive / R2 vào đây..." class="w-full px-5 py-3 border border-primary-200 rounded-xl bg-white text-sm focus:border-primary-500 outline-none">
+                <p class="text-[11px] text-orange-600 mt-2 italic">* File này sẽ được đóng dấu Email tự động và gửi cho học sinh.</p>
+            </div>
+
+            <div id="hardBookFields" class="hidden bg-amber-50/50 p-4 rounded-xl border border-amber-100 flex flex-col gap-4">
+                <div>
+                    <label class="block text-xs font-black text-amber-700 uppercase mb-2 ml-1"><i class="fa-solid fa-truck-fast"></i> Phí vận chuyển (VND)</label>
+                    <input type="number" id="cShippingFee" value="30000" placeholder="VD: 30000" class="w-full px-5 py-3 border border-amber-200 rounded-xl bg-white text-sm focus:border-amber-500 outline-none">
+                    <p class="text-[11px] text-amber-700 mt-2 italic">* Phí này sẽ cộng vào giá cuối khi thanh toán.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-amber-700 uppercase mb-2 ml-1"><i class="fa-brands fa-google-drive"></i> Link đọc thử (Google Drive PDF)</label>
+                    <input type="text" id="cPreviewLink" placeholder="VD: https://drive.google.com/file/d/.../view" class="w-full px-5 py-3 border border-amber-200 rounded-xl bg-white text-sm focus:border-amber-500 outline-none">
+                    <p class="text-[11px] text-amber-700 mt-2 italic">* Hiển thị nút "Đọc thử" ngoài trang chủ. Hãy đảm bảo link đã mở quyền truy cập.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-amber-700 uppercase mb-2 ml-1"><i class="fa-solid fa-weight-scale"></i> Trọng lượng (Gram)</label>
+                    <input type="number" id="cBookWeight" placeholder="VD: 500" class="w-full px-5 py-3 border border-amber-200 rounded-xl bg-white text-sm focus:border-amber-500 outline-none">
+                    <p class="text-[11px] text-amber-700 mt-2 italic">* Hệ thống sẽ yêu cầu người mua cung cấp Số điện thoại và Địa chỉ nhận hàng.</p>
+                </div>
+            </div>
+
+                <div>
+                    <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1">Mô tả ngắn</label>
+                    <textarea id="cDesc" rows="3" class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none text-sm resize-none" placeholder="Giới thiệu sơ lược về khóa học này..."></textarea>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2 ml-1">
+                        <label class="block text-xs font-black text-gray-500 uppercase">Ảnh bìa sản phẩm / Sách / Khóa học</label>
+                        <span class="text-[11px] font-bold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Tự động căn chỉnh thông minh</span>
+                    </div>
+
+                    <!-- Bảng hướng dẫn kích thước chuẩn chi tiết -->
+                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3.5 mb-3 text-xs text-amber-900 leading-relaxed shadow-xs">
+                        <div class="font-black text-amber-800 mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-ruler-combined text-amber-600"></i> Hướng dẫn kích thước chuẩn để hiển thị đầy đủ và đẹp mắt nhất:
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1 text-[11px]">
+                            <div class="bg-white/90 p-2 rounded-lg border border-amber-200/60 shadow-xs">
+                                <div class="font-bold text-gray-800 flex items-center gap-1"><i class="fa-solid fa-graduation-cap text-teal-600"></i> Khóa học Online</div>
+                                <div class="text-amber-700 mt-0.5">Tỉ lệ <b>16:9</b> (1280 × 720 px)</div>
+                            </div>
+                            <div class="bg-white/90 p-2 rounded-lg border border-amber-200/60 shadow-xs">
+                                <div class="font-bold text-gray-800 flex items-center gap-1"><i class="fa-solid fa-book text-amber-600"></i> Bìa Sách (Mặt trước)</div>
+                                <div class="text-amber-700 mt-0.5">Tỉ lệ <b>3:4</b> (900 × 1200 px)</div>
+                            </div>
+                            <div class="bg-white/90 p-2 rounded-lg border border-amber-200/60 shadow-xs">
+                                <div class="font-bold text-gray-800 flex items-center gap-1"><i class="fa-solid fa-book-open text-orange-600"></i> Bìa Sách trải rộng</div>
+                                <div class="text-amber-700 mt-0.5">Tỉ lệ <b>3:2</b> (1500 × 1000 px)</div>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-amber-800 mt-2 font-medium">
+                            💡 <b>Tính năng tự động:</b> Nếu ảnh của bạn khác kích thước trên, hệ thống sẽ tự động tạo phông nền nghệ thuật (Blur) ôm trọn ảnh hoặc cho phép cắt lấy bìa trước, <b>cam kết không bao giờ bị cắt lẹm mất chữ hay mất viền</b>!
+                        </p>
+                    </div>
+
+                    <div class="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center hover:border-brand hover:bg-teal-50/30 transition-all group relative cursor-pointer" onclick="document.getElementById('cThumbInput').click()">
+                        <input type="file" id="cThumbInput" hidden accept="image/*" onchange="window.handleThumbUpload(this)">
+                        <input type="text" id="cThumb" class="hidden"> 
+                        <div id="thumbPreviewBox" class="hidden relative w-full aspect-video rounded-xl overflow-hidden shadow-sm mb-2 mx-auto max-w-sm bg-slate-100 flex items-center justify-center p-2 border border-gray-200">
+                            <img id="previewThumb" class="max-h-full max-w-full object-contain rounded drop-shadow-md">
+                            <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                <span class="text-white font-bold text-sm"><i class="fa-solid fa-pen mr-1"></i> Thay đổi ảnh</span>
+                            </div>
+                        </div>
+
+                        <div id="thumbEmptyState">
+                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 text-gray-400 group-hover:text-brand group-hover:bg-white transition-colors">
+                                <i class="fa-solid fa-image text-2xl"></i>
+                            </div>
+                            <p class="text-sm font-bold text-gray-600">Nhấn để tải ảnh lên</p>
+                            <p class="text-xs text-gray-400 mt-1">Hỗ trợ JPG, PNG, WebP (Tự động tối ưu hoá)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-8 py-5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 sticky bottom-0">
+                <button onclick="window.toggleModal('courseModal')" class="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-200 rounded-xl transition-colors">Hủy bỏ</button>
+                <button onclick="window.saveCourseBasic()" class="px-8 py-2.5 bg-brand text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">Lưu Thiết Lập</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="curriculumModal" class="hidden fixed inset-0 z-[60] bg-gray-900/95 backdrop-blur-sm transition-opacity duration-300">
+        <div class="flex flex-col md:flex-row h-full w-full p-2 md:p-4 gap-3 md:gap-4">
+            
+            <div class="w-full h-2/5 md:h-full md:w-1/3 md:max-w-sm bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden animate-fade-in-up order-1">
+                <div class="p-3 md:p-4 border-b border-gray-100 bg-gray-50 flex flex-col gap-2 md:gap-3 shrink-0">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="font-extrabold text-gray-800 text-base md:text-lg">Nội dung khóa học</h3>
+                            <p id="editorCourseTitle" class="text-xs text-gray-500 truncate w-32 md:w-40">Đang tải...</p>
+                        </div>
+                        <button onclick="addChapter()" class="px-2 py-1.5 bg-brand text-white rounded-lg text-xs font-bold hover:bg-teal-800 shadow transition-all whitespace-nowrap">
+                            <i class="fa-solid fa-folder-plus mr-1"></i> Thêm Chương
+                        </button>
+                    </div>
+                    
+                    <div class="flex gap-2 border-t border-gray-200 pt-2">
+                        <button onclick="downloadTemplate()" class="flex-1 py-1.5 bg-white border border-gray-300 text-gray-600 rounded text-xs font-bold hover:bg-gray-100"><i class="fa-solid fa-download mr-1"></i> Mẫu</button>
+                        <button onclick="exportCurriculum()" class="flex-1 py-1.5 bg-white border border-gray-300 text-green-600 rounded text-xs font-bold hover:bg-green-50"><i class="fa-solid fa-file-export mr-1"></i> Xuất</button>
+                        <button onclick="document.getElementById('importInput').click()" class="flex-1 py-1.5 bg-white border border-gray-300 text-primary-600 rounded text-xs font-bold hover:bg-primary-50"><i class="fa-solid fa-file-import mr-1"></i> Nhập</button>
+                        <input type="file" id="importInput" hidden accept=".xlsx, .xls" onchange="importCurriculum(this)">
+                    </div>
+                </div>
+                <div id="curriculumTree" class="flex-1 overflow-y-auto p-2 md:p-3 space-y-2 bg-white scrollbar-hide"></div>
+                <div class="p-2 md:p-4 border-t border-gray-100 bg-gray-50 text-center shrink-0 flex md:block gap-2">
+                    <button onclick="saveCurriculum()" class="flex-1 w-full py-2 md:py-3 bg-gradient-to-r from-brand to-teal-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all text-sm md:text-base">
+                        <i class="fa-solid fa-save mr-2"></i> LƯU GIÁO ÁN
+                    </button>
+                    <button onclick="closeCurriculumModal()" class="md:mt-2 px-3 text-xs text-gray-500 hover:text-red-500 font-semibold border md:border-0 rounded-lg">Đóng</button>
+                </div>
+            </div>
+
+            <div class="flex-1 h-3/5 md:h-full bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden relative animate-fade-in-up order-2" style="animation-delay: 0.1s;">
+                <div id="editorWelcome" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10 p-4 text-center">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3079/3079296.png" class="w-16 h-16 md:w-24 md:h-24 mb-4 opacity-50 grayscale">
+                    <h3 class="text-lg md:text-xl font-bold text-gray-400">Chọn một nội dung để biên tập</h3>
+                    <p class="text-gray-400 text-xs md:text-sm">Cấu trúc: Chương > Bài học > Nội dung</p>
+                </div>
+
+                <div id="editorForm" class="hidden flex-col h-full">
+                    <div class="h-auto md:h-16 py-3 border-b border-gray-100 flex flex-col md:flex-row items-start md:items-center px-4 gap-3 bg-white shrink-0">
+                        <div class="flex items-center gap-3 w-full">
+                            <span class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-sm shrink-0"><i class="fa-solid fa-pen"></i></span>
+                            <input type="text" id="editItemTitle" class="flex-1 text-base md:text-lg font-bold text-gray-800 outline-none border-b border-transparent focus:border-brand placeholder-gray-300 transition-all" placeholder="Tên nội dung...">
+                        </div>
+                        <div class="flex bg-gray-100 p-1 rounded-lg w-full md:w-auto overflow-x-auto shrink-0">
+                            <button onclick="setItemType('video')" id="btnTypeVideo" class="type-btn flex-1 px-3 py-1.5 rounded-md text-xs md:text-sm font-bold text-gray-500 whitespace-nowrap"><i class="fa-brands fa-youtube mr-1"></i> Video</button>
+                            <button onclick="setItemType('pdf')" id="btnTypePdf" class="type-btn flex-1 px-3 py-1.5 rounded-md text-xs md:text-sm font-bold text-gray-500 whitespace-nowrap"><i class="fa-solid fa-file-pdf mr-1"></i> Tài liệu</button>
+                            <button onclick="setItemType('quiz')" id="btnTypeQuiz" class="type-btn flex-1 px-3 py-1.5 rounded-md text-xs md:text-sm font-bold text-gray-500 whitespace-nowrap"><i class="fa-solid fa-clipboard-question mr-1"></i> Bài tập</button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto bg-gray-50/50 p-4 md:p-8">
+                        <div id="panelVideo" class="content-panel hidden space-y-6 max-w-4xl mx-auto">
+                            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
+                                <div><label class="block text-sm font-bold text-gray-700 mb-2">Link YouTube</label><input type="text" id="videoUrlInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand outline-none"></div>
+                                <div><label class="block text-sm font-bold text-gray-700 mb-2">Thời gian xem (Phút)</label><div class="relative"><input type="number" id="videoMinTime" value="10" class="w-full pl-4 pr-12 py-2 border border-gray-300 rounded-lg font-bold"><span class="absolute right-4 top-2 text-gray-400 text-sm font-bold">Phút</span></div></div>
+                            </div>
+                            <div id="videoPreviewArea" class="aspect-video bg-black rounded-xl overflow-hidden shadow-lg hidden relative"><iframe id="videoFrame" class="w-full h-full" src=""></iframe></div>
+                        </div>
+
+                        <div id="panelPdf" class="content-panel hidden space-y-6 max-w-4xl mx-auto">
+                             <div class="flex gap-4 mb-4 flex-col md:flex-row">
+                                <label class="flex-1 cursor-pointer"><input type="radio" name="pdfSource" value="upload" class="peer sr-only" checked onchange="togglePdfSource()"><div class="p-4 rounded-xl border-2 border-gray-200 peer-checked:border-brand peer-checked:bg-teal-50 hover:bg-white text-center"><i class="fa-solid fa-cloud-arrow-up text-xl mb-1 block"></i>Tải file lên</div></label>
+                                <label class="flex-1 cursor-pointer"><input type="radio" name="pdfSource" value="drive" class="peer sr-only" onchange="togglePdfSource()"><div class="p-4 rounded-xl border-2 border-gray-200 peer-checked:border-primary-500 peer-checked:bg-primary-50 hover:bg-white text-center"><i class="fa-brands fa-google-drive text-xl mb-1 block"></i>Link Google Drive</div></label>
+                            </div>
+                            <div id="pdfUploadArea" class="bg-white p-8 rounded-xl border-2 border-dashed border-gray-300 text-center hover:border-brand cursor-pointer group" onclick="document.getElementById('pdfFileInput').click()">
+                                <input type="file" id="pdfFileInput" accept=".pdf" class="hidden" onchange="window.handlePdfUpload(this)">
+                                <i class="fa-solid fa-file-pdf text-3xl text-gray-400 group-hover:text-brand mb-2"></i>
+                                <p class="font-bold text-gray-700">Nhấn để chọn file PDF</p>
+                                <div id="pdfUploadProgress" class="hidden mt-4"><div class="w-full bg-gray-200 rounded-full h-1.5"><div class="bg-brand h-1.5 rounded-full" style="width: 50%"></div></div></div>
+                            </div>
+                            <div id="pdfDriveArea" class="hidden bg-white p-6 rounded-xl border border-gray-200"><input type="text" id="driveUrlInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="Dán link Google Drive công khai vào đây..."></div>
+                            <div id="pdfPreviewArea" class="h-[300px] md:h-[500px] bg-gray-800 rounded-xl overflow-hidden shadow-lg hidden"><iframe id="pdfFrame" class="w-full h-full" src=""></iframe></div>
+                        </div>
+
+                        <div id="panelQuiz" class="content-panel hidden space-y-6 max-w-4xl mx-auto">
+                            <div id="selectedExamInfo" class="hidden bg-orange-50 border border-orange-200 rounded-xl p-4 flex justify-between items-center shadow-sm">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-orange-500 shadow-sm font-bold text-xl"><i class="fa-solid fa-file-signature"></i></div>
+                                    <div>
+                                        <p class="text-[10px] text-orange-600 font-bold uppercase tracking-wider">Đề thi đã chọn</p>
+                                        <h4 id="selectedExamTitle" class="font-bold text-gray-800 text-sm md:text-base line-clamp-1">Tiêu đề đề thi...</h4>
+                                    </div>
+                                </div>
+                                <button onclick="window.openExamSelector()" class="text-orange-600 hover:text-orange-800 text-xs font-bold bg-white px-3 py-1.5 rounded-lg border border-orange-200 shadow-sm">Đổi đề</button>
+                            </div>
+
+                            <div class="text-center py-8 border-2 border-dashed border-gray-300 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer bg-white group" onclick="window.openExamSelector()">
+                                <i class="fa-solid fa-folder-open text-4xl text-gray-300 mb-2 group-hover:text-orange-500 transition-colors"></i>
+                                <p class="font-bold text-gray-500 group-hover:text-orange-600">Nhấn để chọn đề thi từ Ngân hàng</p>
+                            </div>
+
+                            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                                <h4 class="font-bold text-gray-800 border-b border-gray-100 pb-2 mb-4 text-sm"><i class="fa-solid fa-sliders mr-2 text-orange-500"></i>Cấu hình bài tập</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Điểm đạt</label>
+                                        <div class="relative">
+                                            <input type="number" id="quizMinScore" value="5" min="0" max="10" step="0.5" class="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg font-bold text-gray-800 outline-none focus:border-orange-500 transition-all">
+                                            <span class="absolute right-3 top-3 text-gray-400 text-xs font-bold">Điểm</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2" title="Để trống = Vô hạn">Giới hạn xem giải</label>
+                                        <div class="relative">
+                                            <input type="number" id="quizViewLimit" min="0" class="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg font-bold text-gray-800 outline-none focus:border-orange-500 transition-all" placeholder="∞">
+                                            <span class="absolute right-3 top-3 text-gray-400 text-xs font-bold">Lần</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2" title="Để trống = Miễn phí">Giá mở khóa</label>
+                                        <div class="relative">
+                                            <input type="number" id="quizViewPrice" min="0" class="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg font-bold text-orange-600 outline-none focus:border-orange-500 transition-all" placeholder="0">
+                                            <span class="absolute right-3 top-3 text-gray-400 text-xs font-bold">QP</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border-t border-gray-100 p-4 flex gap-6 text-sm font-bold text-gray-600 shrink-0">
+                        <label class="flex items-center gap-2 cursor-pointer hover:text-brand"><input type="checkbox" id="isPreview" class="accent-brand w-4 h-4"><span>Cho phép học thử</span></label>
+                        <label class="flex items-center gap-2 cursor-pointer hover:text-brand"><input type="checkbox" id="isPublished" checked class="accent-brand w-4 h-4"><span>Đã xuất bản</span></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="examSelectorModal" class="hidden fixed inset-0 z-[70] bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 class="font-bold text-gray-800 text-lg">Chọn Đề Thi</h3>
+                <div class="flex gap-2">
+                    <a href="exam-editor.html" target="_blank" class="px-4 py-2 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700"><i class="fa-solid fa-plus-circle"></i> Tạo mới</a>
+                    <button onclick="document.getElementById('examSelectorModal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg font-bold text-sm">Đóng</button>
+                </div>
+            </div>
+            <div class="px-6 py-2 bg-white border-b border-gray-100 flex items-center gap-2 text-sm" id="selectorBreadcrumb"></div>
+            <div class="flex-1 overflow-y-auto p-6 bg-gray-50"><div id="selectorContent" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div></div>
+        </div>
+    </div>
+<div id="studentManagerModal" class="hidden fixed inset-0 z-[80] bg-gray-900/80 backdrop-blur-sm flex items-start justify-center p-3 overflow-auto">
+    <div class="bg-white w-full max-w-7xl rounded-2xl shadow-2xl flex flex-col min-h-[95vh] my-auto">
+
+        <!-- HEADER -->
+        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex flex-wrap justify-between items-center gap-3 shrink-0 rounded-t-2xl">
+            <div>
+                <h3 id="studentManagerModalTitle" class="font-black text-gray-800 text-xl"><i class="fa-solid fa-users text-green-600 mr-2"></i> Quản lý Học viên</h3>
+                <p id="studentManagerCourseTitle" class="text-sm text-gray-500 font-bold mt-0.5">...</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <button id="btnExportGHN" onclick="window.exportGHNExcel()" class="hidden px-4 py-2 bg-orange-500 text-white text-sm font-bold rounded-xl hover:bg-orange-600 shadow-sm flex items-center gap-2"><i class="fa-solid fa-truck"></i> Xuất GHN</button>
+                <button id="btnExportOrders" onclick="window.exportOrdersExcel()" class="hidden px-4 py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 shadow-sm flex items-center gap-2"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+                <button id="btnCleanJunkOrders" onclick="window.cleanJunkOrdersNow()" class="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 text-sm font-bold rounded-xl border border-amber-200 shadow-xs flex items-center gap-1.5 transition-all cursor-pointer" title="Quét và dọn dẹp các đơn chờ thanh toán (pending) quá 30 phút chưa chuyển khoản"><i class="fa-solid fa-broom text-amber-600"></i> Dọn đơn quá hạn (>30p)</button>
+                <button id="btnBulkDelete" onclick="window.bulkDeleteOrders()" class="hidden px-4 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 shadow-sm flex items-center gap-2"><i class="fa-solid fa-trash"></i> Xóa đã chọn (<span id="selectedCount">0</span>)</button>
+                <button onclick="document.getElementById('studentManagerModal').classList.add('hidden')" class="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"><i class="fa-solid fa-times text-lg"></i></button>
+            </div>
+        </div>
+
+        <!-- FILTERS BAR -->
+        <div class="px-6 py-3 bg-white border-b border-gray-100 shrink-0">
+            <div class="flex flex-wrap gap-3 items-center">
+                <div class="relative flex-1 min-w-[180px]">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                    <input type="text" id="studentSearchKeyword" onkeyup="window.renderStudentList()" placeholder="Tìm tên, SĐT, địa chỉ..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white outline-none focus:border-brand transition-all">
+                </div>
+                <select id="studentTypeFilter" onchange="window.renderStudentList()" class="px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-700 outline-none bg-gray-50 cursor-pointer min-w-[160px]">
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="paid">✅ Đã thanh toán</option>
+                    <option value="pending">⏳ Chờ thanh toán</option>
+                    <option value="approved">👤 Thêm tay</option>
+                </select>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-gray-500 whitespace-nowrap">Từ ngày</label>
+                    <input type="date" id="filterDateFrom" onchange="window.renderStudentList()" class="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none bg-gray-50 focus:border-brand">
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-gray-500 whitespace-nowrap">Đến ngày</label>
+                    <input type="date" id="filterDateTo" onchange="window.renderStudentList()" class="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none bg-gray-50 focus:border-brand">
+                </div>
+                <button onclick="window.clearFilters()" class="px-3 py-2 text-xs font-bold text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg border border-gray-200 transition-all whitespace-nowrap"><i class="fa-solid fa-rotate-left mr-1"></i>Xóa lọc</button>
+                <div id="orderCountBadge" class="ml-auto text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg whitespace-nowrap"></div>
+            </div>
+        </div>
+
+        <!-- ADD STUDENT AREA (khóa học) -->
+        <div id="addStudentArea" class="px-6 py-3 bg-green-50 border-b border-green-100 shrink-0">
+            <div class="flex flex-wrap gap-2 items-center">
+                <input type="text" id="inputStudentEmail" class="flex-1 min-w-[200px] px-4 py-2 border border-green-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm" placeholder="Nhập tên đăng nhập để thêm (VD: hocsinh123)">
+                <button onclick="window.addStudentToCourse()" class="px-4 py-2 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-md text-sm whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i> Thêm tay</button>
+                <button onclick="window.downloadCourseStudentTemplate()" class="px-4 py-2 bg-white border border-green-500 text-green-600 rounded-xl hover:bg-green-50 font-bold text-sm flex items-center gap-1 shadow-sm transition-colors whitespace-nowrap"><i class="fa-solid fa-download"></i> File Mẫu</button>
+                <label for="importCourseStudent" class="px-4 py-2 bg-green-500 text-white rounded-xl cursor-pointer hover:bg-green-600 flex items-center gap-1 font-bold text-sm shadow-sm transition-colors mb-0 whitespace-nowrap"><i class="fa-solid fa-file-excel"></i> Nhập Excel</label>
+                <input type="file" id="importCourseStudent" accept=".xlsx, .xls" class="hidden" onchange="window.importCourseStudentsExcel(this)">
+            </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="flex-1 overflow-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead id="studentManagerThead" class="bg-gray-100 text-gray-600 font-bold text-xs uppercase sticky top-0 z-10">
+                    <tr>
+                        <th class="p-3 pl-4 w-10"><input type="checkbox" id="selectAllOrders" onchange="window.toggleSelectAll(this)" class="w-4 h-4 accent-brand cursor-pointer rounded"></th>
+                        <th class="p-3">Thông tin học viên</th>
+                        <th class="p-3 text-center">Trạng thái</th>
+                        <th class="p-3 text-right pr-6">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="enrolledStudentsList" class="divide-y divide-gray-100"></tbody>
+            </table>
+            <div id="emptyStudentList" class="text-center py-16 text-gray-400 hidden flex flex-col items-center">
+                <i class="fa-solid fa-inbox text-5xl mb-3 opacity-30"></i>
+                <p class="font-bold text-gray-500">Không tìm thấy kết quả nào.</p>
+                <p class="text-xs mt-1">Thử thay đổi bộ lọc hoặc tìm kiếm.</p>
+            </div>
+        </div>
+        
+        <!-- FOOTER -->
+        <div class="bg-gray-50 px-6 py-3 text-xs text-gray-400 font-bold border-t border-gray-100 rounded-b-2xl flex justify-between items-center shrink-0">
+            <span id="tableFooterInfo">Hiển thị danh sách học viên / đơn hàng</span>
+            <span class="text-gray-300">QMath LMS</span>
+        </div>
+    </div>
+</div>
+
+    <!-- MODAL ĐIỀU CHỈNH ẢNH BÌA THÔNG MINH -->
+    <div id="imageAdjustModal" class="hidden fixed inset-0 z-[100] bg-gray-900/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up">
+            <div class="px-5 py-3.5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-teal-50 to-emerald-50">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold text-sm shadow-xs"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                    <div>
+                        <h3 class="font-black text-gray-800 text-sm sm:text-base">Tối ưu ảnh bìa hiển thị</h3>
+                        <p class="text-[11px] text-gray-500">Căn chỉnh thông minh để ảnh sắc nét & không bị cắt xén</p>
+                    </div>
+                </div>
+                <button onclick="window.closeImageAdjustModal()" class="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-white flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="p-4 sm:p-5 space-y-3.5">
+                <!-- Khung xem trước trực tiếp theo đúng tỷ lệ 16:9 của trang chủ -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-[11px] font-black text-gray-500 uppercase">Xem trước ngoài trang chủ (Khung 16:9):</label>
+                        <span id="imageRatioBadge" class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Tỉ lệ ảnh</span>
+                    </div>
+                    <div class="w-full aspect-video rounded-xl overflow-hidden border border-gray-200 bg-slate-900 relative flex items-center justify-center shadow-inner">
+                        <canvas id="adjustPreviewCanvas" class="w-full h-full object-contain"></canvas>
+                    </div>
+                    <p id="imageRatioNotice" class="text-[11px] text-gray-500 mt-1 italic text-center"></p>
+                </div>
+
+                <!-- Các tùy chọn xử lý -->
+                <div class="space-y-2">
+                    <label class="block text-[11px] font-black text-gray-600 uppercase">Chọn chế độ điều chỉnh:</label>
+                    
+                    <!-- Option 1: Tự động căn giữa với nền mờ -->
+                    <button type="button" onclick="window.applyAdjustMode('smart_blur')" id="btnOptSmartBlur" class="w-full text-left p-2.5 sm:p-3 rounded-xl border-2 border-teal-500 bg-teal-50/50 hover:bg-teal-50 flex items-start gap-2.5 transition-all cursor-pointer">
+                        <div id="dotOptSmartBlur" class="w-4 h-4 rounded-full border-2 border-teal-600 flex items-center justify-center mt-0.5 shrink-0 bg-white">
+                            <div class="w-2 h-2 rounded-full bg-teal-600"></div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-black text-teal-900 flex items-center gap-1.5">
+                                ✨ Căn vừa 16:9 với nền mờ (Khuyên dùng)
+                            </div>
+                            <div class="text-[11px] text-teal-700 mt-0.5 leading-normal">
+                                Giữ trọn vẹn 100% ảnh gốc ở giữa, tự động tạo nền mờ matching tone màu bao quanh. Tuyệt đối không bị cắt chữ hay mép ảnh.
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Option 2: Cắt lấy Bìa trước (Nửa mặt phải) -->
+                    <button type="button" onclick="window.applyAdjustMode('crop_front_cover')" id="btnOptCropFront" class="w-full text-left p-2.5 sm:p-3 rounded-xl border-2 border-gray-200 hover:border-teal-400 bg-white hover:bg-gray-50 flex items-start gap-2.5 transition-all cursor-pointer">
+                        <div id="dotOptCropFront" class="w-4 h-4 rounded-full border-2 border-gray-300 flex items-center justify-center mt-0.5 shrink-0 bg-white">
+                            <div class="w-2 h-2 rounded-full bg-transparent"></div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-black text-gray-800 flex items-center gap-1.5">
+                                📖 Cắt lấy Bìa trước (Mặt phải cuốn sách)
+                            </div>
+                            <div class="text-[11px] text-gray-500 mt-0.5 leading-normal">
+                                Dành cho ảnh thiết kế bìa trải rộng (bìa sau + gáy + bìa trước). Tự động crop nửa bên phải làm ảnh đại diện sách.
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Option 3: Giữ nguyên ảnh gốc -->
+                    <button type="button" onclick="window.applyAdjustMode('original')" id="btnOptOriginal" class="w-full text-left p-2.5 sm:p-3 rounded-xl border-2 border-gray-200 hover:border-teal-400 bg-white hover:bg-gray-50 flex items-start gap-2.5 transition-all cursor-pointer">
+                        <div id="dotOptOriginal" class="w-4 h-4 rounded-full border-2 border-gray-300 flex items-center justify-center mt-0.5 shrink-0 bg-white">
+                            <div class="w-2 h-2 rounded-full bg-transparent"></div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-black text-gray-800 flex items-center gap-1.5">
+                                🖼️ Giữ nguyên ảnh gốc
+                            </div>
+                            <div class="text-[11px] text-gray-500 mt-0.5 leading-normal">
+                                Giữ nguyên tỷ lệ gốc của tệp tải lên, chỉ nén nhẹ tối ưu dung lượng.
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-5 py-3 border-t border-gray-100 bg-gray-50 flex justify-end gap-2">
+                <button onclick="window.closeImageAdjustModal()" class="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-gray-200 rounded-xl transition-colors">Hủy</button>
+                <button onclick="window.confirmAndUploadAdjusted()" id="btnConfirmAdjust" class="px-5 py-2.5 bg-brand text-white font-bold text-xs rounded-xl shadow hover:bg-teal-800 transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Áp dụng & Tải lên
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { 
+            supabase, initializeApp, getAuth, onAuthStateChanged,
+            getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, orderBy, getDoc, where, writeBatch,
+            getStorage, ref, deleteObject
+        } from "./supabase-db-compat.js";
+
+        // CẤU HÌNH SUPABASE
+        const app = initializeApp({});
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        // --- HÀM XÓA FILE TRÊN CLOUDFLARE R2 ---
+        window.deleteFileFromR2 = async (fileUrl) => {
+            if (!fileUrl || !fileUrl.includes('phamngockhanh-942001.workers.dev')) return;
+            try {
+                // Phân tích URL để lấy tên file gốc (ví dụ: courses/2025/12/name.jpg)
+                const urlObj = new URL(fileUrl);
+                const fileName = urlObj.pathname.substring(1);
+
+                await fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/?file=${fileName}`, {
+                    method: 'DELETE'
+                });
+                console.log("Đã xóa file trên R2:", fileName);
+            } catch (e) {
+                console.error("Lỗi xóa file R2:", e);
+            }
+        };
+        // Hàm nén ảnh chuẩn từ Dashboard
+        window.compressImage = async (file, quality = 0.8, maxWidth = 1500) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader(); reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image(); img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height;
+                        if (w > maxWidth) { h = (h * maxWidth) / w; w = maxWidth; }
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+                        canvas.toBlob(resolve, 'image/jpeg', quality);
+                    };
+                };
+            });
+        };
+
+        // STATE GLOBAL (3 CẤP)
+        let currentCourseId = null;
+        let currentCurriculum = []; // Mảng Chapters
+        // Structure: Chapter -> lessons[] -> items[]
+        let activeChapIdx = -1;
+        let activeLesIdx = -1;
+        let activeItemIdx = -1; // Cấp 3: Item (Nội dung)
+        // Thêm vào phần khai báo biến đầu script
+        let renameTarget = null; // { type: 'chap'|'les', cIdx, lIdx }
+        let dragSrc = null; // Lưu thông tin phần tử đang được kéo
+
+        // --- UTILS ---
+        window.showToast = (msg, type='success') => {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast-enter p-4 rounded-lg shadow-xl flex items-center gap-3 min-w-[300px] ${type==='success'?'bg-white border-l-4 border-green-500':'bg-white border-l-4 border-red-500'}`;
+            toast.innerHTML = `<div class="font-bold text-sm text-gray-800">${msg}</div>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        };
+        window.customConfirm = (msg, onYes) => {
+            document.getElementById('confirmMessage').innerText = msg;
+            const modal = document.getElementById('confirmModal');
+            modal.classList.remove('hidden');
+            const btnYes = document.getElementById('confirmBtnYes');
+            const newBtn = btnYes.cloneNode(true);
+            btnYes.parentNode.replaceChild(newBtn, btnYes);
+            newBtn.onclick = () => { modal.classList.add('hidden'); onYes(); };
+        };
+        window.closeConfirm = () => document.getElementById('confirmModal').classList.add('hidden');
+
+        // --- MAIN LOAD ---
+        // --- MAIN LOAD (TỐI ƯU TỐC ĐỘ - PARALLEL LOADING) ---
+        onAuthStateChanged(auth, async (user) => { 
+            let isAuthed = !!user;
+            if (!isAuthed) {
+                try {
+                    const session = (await supabase.auth.getSession())?.data?.session;
+                    if (session) isAuthed = true;
+                } catch(e) {}
+            }
+            if (!isAuthed && window.location.search.includes('test_admin=1')) {
+                isAuthed = true;
+            }
+
+            if (!isAuthed) {
+                window.location.href='index.html'; 
+                return;
+            }
+
+            const p1 = loadCourses();
+            await Promise.all([p1]); 
+        });
+
+        let courseViewMode = 'list'; // Mặc định
+        let cachedCourses = []; // Cache dữ liệu để chuyển view không cần load lại
+
+        window.switchCourseView = (mode) => {
+            courseViewMode = mode;
+            // Update UI nút bấm
+            const btnList = document.getElementById('btn-view-list');
+            const btnGrid = document.getElementById('btn-view-grid');
+            
+            if(mode === 'list') {
+                btnList.className = "p-2.5 rounded-lg text-brand bg-teal-50 transition-all w-10 h-10 flex items-center justify-center";
+                btnGrid.className = "p-2.5 rounded-lg text-gray-400 hover:text-brand transition-all w-10 h-10 flex items-center justify-center";
+                document.getElementById('viewListContainer').classList.remove('hidden');
+                document.getElementById('viewGridContainer').classList.add('hidden');
+            } else {
+                btnGrid.className = "p-2.5 rounded-lg text-brand bg-teal-50 transition-all w-10 h-10 flex items-center justify-center";
+                btnList.className = "p-2.5 rounded-lg text-gray-400 hover:text-brand transition-all w-10 h-10 flex items-center justify-center";
+                document.getElementById('viewListContainer').classList.add('hidden');
+                document.getElementById('viewGridContainer').classList.remove('hidden');
+            }
+            renderCoursesUI();
+        };
+
+        window.loadCourses = async () => {
+            document.getElementById('mainLoading').classList.remove('hidden');
+            document.getElementById('viewListContainer').classList.add('hidden');
+            document.getElementById('viewGridContainer').classList.add('hidden');
+
+            try {
+                const { data, error } = await supabase.from('public_courses').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                cachedCourses = (data || []).map(d => ({
+                    id: d.id,
+                    title: d.title,
+                    type: d.type,
+                    price: d.price,
+                    originalPrice: d.original_price,
+                    tag: d.tag,
+                    thumbnail: d.thumbnail,
+                    image: d.image,
+                    description: d.description,
+                    weight: d.weight,
+                    shippingFee: d.shipping_fee,
+                    students: d.students,
+                    fakeStudents: d.fake_students,
+                    previewLink: d.preview_link,
+                    curriculum: d.curriculum,
+                    createdAt: d.created_at,
+                    updatedAt: d.updated_at
+                }));
+                
+                renderCoursesUI();
+            } catch(e) { window.showToast(e.message, 'error'); }
+            finally { document.getElementById('mainLoading').classList.add('hidden'); }
+        };
+
+        function renderCoursesUI() {
+            const listTable = document.getElementById('courseListTable');
+            const gridContainer = document.getElementById('viewGridContainer');
+            
+            listTable.innerHTML = '';
+            gridContainer.innerHTML = '';
+
+            // Toggle hiển thị container
+            if (courseViewMode === 'list') document.getElementById('viewListContainer').classList.remove('hidden');
+            else document.getElementById('viewGridContainer').classList.remove('hidden');
+
+            if(cachedCourses.length === 0) {
+                const emptyHTML = `<div class="col-span-full p-8 text-center text-gray-400">Chưa có khóa học.</div>`;
+                listTable.innerHTML = `<tr><td colspan="5">${emptyHTML}</td></tr>`;
+                gridContainer.innerHTML = emptyHTML;
+                return;
+            }
+
+            cachedCourses.forEach(c => {
+                // Đếm item
+                let itemCount = 0;
+                if(c.curriculum) c.curriculum.forEach(ch => { if(ch.lessons) ch.lessons.forEach(l => { if(l.items) itemCount += l.items.length; }) });
+                const thumb = c.thumbnail || 'https://placehold.co/100';
+
+                // Format hiển thị theo Loại sản phẩm
+                let typeBadge = '<span class="bg-teal-100 text-teal-700 px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-1"><i class="fa-solid fa-video"></i> KHÓA HỌC</span>';
+                let strucText = `${c.curriculum ? c.curriculum.length : 0} chương • ${itemCount} bài`;
+                let iconClass = "fa-layer-group text-orange-500";
+                
+                if (c.type === 'document_soft') {
+                    typeBadge = '<span class="bg-primary-100 text-primary-700 px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-1"><i class="fa-solid fa-file-pdf"></i> BẢN MỀM</span>';
+                    strucText = 'Tài liệu số';
+                    iconClass = "fa-file-pdf text-primary-500";
+                } else if (c.type === 'document_hard') {
+                    typeBadge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-1"><i class="fa-solid fa-book"></i> SÁCH IN</span>';
+                    strucText = `Sách in vật lý / ${c.weight || 0}g`;
+                    iconClass = "fa-truck-fast text-amber-500";
+                }
+
+                // --- RENDER LIST ROW ---
+                listTable.innerHTML += `
+                <tr class="hover:bg-gray-50 border-b border-gray-100 group transition-colors">
+                    <td class="p-4"><img src="${thumb}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 shadow-sm"></td>
+                    <td class="p-4"><div class="font-bold text-gray-800 group-hover:text-brand transition-colors">${c.title}</div>${typeBadge}</td>
+                    <td class="p-4 text-xs text-gray-500 font-bold">${strucText}</td>
+                    <td class="p-4 text-center"><span class="bg-primary-50 text-primary-700 px-2.5 py-1 rounded-full text-xs font-bold border border-primary-100">${c.students || 0} lượt</span></td>
+                    <td class="p-4 text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick="window.openStudentManager('${c.id}')" class="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Quản lý KH/Học viên"><i class="fa-solid fa-user-plus"></i></button>
+                            <button onclick="window.openCurriculumEditor('${c.id}')" class="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all shadow-sm ${c.type !== 'course' ? 'hidden' : ''}" title="Soạn giáo án"><i class="fa-solid fa-book-open"></i></button>
+                            <button onclick="window.copyProductLinkAdmin('${c.id}')" class="p-2 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-600 hover:text-white transition-all shadow-sm" title="Copy link mua hàng"><i class="fa-solid fa-share-nodes"></i></button>
+                            <button onclick="window.editCourse('${c.id}')" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-all"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="window.deleteCourse('${c.id}')" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+
+                // --- RENDER GRID CARD ---
+                gridContainer.innerHTML += `
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-brand/30 transition-all overflow-hidden flex flex-col group h-full">
+                    <div class="h-40 bg-gray-100 relative overflow-hidden">
+                        <img src="${thumb}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg backdrop-blur-sm"><i class="fa-solid fa-shopping-cart"></i> ${c.students||0}</div>
+                    </div>
+                    <div class="p-5 flex flex-col flex-1">
+                        <h3 class="font-bold text-gray-800 text-lg mb-1 line-clamp-2 group-hover:text-brand transition-colors">${c.title}</h3>
+                        <div>${typeBadge}</div>
+                        <p class="text-xs text-gray-500 font-bold mt-3 mb-4 flex items-center gap-2"><i class="fa-solid ${iconClass}"></i> ${strucText}</p>
+                        
+                        <div class="mt-auto grid grid-cols-5 gap-2 pt-4 border-t border-gray-100">
+                            <button onclick="window.openStudentManager('${c.id}')" class="col-span-1 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-colors" title="Học viên/Đơn hàng"><i class="fa-solid fa-user-plus"></i></button>
+                            <button onclick="window.openCurriculumEditor('${c.id}')" class="col-span-1 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-colors" title="Giáo án"><i class="fa-solid fa-book-open"></i></button>
+                            <button onclick="window.copyProductLinkAdmin('${c.id}')" class="col-span-1 py-2 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-600 hover:text-white transition-colors" title="Copy link mua hàng"><i class="fa-solid fa-share-nodes"></i></button>
+                            <button onclick="window.editCourse('${c.id}')" class="col-span-1 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-colors"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="window.deleteCourse('${c.id}')" class="col-span-1 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        // Copy link sản phẩm (dùng trong trang admin)
+        window.copyProductLinkAdmin = (id) => {
+            const baseUrl = 'https://qmath.io.vn';
+            const url = baseUrl + '?product=' + id;
+            navigator.clipboard.writeText(url).then(() => {
+                window.showToast('✅ Đã copy link! Dán gửi cho khách hàng.', 'success');
+            }).catch(() => {
+                prompt('Copy link này:', url);
+            });
+        };
+
+        // --- HÀM ĐIỀU CHỈNH VÀ TẢI ẢNH BÌA THÔNG MINH ---
+        let _pendingRawFile = null;
+        let _loadedImg = null;
+        let _currentAdjustMode = 'smart_blur';
+
+        window.closeImageAdjustModal = () => {
+            const modal = document.getElementById('imageAdjustModal');
+            if (modal) modal.classList.add('hidden');
+            const input = document.getElementById('cThumbInput');
+            if (input) input.value = '';
+            _pendingRawFile = null;
+            _loadedImg = null;
+        };
+
+        window.applyAdjustMode = (mode) => {
+            _currentAdjustMode = mode;
+            ['smart_blur', 'crop_front_cover', 'original'].forEach(m => {
+                const btn = document.getElementById(m === 'smart_blur' ? 'btnOptSmartBlur' : (m === 'crop_front_cover' ? 'btnOptCropFront' : 'btnOptOriginal'));
+                const dot = document.getElementById(m === 'smart_blur' ? 'dotOptSmartBlur' : (m === 'crop_front_cover' ? 'dotOptCropFront' : 'dotOptOriginal'));
+                if (!btn || !dot) return;
+                const isSelected = (m === mode);
+                btn.className = isSelected 
+                    ? 'w-full text-left p-2.5 sm:p-3 rounded-xl border-2 border-teal-500 bg-teal-50/50 hover:bg-teal-50 flex items-start gap-2.5 transition-all cursor-pointer'
+                    : 'w-full text-left p-2.5 sm:p-3 rounded-xl border-2 border-gray-200 hover:border-teal-400 bg-white hover:bg-gray-50 flex items-start gap-2.5 transition-all cursor-pointer';
+                dot.className = isSelected
+                    ? 'w-4 h-4 rounded-full border-2 border-teal-600 flex items-center justify-center mt-0.5 shrink-0 bg-white'
+                    : 'w-4 h-4 rounded-full border-2 border-gray-300 flex items-center justify-center mt-0.5 shrink-0 bg-white';
+                dot.innerHTML = isSelected ? '<div class="w-2 h-2 rounded-full bg-teal-600"></div>' : '<div class="w-2 h-2 rounded-full bg-transparent"></div>';
+            });
+            window.renderAdjustPreview();
+        };
+
+        window.renderAdjustPreview = () => {
+            if (!_loadedImg) return;
+            const canvas = document.getElementById('adjustPreviewCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const targetW = 1280;
+            const targetH = 720;
+            canvas.width = targetW;
+            canvas.height = targetH;
+
+            ctx.clearRect(0, 0, targetW, targetH);
+
+            const img = _loadedImg;
+            const iw = img.naturalWidth || img.width;
+            const ih = img.naturalHeight || img.height;
+
+            if (_currentAdjustMode === 'smart_blur') {
+                // 1. Draw blurred background covering entire 16:9 canvas
+                ctx.save();
+                ctx.filter = 'blur(28px) brightness(0.75)';
+                const bgScale = Math.max(targetW / iw, targetH / ih) * 1.15;
+                const bgW = iw * bgScale;
+                const bgH = ih * bgScale;
+                const bgX = (targetW - bgW) / 2;
+                const bgY = (targetH - bgH) / 2;
+                ctx.drawImage(img, bgX, bgY, bgW, bgH);
+                ctx.restore();
+
+                // 2. Draw subtle dark vignette overlay for depth
+                const grad = ctx.createRadialGradient(targetW/2, targetH/2, targetH/4, targetW/2, targetH/2, targetW/1.4);
+                grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.4)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, targetW, targetH);
+
+                // 3. Draw main image centered inside canvas (contain)
+                const padding = 20;
+                const availW = targetW - padding * 2;
+                const availH = targetH - padding * 2;
+                const scale = Math.min(availW / iw, availH / ih);
+                const dw = iw * scale;
+                const dh = ih * scale;
+                const dx = (targetW - dw) / 2;
+                const dy = (targetH - dh) / 2;
+
+                ctx.save();
+                ctx.shadowColor = 'rgba(0,0,0,0.45)';
+                ctx.shadowBlur = 24;
+                ctx.shadowOffsetY = 8;
+                ctx.drawImage(img, dx, dy, dw, dh);
+                ctx.restore();
+
+            } else if (_currentAdjustMode === 'crop_front_cover') {
+                const cropX = iw * 0.48; // crop right half
+                const cropW = iw - cropX;
+                const cropH = ih;
+
+                ctx.save();
+                ctx.filter = 'blur(28px) brightness(0.75)';
+                const bgScale = Math.max(targetW / cropW, targetH / cropH) * 1.15;
+                const bgW = cropW * bgScale;
+                const bgH = cropH * bgScale;
+                ctx.drawImage(img, cropX, 0, cropW, cropH, (targetW - bgW)/2, (targetH - bgH)/2, bgW, bgH);
+                ctx.restore();
+
+                const padding = 20;
+                const availW = targetW - padding * 2;
+                const availH = targetH - padding * 2;
+                const scale = Math.min(availW / cropW, availH / cropH);
+                const dw = cropW * scale;
+                const dh = cropH * scale;
+                const dx = (targetW - dw) / 2;
+                const dy = (targetH - dh) / 2;
+
+                ctx.save();
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 24;
+                ctx.shadowOffsetY = 8;
+                ctx.drawImage(img, cropX, 0, cropW, cropH, dx, dy, dw, dh);
+                ctx.restore();
+
+            } else {
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, 0, targetW, targetH);
+                const scale = Math.min(targetW / iw, targetH / ih);
+                const dw = iw * scale;
+                const dh = ih * scale;
+                const dx = (targetW - dw) / 2;
+                const dy = (targetH - dh) / 2;
+                ctx.drawImage(img, dx, dy, dw, dh);
+            }
+        };
+
+        window.handleThumbUpload = (input) => {
+            const file = input.files[0];
+            if (!file) return;
+
+            _pendingRawFile = file;
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    _loadedImg = img;
+                    const iw = img.naturalWidth || img.width;
+                    const ih = img.naturalHeight || img.height;
+                    const ratio = iw / ih;
+
+                    const badge = document.getElementById('imageRatioBadge');
+                    const notice = document.getElementById('imageRatioNotice');
+
+                    let ratioText = '';
+                    if (ratio > 1.6 && ratio < 1.85) {
+                        ratioText = 'Chuẩn 16:9';
+                        if (badge) badge.className = 'text-[10px] font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded';
+                    } else if (ratio > 1.2) {
+                        ratioText = 'Bìa ngang / Trải rộng (' + iw + ' × ' + ih + 'px)';
+                        if (badge) badge.className = 'text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded';
+                    } else {
+                        ratioText = 'Bìa đứng (' + iw + ' × ' + ih + 'px)';
+                        if (badge) badge.className = 'text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded';
+                    }
+                    if (badge) badge.innerText = ratioText;
+                    if (notice) notice.innerText = `Kích thước tệp gốc: ${iw} × ${ih} px (Tỉ lệ ${(ratio).toFixed(2)}:1)`;
+
+                    // Open adjustment modal
+                    document.getElementById('imageAdjustModal').classList.remove('hidden');
+                    window.applyAdjustMode('smart_blur');
+                };
+            };
+        };
+
+        window.confirmAndUploadAdjusted = async () => {
+            if (!_loadedImg || !_pendingRawFile) return;
+
+            const btn = document.getElementById('btnConfirmAdjust');
+            const originalBtnHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải lên...';
+            btn.disabled = true;
+
+            const previewBox = document.getElementById('thumbPreviewBox');
+            const emptyState = document.getElementById('thumbEmptyState');
+            const previewImg = document.getElementById('previewThumb');
+            const previewBlur = document.getElementById('previewThumbBlur');
+
+            try {
+                let blobToUpload = null;
+
+                if (_currentAdjustMode === 'original') {
+                    blobToUpload = await window.compressImage(_pendingRawFile, 0.88, 1280);
+                } else {
+                    const canvas = document.getElementById('adjustPreviewCanvas');
+                    blobToUpload = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+                }
+
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const timestamp = now.getTime();
+                const cleanName = _pendingRawFile.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+                const fileName = `courses/${year}/${month}/${timestamp}_banner_${cleanName}`;
+
+                const formData = new FormData();
+                formData.append('file', blobToUpload, fileName);
+
+                const res = await fetch("https://upload-helper.phamngockhanh-942001.workers.dev/", {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error("Lỗi Server Cloudflare");
+
+                const data = await res.json();
+                const finalUrl = data.url;
+
+                const previousUrl = document.getElementById('cThumb').value;
+                if (previousUrl && previousUrl.startsWith('http') && previousUrl !== finalUrl) {
+                    await window.deleteFileFromR2(previousUrl);
+                }
+
+                previewImg.src = finalUrl;
+                if (previewBlur) previewBlur.src = finalUrl;
+                document.getElementById('cThumb').value = finalUrl;
+                previewBox.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+
+                window.closeImageAdjustModal();
+                window.showToast("🎉 Đã tối ưu và tải ảnh bìa lên thành công!");
+
+            } catch (e) {
+                console.error("Lỗi upload:", e);
+                window.showToast("Lỗi: " + e.message, "error");
+            } finally {
+                btn.innerHTML = originalBtnHtml;
+                btn.disabled = false;
+            }
+        };
+
+// Script điều khiển ẩn/hiện form động
+window.toggleProductFields = () => {
+    const type = document.getElementById('cType').value;
+    const softDocFields = document.getElementById('softDocFields');
+    const hardBookFields = document.getElementById('hardBookFields');
+    
+    if(softDocFields) softDocFields.classList.add('hidden');
+    if(hardBookFields) hardBookFields.classList.add('hidden');
+    
+    if (type === 'document_soft' && softDocFields) {
+        softDocFields.classList.remove('hidden');
+    } else if (type === 'document_hard' && hardBookFields) {
+        hardBookFields.classList.remove('hidden');
+    }
+};
+
+// Hàm tải dữ liệu lên form sửa
+window.editCourse = async (id) => {
+    const d = await getDoc(doc(db, "public_courses", id));
+    if(d.exists()) {
+        const dt = d.data();
+        document.getElementById('courseId').value = id;
+        document.getElementById('cType').value = dt.type || 'course';
+        document.getElementById('cTitle').value = dt.title || '';
+        
+        document.getElementById('cOriginalPrice').value = dt.originalPrice || '';
+        document.getElementById('cPrice').value = dt.price || '';
+        
+        document.getElementById('cStudents').value = dt.students || 0;
+        document.getElementById('cDesc').value = dt.desc || '';
+        document.getElementById('cThumb').value = dt.thumbnail || '';
+        
+        if(document.getElementById('cDocFileUrl')) document.getElementById('cDocFileUrl').value = dt.fileUrl || '';
+        if(document.getElementById('cBookWeight')) document.getElementById('cBookWeight').value = dt.weight || '';
+        if(document.getElementById('cShippingFee')) document.getElementById('cShippingFee').value = dt.shippingFee !== undefined ? dt.shippingFee : '30000';
+        if(document.getElementById('cPreviewLink')) document.getElementById('cPreviewLink').value = dt.previewLink || '';
+        
+        window.toggleProductFields();
+        
+        if(dt.thumbnail) {
+            document.getElementById('previewThumb').src = dt.thumbnail;
+            const blurImg = document.getElementById('previewThumbBlur');
+            if (blurImg) blurImg.src = dt.thumbnail;
+            document.getElementById('thumbPreviewBox').classList.remove('hidden');
+            document.getElementById('thumbEmptyState').classList.add('hidden');
+        } else {
+            document.getElementById('thumbPreviewBox').classList.add('hidden');
+            document.getElementById('thumbEmptyState').classList.remove('hidden');
+        }
+        window.toggleModal('courseModal', true);
+    }
+};
+
+// Hàm lưu dữ liệu
+window.saveCourseBasic = async () => {
+    const id = document.getElementById('courseId').value;
+    const type = document.getElementById('cType').value; // Lấy type từ Dropdown
+    
+    const data = {
+        type: type, // <-- BẮT BUỘC PHẢI LƯU TRƯỜNG NÀY ĐỂ INDEX.HTML HIỂU ĐƯỢC
+        title: document.getElementById('cTitle').value,
+        originalPrice: parseInt(document.getElementById('cOriginalPrice').value) || 0,
+        price: parseInt(document.getElementById('cPrice').value) || 0,
+        students: parseInt(document.getElementById('cStudents').value) || 0,
+        desc: document.getElementById('cDesc').value,
+        thumbnail: document.getElementById('cThumb').value,
+        
+        // Lưu trường đặc thù tùy theo phân loại
+        fileUrl: type === 'document_soft' ? (document.getElementById('cDocFileUrl')?.value.trim() || '') : null,
+        weight: type === 'document_hard' ? (parseInt(document.getElementById('cBookWeight')?.value) || 0) : null,
+        shippingFee: type === 'document_hard' ? (parseInt(document.getElementById('cShippingFee')?.value) || 0) : null,
+        previewLink: type === 'document_hard' ? (document.getElementById('cPreviewLink')?.value.trim() || '') : null,
+        
+        updatedAt: new Date().toISOString()
+    };
+    
+    if(!data.title) return window.showToast("Vui lòng nhập tên khóa học", "error");
+
+    // Thêm hiệu ứng loading cho nút lưu
+    const btn = document.querySelector('.bg-brand[onclick="window.saveCourseBasic()"]');
+    const originalText = btn ? btn.innerHTML : '';
+    if(btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...'; btn.disabled = true; }
+
+    try {
+        if(id) {
+            await updateDoc(doc(db, "public_courses", id), data);
+        } else { 
+            data.createdAt = new Date().toISOString(); 
+            await setDoc(doc(collection(db, "public_courses")), data); 
+        }
+        window.showToast("Đã lưu thiết lập thành công!");
+        window.toggleModal('courseModal', false);
+        loadCourses();
+    } catch(e) { 
+        window.showToast(e.message, 'error'); 
+    } finally {
+        if(btn) { btn.innerHTML = originalText; btn.disabled = false; }
+    }
+};
+
+        // --- CURRICULUM EDITOR (3 LEVELS) ---
+        window.openCurriculumEditor = async (courseId) => {
+            currentCourseId = courseId;
+            activeChapIdx = -1; activeLesIdx = -1; activeItemIdx = -1;
+            document.getElementById('curriculumModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('editorWelcome').classList.remove('hidden');
+            document.getElementById('editorForm').classList.add('hidden');
+            
+            try {
+                const d = await getDoc(doc(db,"public_courses",courseId));
+                if(d.exists()) {
+                    const data = d.data();
+                    document.getElementById('editorCourseTitle').innerText = data.title;
+                    currentCurriculum = data.curriculum || [];
+                    // Migration: Nếu dữ liệu cũ (2 cấp), ta cần convert sang 3 cấp
+                    // Logic convert đơn giản: Biến lesson cũ thành item nằm trong lesson mới
+                    normalizeCurriculumData();
+                    renderCurriculumTree();
+                }
+            } catch(e) { window.showToast(e.message, 'error'); }
+        };
+
+        function normalizeCurriculumData() {
+            // Đảm bảo cấu trúc: Chapter -> Lessons[] -> Items[]
+            currentCurriculum.forEach(chap => {
+                if(!chap.lessons) chap.lessons = [];
+                chap.lessons.forEach(les => {
+                    // Nếu lesson cũ chưa có items array (dữ liệu cũ)
+                    if(!les.items) {
+                        // Chuyển nội dung lesson cũ thành 1 item con
+                        if(les.type && les.content) {
+                            les.items = [{
+                                id: 'it_' + Date.now() + Math.random(),
+                                title: "Nội dung chính",
+                                type: les.type,
+                                content: les.content,
+                                examId: les.examId || null,
+                                examTitle: les.examTitle || null
+                            }];
+                        } else {
+                            les.items = [];
+                        }
+                    }
+                });
+            });
+        }
+
+        // BƯỚC 3.2: Thay thế hàm renderCurriculumTree cũ bằng hàm này
+function renderCurriculumTree() {
+    const tree = document.getElementById('curriculumTree');
+    tree.innerHTML = '';
+    if(currentCurriculum.length === 0) return tree.innerHTML = `<div class="text-center mt-10 text-xs text-gray-400">Chưa có nội dung</div>`;
+
+    currentCurriculum.forEach((chap, cIdx) => {
+        // --- LEVEL 1: CHAPTER ---
+        const chapEl = document.createElement('div');
+        chapEl.className = "mb-2 border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm transition-all";
+        chapEl.draggable = true;
+        // Sự kiện Drag cho Chapter
+        setupDragEvents(chapEl, { type: 'chap', cIdx });
+
+        const isCollapsed = chap.isCollapsed || false; // Trạng thái thu gọn
+
+        chapEl.innerHTML = `
+            <div class="bg-gray-50 p-2.5 flex justify-between items-center group hover:bg-gray-100 cursor-pointer select-none" onclick="toggleCollapse(${cIdx}, 'chap')">
+                <div class="font-bold text-gray-800 text-sm flex-1 truncate flex items-center gap-2">
+                    <i class="fa-solid fa-grip-lines text-gray-300 cursor-move hover:text-gray-500"></i>
+                    <i class="fa-solid ${isCollapsed ? 'fa-folder' : 'fa-folder-open'} text-brand"></i>
+                    ${chap.title}
+                </div>
+                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="event.stopPropagation(); openRenameModal('chap', ${cIdx})" class="w-6 h-6 hover:bg-white rounded text-gray-500"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                    <button onclick="event.stopPropagation(); addLesson(${cIdx})" class="w-6 h-6 hover:bg-white rounded text-primary-600"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                    <button onclick="event.stopPropagation(); deleteChapter(${cIdx})" class="w-6 h-6 hover:bg-white rounded text-red-600"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                    <i class="fa-solid fa-chevron-${isCollapsed ? 'right' : 'down'} text-gray-400 text-xs ml-2 w-4 text-center"></i>
+                </div>
+            </div>
+            <div id="chap_body_${cIdx}" class="pl-3 pr-1 pb-2 space-y-2 mt-1 ${isCollapsed ? 'hidden' : ''}"></div>
+        `;
+        
+        const chapBody = chapEl.querySelector(`#chap_body_${cIdx}`);
+
+        // --- LEVEL 2: LESSON ---
+        (chap.lessons || []).forEach((les, lIdx) => {
+            const lesEl = document.createElement('div');
+            lesEl.className = "relative pl-4 border-l-2 border-gray-200 hover:border-brand transition-colors bg-white rounded";
+            lesEl.draggable = true;
+            setupDragEvents(lesEl, { type: 'les', cIdx, lIdx });
+
+            const isLesCollapsed = les.isCollapsed || false;
+
+            lesEl.innerHTML = `
+                <div class="flex justify-between items-center py-1 group/les cursor-pointer select-none" onclick="toggleCollapse(${cIdx}, 'les', ${lIdx})">
+                    <div class="text-sm font-bold text-gray-700 truncate flex items-center gap-2">
+                        <i class="fa-solid fa-grip-vertical text-gray-300 text-xs cursor-move"></i>
+                        <span class="${isLesCollapsed ? 'text-gray-500' : 'text-brand'}">${les.title}</span>
+                    </div>
+                    <div class="flex gap-1 opacity-0 group-hover/les:opacity-100 items-center">
+                        <button onclick="event.stopPropagation(); openRenameModal('les', ${cIdx}, ${lIdx})" class="text-gray-400 hover:text-brand"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                        <button onclick="event.stopPropagation(); addItem(${cIdx},${lIdx})" class="text-[10px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-bold hover:bg-primary-100">+ Mục</button>
+                        <button onclick="event.stopPropagation(); deleteLesson(${cIdx},${lIdx})" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-times text-xs"></i></button>
+                        <i class="fa-solid fa-caret-${isLesCollapsed ? 'right' : 'down'} text-gray-300 text-xs ml-1"></i>
+                    </div>
+                </div>
+            `;
+
+            // --- LEVEL 3: ITEMS ---
+            const itemsContainer = document.createElement('div');
+            itemsContainer.className = `space-y-1 mt-1 ${isLesCollapsed ? 'hidden' : ''}`;
+            
+            (les.items || []).forEach((item, iIdx) => {
+                const isActive = (cIdx === activeChapIdx && lIdx === activeLesIdx && iIdx === activeItemIdx);
+                const icon = item.type === 'pdf' ? 'fa-file-pdf text-primary-500' : (item.type === 'quiz' ? 'fa-clipboard-question text-orange-500' : 'fa-play-circle text-red-500');
+                
+                const itemEl = document.createElement('div');
+                itemEl.draggable = true;
+                setupDragEvents(itemEl, { type: 'item', cIdx, lIdx, iIdx });
+
+                itemEl.className = `flex justify-between items-center px-2 py-1.5 rounded text-xs cursor-pointer border border-transparent transition-all ${isActive ? 'bg-brand text-white shadow-md' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:border-gray-200'}`;
+                itemEl.onclick = (e) => { e.stopPropagation(); selectItem(cIdx, lIdx, iIdx); };
+                
+                itemEl.innerHTML = `
+                    <div class="flex items-center gap-2 truncate pointer-events-none">
+                        <i class="fa-solid fa-grip-lines-vertical text-gray-300 text-[10px]"></i>
+                        <i class="fa-solid ${icon}"></i>
+                        <span class="truncate max-w-[120px]">${item.title}</span>
+                    </div>
+                    <button onclick="event.stopPropagation(); deleteItem(${cIdx},${lIdx},${iIdx})" class="${isActive?'text-white/70 hover:text-white':'text-gray-300 hover:text-red-500'}"><i class="fa-solid fa-times"></i></button>
+                `;
+                itemsContainer.appendChild(itemEl);
+            });
+            
+            lesEl.appendChild(itemsContainer);
+            chapBody.appendChild(lesEl);
+        });
+
+        tree.appendChild(chapEl);
+    });
+}
+
+        window.toggleCollapse = (id) => document.getElementById(id).classList.toggle('hidden');
+
+        // --- ACTIONS 3 LEVELS ---
+        window.addChapter = () => { currentCurriculum.push({ title: "Chương mới", lessons: [] }); renderCurriculumTree(); };
+        window.renameChapter = (i) => { const t=prompt("Tên chương:",currentCurriculum[i].title); if(t){currentCurriculum[i].title=t;renderCurriculumTree();} };
+        window.deleteChapter = (i) => customConfirm("Xóa chương này?",()=>{currentCurriculum.splice(i,1);renderCurriculumTree();});
+        
+        window.addLesson = (ci) => { currentCurriculum[ci].lessons.push({ title: "Bài học mới", items: [] }); renderCurriculumTree(); };
+        window.renameLesson = (ci,li) => { const t=prompt("Tên bài học:",currentCurriculum[ci].lessons[li].title); if(t){currentCurriculum[ci].lessons[li].title=t;renderCurriculumTree();} };
+        window.deleteLesson = (ci,li) => customConfirm("Xóa bài học này?",()=>{currentCurriculum[ci].lessons.splice(li,1);renderCurriculumTree();});
+
+        window.addItem = (ci,li) => {
+            currentCurriculum[ci].lessons[li].items.push({ 
+                id: 'it_'+Date.now(), 
+                title: "Nội dung mới", 
+                type: 'video', 
+                content: '', 
+                isPublished: true,
+                minWatchTime: 10 // [MỚI] Mặc định 10 phút
+            });
+            renderCurriculumTree();
+            selectItem(ci, li, currentCurriculum[ci].lessons[li].items.length - 1);
+        };
+        window.deleteItem = (ci,li,ii) => {
+            if(confirm("Xóa nội dung này?")) {
+                currentCurriculum[ci].lessons[li].items.splice(ii,1);
+                if(ci==activeChapIdx && li==activeLesIdx && ii==activeItemIdx) {
+                    document.getElementById('editorForm').classList.add('hidden');
+                    document.getElementById('editorWelcome').classList.remove('hidden');
+                }
+                renderCurriculumTree();
+            }
+        };
+
+        // --- EDITOR LOGIC ---
+        window.selectItem = (ci, li, ii) => {
+            activeChapIdx = ci; activeLesIdx = li; activeItemIdx = ii;
+            const data = currentCurriculum[ci].lessons[li].items[ii];
+            renderCurriculumTree(); // Update highlight
+            
+            document.getElementById('editorWelcome').classList.add('hidden');
+            document.getElementById('editorForm').classList.remove('hidden');
+            
+            // Bind Data
+            document.getElementById('editItemTitle').value = data.title;
+            document.getElementById('isPreview').checked = data.isPreview || false;
+            document.getElementById('isPublished').checked = data.isPublished !== false;
+            
+            window.setItemType(data.type);
+            
+            // Fill Content
+            if(data.type === 'video') {
+                document.getElementById('videoUrlInput').value = data.content || '';
+                // [MỚI] Load thời gian xem, nếu không có dữ liệu cũ thì mặc định 10
+                document.getElementById('videoMinTime').value = data.minWatchTime || 10;
+                window.previewVideo(data.content || '');
+            } else if (data.type === 'pdf') {
+                if(data.content && data.content.includes('drive.google.com')) {
+                    document.querySelector('input[name="pdfSource"][value="drive"]').checked = true;
+                    document.getElementById('driveUrlInput').value = data.content;
+                } else {
+                    document.querySelector('input[name="pdfSource"][value="upload"]').checked = true;
+                    if(data.content) document.getElementById('pdfFrame').src = data.content;
+                }
+                window.togglePdfSource();
+            } else if(data.type === 'quiz') {
+                document.getElementById('selectedExamTitle').innerText = data.examTitle || 'Chưa chọn đề';
+                document.getElementById('selectedExamInfo').classList.toggle('hidden', !data.examId);
+            }
+        };
+
+        // Auto Save to State
+        document.getElementById('editItemTitle').oninput = (e) => { if(activeItemIdx>-1) currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx].title = e.target.value; };
+        document.getElementById('editItemTitle').onblur = renderCurriculumTree;
+        // Xử lý link Video
+        document.getElementById('videoUrlInput').oninput = (e) => { 
+            if(activeItemIdx>-1) {
+                currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx].content = e.target.value;
+                window.previewVideo(e.target.value);
+            }
+        };
+        
+        // [MỚI] Xử lý thời gian xem tối thiểu
+        document.getElementById('videoMinTime').oninput = (e) => {
+            if(activeItemIdx > -1) {
+                // Lưu giá trị vào biến data, nếu trống thì mặc định là 10
+                currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx].minWatchTime = e.target.value || 10;
+            }
+        };
+        document.getElementById('driveUrlInput').oninput = (e) => {
+             if(activeItemIdx>-1) {
+                currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx].content = e.target.value;
+                window.togglePdfSource(); // Trigger preview update
+             }
+        };
+        document.getElementById('isPreview').onchange = (e) => { if(activeItemIdx>-1) currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx].isPreview = e.target.checked; };
+
+        // --- HELPER FUNCTIONS ---
+        window.setItemType = (type) => {
+            if(activeItemIdx > -1) currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx].type = type;
+            
+            // UI Tab Styling
+            document.querySelectorAll('.type-btn').forEach(b => b.className = "type-btn px-4 py-1.5 rounded-md text-sm font-bold text-gray-500 hover:bg-white transition-all");
+            const activeId = type==='video'?'btnTypeVideo':(type==='pdf'?'btnTypePdf':'btnTypeQuiz');
+            const activeColor = type==='video'?'bg-red-50 text-red-600':(type==='pdf'?'bg-primary-50 text-primary-600':'bg-orange-50 text-orange-600');
+            document.getElementById(activeId).className = `type-btn px-4 py-1.5 rounded-md text-sm font-bold shadow-sm transition-all ${activeColor}`;
+            
+            // Show Panel
+            document.querySelectorAll('.content-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(type==='video'?'panelVideo':(type==='pdf'?'panelPdf':'panelQuiz')).classList.remove('hidden');
+        };
+
+        window.previewVideo = (url) => {
+            if(!url) return document.getElementById('videoPreviewArea').classList.add('hidden');
+            const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+            if(m && m[2].length === 11) {
+                document.getElementById('videoFrame').src = `https://www.youtube.com/embed/${m[2]}`;
+                document.getElementById('videoPreviewArea').classList.remove('hidden');
+            } else {
+                document.getElementById('videoPreviewArea').classList.add('hidden');
+            }
+        };
+
+        window.togglePdfSource = () => {
+            const s = document.querySelector('input[name="pdfSource"]:checked').value;
+            const isUpload = s === 'upload';
+            document.getElementById('pdfUploadArea').classList.toggle('hidden', !isUpload);
+            document.getElementById('pdfDriveArea').classList.toggle('hidden', isUpload);
+            
+            // Handle Preview logic
+            let url = "";
+            if(isUpload) {
+                // Với mode upload, url nằm trong currentCurriculum.content
+                if(activeItemIdx > -1) url = currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx].content;
+            } else {
+                url = document.getElementById('driveUrlInput').value;
+            }
+
+            const previewArea = document.getElementById('pdfPreviewArea');
+            const iframe = document.getElementById('pdfFrame');
+            
+            if(url) {
+                if(url.includes('drive.google.com')) {
+                    // Convert view -> preview
+                    url = url.replace('/view', '/preview').replace('/edit', '/preview');
+                }
+                iframe.src = url;
+                previewArea.classList.remove('hidden');
+            } else {
+                previewArea.classList.add('hidden');
+            }
+        };
+
+        // --- PDF UPLOAD HANDLER (ĐÃ NỐI VỚI CLOUDFLARE R2) ---
+        window.handlePdfUpload = async (input) => {
+            const file = input.files[0];
+            if(!file) return;
+
+            // Hiện thanh tiến trình
+            document.getElementById('pdfUploadProgress').classList.remove('hidden');
+
+            try {
+                // 1. Tạo tên file chuẩn (Tạo thư mục pdfs riêng trên Cloudflare)
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const timestamp = now.getTime();
+                const cleanName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+                const fileName = `pdfs/${year}/${month}/${timestamp}_${cleanName}`;
+
+                const formData = new FormData();
+                // Không nén PDF, đẩy thẳng file gốc lên
+                formData.append('file', file, fileName);
+
+                // 2. Gửi lên Cloudflare Worker của bạn
+                const res = await fetch("https://upload-helper.phamngockhanh-942001.workers.dev/", {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error("Lỗi Server Cloudflare");
+
+                const data = await res.json();
+                const finalUrl = data.url;
+
+                // 3. Xóa file cũ trên Cloudflare nếu có (để tiết kiệm dung lượng)
+                const oldUrl = currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx].content;
+                if (oldUrl && oldUrl.includes('phamngockhanh-942001.workers.dev')) {
+                    await window.deleteFileFromR2(oldUrl);
+                }
+
+                // 4. Lưu Link thật vào Giáo án
+                currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx].content = finalUrl;
+
+                // 5. Cập nhật giao diện
+                document.getElementById('pdfFrame').src = finalUrl;
+                document.getElementById('pdfPreviewArea').classList.remove('hidden');
+                window.showToast("Tải file PDF lên thành công!", "success");
+
+            } catch (e) {
+                console.error("Lỗi upload PDF:", e);
+                window.showToast("Lỗi tải file: " + e.message, "error");
+            } finally {
+                // Ẩn thanh tiến trình
+                document.getElementById('pdfUploadProgress').classList.add('hidden');
+                input.value = '';
+            }
+        };
+
+        // --- EXAM SELECTOR ---
+        window.openExamSelector = () => { document.getElementById('examSelectorModal').classList.remove('hidden'); loadExamManager(null); };
+        // --- HÀM TẢI QUẢN LÝ ĐỀ THI (ĐÃ FIX LỖI HIỂN THỊ ĐỀ NGOÀI GỐC) ---
+        // --- HÀM TẢI NGÂN HÀNG ĐỀ THI (PHIÊN BẢN QUÉT TOÀN BỘ - FIX LỖI HIỂN THỊ) ---
+        window.loadExamManager = async (folderId) => {
+            const container = document.getElementById('selectorContent');
+            const breadcrumb = document.getElementById('selectorBreadcrumb');
+            
+            // 1. UI Loading
+            container.innerHTML = '<div class="col-span-full text-center py-12 text-gray-400 flex flex-col items-center"><i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-brand"></i><span class="font-bold">Đang tải dữ liệu...</span></div>';
+            
+            // 2. Breadcrumb
+            breadcrumb.innerHTML = folderId 
+                ? `<span class="text-gray-400 cursor-pointer hover:text-brand" onclick="loadExamManager(null)"><i class="fa-solid fa-home"></i> Gốc</span> <span class="text-gray-300 mx-2">/</span> <span class="font-bold text-gray-700">Thư mục</span>`
+                : `<span class="font-bold text-brand"><i class="fa-solid fa-home"></i> Ngân hàng đề thi (Gốc)</span>`;
+
+            try {
+                // 3. TẢI DỮ LIỆU
+                // - Folders: Luôn tải theo parentId (để hiển thị thư mục con)
+                const qF = query(collection(db, "folders"), where("parentId", "==", folderId || null));
+                
+                // - Exams: 
+                //   + Nếu đang trong thư mục: Tải chính xác theo folderId
+                //   + Nếu đang ở Gốc: Tải TOÀN BỘ exams về rồi lọc bằng JS (Để bắt được cả null, undefined, "")
+                let qE;
+                if (folderId) {
+                    qE = query(collection(db, "exams"), where("folderId", "==", folderId));
+                } else {
+                    qE = query(collection(db, "exams")); // Tải hết để lọc client (Chắc chắn không sót)
+                }
+
+                const [snapF, snapE] = await Promise.all([getDocs(qF), getDocs(qE)]);
+
+                container.innerHTML = '';
+                let hasItem = false;
+
+                // 4. RENDER THƯ MỤC (FOLDERS)
+                snapF.forEach(d => {
+                    hasItem = true;
+                    const el = document.createElement('div');
+                    el.className = "bg-white p-4 rounded-xl border border-gray-200 hover:border-brand cursor-pointer flex flex-col items-center gap-3 aspect-square justify-center shadow-sm transition-all hover:bg-teal-50 group";
+                    el.onclick = () => loadExamManager(d.id);
+                    el.innerHTML = `
+                        <i class="fa-solid fa-folder text-5xl text-yellow-400 drop-shadow-sm group-hover:scale-110 transition-transform"></i>
+                        <div class="text-xs font-bold text-gray-700 text-center truncate w-full px-1">${d.data().name}</div>
+                    `;
+                    container.appendChild(el);
+                });
+
+                // 5. RENDER ĐỀ THI (EXAMS)
+                snapE.forEach(d => {
+                    const e = d.data();
+                    let shouldShow = false;
+
+                    if (folderId) {
+                        // Đang trong thư mục con -> Query đã lọc rồi -> Hiện luôn
+                        shouldShow = true;
+                    } else {
+                        // Đang ở Gốc -> Chỉ hiện đề KHÔNG thuộc thư mục nào
+                        // Logic: folderId không tồn tại HOẶC là null HOẶC là rỗng
+                        if (!e.folderId || e.folderId === "null" || e.folderId === "") {
+                            shouldShow = true;
+                        }
+                    }
+
+                    if (shouldShow) {
+                        hasItem = true;
+                        const el = document.createElement('div');
+                        el.className = "bg-white p-4 rounded-xl border border-gray-200 hover:border-orange-500 cursor-pointer flex flex-col items-center gap-3 aspect-square justify-center shadow-sm group relative transition-all hover:shadow-md";
+                        el.onclick = () => {
+                            // Logic chọn đề
+                            if(activeItemIdx > -1) {
+                                const item = currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx];
+                                item.examId = d.id;
+                                item.examTitle = e.title;
+                                document.getElementById('selectedExamTitle').innerText = e.title;
+                                document.getElementById('selectedExamInfo').classList.remove('hidden');
+                                document.getElementById('examSelectorModal').classList.add('hidden');
+                                window.showToast(`Đã chọn: ${e.title}`);
+                            }
+                        };
+                        
+                        // Icon và màu sắc
+                        const qCount = e.questionCount || 0;
+                        
+                        el.innerHTML = `
+                            <div class="relative">
+                                <i class="fa-solid fa-file-lines text-4xl text-gray-300 group-hover:text-orange-500 transition-colors"></i>
+                                <span class="absolute -top-2 -right-3 bg-gray-100 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded border border-gray-200">${qCount} câu</span>
+                            </div>
+                            <div class="text-xs font-bold text-gray-700 text-center line-clamp-2 w-full px-1 group-hover:text-orange-600 transition-colors" title="${e.title}">${e.title}</div>
+                        `;
+                        container.appendChild(el);
+                    }
+                });
+
+                // 6. Xử lý trống
+                if (!hasItem) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center text-gray-300 py-12 flex flex-col items-center select-none">
+                            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                                <i class="fa-regular fa-folder-open text-3xl opacity-50"></i>
+                            </div>
+                            <span class="text-sm font-medium">Thư mục trống</span>
+                        </div>`;
+                }
+
+            } catch(e) { 
+                console.error(e);
+                container.innerHTML = `<div class="col-span-full bg-red-50 text-red-600 p-4 rounded-xl text-center text-sm font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Lỗi tải dữ liệu: ${e.message}</div>`; 
+            }
+        };
+
+        window.saveCurriculum = async () => {
+            const btn = document.querySelector('button[onclick="saveCurriculum()"]');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
+            try {
+                await updateDoc(doc(db, "public_courses", currentCourseId), { curriculum: currentCurriculum });
+                window.showToast("Lưu giáo án thành công!");
+            } catch(e) { window.showToast("Lỗi lưu: "+e.message, 'error'); }
+            finally { btn.innerHTML = '<i class="fa-solid fa-save mr-2"></i> LƯU GIÁO ÁN'; }
+        };
+        
+        // --- HÀM ĐÓNG MỞ MODAL CHUẨN ---
+        // --- HÀM ĐÓNG MỞ MODAL CHUẨN ---
+        window.toggleModal = (id, show) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            
+            // Logic xử lý tham số show linh hoạt
+            let shouldShow;
+            if (show === undefined) {
+                shouldShow = el.classList.contains('hidden');
+            } else {
+                shouldShow = !!show;
+            }
+            
+            if (shouldShow) {
+                el.classList.remove('hidden');
+                document.body.classList.add('modal-active');
+            } else {
+                el.classList.add('hidden');
+                document.body.classList.remove('modal-active');
+                // Reset ID khóa học khi đóng modal để tránh nhầm lẫn giữa thêm và sửa
+                if(id === 'courseModal') document.getElementById('courseId').value = '';
+            }
+        };
+        window.closeCurriculumModal = () => window.customConfirm("Đóng mà không lưu?", () => document.getElementById('curriculumModal').classList.add('hidden'));
+       window.deleteCourse = (id) => window.customConfirm("Hành động này sẽ xóa vĩnh viễn khóa học và ảnh banner trên R2. Bạn có chắc chắn không?", async () => {
+            const btn = document.querySelector(`button[onclick="window.deleteCourse('${id}')"]`);
+            const originalContent = btn ? btn.innerHTML : '';
+            if(btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+            try {
+                // 1. Lấy thông tin khóa học trước khi xóa để lấy URL ảnh bìa
+                const courseRef = doc(db, "public_courses", id);
+                const courseSnap = await getDoc(courseRef);
+                let bannerUrl = null;
+                
+                if (courseSnap.exists()) {
+                    bannerUrl = courseSnap.data().thumbnail;
+                }
+
+                // 2. Xóa các bản ghi liên quan trong Firestore (Batch)
+                const batch = writeBatch(db);
+                batch.delete(courseRef); // Xóa chính khóa học
+
+                // Xóa đơn hàng
+                const qOrder = query(collection(db, "orders"), where("courseId", "==", id));
+                const snapOrder = await getDocs(qOrder);
+                snapOrder.forEach(d => batch.delete(d.ref));
+
+                // Xóa tiến độ học tập
+                const qProgress = query(collection(db, "user_progress"), where("courseId", "==", id));
+                const snapProgress = await getDocs(qProgress);
+                snapProgress.forEach(d => batch.delete(d.ref));
+
+                await batch.commit();
+
+                // 3. Xóa file ảnh vật lý trên Cloudflare R2
+                if (bannerUrl && bannerUrl.startsWith('http')) {
+                    await window.deleteFileFromR2(bannerUrl);
+                }
+
+                window.showToast("Đã xóa sạch dữ liệu khóa học và ảnh banner!");
+                loadCourses();
+            } catch (e) {
+                console.error("Lỗi khi xóa:", e);
+                window.showToast("Lỗi: " + e.message, "error");
+                if(btn) btn.innerHTML = originalContent;
+            }
+        });
+        // Hàm phụ trợ: Xóa file trên Storage dựa vào URL
+        async function deleteFileByUrl(url) {
+            if (!url) return;
+            // Chỉ xóa nếu link thuộc Firebase Storage của dự án này
+            if (!url.includes('firebasestorage.googleapis.com')) return; 
+
+            try {
+                // Tạo reference từ URL và xóa
+                const fileRef = ref(storage, url);
+                await deleteObject(fileRef);
+                console.log("Đã xóa file:", url);
+            } catch (error) {
+                console.warn("Không xóa được file (có thể file không tồn tại):", error.message);
+            }
+        }
+        // --- LOGIC 1: ĐỔI TÊN (KHÔNG DÙNG PROMPT) ---
+window.openRenameModal = (type, cIdx, lIdx = null) => {
+    renameTarget = { type, cIdx, lIdx };
+    const currentTitle = type === 'chap' 
+        ? currentCurriculum[cIdx].title 
+        : currentCurriculum[cIdx].lessons[lIdx].title;
+    
+    document.getElementById('renameInput').value = currentTitle;
+    document.getElementById('renameModal').classList.remove('hidden');
+    document.getElementById('renameInput').focus();
+};
+
+window.confirmRename = () => {
+    const newName = document.getElementById('renameInput').value;
+    if(!newName) return;
+    
+    if(renameTarget.type === 'chap') {
+        currentCurriculum[renameTarget.cIdx].title = newName;
+    } else {
+        currentCurriculum[renameTarget.cIdx].lessons[renameTarget.lIdx].title = newName;
+    }
+    
+    document.getElementById('renameModal').classList.add('hidden');
+    renderCurriculumTree();
+};
+
+// --- LOGIC 2: THU GỌN (COLLAPSE) ---
+window.toggleCollapse = (cIdx, type, lIdx = null) => {
+    if(type === 'chap') {
+        currentCurriculum[cIdx].isCollapsed = !currentCurriculum[cIdx].isCollapsed;
+    } else {
+        currentCurriculum[cIdx].lessons[lIdx].isCollapsed = !currentCurriculum[cIdx].lessons[lIdx].isCollapsed;
+    }
+    renderCurriculumTree();
+};
+
+// --- LOGIC 3: CÀI ĐẶT VIDEO (THÊM INPUT THỜI GIAN) ---
+// Cập nhật sự kiện input cho trường thời gian
+// --- LOGIC 3: CÀI ĐẶT VIDEO & QUIZ (THỜI GIAN & ĐIỂM SỐ) ---
+
+// 1. Cập nhật thời gian xem video
+// --- LOGIC 3: CÀI ĐẶT VIDEO & QUIZ (THỜI GIAN & ĐIỂM SỐ) ---
+
+// 1. Cập nhật thời gian xem video
+document.getElementById('videoMinTime').oninput = (e) => {
+    if(activeItemIdx > -1) {
+        currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx].minWatchTime = e.target.value;
+    }
+};
+
+// 2. [FIX QUAN TRỌNG] Cập nhật cấu hình Quiz (Điểm, Lượt xem, Giá tiền)
+const updateQuizConfig = () => {
+    if(activeItemIdx > -1) {
+        const item = currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx];
+        item.minScore = document.getElementById('quizMinScore').value;
+        // Lưu ý: Cần lấy đúng ID của 2 ô nhập mới
+        item.viewLimit = document.getElementById('quizViewLimit').value; 
+        item.viewPrice = document.getElementById('quizViewPrice').value;
+    }
+};
+
+// Gắn sự kiện oninput cho cả 3 ô nhập để khi gõ là lưu ngay vào biến tạm
+document.getElementById('quizMinScore').oninput = updateQuizConfig;
+document.getElementById('quizViewLimit').oninput = updateQuizConfig;
+document.getElementById('quizViewPrice').oninput = updateQuizConfig;
+
+// 3. Cập nhật hàm selectItem để load dữ liệu vào Form
+window.selectItem = (cIdx, lIdx, iIdx) => {
+    activeChapIdx = cIdx; activeLesIdx = lIdx; activeItemIdx = iIdx;
+    const data = currentCurriculum[cIdx].lessons[lIdx].items[iIdx];
+    
+    renderCurriculumTree(); 
+    document.getElementById('editorWelcome').classList.add('hidden');
+    document.getElementById('editorForm').classList.remove('hidden');
+    
+    // Bind dữ liệu chung
+    document.getElementById('editItemTitle').value = data.title;
+    document.getElementById('isPreview').checked = data.isPreview || false;
+    document.getElementById('isPublished').checked = data.isPublished !== false;
+    
+    window.setItemType(data.type);
+
+    // Bind dữ liệu riêng từng loại
+    if(data.type === 'video') {
+        document.getElementById('videoUrlInput').value = data.content || '';
+        document.getElementById('videoMinTime').value = data.minWatchTime || 10; 
+        window.previewVideo(data.content || '');
+    } else if (data.type === 'pdf') {
+        if(data.content && data.content.includes('drive.google.com')) {
+            document.querySelector('input[name="pdfSource"][value="drive"]').checked = true;
+            document.getElementById('driveUrlInput').value = data.content;
+        } else {
+            document.querySelector('input[name="pdfSource"][value="upload"]').checked = true;
+            if(data.content) document.getElementById('pdfFrame').src = data.content;
+        }
+        window.togglePdfSource();
+    } else if(data.type === 'quiz') {
+        document.getElementById('selectedExamTitle').innerText = data.examTitle || 'Chưa chọn đề';
+        document.getElementById('selectedExamInfo').classList.toggle('hidden', !data.examId);
+        
+        // [FIX QUAN TRỌNG] Load dữ liệu cũ lên ô nhập
+        document.getElementById('quizMinScore').value = data.minScore !== undefined ? data.minScore : 5;
+        document.getElementById('quizViewLimit').value = data.viewLimit || ''; // Nếu chưa có thì để trống (Vô hạn)
+        document.getElementById('quizViewPrice').value = data.viewPrice || ''; // Nếu chưa có thì để trống (Miễn phí)
+    }
+};
+
+// --- LOGIC 4: KÉO THẢ (DRAG & DROP ENGINE) ---
+function setupDragEvents(el, data) {
+    el.ondragstart = (e) => {
+        e.stopPropagation();
+        dragSrc = data;
+        el.classList.add('draggable-source');
+        e.dataTransfer.effectAllowed = 'move';
+        // Hack để trên Firefox hoạt động
+        e.dataTransfer.setData('text/plain', JSON.stringify(data)); 
+    };
+
+    el.ondragend = (e) => {
+        el.classList.remove('draggable-source');
+        document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-inside').forEach(e => {
+            e.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside');
+        });
+        dragSrc = null;
+    };
+
+    el.ondragover = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if(!dragSrc) return;
+        
+        // Logic hiển thị vạch chỉ dẫn (Trên/Dưới/Trong)
+        const rect = el.getBoundingClientRect();
+        const offset = e.clientY - rect.top;
+        
+        // Reset style
+        el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside');
+
+        // Logic Kéo Chapter
+        if(dragSrc.type === 'chap' && data.type === 'chap') {
+            if(offset < rect.height / 2) el.classList.add('drag-over-top');
+            else el.classList.add('drag-over-bottom');
+        }
+        // Logic Kéo Lesson (vào Lesson khác hoặc vào Chapter)
+        else if(dragSrc.type === 'les') {
+            if(data.type === 'les') {
+                if(offset < rect.height / 2) el.classList.add('drag-over-top');
+                else el.classList.add('drag-over-bottom');
+            } else if (data.type === 'chap') {
+                el.classList.add('drag-over-inside'); // Kéo Lesson vào Chapter
+            }
+        }
+        // Logic Kéo Item
+        else if(dragSrc.type === 'item') {
+            if(data.type === 'item') {
+                 if(offset < rect.height / 2) el.classList.add('drag-over-top');
+                else el.classList.add('drag-over-bottom');
+            } else if(data.type === 'les') {
+                 el.classList.add('drag-over-inside'); // Kéo Item vào Lesson
+            }
+        }
+    };
+
+    el.ondrop = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if(!dragSrc) return;
+        
+        // Xử lý Logic di chuyển dữ liệu
+        // 1. CHAPTER
+        if(dragSrc.type === 'chap' && data.type === 'chap') {
+            const srcItem = currentCurriculum[dragSrc.cIdx];
+            currentCurriculum.splice(dragSrc.cIdx, 1); // Xóa cũ
+            // Tính index mới (nếu kéo từ dưới lên thì index không đổi, nếu từ trên xuống thì -1)
+            let newIdx = data.cIdx;
+            if(el.classList.contains('drag-over-bottom')) newIdx++;
+            if(dragSrc.cIdx < data.cIdx) newIdx--; 
+            
+            currentCurriculum.splice(newIdx, 0, srcItem); // Chèn mới
+        }
+        // 2. LESSON
+        else if(dragSrc.type === 'les') {
+            const srcLesson = currentCurriculum[dragSrc.cIdx].lessons[dragSrc.lIdx];
+            
+            if(data.type === 'les') {
+                // Di chuyển trong cùng list hoặc khác list đều được
+                currentCurriculum[dragSrc.cIdx].lessons.splice(dragSrc.lIdx, 1);
+                
+                let newLIdx = data.lIdx;
+                if(el.classList.contains('drag-over-bottom')) newLIdx++;
+                // Nếu cùng 1 chapter và kéo xuống dưới, phải trừ index
+                if(dragSrc.cIdx === data.cIdx && dragSrc.lIdx < data.lIdx) newLIdx--;
+                
+                currentCurriculum[data.cIdx].lessons.splice(newLIdx, 0, srcLesson);
+            } else if (data.type === 'chap') {
+                // Thả vào Chapter (Append vào cuối)
+                currentCurriculum[dragSrc.cIdx].lessons.splice(dragSrc.lIdx, 1);
+                if(!currentCurriculum[data.cIdx].lessons) currentCurriculum[data.cIdx].lessons = [];
+                currentCurriculum[data.cIdx].lessons.push(srcLesson);
+            }
+        }
+        // 3. ITEM
+        else if(dragSrc.type === 'item') {
+             const srcItem = currentCurriculum[dragSrc.cIdx].lessons[dragSrc.lIdx].items[dragSrc.iIdx];
+             
+             if(data.type === 'item') {
+                 currentCurriculum[dragSrc.cIdx].lessons[dragSrc.lIdx].items.splice(dragSrc.iIdx, 1);
+                 
+                 let newIIdx = data.iIdx;
+                 if(el.classList.contains('drag-over-bottom')) newIIdx++;
+                 if(dragSrc.cIdx === data.cIdx && dragSrc.lIdx === data.lIdx && dragSrc.iIdx < data.iIdx) newIIdx--;
+                 
+                 currentCurriculum[data.cIdx].lessons[data.lIdx].items.splice(newIIdx, 0, srcItem);
+             } else if(data.type === 'les') {
+                 // Thả vào Lesson (Append cuối)
+                 currentCurriculum[dragSrc.cIdx].lessons[dragSrc.lIdx].items.splice(dragSrc.iIdx, 1);
+                 currentCurriculum[data.cIdx].lessons[data.lIdx].items.push(srcItem);
+             }
+        }
+        
+        // Reset selection và Render lại
+        activeChapIdx = -1; activeLesIdx = -1; activeItemIdx = -1;
+        document.getElementById('editorForm').classList.add('hidden');
+        document.getElementById('editorWelcome').classList.remove('hidden');
+        renderCurriculumTree();
+    };
+}
+        // ==========================================
+// TÍNH NĂNG EXCEL (IMPORT / EXPORT / TEMPLATE)
+// ==========================================
+
+// 1. TẢI FILE MẪU
+window.downloadTemplate = () => {
+    // Tạo dữ liệu mẫu chuẩn
+    const data = [
+        {
+            "Chương": "Chương 1: Giới thiệu",
+            "Bài học": "Bài 1: Tổng quan",
+            "Tên nội dung": "Video giới thiệu",
+            "Loại (video/pdf/quiz)": "video",
+            "Link/ID (Youtube hoặc Drive)": "https://www.youtube.com/watch?v=example",
+            "Thời gian (phút)": 10,
+            "Học thử (có/không)": "có"
+        },
+        {
+            "Chương": "Chương 1: Giới thiệu",
+            "Bài học": "Bài 1: Tổng quan",
+            "Tên nội dung": "Tài liệu nhập môn",
+            "Loại (video/pdf/quiz)": "pdf",
+            "Link/ID (Youtube hoặc Drive)": "https://drive.google.com/file/d/example",
+            "Thời gian (phút)": "",
+            "Học thử (có/không)": "không"
+        },
+        {
+            "Chương": "Chương 1: Giới thiệu",
+            "Bài học": "Bài 2: Kiểm tra đầu vào",
+            "Tên nội dung": "Đề khảo sát",
+            "Loại (video/pdf/quiz)": "quiz",
+            "Link/ID (Youtube hoặc Drive)": "ID_DE_THI_TU_NGAN_HANG",
+            "Thời gian (phút)": "",
+            "Học thử (có/không)": "không"
+        }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    
+    // Chỉnh độ rộng cột cho dễ nhìn
+    const wscols = [{wch:25}, {wch:25}, {wch:30}, {wch:15}, {wch:40}, {wch:15}, {wch:15}];
+    ws['!cols'] = wscols;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Mau_Cau_Truc");
+    XLSX.writeFile(wb, "Mau_Nhap_Khoa_Hoc.xlsx");
+};
+
+// 2. XUẤT CẤU TRÚC HIỆN TẠI RA EXCEL
+window.exportCurriculum = () => {
+    if(currentCurriculum.length === 0) return window.showToast("Giáo án trống, không có gì để xuất!", "error");
+
+    const rows = [];
+    
+    currentCurriculum.forEach(chap => {
+        // Nếu chương không có bài học, vẫn xuất dòng chương
+        if(!chap.lessons || chap.lessons.length === 0) {
+            rows.push({
+                "Chương": chap.title, "Bài học": "", "Tên nội dung": "", "Loại (video/pdf/quiz)": "", "Link/ID (Youtube hoặc Drive)": "", "Thời gian (phút)": "", "Học thử (có/không)": ""
+            });
+        } else {
+            chap.lessons.forEach(les => {
+                // Nếu bài học không có item
+                if(!les.items || les.items.length === 0) {
+                    rows.push({
+                        "Chương": chap.title, "Bài học": les.title, "Tên nội dung": "", "Loại (video/pdf/quiz)": "", "Link/ID (Youtube hoặc Drive)": "", "Thời gian (phút)": "", "Học thử (có/không)": ""
+                    });
+                } else {
+                    les.items.forEach(item => {
+                        let content = item.content || "";
+                        // Nếu là quiz thì lấy ID đề thi
+                        if(item.type === 'quiz') content = item.examId || "";
+                        
+                        rows.push({
+                            "Chương": chap.title,
+                            "Bài học": les.title,
+                            "Tên nội dung": item.title,
+                            "Loại (video/pdf/quiz)": item.type,
+                            "Link/ID (Youtube hoặc Drive)": content,
+                            "Thời gian (phút)": item.minWatchTime || "",
+                            "Học thử (có/không)": item.isPreview ? "có" : "không"
+                        });
+                    });
+                }
+            });
+        }
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Cau_Truc_Khoa_Hoc");
+    XLSX.writeFile(wb, `Cau_Truc_${document.getElementById('cTitle').value || 'Khoa_Hoc'}.xlsx`);
+};
+
+// 3. NHẬP TỪ EXCEL (IMPORT)
+window.importCurriculum = (input) => {
+    const file = input.files[0];
+    if(!file) return;
+
+    if(!confirm("Cảnh báo: Hành động này sẽ GHI ĐÈ toàn bộ cấu trúc giáo án hiện tại. Bạn có chắc chắn muốn tiếp tục?")) {
+        input.value = ''; // Reset input
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet);
+
+            if(json.length === 0) return window.showToast("File rỗng!", "error");
+
+            // LOGIC PARSING: Chuyển Flat JSON -> Nested Array (Chapter > Lesson > Item)
+            const newCurriculum = [];
+            let currentChap = null;
+            let currentLes = null;
+
+            // Biến tạm để nhớ giá trị dòng trước (nếu người dùng merge cell hoặc để trống ô lặp lại)
+            let lastChapName = "";
+            let lastLesName = "";
+
+            json.forEach(row => {
+                // Lấy giá trị các cột (Trim space thừa)
+                let cName = (row["Chương"] || "").toString().trim();
+                let lName = (row["Bài học"] || "").toString().trim();
+                let iName = (row["Tên nội dung"] || "").toString().trim();
+                let iType = (row["Loại (video/pdf/quiz)"] || "video").toString().toLowerCase().trim();
+                let iLink = (row["Link/ID (Youtube hoặc Drive)"] || "").toString().trim();
+                let iTime = row["Thời gian (phút)"];
+                let iPreview = (row["Học thử (có/không)"] || "").toString().toLowerCase().includes("có");
+
+                // Logic điền đầy (Fill down) nếu để trống (giả lập merge cell)
+                if(cName === "") cName = lastChapName; else lastChapName = cName;
+                if(lName === "") lName = lastLesName; else lastLesName = lName;
+
+                // 1. Xử lý CHƯƠNG
+                if(cName) {
+                    // Nếu chưa có chương hoặc tên chương thay đổi -> Tạo chương mới
+                    if(!currentChap || currentChap.title !== cName) {
+                        currentChap = { title: cName, lessons: [], isCollapsed: false };
+                        newCurriculum.push(currentChap);
+                        currentLes = null; // Reset lesson khi qua chương mới
+                    }
+                }
+
+                // 2. Xử lý BÀI HỌC
+                if(lName && currentChap) {
+                    if(!currentLes || currentLes.title !== lName) {
+                        currentLes = { title: lName, items: [], isCollapsed: false };
+                        currentChap.lessons.push(currentLes);
+                    }
+                }
+
+                // 3. Xử lý NỘI DUNG (ITEM)
+                if(iName && currentLes) {
+                    const newItem = {
+                        id: 'it_' + Date.now() + Math.random().toString(36).substr(2, 9),
+                        title: iName,
+                        type: iType,
+                        content: iLink, // Mặc định gán link vào content
+                        minWatchTime: iTime || 10,
+                        isPreview: iPreview,
+                        isPublished: true
+                    };
+
+                    // Nếu là Quiz, content chính là ExamID. Cần query lấy Title đề thi (tuy nhiên import excel khó check title ngay, tạm thời để trống title)
+                    if(iType === 'quiz') {
+                        newItem.examId = iLink;
+                        newItem.examTitle = "Đề thi (ID: " + iLink + ")"; // Placeholder
+                    }
+
+                    currentLes.items.push(newItem);
+                }
+            });
+
+            // Cập nhật dữ liệu
+            currentCurriculum = newCurriculum;
+            renderCurriculumTree();
+            window.showToast("Đã nhập cấu trúc thành công!", "success");
+            
+            // Reset UI editor
+            document.getElementById('editorForm').classList.add('hidden');
+            document.getElementById('editorWelcome').classList.remove('hidden');
+
+        } catch (err) {
+            console.error(err);
+            window.showToast("Lỗi đọc file: " + err.message, "error");
+        } finally {
+
+            input.value = ''; // Reset de chon lai file cu duoc
+
+        }
+
+    };
+
+    reader.readAsArrayBuffer(file);
+
+};
+
+// --- LOGIC QUẢN LÝ HỌC VIÊN / ĐƠN HÀNG ---
+        let currentManageCourseId = null;
+        let currentManageCourseTitle = "";
+        let allStudentsData = [];
+
+        window.openStudentManager = async (courseId) => {
+            currentManageCourseId = courseId;
+            document.getElementById('studentManagerModal').classList.remove('hidden');
+            document.getElementById('enrolledStudentsList').innerHTML = '<tr><td colspan="4" class="p-8 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải danh sách...</td></tr>';
+
+            try {
+                // 1. Lấy thông tin sản phẩm từ Supabase
+                const { data: cData } = await supabase.from('public_courses').select('*').eq('id', courseId).maybeSingle();
+                let isBook = false;
+                if (cData) {
+                    currentManageCourseTitle = cData.title;
+                    isBook = cData.type === 'document_hard' || cData.type === 'book';
+                    document.getElementById('studentManagerCourseTitle').innerText = currentManageCourseTitle;
+                    const titleEl = document.getElementById('studentManagerModalTitle');
+                    if (titleEl) titleEl.innerHTML = isBook
+                        ? '<i class="fa-solid fa-box text-amber-500 mr-2"></i> Quản lý Đơn hàng'
+                        : '<i class="fa-solid fa-users text-green-600 mr-2"></i> Quản lý Học viên';
+                    const exportBtn = document.getElementById('btnExportOrders');
+                    if (exportBtn) exportBtn.classList.toggle('hidden', !isBook);
+                    const exportGHNBtn = document.getElementById('btnExportGHN');
+                    if (exportGHNBtn) exportGHNBtn.classList.toggle('hidden', !isBook);
+                    const addStudentArea = document.getElementById('addStudentArea');
+                    if (addStudentArea) addStudentArea.classList.toggle('hidden', isBook);
+                }
+
+                // 2. Lấy TẤT CẢ đơn hàng & Tự động dọn dẹp đơn pending/cancelled quá 30 phút chưa thanh toán
+                if (!window._userMap) {
+                    window._userMap = {};
+                    try {
+                        const { data: uList } = await supabase.from('users').select('id, email, display_name');
+                        (uList || []).forEach(u => {
+                            if (u.id) window._userMap[u.id] = u.email || u.display_name;
+                        });
+                    } catch(e) {}
+                }
+
+                const { data: orderList } = await supabase.from('orders').select('*').eq('course_id', courseId);
+                allStudentsData = [];
+                const now = Date.now();
+                const junkOrdersToDelete = [];
+
+                (orderList || []).forEach(data => {
+                    const isPending = (data.status === 'pending');
+                    const isCancelled = (data.status === 'cancelled' || data.status === 'abandoned');
+                    const createdAtTime = data.created_at ? new Date(data.created_at).getTime() : 0;
+                    const isOlderThan30Min = (now - createdAtTime > 30 * 60 * 1000);
+
+                    // Đơn bỏ dở / quá hạn: Chỉ dọn nếu đã quá 30 phút kể cả pending hay cancelled
+                    if ((isPending || isCancelled) && isOlderThan30Min) {
+                        junkOrdersToDelete.push(data.id);
+                        return; // Bỏ qua, không hiển thị lên bảng
+                    }
+
+                    // Nếu đơn bị cancelled trong vòng 30 phút, tạm ẩn khỏi danh sách học viên nhưng chưa xóa để script ngân hàng kịp đối soát
+                    if (isCancelled) {
+                        return;
+                    }
+
+                    allStudentsData.push({
+                        id: data.id,
+                        name: data.shipping_info?.name || data.user_name || "Không tên",
+                        email: data.user_email || window._userMap?.[data.user_id] || data.user_id || "",
+                        date: data.created_at,
+                        status: data.status || 'pending',
+                        amount: data.amount || 0,
+                        shippingInfo: data.shipping_info || null,
+                        content: data.content || ''
+                    });
+                });
+
+                // Tự động xóa ngầm các đơn bỏ dở quá 30 phút khỏi Supabase
+                if (junkOrdersToDelete.length > 0) {
+                    console.log(`[Auto-Clean] Đang dọn ${junkOrdersToDelete.length} đơn quá 30 phút chưa thanh toán:`, junkOrdersToDelete);
+                    supabase.from('orders').delete().in('id', junkOrdersToDelete)
+                        .then(() => {
+                            window.showToast(`🧹 Đã tự động dọn dẹp ${junkOrdersToDelete.length} đơn chờ quá hạn (>30 phút).`, "info");
+                        });
+                }
+
+                // 3. Cập nhật filter dropdown
+                const filterEl = document.getElementById('studentTypeFilter');
+                if (filterEl && isBook) {
+                    filterEl.innerHTML = `<option value="all">Tất cả</option>
+                        <option value="paid">Đã thanh toán</option>
+                        <option value="pending">Chờ thanh toán</option>
+                        <option value="approved">Thêm tay</option>`;
+                } else if (filterEl) {
+                    filterEl.innerHTML = `<option value="all">Tất cả</option>
+                        <option value="paid">Đã mua (Paid)</option>
+                        <option value="approved">Thêm tay (Manual)</option>`;
+                }
+
+                // 4. Cập nhật header bảng
+                const thead = document.getElementById('studentManagerThead');
+                if (thead && isBook) {
+                    thead.innerHTML = `<tr>
+                        <th class="p-3 pl-6">Thông tin đặt hàng</th>
+                        <th class="p-3">Địa chỉ giao hàng</th>
+                        <th class="p-3 text-center">Trạng thái</th>
+                        <th class="p-3 text-right pr-6">Hành động</th></tr>`;
+                } else if (thead) {
+                    thead.innerHTML = `<tr>
+                        <th class="p-3 pl-6">Thông tin học viên</th>
+                        <th class="p-3 text-center" colspan="2">Trạng thái</th>
+                        <th class="p-3 text-right pr-6">Hành động</th></tr>`;
+                }
+
+                window._currentManagerIsBook = isBook;
+                window.renderStudentList();
+
+            } catch (e) {
+                console.error(e);
+                window.showToast("Lỗi tải danh sách: " + e.message, "error");
+            }
+        };
+
+        window.renderStudentList = () => {
+            const listContainer = document.getElementById('enrolledStudentsList');
+            const emptyMsg = document.getElementById('emptyStudentList');
+            const isBook = window._currentManagerIsBook;
+
+            const filtered = getFilteredData();
+            filtered.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+            // Update count badge
+            const badge = document.getElementById('orderCountBadge');
+            if (badge) badge.innerText = `${filtered.length} / ${allStudentsData.length} đơn`;
+            const footerInfo = document.getElementById('tableFooterInfo');
+            if (footerInfo) footerInfo.innerText = `Hiển thị ${filtered.length} / ${allStudentsData.length} đơn hàng`;
+
+            // Update thead with checkbox column
+            const thead = document.getElementById('studentManagerThead');
+            if (thead) {
+                if (isBook) {
+                    thead.innerHTML = `<tr>
+                        <th class="p-3 pl-4 w-10"><input type="checkbox" id="selectAllOrders" onchange="window.toggleSelectAll(this)" class="w-4 h-4 accent-brand cursor-pointer rounded"></th>
+                        <th class="p-3">Thông tin người đặt</th>
+                        <th class="p-3">Địa chỉ giao hàng</th>
+                        <th class="p-3 text-center">Trạng thái & Ngày</th>
+                        <th class="p-3 text-right pr-4">Hành động</th>
+                    </tr>`;
+                } else {
+                    thead.innerHTML = `<tr>
+                        <th class="p-3 pl-4 w-10"><input type="checkbox" id="selectAllOrders" onchange="window.toggleSelectAll(this)" class="w-4 h-4 accent-brand cursor-pointer rounded"></th>
+                        <th class="p-3">Thông tin học viên</th>
+                        <th class="p-3 text-center" colspan="2">Trạng thái & Ngày</th>
+                        <th class="p-3 text-right pr-4">Hành động</th>
+                    </tr>`;
+                }
+            }
+
+            listContainer.innerHTML = '';
+            if (filtered.length === 0) { emptyMsg.classList.remove('hidden'); return; }
+            emptyMsg.classList.add('hidden');
+
+            let html = '';
+            filtered.forEach(s => {
+                let badge = '', icon = '', actionBtns = '', rowBg = '';
+
+                if (s.status === 'paid') {
+                    badge = `<span class="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-lg text-[10px] font-bold border border-green-200">✅ Đã TT ${s.amount ? '('+s.amount.toLocaleString('vi-VN')+'đ)' : ''}</span>`;
+                    icon = `<div class="w-9 h-9 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-cart-shopping"></i></div>`;
+                    actionBtns = `<button onclick="window.removeStudentFromCourse('${s.id}')" class="w-8 h-8 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all" title="Xóa đơn"><i class="fa-solid fa-trash-can text-xs"></i></button>`;
+                } else if (s.status === 'pending') {
+                    badge = `<span class="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded-lg text-[10px] font-bold border border-amber-200">⏳ Chờ TT ${s.amount ? '('+s.amount.toLocaleString('vi-VN')+'đ)' : ''}</span>`;
+                    icon = `<div class="w-9 h-9 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-clock"></i></div>`;
+                    rowBg = 'bg-amber-50/30';
+                    actionBtns = `
+                        <button onclick="window.approveOrder('${s.id}')" class="w-8 h-8 rounded-lg text-gray-400 hover:bg-green-50 hover:text-green-600 transition-all" title="Xác nhận đã thanh toán"><i class="fa-solid fa-check-circle text-xs"></i></button>
+                        <button onclick="window.removeStudentFromCourse('${s.id}')" class="w-8 h-8 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all" title="Xóa đơn"><i class="fa-solid fa-trash-can text-xs"></i></button>`;
+                } else {
+                    badge = `<span class="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-[10px] font-bold border border-blue-200">👤 Thêm tay</span>`;
+                    icon = `<div class="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-user-check"></i></div>`;
+                    actionBtns = `<button onclick="window.removeStudentFromCourse('${s.id}')" class="w-8 h-8 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all" title="Xóa"><i class="fa-solid fa-trash-can text-xs"></i></button>`;
+                }
+
+                const shipAddr = s.shippingInfo
+                    ? [s.shippingInfo.detailAddress, s.shippingInfo.ward, s.shippingInfo.district, s.shippingInfo.province].filter(x=>x).join(', ')
+                    : '';
+                const dateStr = s.date ? new Date(s.date).toLocaleDateString('vi-VN') : '—';
+                const timeStr = s.date ? new Date(s.date).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) : '';
+
+                if (isBook) {
+                    html += `<tr class="hover:bg-blue-50/20 border-b border-gray-100 transition-colors ${rowBg} group">
+                        <td class="p-3 pl-4"><input type="checkbox" class="order-checkbox w-4 h-4 accent-brand cursor-pointer rounded" data-id="${s.id}" onchange="window.updateBulkDeleteBtn()"></td>
+                        <td class="p-3">
+                            <div class="flex items-center gap-3">
+                                ${icon}
+                                <div class="min-w-0">
+                                    <div class="font-bold text-gray-800 text-sm truncate">${s.name}</div>
+                                    <div class="text-xs text-teal-600 font-bold">${s.shippingInfo?.phone || ''}</div>
+                                    <div class="text-[10px] text-gray-400 font-mono truncate">${s.email}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-3 max-w-[220px]"><div class="text-xs text-gray-600 leading-relaxed">${shipAddr || '<span class="text-gray-300">Chưa có địa chỉ</span>'}</div></td>
+                        <td class="p-3 text-center">
+                            ${badge}
+                            <div class="text-[10px] text-gray-400 mt-1">${dateStr} ${timeStr}</div>
+                        </td>
+                        <td class="p-3 text-right pr-4"><div class="flex justify-end gap-1">${actionBtns}</div></td>
+                    </tr>`;
+                } else {
+                    html += `<tr class="hover:bg-blue-50/20 border-b border-gray-100 transition-colors ${rowBg} group">
+                        <td class="p-3 pl-4"><input type="checkbox" class="order-checkbox w-4 h-4 accent-brand cursor-pointer rounded" data-id="${s.id}" onchange="window.updateBulkDeleteBtn()"></td>
+                        <td class="p-3">
+                            <div class="flex items-center gap-3">
+                                ${icon}
+                                <div>
+                                    <div class="font-bold text-gray-800 text-sm">${s.name}</div>
+                                    <div class="text-xs text-gray-500 font-mono">${s.email}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-3 text-center" colspan="2">
+                            ${badge}
+                            <div class="text-[10px] text-gray-400 mt-1">${dateStr} ${timeStr}</div>
+                        </td>
+                        <td class="p-3 text-right pr-4"><div class="flex justify-end gap-1">${actionBtns}</div></td>
+                    </tr>`;
+                }
+            });
+            listContainer.innerHTML = html;
+        };
+
+
+        // ── Xuất Excel thông thường ──────────────────────────────────────────────
+        window.exportOrdersExcel = () => {
+            const dataToExport = getExportData();
+            if (!dataToExport) return;
+
+            const rows = dataToExport.map(s => ({
+                "Tên người nhận": s.shippingInfo?.name || s.name,
+                "Số điện thoại": s.shippingInfo?.phone || s.email,
+                "Địa chỉ chi tiết": s.shippingInfo?.detailAddress || "",
+                "Phường/Xã": s.shippingInfo?.ward || "",
+                "Quận/Huyện": s.shippingInfo?.district || "",
+                "Tỉnh/Thành phố": s.shippingInfo?.province || "",
+                "Sản phẩm": currentManageCourseTitle,
+                "Số tiền": s.amount,
+                "Trạng thái": s.status === 'paid' ? 'Đã TT' : 'Chờ TT',
+                "Ngày đặt": s.date ? new Date(s.date).toLocaleDateString('vi-VN') : "",
+                "Nội dung CK": s.content || ""
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Don_Hang");
+            XLSX.writeFile(wb, `Don_Hang_${currentManageCourseTitle || 'Sach'}.xlsx`);
+            window.showToast("Đã xuất Excel thành công!", "success");
+        };
+
+        // ── Xuất theo mẫu GHN ──────────────────────────────────────────────────
+        window.exportGHNExcel = () => {
+            const dataToExport = getExportData();
+            if (!dataToExport) return;
+
+            const wb = XLSX.utils.book_new();
+            // Row 1: Title
+            // Row 2: Group headers
+            // Row 3: Column headers (as per GHN template)
+            // Row 4+: Data
+
+            const wsData = [
+                ["Danh sách đơn hàng\n(*) Thông tin bắt buộc phải điền", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+                ["Thông tin người nhận", null, null, "Thông tin đơn hàng", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+                [
+                    "Tên người nhận *",
+                    "Số điện thoại *",
+                    "Số nhà/ngõ/ngách/hẻm, Đường/Phố, Phường/Xã, Quận/Huyện, Tỉnh/Thành *",
+                    "Gói cước *\n2 = Chuyển phát thương mại điện tử",
+                    "Tiền thu hộ *\nNếu không có thu hộ thì nhập 0",
+                    "Yêu cầu đơn hàng *\n1=Cho xem không thử\n2=Cho thử\n3=Không cho xem",
+                    "Khối lượng (Gram) *\nTối đa 100,000 gram",
+                    "Dài (cm)", "Rộng (cm)", "Cao (cm)",
+                    "Khai giá Có/Không", "Giá trị hàng hoá",
+                    "Shop trả ship",
+                    "Gửi hàng tại bưu cục",
+                    "Mã đơn hàng riêng",
+                    "Sản phẩm *",
+                    "Ghi chú thêm",
+                    "Ca lấy *\n1=Sáng\n2=Chiều",
+                    "Giao hàng thất bại thu tiền"
+                ]
+            ];
+
+            dataToExport.forEach(s => {
+                const si = s.shippingInfo || {};
+                const fullAddr = [
+                    si.detailAddress || "",
+                    si.ward || "",
+                    si.district || "",
+                    si.province || ""
+                ].filter(x => x).join(", ");
+
+                wsData.push([
+                    si.name || s.name || "",
+                    si.phone || "",
+                    fullAddr,
+                    2,
+                    s.status === 'paid' ? 0 : (s.amount || 0),
+                    3,
+                    500,
+                    "", "", "",
+                    "", "",
+                    "", "",
+                    s.id || "",
+                    currentManageCourseTitle || "Sách",
+                    "",
+                    1,
+                    ""
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            // Column widths
+            ws['!cols'] = [
+                {wch:25},{wch:15},{wch:60},{wch:12},{wch:15},{wch:12},
+                {wch:15},{wch:8},{wch:8},{wch:8},{wch:10},{wch:15},
+                {wch:10},{wch:15},{wch:25},{wch:30},{wch:20},{wch:10},{wch:15}
+            ];
+            XLSX.utils.book_append_sheet(wb, ws, "GHN_DonHang");
+            XLSX.writeFile(wb, `GHN_${currentManageCourseTitle || 'Sach'}.xlsx`);
+            window.showToast("Đã xuất file GHN thành công!", "success");
+        };
+
+        // ── Hàm lấy dữ liệu để export (theo selection hoặc filter hiện tại) ────
+        function getExportData() {
+            // Lấy các đơn được tick (nếu có), hoặc lấy tất cả đang hiển thị
+            const checked = [...document.querySelectorAll('.order-checkbox:checked')];
+            let data;
+            if (checked.length > 0) {
+                const ids = checked.map(c => c.dataset.id);
+                data = allStudentsData.filter(s => ids.includes(s.id));
+            } else {
+                // Lấy theo filter hiện tại
+                data = getFilteredData();
+            }
+            const book = data.filter(s => s.shippingInfo);
+            if (book.length === 0) {
+                window.showToast("Không có đơn nào có địa chỉ giao hàng!", "error");
+                return null;
+            }
+            return book;
+        }
+
+        function getFilteredData() {
+            const keyword = (document.getElementById('studentSearchKeyword')?.value || '').toLowerCase();
+            const filterType = document.getElementById('studentTypeFilter')?.value || 'all';
+            const dateFrom = document.getElementById('filterDateFrom')?.value;
+            const dateTo = document.getElementById('filterDateTo')?.value;
+
+            return allStudentsData.filter(s => {
+                const matchText = (s.name||'').toLowerCase().includes(keyword)
+                    || (s.email||'').toLowerCase().includes(keyword)
+                    || (s.shippingInfo?.phone||'').includes(keyword)
+                    || (s.shippingInfo?.province||'').toLowerCase().includes(keyword);
+                const matchType = filterType === 'all' || s.status === filterType;
+                let matchDate = true;
+                if (s.date) {
+                    const d = new Date(s.date);
+                    if (dateFrom) matchDate = matchDate && d >= new Date(dateFrom);
+                    if (dateTo) matchDate = matchDate && d <= new Date(dateTo + 'T23:59:59');
+                }
+                return matchText && matchType && matchDate;
+            });
+        }
+
+        // ── Xóa nhiều đơn cùng lúc ──────────────────────────────────────────────
+        window.bulkDeleteOrders = async () => {
+            const checked = [...document.querySelectorAll('.order-checkbox:checked')];
+            if (checked.length === 0) return window.showToast("Chưa chọn đơn nào!", "error");
+            if (!confirm(`Xóa ${checked.length} đơn hàng đã chọn?\nHành động này không thể hoàn tác.`)) return;
+
+            const ids = checked.map(c => c.dataset.id);
+            try {
+                const { error: delErr } = await supabase.from('orders').delete().in('id', ids);
+                if (delErr) throw delErr;
+                window.showToast(`Đã xóa ${ids.length} đơn hàng!`, "success");
+                window.openStudentManager(currentManageCourseId);
+            } catch(e) {
+                window.showToast("Lỗi: " + e.message, "error");
+            }
+        };
+
+        // ── Quét và dọn sạch đơn chờ quá hạn (>30 phút) ───────────────
+        window.cleanJunkOrdersNow = async () => {
+            if (!confirm("Hệ thống sẽ quét và dọn dẹp các đơn chờ thanh toán (pending hoặc cancelled) tạo đã quá 30 phút nhưng khách chưa chuyển tiền.\nBạn có muốn tiếp tục?")) return;
+            try {
+                window.showToast("Đang quét dọn đơn quá hạn (>30 phút)...", "info");
+                const { data: orderList, error: orderErr } = await supabase.from('orders').select('*');
+                if (orderErr) throw orderErr;
+                const now = Date.now();
+                const toDelete = [];
+                (orderList || []).forEach(data => {
+                    if (data.status === 'pending' || data.status === 'cancelled' || data.status === 'abandoned') {
+                        const createdAtTime = data.created_at ? new Date(data.created_at).getTime() : 0;
+                        if (now - createdAtTime > 30 * 60 * 1000) {
+                            toDelete.push(data.id);
+                        }
+                    }
+                });
+
+                if (toDelete.length === 0) {
+                    window.showToast("Tuyệt vời! Không có đơn chờ nào bị quá hạn (>30 phút) cần dọn.", "success");
+                    return;
+                }
+
+                const { error: delErr } = await supabase.from('orders').delete().in('id', toDelete);
+                if (delErr) throw delErr;
+                window.showToast(`✅ Đã dọn dẹp thành công ${toDelete.length} đơn quá hạn (>30 phút)!`, "success");
+                if (currentManageCourseId) {
+                    window.openStudentManager(currentManageCourseId);
+                }
+            } catch(e) {
+                console.error(e);
+                window.showToast("Lỗi khi dọn đơn: " + e.message, "error");
+            }
+        };
+
+        window.toggleSelectAll = (chk) => {
+            document.querySelectorAll('.order-checkbox').forEach(c => c.checked = chk.checked);
+            window.updateBulkDeleteBtn();
+        };
+
+        window.updateBulkDeleteBtn = () => {
+            const count = document.querySelectorAll('.order-checkbox:checked').length;
+            document.getElementById('selectedCount').innerText = count;
+            const btn = document.getElementById('btnBulkDelete');
+            if (btn) btn.classList.toggle('hidden', count === 0);
+        };
+
+        window.clearFilters = () => {
+            document.getElementById('studentSearchKeyword').value = '';
+            document.getElementById('studentTypeFilter').value = 'all';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            window.renderStudentList();
+        };
+
+        window.removeStudentFromCourse = async (orderId) => {
+            if(!confirm("Bạn có chắc chắn muốn xóa học viên này khỏi khóa học?\nHành động này sẽ xóa đơn hàng và thu hồi quyền truy cập.")) return;
+
+            try {
+                const { error: delErr } = await supabase.from('orders').delete().eq('id', orderId);
+                if (delErr) throw delErr;
+                window.showToast("Đã xóa đơn hàng thành công!", "success");
+                window.openStudentManager(currentManageCourseId);
+            } catch(e) {
+                console.error(e);
+                window.showToast("Lỗi khi xóa: " + e.message, "error");
+            }
+        };
+
+        window.approveOrder = async (orderId) => {
+            if (!confirm("Xác nhận đơn hàng này đã thanh toán?\nThao tác này sẽ đổi trạng thái sang 'paid'.")) return;
+            try {
+                await updateDoc(doc(db, "orders", orderId), { status: 'paid' });
+                window.showToast("✅ Đã xác nhận thanh toán!", "success");
+                window.openStudentManager(currentManageCourseId);
+            } catch(e) {
+                window.showToast("Lỗi: " + e.message, "error");
+            }
+        };
+    
+       // ==========================================
+        // 1. THÊM HỌC VIÊN THỦ CÔNG (TỪNG NGƯỜI) - ĐÃ FIX LỖI
+        // ==========================================
+
+        window.addStudentToCourse = async () => {
+            let inputValue = document.getElementById('inputStudentEmail').value.trim();
+            if (!inputValue) return window.showToast("Vui lòng nhập tên đăng nhập!", "error");
+
+            // Tự động chuẩn hóa đuôi email của hệ thống
+            let targetEmail = inputValue.toLowerCase();
+            if (!targetEmail.includes('@')) targetEmail = targetEmail + "@hocsinh.com";
+
+            const btn = document.querySelector('button[onclick="window.addStudentToCourse()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                // 1. Tìm User trên DB
+                const qUser = query(collection(db, "users"), where("email", "==", targetEmail));
+                const userSnap = await getDocs(qUser);
+
+                if (userSnap.empty) {
+                    alert(`Không tìm thấy tài khoản "${targetEmail}".\nHọc viên cần đăng nhập web ít nhất 1 lần.`);
+                    btn.innerHTML = originalText; btn.disabled = false; return;
+                }
+
+                const userData = userSnap.docs[0].data();
+                const userId = userSnap.docs[0].id;
+
+                // 2. Kiểm tra xem đã có trong khóa chưa
+                const qCheck = query(collection(db, "orders"), where("courseId", "==", currentManageCourseId), where("userId", "==", userId));
+                const checkSnap = await getDocs(qCheck);
+                
+                let exists = false;
+                checkSnap.forEach(d => {
+                    const st = d.data().status;
+                    if(st === 'paid' || st === 'approved') exists = true;
+                });
+
+                if (exists) {
+                    window.showToast("Học viên này đã có trong khóa học!", "info");
+                } else {
+                    // 3. Ghi nhận vào DB
+                    await setDoc(doc(collection(db, "orders")), {
+                        userId: userId,
+                        userEmail: targetEmail, 
+                        userName: userData.displayName || "Học viên",
+                        courseId: currentManageCourseId,
+                        courseTitle: currentManageCourseTitle,
+                        amount: 0,
+                        status: 'approved',
+                        createdAt: new Date().toISOString(),
+                        note: 'Thêm thủ công bởi Admin'
+                    });
+                    
+                    window.showToast(`Đã thêm thành công: ${targetEmail}`, "success");
+                    document.getElementById('inputStudentEmail').value = '';
+                    window.openStudentManager(currentManageCourseId);
+                }
+
+            } catch (e) {
+                console.error(e);
+                window.showToast("Lỗi: " + e.message, "error");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        // ==========================================
+        // 2. THÊM HỌC VIÊN BẰNG EXCEL & BÁO CÁO LỖI
+        // ==========================================
+        window.downloadCourseStudentTemplate = () => {
+            const data = [
+                ["Họ và tên", "Tên đăng nhập", "Mật khẩu", "SBD", "Giới tính", "SĐT HS", "SĐT PHHS"],
+                ["Trần Văn A", "quang123", "", "", "", "", ""],
+                ["Nguyễn Thị B", "anh456", "", "", "", "", ""]
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "DanhSach");
+            XLSX.writeFile(wb, "Mau_Them_HS_Khoa_Hoc.xlsx");
+        };
+
+        window.importCourseStudentsExcel = async (input) => {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (!currentManageCourseId) {
+                window.showToast("Lỗi: Không tìm thấy ID khóa học!", "error");
+                input.value = ''; return;
+            }
+
+            window.showToast("Đang quét dữ liệu Excel, vui lòng không đóng trang...", "info");
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1});
+                    
+                    let addedCount = 0;
+                    let existList = [];    // Mảng lưu tên đăng nhập trùng
+                    let notFoundList = []; // Mảng lưu tên đăng nhập không tồn tại
+
+                    const batch = writeBatch(db);
+
+                    // Tải danh sách UID hiện có để kiểm tra trùng
+                    const qCheck = query(collection(db, "orders"), where("courseId", "==", currentManageCourseId));
+                    const checkSnap = await getDocs(qCheck);
+                    const existingUserIds = new Set();
+                    checkSnap.forEach(d => {
+                        const st = d.data().status;
+                        if(st === 'paid' || st === 'approved') existingUserIds.add(d.data().userId);
+                    });
+
+                    // Duyệt Excel
+                    for(let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        const username = row[1]; // Cột B
+                        
+                        if (username && String(username).trim() !== '') {
+                            let cleanUsername = String(username).trim().toLowerCase();
+                            let targetEmail = cleanUsername.includes('@') ? cleanUsername : `${cleanUsername}@hocsinh.com`;
+                            
+                            const qUser = query(collection(db, "users"), where("email", "==", targetEmail));
+                            const snapUser = await getDocs(qUser);
+                            
+                            if (!snapUser.empty) {
+                                const userData = snapUser.docs[0].data();
+                                const userId = snapUser.docs[0].id;
+                                
+                                if (existingUserIds.has(userId)) {
+                                    existList.push(cleanUsername); // Ghi nhận trùng
+                                } else {
+                                    const newOrderRef = doc(collection(db, "orders"));
+                                    batch.set(newOrderRef, {
+                                        userId: userId,
+                                        userEmail: targetEmail,
+                                        userName: userData.displayName || "Học viên",
+                                        courseId: currentManageCourseId,
+                                        courseTitle: currentManageCourseTitle,
+                                        amount: 0,
+                                        status: 'approved',
+                                        createdAt: new Date().toISOString(),
+                                        note: 'Thêm hàng loạt bằng Excel'
+                                    });
+                                    existingUserIds.add(userId); 
+                                    addedCount++;
+                                }
+                            } else {
+                                notFoundList.push(cleanUsername); // Ghi nhận sai tên
+                            }
+                        }
+                    }
+                    
+                    // Thực thi lưu
+                    if (addedCount > 0) {
+                        await batch.commit();
+                        window.openStudentManager(currentManageCourseId); 
+                    }
+
+                    // GỌI GIAO DIỆN BÁO CÁO LỖI
+                    window.showImportReport(addedCount, existList, notFoundList);
+
+                } catch(err) {
+                    console.error("Lỗi Import:", err);
+                    window.showToast("File Excel không hợp lệ hoặc bị lỗi!", "error");
+                } finally {
+                    input.value = ''; 
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        // ==========================================
+        // 3. GIAO DIỆN MODAL BÁO CÁO EXCEL
+        // ==========================================
+        window.showImportReport = (added, existList, notFoundList) => {
+            const oldModal = document.getElementById('importReportModal');
+            if (oldModal) oldModal.remove();
+
+            let errorHtml = '';
+            
+            // Render phần trùng lặp
+            if (existList.length > 0) {
+                errorHtml += `
+                    <div class="mb-4 text-left">
+                        <p class="text-xs font-bold text-orange-600 mb-1 uppercase tracking-wide"><i class="fa-solid fa-triangle-exclamation"></i> Bỏ qua ${existList.length} tài khoản ĐÃ CÓ SẴN TRONG KHÓA:</p>
+                        <div class="bg-orange-50 p-3 rounded-lg border border-orange-100 max-h-32 overflow-y-auto text-xs text-gray-700 font-mono leading-relaxed custom-scrollbar">
+                            ${existList.join(', ')}
+                        </div>
+                    </div>`;
+            }
+            
+            // Render phần không tồn tại
+            if (notFoundList.length > 0) {
+                errorHtml += `
+                    <div class="text-left">
+                        <p class="text-xs font-bold text-red-600 mb-1 uppercase tracking-wide"><i class="fa-solid fa-circle-xmark"></i> Bỏ qua ${notFoundList.length} tài khoản KHÔNG TỒN TẠI (Sai tên):</p>
+                        <div class="bg-red-50 p-3 rounded-lg border border-red-100 max-h-32 overflow-y-auto text-xs text-gray-700 font-mono leading-relaxed custom-scrollbar">
+                            ${notFoundList.join(', ')}
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-1 italic">*Học sinh cần đăng nhập web 1 lần để hệ thống nhận diện tài khoản.</p>
+                    </div>`;
+            }
+
+            // Nếu hoàn hảo 100%
+            if(existList.length === 0 && notFoundList.length === 0 && added > 0) {
+                errorHtml = `<div class="bg-green-50 text-green-700 p-3 rounded-lg font-bold mt-4 text-sm"><i class="fa-solid fa-check-circle mr-1"></i> Tuyệt vời! Tất cả học viên trong Excel đều được thêm thành công.</div>`;
+            } else if (added === 0 && existList.length === 0 && notFoundList.length === 0) {
+                errorHtml = `<div class="bg-gray-50 text-gray-600 p-3 rounded-lg font-bold mt-4 text-sm">File Excel trống hoặc không đúng định dạng.</div>`;
+            }
+
+            const modalHtml = `
+                <div id="importReportModal" class="fixed inset-0 z-[300] flex items-center justify-center bg-gray-900/80 backdrop-blur-sm p-4 animate-fade-in-up">
+                    <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full text-center border border-gray-100">
+                        <div class="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                            <i class="fa-solid fa-file-invoice"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-gray-800 mb-1">Báo cáo Thêm Excel</h3>
+                        <p class="text-sm text-gray-500 mb-6">Đã thêm thành công <span class="font-black text-green-600 text-lg">${added}</span> học viên.</p>
+                        
+                        ${errorHtml}
+                        
+                        <button onclick="document.getElementById('importReportModal').remove()" class="mt-6 w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors shadow-sm hover:shadow">
+                            Xác nhận & Đóng
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        };
+        // ==========================================
+        // VOUCHER MANAGER LOGIC
+        // ==========================================
+        
+        // ==========================================
+        // VOUCHER MANAGER LOGIC (FULL & FIXED)
+        // ==========================================
+        
+        let allVouchers = [];
+        let allCoursesForVoucher = [];
+
+        // 1. MỞ MODAL & TẢI DATA
+        window.openVoucherManager = async () => {
+            document.getElementById('voucherModal').classList.remove('hidden');
+            window.switchVoucherTab('list');
+            
+            // Tải danh sách khóa học để dùng cho dropdown chọn khóa (cho cả 2 tab)
+            const qC = query(collection(db, "public_courses"));
+            const snapC = await getDocs(qC);
+            allCoursesForVoucher = [];
+            
+            const containerSingle = document.getElementById('courseSelector');
+            const containerBulk = document.getElementById('bCourseSelector'); // Container chọn khóa cho Bulk
+            
+            if(containerSingle) containerSingle.innerHTML = '';
+            if(containerBulk) containerBulk.innerHTML = '';
+            
+            snapC.forEach(d => {
+                const c = d.data();
+                allCoursesForVoucher.push({id: d.id, title: c.title});
+                
+                const html = `
+                    <label class="flex items-center gap-2 p-2 hover:bg-white rounded cursor-pointer">
+                        <input type="checkbox" value="${d.id}" class="course-check accent-orange-600 w-4 h-4">
+                        <span class="text-sm text-gray-700 truncate">${c.title}</span>
+                    </label>
+                `;
+                
+                if(containerSingle) containerSingle.innerHTML += html;
+                if(containerBulk) containerBulk.innerHTML += html;
+            });
+
+            loadVouchers();
+        };
+
+        // 2. CHUYỂN TAB
+        window.switchVoucherTab = (tab) => {
+            document.querySelectorAll('.v-tab').forEach(el => {
+                el.classList.remove('active', 'bg-white', 'shadow-sm', 'text-brand');
+                el.classList.add('text-gray-500');
+            });
+            document.getElementById('vTab-' + tab).classList.add('active', 'bg-white', 'shadow-sm', 'text-brand');
+            document.getElementById('vTab-' + tab).classList.remove('text-gray-500');
+
+            document.querySelectorAll('.v-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('vContent-' + tab).classList.remove('hidden');
+        };
+
+        // 3. UI HELPERS
+        window.toggleVoucherInput = () => {
+            const type = document.getElementById('vType').value;
+            const input = document.getElementById('vValue');
+            input.placeholder = type === 'percent' ? "VD: 10 (tức là 10%)" : "VD: 50000 (tức là 50k)";
+        };
+
+        window.toggleScope = () => {
+            const scope = document.querySelector('input[name="vScope"]:checked').value;
+            document.getElementById('courseSelector').classList.toggle('hidden', scope !== 'specific');
+        };
+
+        window.toggleBulkScope = () => {
+            const scope = document.querySelector('input[name="bScope"]:checked').value;
+            document.getElementById('bCourseSelector').classList.toggle('hidden', scope !== 'specific');
+        };
+
+        // 4. LOAD & RENDER DANH SÁCH
+        async function loadVouchers() {
+            const tbody = document.getElementById('voucherTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center"><i class="fa-solid fa-spinner fa-spin text-orange-500"></i> Đang tải...</td></tr>';
+            
+            try {
+                const q = query(collection(db, "vouchers"), orderBy("createdAt", "desc"));
+                const snap = await getDocs(q);
+                allVouchers = [];
+                
+                snap.forEach(d => allVouchers.push({id: d.id, ...d.data()}));
+                renderVoucherList();
+            } catch(e) { console.error(e); }
+        }
+
+        window.renderVoucherList = () => {
+            const keyword = document.getElementById('voucherSearch').value.toLowerCase();
+            const tbody = document.getElementById('voucherTableBody');
+            const filtered = allVouchers.filter(v => v.code.toLowerCase().includes(keyword));
+
+            if(filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-400">Không tìm thấy voucher nào.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(v => {
+                const isExpired = v.expiryDate && new Date(v.expiryDate) < new Date();
+                const isSoldOut = v.limit && v.used >= v.limit;
+                let statusClass = "bg-green-100 text-green-700 border-green-200";
+                let statusText = "Đang hoạt động";
+                
+                if (isExpired) { statusClass = "bg-red-100 text-red-700 border-red-200"; statusText = "Hết hạn"; }
+                else if (isSoldOut) { statusClass = "bg-gray-100 text-gray-700 border-gray-200"; statusText = "Hết lượt"; }
+
+                let scopeText = "Toàn bộ khóa học";
+                if(v.scope === 'specific') scopeText = `${v.courseIds ? v.courseIds.length : 0} khóa học`;
+
+                html += `
+                <tr class="hover:bg-gray-50 border-b border-gray-50">
+                    <td class="p-4"><span class="font-mono font-bold text-brand bg-teal-50 px-2 py-1 rounded border border-teal-100">${v.code}</span></td>
+                    <td class="p-4 font-bold text-gray-700">${v.value.toLocaleString()}${v.type==='percent'?'%':'đ'}</td>
+                    <td class="p-4 text-xs text-gray-500">${scopeText}</td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-2 text-xs font-bold">
+                            <span class="text-orange-600">${v.used || 0}</span>
+                            <span class="text-gray-300">/</span>
+                            <span>${v.limit || '∞'}</span>
+                        </div>
+                        <div class="w-20 h-1.5 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                            <div class="h-full bg-orange-500" style="width: ${v.limit ? Math.min((v.used/v.limit)*100, 100) : 0}%"></div>
+                        </div>
+                    </td>
+                    <td class="p-4 text-xs">
+                        <span class="px-2 py-1 rounded border ${statusClass} font-bold block w-fit mb-1">${statusText}</span>
+                        <div class="text-gray-400">${v.expiryDate ? new Date(v.expiryDate).toLocaleDateString('vi-VN') : 'Vĩnh viễn'}</div>
+                    </td>
+                    <td class="p-4 text-right">
+                        <button onclick="deleteVoucher('${v.id}')" class="text-gray-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        };
+
+        // 5. TẠO VOUCHER LẺ
+        window.createVoucher = async () => {
+            const code = document.getElementById('vCode').value.trim().toUpperCase();
+            const type = document.getElementById('vType').value;
+            const value = parseInt(document.getElementById('vValue').value);
+            const scope = document.querySelector('input[name="vScope"]:checked').value;
+            const maxUses = parseInt(document.getElementById('vMaxUses').value) || null;
+            const expiry = document.getElementById('vExpiry').value || null;
+
+            if(!code || !value) return window.showToast("Vui lòng nhập mã và giá trị giảm!", "error");
+            if(type === 'percent' && value > 100) return window.showToast("Phần trăm không được quá 100%", "error");
+
+            let courseIds = [];
+            if(scope === 'specific') {
+                document.querySelectorAll('#courseSelector .course-check:checked').forEach(cb => courseIds.push(cb.value));
+                if(courseIds.length === 0) return window.showToast("Vui lòng chọn ít nhất 1 khóa học!", "error");
+            }
+
+            const btn = document.querySelector('button[onclick="createVoucher()"]');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo...'; btn.disabled = true;
+
+            try {
+                // Check exist
+                const qExist = query(collection(db, "vouchers"), where("code", "==", code));
+                const snapExist = await getDocs(qExist);
+                if(!snapExist.empty) throw new Error("Mã này đã tồn tại!");
+
+                await setDoc(doc(collection(db, "vouchers")), {
+                    code: code,
+                    type: type,
+                    value: value,
+                    scope: scope,
+                    courseIds: scope === 'specific' ? courseIds : null,
+                    limit: maxUses,
+                    expiryDate: expiry,
+                    used: 0,
+                    usedBy: [],
+                    createdAt: new Date().toISOString()
+                });
+
+                window.showToast("Tạo voucher thành công!");
+                document.getElementById('vCode').value = '';
+                loadVouchers();
+                switchVoucherTab('list');
+
+            } catch(e) {
+                window.showToast("Lỗi: " + e.message, "error");
+            } finally {
+                btn.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i> TẠO VOUCHER'; btn.disabled = false;
+            }
+        };
+
+        // 6. TẠO HÀNG LOẠT (BULK) - ĐÃ CẬP NHẬT PHẠM VI ÁP DỤNG
+        window.createBulkVouchers = async () => {
+            const prefix = document.getElementById('bPrefix').value.trim().toUpperCase();
+            const qty = parseInt(document.getElementById('bQuantity').value);
+            
+            const type = document.getElementById('bType').value;
+            const value = parseInt(document.getElementById('bValue').value);
+            const limit = parseInt(document.getElementById('bMaxUses').value) || 1;
+            
+            // Lấy Scope từ Tab Bulk
+            const scope = document.querySelector('input[name="bScope"]:checked').value;
+            let courseIds = [];
+            if(scope === 'specific') {
+                document.querySelectorAll('#bCourseSelector .course-check:checked').forEach(cb => courseIds.push(cb.value));
+                if(courseIds.length === 0) return window.showToast("Vui lòng chọn ít nhất 1 khóa học!", "error");
+            }
+
+            if(!qty || qty < 1 || !value) return window.showToast("Vui lòng nhập đủ thông tin!", "error");
+            if(qty > 50) return window.showToast("Chỉ tạo tối đa 50 mã một lần!", "error");
+
+            const btn = document.querySelector('button[onclick="createBulkVouchers()"]');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...'; btn.disabled = true;
+
+            try {
+                const batch = writeBatch(db);
+                for(let i=0; i<qty; i++) {
+                    const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
+                    const code = (prefix + randomStr);
+                    const newDocRef = doc(collection(db, "vouchers"));
+                    
+                    batch.set(newDocRef, {
+                        code: code,
+                        type: type,
+                        value: value,
+                        scope: scope,
+                        courseIds: scope === 'specific' ? courseIds : null,
+                        limit: limit,
+                        expiryDate: null,
+                        used: 0,
+                        usedBy: [],
+                        createdAt: new Date().toISOString(),
+                        isBulk: true
+                    });
+                }
+
+                await batch.commit();
+                window.showToast(`Đã tạo thành công ${qty} mã!`);
+                loadVouchers();
+                switchVoucherTab('list');
+
+            } catch(e) {
+                console.error(e);
+                window.showToast("Lỗi bulk create: " + e.message, "error");
+            } finally {
+                btn.innerHTML = '<i class="fa-solid fa-layer-group mr-2"></i> TIẾN HÀNH TẠO MÃ'; btn.disabled = false;
+            }
+        };
+
+        // 7. XÓA VOUCHER
+        window.deleteVoucher = async (id) => {
+            if(!confirm("Xóa voucher này?")) return;
+            try {
+                await deleteDoc(doc(db, "vouchers", id));
+                window.showToast("Đã xóa voucher");
+                loadVouchers();
+            } catch(e) { window.showToast(e.message, 'error'); }
+        };
+
+        // 8. XUẤT EXCEL
+        window.exportVouchersToExcel = () => {
+            if (allVouchers.length === 0) return window.showToast("Danh sách trống!", "error");
+
+            const rows = allVouchers.map(v => {
+                let status = "Đang hoạt động";
+                if (v.expiryDate && new Date(v.expiryDate) < new Date()) status = "Hết hạn";
+                else if (v.limit && v.used >= v.limit) status = "Hết lượt";
+
+                let phamVi = "Toàn bộ";
+                if (v.scope === 'specific') {
+                    phamVi = `${v.courseIds ? v.courseIds.length : 0} khóa học`;
+                }
+
+                return {
+                    "Mã Voucher": v.code,
+                    "Loại": v.type === 'percent' ? 'Phần trăm' : 'Số tiền',
+                    "Giá trị": v.value,
+                    "Đơn vị": v.type === 'percent' ? '%' : 'VNĐ',
+                    "Phạm vi": phamVi,
+                    "Đã dùng": v.used,
+                    "Giới hạn": v.limit || "Vô hạn",
+                    "Trạng thái": status,
+                    "Ngày hết hạn": v.expiryDate ? new Date(v.expiryDate).toLocaleDateString('vi-VN') : "Vĩnh viễn",
+                    "Ngày tạo": new Date(v.createdAt).toLocaleDateString('vi-VN')
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Danh_Sach_Voucher");
+            XLSX.writeFile(wb, "Danh_Sach_Voucher.xlsx");
+        };
+        // --- HÀM XÓA FILE TRÊN CLOUDFLARE R2 ---
+        // --- HÀM ĐÓNG MỞ MODAL CHUẨN ---
+        window.toggleModal = (id, show) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            // Nếu không truyền tham số show, tự động đảo ngược trạng thái hidden
+            const isHidden = (show === undefined) ? el.classList.contains('hidden') : !show;
+            
+            if (!isHidden) {
+                el.classList.remove('hidden');
+                document.body.classList.add('modal-active');
+            } else {
+                el.classList.add('hidden');
+                document.body.classList.remove('modal-active');
+            }
+        };
+    </script>
+    
+    <div id="renameModal" class="hidden fixed inset-0 z-[220] flex items-center justify-center bg-gray-900/60 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-96 animate-fade-in-up">
+        <h3 class="font-bold text-gray-800 text-lg mb-4">Đổi tên nội dung</h3>
+        <input type="text" id="renameInput" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none font-bold text-gray-700" placeholder="Nhập tên mới..." onkeyup="if(event.key==='Enter') confirmRename()">
+        <div class="flex justify-end gap-2 mt-6">
+            <button onclick="document.getElementById('renameModal').classList.add('hidden')" class="px-4 py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Hủy</button>
+            <button onclick="confirmRename()" class="px-6 py-2 bg-brand text-white font-bold rounded-lg shadow-lg hover:shadow-xl">Lưu</button>
+        </div>
+    </div>
+</div>
+
+    <div id="voucherModal" class="hidden fixed inset-0 z-[90] bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-2 md:p-4">
+        <div class="bg-white w-full max-w-5xl h-full md:h-[85vh] rounded-2xl shadow-2xl flex flex-col md:flex-row overflow-hidden">
+            
+            <div class="w-full md:w-64 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-100 flex flex-row md:flex-col p-2 md:p-4 gap-2 overflow-x-auto shrink-0 no-scrollbar">
+                <h3 class="font-black text-gray-800 text-lg px-2 mb-2 md:block hidden"><i class="fa-solid fa-ticket text-orange-500 mr-2"></i> Kho Voucher</h3>
+                
+                <button onclick="switchVoucherTab('list')" id="vTab-list" class="v-tab active whitespace-nowrap text-left px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold text-xs md:text-sm flex items-center gap-2 transition-all bg-white shadow-sm text-brand"><i class="fa-solid fa-list-ul"></i> Danh sách</button>
+                <button onclick="switchVoucherTab('create')" id="vTab-create" class="v-tab whitespace-nowrap text-left px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold text-xs md:text-sm flex items-center gap-2 transition-all text-gray-500 hover:bg-white hover:shadow-sm"><i class="fa-solid fa-plus-circle"></i> Tạo mới</button>
+                <button onclick="switchVoucherTab('bulk')" id="vTab-bulk" class="v-tab whitespace-nowrap text-left px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold text-xs md:text-sm flex items-center gap-2 transition-all text-gray-500 hover:bg-white hover:shadow-sm"><i class="fa-solid fa-layer-group"></i> Hàng loạt</button>
+            </div>
+
+            <div class="flex-1 flex flex-col bg-white relative overflow-hidden">
+                <button onclick="document.getElementById('voucherModal').classList.add('hidden')" class="absolute top-2 right-2 md:top-4 md:right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-500 transition-colors"><i class="fa-solid fa-times"></i></button>
+
+                <div id="vContent-list" class="v-content flex-1 flex flex-col p-4 md:p-6 h-full overflow-hidden">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                        <h2 class="text-xl md:text-2xl font-black text-gray-800">Danh sách Voucher</h2>
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <button onclick="window.exportVouchersToExcel()" class="px-3 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 shadow-sm flex items-center gap-2 whitespace-nowrap"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                            <div class="relative flex-1 md:w-64">
+                                <i class="fa-solid fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="text" id="voucherSearch" onkeyup="renderVoucherList()" placeholder="Tìm mã..." class="w-full pl-8 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-auto border border-gray-100 rounded-xl">
+                        <table class="w-full text-left text-sm whitespace-nowrap"> 
+                            <thead class="bg-gray-50 text-gray-500 font-bold text-xs uppercase sticky top-0">
+                                <tr><th class="p-3 md:p-4">Mã Code</th><th class="p-3 md:p-4">Giảm giá</th><th class="p-3 md:p-4">Phạm vi</th><th class="p-3 md:p-4">Giới hạn</th><th class="p-3 md:p-4">Hạn dùng</th><th class="p-3 md:p-4 text-right">Hành động</th></tr>
+                            </thead>
+                            <tbody id="voucherTableBody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="vContent-create" class="v-content hidden flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
+                     <h2 class="text-xl md:text-2xl font-black text-gray-800 mb-6">Tạo Voucher Thủ Công</h2>
+                     <div class="max-w-2xl space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Mã Voucher</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="vCode" class="flex-1 px-4 py-3 border border-gray-200 rounded-xl font-mono font-bold text-lg uppercase focus:border-orange-500 outline-none" placeholder="VD: SALE2025">
+                                <button onclick="document.getElementById('vCode').value = 'CODE'+Math.floor(Math.random()*10000)" class="px-4 py-3 bg-gray-100 rounded-xl font-bold text-gray-500 hover:bg-gray-200"><i class="fa-solid fa-dice"></i></button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase mb-2">Loại</label><select id="vType" onchange="toggleVoucherInput()" class="w-full px-3 py-3 border border-gray-200 rounded-xl font-bold text-gray-700 outline-none"><option value="percent">%</option><option value="fixed">Tiền</option></select></div>
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase mb-2">Giá trị</label><input type="number" id="vValue" class="w-full px-3 py-3 border border-gray-200 rounded-xl font-bold text-orange-600 outline-none" placeholder="10"></div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Phạm vi</label>
+                            <div class="flex gap-2 mb-3 flex-col md:flex-row">
+                                <label class="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-gray-50 flex-1"><input type="radio" name="vScope" value="global" checked onchange="toggleScope()" class="accent-orange-600 w-4 h-4"><span class="font-bold text-sm">Toàn bộ</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-gray-50 flex-1"><input type="radio" name="vScope" value="specific" onchange="toggleScope()" class="accent-orange-600 w-4 h-4"><span class="font-bold text-sm">Chọn khóa</span></label>
+                            </div>
+                            <div id="courseSelector" class="hidden p-4 bg-gray-50 rounded-xl border border-gray-200 max-h-40 overflow-y-auto space-y-2"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase mb-2">Lượt dùng</label><input type="number" id="vMaxUses" class="w-full px-3 py-3 border border-gray-200 rounded-xl outline-none" placeholder="Vô hạn"></div>
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase mb-2">Hạn dùng</label><input type="date" id="vExpiry" class="w-full px-3 py-3 border border-gray-200 rounded-xl outline-none"></div>
+                        </div>
+                        <button onclick="createVoucher()" class="w-full py-4 bg-orange-600 text-white font-bold rounded-xl shadow-lg hover:bg-orange-700 transition-all text-lg"><i class="fa-solid fa-check-circle mr-2"></i> TẠO VOUCHER</button>
+                     </div>
+                </div>
+
+                <div id="vContent-bulk" class="v-content hidden flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar">
+                     <h2 class="text-xl md:text-2xl font-black text-gray-800 mb-6">Tạo Voucher Hàng Loạt</h2>
+                     <div class="max-w-2xl space-y-4">
+                        <div class="grid grid-cols-2 gap-6">
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase mb-2">Tiền tố</label><input type="text" id="bPrefix" class="w-full px-4 py-3 border border-gray-200 rounded-xl font-mono font-bold uppercase outline-none" placeholder="TET_"></div>
+                            <div><label class="block text-xs font-bold text-gray-500 uppercase mb-2">Số lượng</label><input type="number" id="bQuantity" value="10" class="w-full px-4 py-3 border border-gray-200 rounded-xl font-bold outline-none" max="100"></div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Phạm vi</label>
+                            <div class="flex gap-2 mb-3 flex-col md:flex-row">
+                                <label class="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-gray-50 flex-1"><input type="radio" name="bScope" value="global" checked onchange="toggleBulkScope()" class="accent-teal-600 w-4 h-4"><span class="font-bold text-sm">Toàn bộ</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer p-3 border border-gray-200 rounded-xl hover:bg-gray-50 flex-1"><input type="radio" name="bScope" value="specific" onchange="toggleBulkScope()" class="accent-teal-600 w-4 h-4"><span class="font-bold text-sm">Chọn khóa</span></label>
+                            </div>
+                            <div id="bCourseSelector" class="hidden p-4 bg-gray-50 rounded-xl border border-gray-200 max-h-40 overflow-y-auto space-y-2"></div>
+                        </div>
+                        <div class="p-6 border border-gray-200 rounded-2xl bg-gray-50/50 space-y-4">
+                            <h4 class="font-bold text-gray-800 border-b border-gray-200 pb-2">Thiết lập chung</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="text-xs font-bold text-gray-500">Loại</label><select id="bType" class="w-full mt-1 p-2 border rounded-lg text-sm"><option value="percent">%</option><option value="fixed">Tiền</option></select></div>
+                                <div><label class="text-xs font-bold text-gray-500">Giá trị</label><input type="number" id="bValue" class="w-full mt-1 p-2 border rounded-lg text-sm" placeholder="20"></div>
+                            </div>
+                            <div><label class="text-xs font-bold text-gray-500">Lượt dùng/mã</label><input type="number" id="bMaxUses" class="w-full mt-1 p-2 border rounded-lg text-sm" value="1"></div>
+                        </div>
+                        <button onclick="createBulkVouchers()" class="w-full py-4 bg-teal-600 text-white font-bold rounded-xl shadow-lg hover:bg-teal-700 transition-all text-lg"><i class="fa-solid fa-layer-group mr-2"></i> TIẾN HÀNH TẠO MÃ</button>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
+
+
+
+

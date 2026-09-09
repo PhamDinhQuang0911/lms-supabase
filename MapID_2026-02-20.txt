@@ -1,0 +1,1145 @@
+ID được cập nhật ngày 25/6/2025
+MAP ID THPT ĐƯỢC XÂY DỰNG BỞI ``NHÓM TOÁN VÀ LATEX'', CẬP NHẬT NGÀY 10/2/2024
+MAP ID THCS ĐƯỢC TÁC GIẢ PHẦN MỀM ĐƯA VÀO DỰA THEO SÁCH KNTTVCS
+%Cấu trúc của một ID
++ 1: Lớp 11
++ H: Phân môn Hình học
++ 2: Chương 2
++ V: Mức độ Vận dụng
++ 3: Bài 3
++ 4: Dạng 4
++ 6: Lớp 6
++ D: Phân môn Đại số
++ 1: Chương 1
++ N: Mức độ Nhận biết
++ 2: Bài 2
+%Cấu trúc của một ID
+%
+%Cấu hình mức độ dùng chung
+[N] Nhận biết (Yếu)
+[H] Thông hiểu (Trung bình)
+[V] Vận dụng (Khá)
+[C] Vận dụng cao (Giỏi)
+%Cấu hình nội dung
+%
+%Cấu hình nội dung Map ID
+%Các dấu gạch ngang không được thay đổi
+%Cấu hình nội dung Map ID
+%END%
+-[0] Lớp 10
+----[D] Đại số/Thống kê
+-------[1] Mệnh đề. Tập hợp
+----------[1] Mệnh đề
+-------------[1] Xác định mệnh đề, mệnh đề chứa biến
+-------------[2] Tính đúng-sai của mệnh đề
+-------------[3] Phủ định của một mệnh đề
+-------------[4] Mệnh đề kéo theo, mệnh đề đảo, mệnh đề tương đương
+-------------[5] Mệnh đề với mọi, tồn tại (và phủ định chúng)
+-------------[6] Áp dụng mệnh đề vào suy luận có lí
+----------[2] Tập hợp
+-------------[1] Tập hợp và phần tử của tập hợp
+-------------[2] Tập hợp con. Hai tập hợp bằng nhau
+-------------[3] Ký hiệu khoảng, đoạn, nửa khoảng
+----------[3] Các phép toán tập hợp
+-------------[1] Giao và hợp của hai tập hợp (rời rạc)
+-------------[2] Hiệu và phần bù của hai tập hợp (rời rạc)
+-------------[3] Giao và hợp (dùng đoạn, khoảng)
+-------------[4] Hiệu và phần bù (dùng đoạn, khoảng)
+-------------[5] Toán thực tế ứng dụng của tập hợp
+-------[2] Bất phương trình và hệ bất phương trình bậc nhất hai ẩn
+----------[1] Bất phương trình bậc nhất hai ẩn
+-------------[1] Các khái niệm về bất phương trình bậc nhất hai ẩn
+-------------[2] Miền nghiệm của bất phương trình bậc nhất hai ẩn
+-------------[3] Toán thực tế về bất phương trình bậc nhất hai ẩn
+----------[2] Hệ bất phương trình bậc nhất hai ẩn
+-------------[1] Các khái niệm về hệ bất phương trình bậc nhất hai ẩn
+-------------[2] Miền nghiệm của hệ bất phương trình bậc nhất hai ẩn
+-------------[3] Toán thực tế về hệ bất phương trình bậc nhất hai ẩn
+-------[3] Hàm số bậc hai và đồ thị
+----------[1] Hàm số và đồ thị
+-------------[1] Xác định một hàm số
+-------------[2] Tập xác định của hàm số
+-------------[3] Giá trị của hàm số
+-------------[4] Đồ thị của hàm số
+-------------[5] Tính đồng biến, nghịch biến
+-------------[6] Tính chẵn, lẻ
+-------------[7] Toán thực tế về hàm số
+----------[2] Hàm số bậc hai
+-------------[1] Xác định hàm số bậc hai
+-------------[2] Bảng biến thiên, tính đơn điệu, $\max$, $\min$
+-------------[3] Đồ thị của hàm số bậc hai
+-------------[4] Bài toán về sự tương giao
+-------------[5] Hàm số chứa dấu giá trị tuyệt đối
+-------------[6] Toán thực tế ứng dụng hàm số bậc hai
+-------[6] Thống kê
+----------[1] Số gần đúng. Sai số
+-------------[1] Tính và ước lượng sai số tuyệt đối, tương đối
+-------------[2] Tính và xác định độ chính xác của kết quả
+-------------[3] Quy tròn số gần đúng
+-------------[4] Viết số gần đúng cho số đúng biết độ chính xác
+----------[2] Mô tả và biểu diễn dữ liệu trên các bảng và biểu đồ
+-------------[1] Đọc và phân tích thông tin trên bảng số liệu
+-------------[2] Đọc và phân tích thông tin trên biểu đồ
+-------------[3] Số liệu bất thường trên bảng số liệu
+-------------[4] Số liệu bất thường trên biểu đồ
+----------[3] Các số đặc trưng đo xu thế trung tâm của mẫu số liệu
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Số trung bình cộng
+-------------[3] Số trung vị
+-------------[4] Tứ phân vị
+-------------[5] Mốt
+----------[4] Các số đặc trưng đo mức độ phân tán của mẫu số liệu
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Khoảng biến thiên, khoảng tứ phân vị
+-------------[3] Giá trị bất thường của mẫu số liệu
+-------------[4] Phương sai, độ lệch chuẩn của mẫu số liệu
+-------[7] Bất phương trình bậc hai một ẩn
+----------[1] Dấu của tam thức bậc hai
+-------------[1] Xác định tam thức bậc hai
+-------------[2] Dấu của tam thức bậc hai và ứng dụng
+-------------[3] Bài toán xét dấu biết bảng xét dấu, đồ thị
+-------------[4] Xét dấu biểu thức dạng tích, thương
+-------------[5] Toán thực tế ứng dụng dấu tam thức bậc hai
+----------[2] Giải bất phương trình bậc 2 một ẩn
+-------------[1] Bất phương trình bậc hai và ứng dụng
+-------------[2] Giải bất phương trình bậc hai biết bảng xét dấu, đồ thị
+-------------[3] Bất phương trình dạng tích, thương
+-------------[4] Hệ bất phương trình bậc hai
+-------------[5] Bất phương trình chứa căn, $|.|$
+-------------[6] Bài toán có tham số $m$
+-------------[7] Toán thực tế ứng dụng bất phương trình bậc hai một ẩn
+----------[3] Phương trình quy về phương trình bậc hai
+-------------[1] Phương trình $\sqrt{f(x)}=\sqrt{g(x)}$ và mở rộng
+-------------[2] Phương trình $\sqrt{f(x)}=g(x)$ và mở rộng
+-------------[3] Phương trình căn thức có tham số
+-------------[4] Phương trình căn thức (dạng khác)
+-------------[5] Phương trình khác quy về phương trình bậc hai
+-------------[6] Toán hình, toán thực tế ứng dụng phương trình quy về bậc hai
+-------[8] Đại số tổ hợp
+----------[1] Quy tắc cộng. Quy tắc nhân
+-------------[1] Bài toán chỉ sử dụng quy tắc cộng
+-------------[2] Bài toán chỉ sử dụng quy tắc nhân
+-------------[3] Bài toán kết hợp quy tắc cộng và quy tắc nhân
+-------------[4] Bài toán dùng quy tắc bù trừ
+-------------[5] Bài toán đếm số tự nhiên
+-------------[6] Sơ đồ hình cây
+----------[2] Hoán vị. Chỉnh hợp. Tổ hợp
+-------------[1] Lý thuyết tổng hợp về P, C, A
+-------------[2] Bài toán có biểu thức P, C, A
+-------------[3] Bài toán đếm số tự nhiên
+-------------[4] Bài toán chọn người
+-------------[5] Bài toán chọn đối tượng khác
+-------------[6] Bài toán có yếu tố hình học
+-------------[7] Bài toán xếp chỗ (không tròn, không lặp)
+-------------[8] Hoán vị bàn tròn
+-------------[9] Hoán vị lặp
+----------[3] Nhị thức Newton
+-------------[1] Các câu hỏi lý thuyết tổng hợp
+-------------[2] Khai triển một nhị thức Newton
+-------------[3] Tìm hệ số, số hạng trong khai triển bằng tam giác Pascal
+-------------[4] Tìm hệ số, số hạng trong khai triển
+-------------[5] Tính tổng nhờ khai triển nhị thức Newton
+-------------[6] Toán tổ hợp có dùng nhị thức Newton
+-------[0] Xác suất
+----------[1] Không gian mẫu và biến cố
+-------------[1] Các câu hỏi lý thuyết tổng hợp
+-------------[2] Mô tả không gian mẫu, biến cố
+-------------[3] Đếm phần tử không gian mẫu, biến cố
+----------[2] Xác suất của biến cố
+-------------[1] Các câu hỏi lý thuyết tổng hợp
+-------------[2] Liên quan xúc xắc, đồng tiền (Phương pháp liệt kê)
+-------------[3] Liên quan việc sắp xếp chỗ
+-------------[4] Liên quan việc chọn người
+-------------[5] Liên quan việc chọn đối tượng khác
+-------------[6] Liên quan hình học
+-------------[7] Liên quan việc đếm số
+-------------[8] Liên quan bàn tròn hoặc hoán vị lặp 
+-------------[9] Liên quan vấn đề khác
+----[H] Hình học
+-------[4] Hệ thức lượng trong tam giác
+----------[1] Giá trị lượng giác của góc $0^\circ$ đến $180^\circ$
+-------------[1] Xét dấu của biểu thức lượng giác
+-------------[2] Tính các giá trị lượng giác
+-------------[3] Biến đổi, rút gọn biểu thức lượng giác
+----------[2] Định lý sin và định lý côsin
+-------------[1] Bài toán chỉ dùng định lý sin, côsin
+-------------[2] Bài toán có dùng công thức diện tích
+-------------[3] Biến đổi, rút gọn biểu thức
+-------------[4] Nhận dạng tam giác
+----------[3] Giải tam giác và ứng dụng thực tế
+-------------[1] Giải tam giác
+-------------[2] Các ứng dụng thực tế
+-------[5] Véctơ
+----------[1] Khái niệm véctơ
+-------------[1] Xác định một véctơ
+-------------[2] Xét phương và hướng của các véctơ
+-------------[3] Hai véctơ bằng nhau
+-------------[4] Hai véctơ đối nhau
+-------------[5] Độ dài của một véctơ
+-------------[6] Toán thực tế áp dụng véctơ
+----------[2] Tổng và hiệu của hai véctơ
+-------------[1] Tính toán, thu gọn hiệu các véctơ
+-------------[2] Tính đúng-sai của 1 đẳng thức véctơ
+-------------[3] Tìm điểm nhờ đẳng thức véctơ
+-------------[4] Tính độ dài của véctơ tổng, hiệu
+-------------[5] Cực trị hình học
+-------------[6] Toán thực tế áp dụng tổng hiệu véctơ
+----------[3] Tích của một số với véctơ
+-------------[1] Xác định $k\vec{a}$ và độ dài của nó
+-------------[2] Biến đổi, thu gọn 1 đẳng thức véctơ
+-------------[3] Tìm điểm nhờ đẳng thức véctơ
+-------------[4] Sự cùng phương của hai véctơ và ứng dụng
+-------------[5] Phân tích một véctơ theo hai véctơ không cùng phương
+-------------[6] Tính độ dài của véctơ tổng, hiệu
+-------------[7] Tập hợp điểm
+-------------[8] Cực trị hình học
+-------------[9] Toán thực tế áp dụng tích một số với véctơ
+----------[4] Tích vô hướng
+-------------[1] Tích vô hướng, góc giữa hai véctơ
+-------------[2] Tìm góc nhờ tích vô hướng
+-------------[3] Đẳng thức về tích vô hướng hoặc độ dài
+-------------[4] Điều kiện vuông góc
+-------------[5] Các bài toán tìm điểm và tập hợp điểm
+-------------[6] Cực trị và chứng minh bất đẳng thức
+-------------[7] Toán thực tế áp dụng tích vô hướng
+-------[9] Phương pháp toạ độ trong mặt phẳng Oxy
+----------[1] Toạ độ của véctơ
+-------------[1] Tọa độ điểm, độ dài đại số của véctơ trên một trục
+-------------[2] Phép toán véctơ (tổng, hiệu, tích với số) trong Oxy
+-------------[3] Tọa độ điểm và véctơ trên hệ trục Oxy
+-------------[4] Sự cùng phương của hai véctơ và ứng dụng
+-------------[5] Phân tích một véctơ theo hai véctơ không cùng phương
+-------------[6] Toán thực tế dùng hệ toạ độ
+----------[2] Tích vô hướng (theo tọa độ)
+-------------[1] Tích vô hướng, góc giữa hai véctơ
+-------------[2] Tìm góc nhờ tích vô hướng
+-------------[3] Đẳng thức về tích vô hướng hoặc độ dài
+-------------[4] Điều kiện vuông góc
+-------------[5] Các bài toán tìm điểm và tập hợp điểm
+-------------[6] Cực trị và chứng minh bất đẳng thức
+-------------[7] Toán thực tế, liên môn
+----------[3] Đường thẳng trong mặt phẳng toạ độ
+-------------[1] Điểm, véctơ, hệ số góc của đường thẳng
+-------------[2] Phương trình đường thẳng
+-------------[3] Vị trí tương đối giữa hai đường thẳng
+-------------[4] Bài toán về góc giữa hai đường thẳng
+-------------[5] Bài toán về khoảng cách
+-------------[6] Bài toán tìm điểm
+-------------[7] Bài toán dùng cho tam giác, tứ giác
+-------------[8] Bài toán thực tế, phương pháp tọa độ hóa
+-------------[9] Bài toán có dùng phương trình chính tắc
+----------[4] Đường tròn trong mặt phẳng toạ độ
+-------------[1] Tìm tâm, bán kính và điều kiện là đường tròn
+-------------[2] Phương trình đường tròn
+-------------[3] Phương trình tiếp tuyến của đường tròn
+-------------[4] Vị trí tương đối liên quan đường tròn
+-------------[5] Toán tổng hợp đường thẳng và đường tròn
+-------------[6] Bài toán dùng cho tam giác, tứ giác
+-------------[7] Bài toán thực tế, phương pháp tọa độ hóa
+----------[5] Ba đường conic trong mặt phẳng toạ độ và Chuyên đề 3
+-------------[1] Xác định các yếu tố của elip
+-------------[2] Phương trình chính tắc của elip
+-------------[3] Bài toán điểm trên elip
+-------------[4] Xác định các yếu tố của hypebol
+-------------[5] Phương trình chính tắc của hypebol
+-------------[6] Bài toán điểm trên hypebol
+-------------[7] Xác định các yếu tố của parabol
+-------------[8] Phương trình chính tắc của parabol
+-------------[9] Bài toán điểm trên parabol
+-------------[0] Bài toán tổng hợp/thực tế, phương pháp tọa độ hóa ba đường conic
+----[C] Chuyên đề
+-------[1] Hệ phương trình bậc nhất 3 ẩn và ứng dụng
+----------[1] Hệ phương trình bậc nhất 3 ẩn và ứng dụng
+-------------[1] Các khái niệm về hệ phương trình bậc nhất 3 ẩn
+-------------[2] Giải hệ phương trình bậc nhất 3 ẩn
+-------------[3] Toán thực tế ứng dụng hệ phương trình bậc nhất 3 ẩn
+-------[2] Phương pháp quy nạp toán học
+----------[1] Phương pháp quy nạp toán học
+-------------[1] Quy nạp chứng minh các đẳng thức/công thức/chia hết
+-------------[2] Quy nạp chứng minh các bất đẳng thức
+-[1] Lớp 11
+----[D] Đại số \& Giải tích/Thống kê
+-------[1] Hàm số lượng giác và phương trình lượng giác
+----------[1] Góc lượng giác
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Chuyển đổi đơn vị độ và radian
+-------------[3] Số đo của một góc lượng giác
+-------------[4] Độ dài của một cung tròn
+-------------[5] Đường tròn lượng giác và ứng dụng
+-------------[6] Toán thực tế áp dụng góc lượng giác
+----------[2] Giá trị lượng giác của một góc lượng giác
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Xét dấu giá trị lượng giác. Tính giá trị lượng giác của một góc
+-------------[3] Biến đổi, rút gọn biểu thức lượng giác; chứng minh đẳng thức lượng giác
+-------------[4] Các góc lượng giác có liên quan đặc biệt: bù nhau, phụ nhau, đối nhau, hơn kém nhau $\pi$
+-------------[5] Toán thực tế áp dụng giá trị của một góc lượng giác
+----------[3] Các công thức lượng giác
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Áp dụng công thức cộng
+-------------[3] Áp dụng công thức nhân đôi - hạ bậc
+-------------[4] Áp dụng công thức biến đổi tích $\leftrightarrow$ tổng
+-------------[5] Kết hợp nhiều công thức lượng giác
+-------------[6] Nhận dạng tam giác
+-------------[7] Toán thực tế áp dụng công thức lượng giác
+----------[4] Hàm số lượng giác và đồ thị
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Tìm tập xác định
+-------------[3] Xét tính đơn điệu
+-------------[4] Xét tính chẵn, lẻ
+-------------[5] Xét tính tuần hoàn, tìm chu kỳ
+-------------[6] Tìm tập giá trị và $\min$, $\max$
+-------------[7] Bảng biến thiên và đồ thị
+-------------[8] Toán thực tế áp dụng hàm số lượng giác
+----------[5] Phương trình lượng giác cơ bản
+-------------[1] Câu hỏi lý thuyết. Khái niệm phương trình tương đương
+-------------[2] Điều kiện có nghiệm
+-------------[3] Phương trình cơ bản dùng radian
+-------------[4] Phương trình cơ bản dùng độ
+-------------[5] Phương trình đưa về dạng cơ bản
+-------------[6] Toán thực tế áp dụng phương trình lượng giác
+----------[6] [Giảm] Phương trình lượng giác thường gặp
+-------------[1] Phương trình bậc $n$ theo một hàm số lượng giác
+-------------[2] Phương trình đẳng cấp bậc $n$ đối với $\sin x$ và $\cos x$
+-------------[3] Phương trình bậc nhất đối với $\sin x$ và $\cos x$
+-------------[4] Phương trình đối xứng, phản đối xứng
+-------------[5] Phương trình lượng giác không mẫu mực
+-------------[6] Phương trình lượng giác có chứa ẩn ở mẫu số
+-------------[7] Phương trình lượng giác có chứa tham số
+-------------[8] Toán thực tế áp dụng phương trình lượng giác thường gặp
+-------[2] Dãy số. Cấp số cộng. Cấp số nhân
+----------[1] Dãy số
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Số hạng tổng quát, biểu diễn dãy số
+-------------[3] Tìm số hạng cụ thể của dãy số
+-------------[4] Dãy số tăng, dãy số giảm
+-------------[5] Dãy số bị chặn
+-------------[6] Toán thực tế áp dụng dãy số
+----------[2] Cấp số cộng
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Nhận diện cấp số cộng, công sai d
+-------------[3] Số hạng tổng quát của cấp số cộng
+-------------[4] Tìm số hạng cụ thể trong cấp số cộng
+-------------[5] Điều kiện để dãy số là cấp số cộng
+-------------[6] Tính tổng của cấp số cộng
+-------------[7] Toán thực tế áp dụng cấp số cộng
+----------[3] Cấp số nhân
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Nhận diện cấp số nhân, công bội $q$
+-------------[3] Số hạng tổng quát của cấp số nhân
+-------------[4] Tìm số hạng cụ thể trong cấp số nhân
+-------------[5] Điều kiện để dãy số là cấp số nhân
+-------------[6] Tính tổng của cấp số nhân
+-------------[7] Kết hợp cấp số nhân và cấp số cộng
+-------------[8] Toán thực tế áp dụng cấp số nhân
+-------[3] Giới hạn. Hàm số liên tục
+----------[1] Giới hạn của dãy số
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Phương pháp đặt thừa số chung ($\lim$ hữu hạn)
+-------------[3] Phương pháp lượng liên hợp ($\lim$ hữu hạn)
+-------------[4] Giới hạn vô cực
+-------------[5] Cấp số nhân lùi vô hạn
+-------------[6] Toán thực tế áp dụng giới hạn của dãy số
+----------[2] Giới hạn của hàm số
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Thay số trực tiếp
+-------------[3] Phương pháp đặt thừa số chung, kết quả hữu hạn
+-------------[4] Phương pháp đặt thừa số chung, kết quả vô cực
+-------------[5] Phương pháp lượng liên hợp, kết quả hữu hạn
+-------------[6] Phương pháp lượng liên hợp, kết quả vô cực
+-------------[7] Giới hạn một bên
+-------------[8] Toán thực tế áp dụng giới hạn của hàm số
+----------[3] Hàm số liên tục
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Tính liên tục thể hiện qua đồ thị
+-------------[3] Hàm số liên tục tại một điểm
+-------------[4] Hàm số liên tục trên khoảng, đoạn
+-------------[5] Bài toán phương trình có nghiệm
+-------------[6] Toán thực tế áp dụng hàm số liên tục
+-------[5] Các số đặc trưng đo xu thế trung tâm cho mẫu số liệu ghép nhóm
+----------[1] Số trung bình và mốt của mẫu số liệu ghép nhóm
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Mẫu số liệu ghép nhóm
+-------------[3] Số trung bình
+-------------[4] Mốt
+----------[2] Trung vị và tứ phân vị của mẫu số liệu ghép nhóm
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Trung vị
+-------------[3] Tứ phân vị
+-------[6] Hàm số mũ và hàm số lôgarít
+----------[1] Phép tính luỹ thừa
+-------------[1] Tính giá trị của biểu thức chứa lũy thừa
+-------------[2] Biến đổi, rút gọn biểu thức chứa lũy thừa
+-------------[3] Điều kiện cho luỹ thừa, căn thức
+-------------[4] So sánh các lũy thừa
+----------[2] Phép tính lôgarít
+-------------[1] Tính giá trị biểu thức chứa lôgarít
+-------------[2] Biến đổi, biểu diễn biểu thức chứa lôgarít
+-------------[3] Rút gọn, chứng minh biểu thức lôgarít
+-------------[4] Số e và bài toán lãi kép
+-------------[5] Toán thực tế áp dụng phép tính lôgarít
+----------[3] Hàm số mũ. Hàm số lôgarít
+-------------[1] Câu hỏi lý thuyết hàm số lũy thừa, mũ, lôgarít
+-------------[2] Tập xác định của hàm số
+-------------[3] Sự biến thiên và đồ thị của hàm số mũ, lôgarít
+-------------[4] So sánh các luỹ thừa và lôgarít
+-------------[5] Toán thực tế áp dụng hàm số mũ, lôgarít
+----------[4] Phương trình, bất phương trình mũ và lôgarít
+-------------[1] Điều kiện có nghiệm
+-------------[2] Phương trình mũ, lôgarít cơ bản
+-------------[3] Bất phương trình mũ, lôgarít cơ bản
+-------------[4] Phương trình mũ, lôgarít đưa về cùng cơ số
+-------------[5] Bất phương trình mũ, lôgarít đưa về cùng cơ số
+-------------[6] Toán thực tế áp dụng phương trình mũ, lôgarít
+----------[5] [Giảm] Các phương pháp giải được giảm tải
+-------------[1] Phương pháp đặt ẩn phụ cho phương trình mũ, lôgarít
+-------------[2] Phương pháp lôgarít hóa, mũ cho phương trình mũ, lôgarít
+-------------[3] Phương pháp hàm số, đánh giá cho phương trình mũ, lôgarít
+-------------[4] Hệ phương trình mũ, lôgarít
+-------------[5] Toán thực tế áp dụng phương trình mũ, lôgarít
+-------[7] Đạo hàm
+----------[1] Đạo hàm
+-------------[1] Tính đạo hàm bằng định nghĩa
+-------------[2] Số gia hàm số, số gia biến số
+-------------[3] Ý nghĩa Hình học của đạo hàm
+-------------[4] Ý nghĩa Vật lý của đạo hàm
+-------------[5] Toán thực tế khác áp dụng định nghĩa đạo hàm
+----------[2] Các quy tắc đạo hàm
+-------------[1] Tính đạo hàm
+-------------[2] Đẳng thức có $y$ và $y'$
+-------------[3] Tiếp tuyến tại một điểm
+-------------[4] Tiếp tuyến biết trước hệ số góc
+-------------[5] Tiếp tuyến chưa biết tiếp điểm và hệ số góc
+-------------[6] Giới hạn hàm số lượng giác, hàm số mũ, lôgarít
+-------------[7] Dùng đạo hàm cho nhị thức Newton
+-------------[8] Toán thực tế áp dụng quy tắc đạo hàm
+----------[3] Đạo hàm cấp hai
+-------------[1] Tính đạo hàm cấp hai
+-------------[2] Đẳng thức có $y$ và ($y'$, $y''$)
+-------------[3] Toán thực tế và Ý nghĩa Vật lý của đạo hàm cấp hai
+-------[9] Xác suất
+----------[1] Biến cố giao và quy tắc nhân xác suất
+-------------[1] Câu hỏi lí thuyết
+-------------[2] Xác định và đếm số phần tử biến cố giao
+-------------[3] Công thức nhân xác suất cho hai biến cố độc lập
+-------------[4] Tính xác suất biến cố giao bằng sơ đồ hình cây
+----------[2] Biến cố hợp và quy tắc cộng xác suất
+-------------[1] Câu hỏi lí thuyết
+-------------[2] Mô tả biến cố hợp
+-------------[3] Tính và xác định số phần tử biến cố hợp
+-------------[4] Quy tắc cộng cho hai biến cố xung khắc
+-------------[5] Quy tắc cộng cho hai biến cố bất kì
+-------------[6] Tính xác suất bằng sơ đồ hình cây
+----[H] Hình học
+-------[4] Đường thẳng, mặt phẳng. Quan hệ song song trong không gian
+----------[1] Điểm, đường thẳng và mặt phẳng
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Hình biểu diễn của một hình không gian
+-------------[3] Tìm giao tuyến của hai mặt phẳng
+-------------[4] Tìm giao điểm của đường thẳng và mặt phẳng
+-------------[5] Xác định thiết diện
+-------------[6] Ba điểm thẳng hàng, ba đường thẳng đồng quy
+-------------[7] Toán thực tế áp dụng điểm, đường thẳng và mặt phẳng
+----------[2] Hai đường thẳng song song
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Hai đường thẳng song song
+-------------[3] Tìm giao tuyến bằng cách kẻ song song
+-------------[4] Tìm giao điểm của đường thẳng và mặt phẳng
+-------------[5] Xác định thiết diện bằng cách kẻ song song
+-------------[6] Ba điểm thẳng hàng
+-------------[7] Bài toán quỹ tích và điểm cố định
+-------------[8] Toán thực tế áp dụng hai đường thẳng song song
+----------[3] Đường thẳng và mặt phẳng song song
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Đường thẳng song song với mặt phẳng
+-------------[3] Tìm giao tuyến bằng cách kẻ song song
+-------------[4] Tìm giao điểm của đường thẳng và mặt phẳng
+-------------[5] Xác định thiết diện bằng cách kẻ song song
+-------------[6] Ba điểm thẳng hàng
+-------------[7] Bài toán quỹ tích và điểm cố định
+-------------[8] Toán thực tế áp dụng đường thẳng song song mặt phẳng
+----------[4] Hai mặt phẳng song song
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Hai mặt phẳng song song
+-------------[3] Chứng minh đường thẳng song song mặt phẳng
+-------------[4] Xác định mặt phẳng đi qua một điểm và song song với một mặt phẳng
+-------------[5] Xác định mặt phẳng chứa đường thẳng (hoặc đi qua hai điểm) và song song với một mặt phẳng
+-------------[6] Bài toán tổng hợp
+-------------[7] Toán thực tế áp dụng hai mặt phẳng song song
+----------[5] Hình lăng trụ và hình hộp (xiên)
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Bài toán về hình lăng trụ (xiên)
+-------------[3] Bài toán về hình hộp (xiên)
+-------------[4] Toán thực tế áp dụng hình lăng trụ và hình hộp
+----------[6] Phép chiếu song song
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Hình biểu diễn của một hình không gian
+-------------[3] Xác định yếu tố song song
+-------------[4] Xác định phương chiếu
+-------------[5] Tính tỉ số đoạn thẳng, diện tích qua phép chiếu
+-------[8] Quan hệ vuông góc trong không gian
+----------[1] Hai đường thẳng vuông góc
+-------------[1] Câu hỏi lí thuyết
+-------------[2] Xác định hai đường thẳng vuông góc
+-------------[3] Tìm góc giữa hai đường thẳng
+-------------[4] Toán thực tế áp dụng hai đường thẳng vuông góc
+----------[2] Đường thẳng vuông góc với mặt phẳng
+-------------[1] Câu hỏi lí thuyết
+-------------[2] Xác định hoặc chứng minh đường thẳng và mặt phẳng vuông góc
+-------------[3] Xác định hoặc chứng minh hai đường thẳng vuông góc
+-------------[4] Dựng mặt phẳng, tìm thiết diện
+-------------[5] Hình chiếu vuông góc của một hình trên mặt phẳng (tìm điểm, tìm đoạn thẳng, tính diện tích)
+-------------[6] Toán thực tế áp dụng đường thẳng vuông góc mặt phẳng
+----------[3] Phép chiếu vuông góc
+-------------[1] Lý thuyết về phép chiếu vuông góc
+-------------[2] Hình chiếu vuông góc của đa giác trên mặt phẳng
+-------------[3] Các bài toán thực tế áp dụng phép chiếu vuông góc
+----------[4] Hai mặt phẳng vuông góc
+-------------[1] Câu hỏi lí thuyết
+-------------[2] Xác định/chứng minh đường thẳng vuông góc mặt phẳng, mặt phẳng vuông góc
+-------------[3] Xác định góc giữa hai mặt phẳng
+-------------[4] Dựng mặt phẳng, thiết diện
+-------------[5] Nhận dạng và tính toán liên quan các hình thông dụng
+-------------[6] Bài toán cho trước góc giữa $d$ và $(P)$
+-------------[7] Toán thực tế áp dụng hai mặt phẳng vuông góc
+----------[5] Khoảng cách
+-------------[1] Câu hỏi lí thuyết
+-------------[2] Khoảng cách giữa 2 điểm, từ 1 điểm đến 1 đường thẳng
+-------------[3] Khoảng cách từ 1 điểm đến 1 mặt phẳng
+-------------[4] Khoảng cách giữa 2 đường thẳng chéo nhau
+-------------[5] Đường vuông góc chung của 2 đường thẳng chéo nhau
+-------------[6] Toán thực tế áp dụng khoảng cách
+----------[6] Góc giữa đường thẳng và mặt phẳng. Góc nhị diện
+-------------[1] Góc giữa đường thẳng và mặt phẳng
+-------------[2] Góc nhị diện, góc phẳng nhị diện
+-------------[3] Góc giữa 2 mặt phẳng, biết trước góc $(d,(P))$
+-------------[4] Khoảng cách giữa điểm, đường, biết trước góc $(d,(P))$
+-------------[5] Khoảng cách giữa điểm - mặt phẳng, biết trước góc $(d,(P))$
+-------------[6] Khoảng cách giữa 2 đường chéo nhau, biết trước góc $(d,(P))$
+-------------[7] Toán thực tế về góc đường thẳng, mặt phẳng, góc nhị diện
+----------[7] Hình lăng trụ đứng. Hình chóp đều. Thể tích
+-------------[1] Câu hỏi lí thuyết, công thức
+-------------[2] Thể tích khối chóp tam giác
+-------------[3] Thể tích khối chóp tứ giác
+-------------[4] Thể tích khối lăng trụ tam giác
+-------------[5] Thể tích khối lăng trụ tứ giác
+-------------[6] Thể tích khối chóp cụt và các khối khác
+-------------[7] Tỉ số thể tích
+-------------[8] Ứng dụng thể tích tính góc, khoảng cách
+-------------[9] Toán thực tế hình lăng trụ đứng, chóp đều, thể tích
+----[C] Chuyên đề
+-------[1] Phép biến hình phẳng
+----------[1] Phép biến hình, phép dời hình và hai hình bằng nhau
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Bài toán xác định một phép đặt tương ứng có là phép dời hình hay không?
+-------------[3] Xác định ảnh khi thực hiện phép dời hình
+----------[2] Phép tịnh tiến
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Tìm ảnh hoặc tạo ảnh khi thực hiện phép tịnh tiến
+-------------[3] Ứng dụng phép tịnh tiến
+----------[3] Phép đối xứng trục
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Tìm ảnh hoặc tạo ảnh khi thực hiện phép đối xứng trục
+-------------[3] Xác định trục đối xứng và số trục đối xứng của một hình
+-------------[4] Ứng dụng phép đối xứng trục
+----------[4] Phép đối xứng tâm
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Tìm ảnh, tạo ảnh khi thực hiện phép đối xứng tâm
+-------------[3] Xác định hình có tâm đối xứng
+-------------[4] Ứng dụng phép đối xứng tâm
+----------[5] Phép quay
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Xác định vị trí ảnh của điểm, hình khi thực hiện phép quay cho trước
+-------------[3] Tìm tọa độ ảnh của điểm, phương trình của một đường thẳng khi thực hiện phép quay
+-------------[4] Ứng dụng phép quay
+----------[6] Phép vị tự
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Xác định ảnh, tạo ảnh khi thực hiện phép vị tự
+-------------[3] Tìm tâm vị tự của hai đường tròn
+-------------[4] Ứng dụng phép vị tự
+----------[7] Phép đồng dạng
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Xác định ảnh, tạo ảnh khi thực hiện phép đồng dạng
+-------[2] Lý thuyết đồ thị
+----------[1] Đồ thị
+-------------[1] Câu hỏi về đỉnh, cạnh của đồ thị
+-------------[2] Câu hỏi về bậc của đồ thị
+-------------[3] Câu hỏi tổng hợp
+----------[2] Đường đi Euler và Harmilton
+-------------[1] Đường đi Euler
+-------------[2] Đường đi Harmilton
+-------------[3] Câu hỏi tổng hợp
+----------[3] Bài toán tìm đường đi ngắn nhất
+-------------[1] Bài toán tìm đường đi ngắn nhất
+-------------[2] Tổng hợp
+-------[3] Một số yếu tố vẽ kỹ thuật
+----------[1] Hình biểu diễn của một hình, khối
+-------------[1] Lý thuyết về phép chiếu và hình biểu diễn song song
+-------------[2] Lý thuyết về phép chiếu vuông góc
+-------------[3] Lý thuyết về phép chiếu trục đo
+-------------[4] Tổng hợp
+----------[2] Bản vẽ kỹ thuật
+-------------[1] Lý thuyết cơ bản về bản vẽ kỹ thuật
+-------------[2] Phương pháp biểu diễn bản vẽ kỹ thuật
+-------------[3] Tổng hợp
+-[2] Lớp 12
+----[D] Giải tích/Thống kê 12
+-------[1] Ứng dụng đạo hàm để khảo sát hàm số
+----------[1] Sự đồng biến và nghịch biến của hàm số
+-------------[1] Xét tính đơn điệu của hàm số cho bởi công thức
+-------------[2] Xét tính đơn điệu dựa vào bảng biến thiên, đồ thị
+-------------[3] Tìm tham số $m$ để hàm số đơn điệu
+-------------[4] Ứng dụng tính đơn điệu để chứng minh bất đẳng thức, giải phương trình, bất phương trình, hệ phương trình
+-------------[5] Toán thực tế ứng dụng sự đồng biến nghịch biến
+----------[2] Cực trị của hàm số
+-------------[1] Tìm cực trị của hàm số cho bởi công thức
+-------------[2] Tìm cực trị dựa vào BBT, đồ thị
+-------------[3] Tìm $m$ để hàm số đạt cực trị tại một điểm $x_0$ cho trước
+-------------[4] Tìm $m$ để hàm số, đồ thị hàm số bậc ba có cực trị thỏa mãn điều kiện
+-------------[5] Tìm $m$ để hàm số, đồ thị hàm số trùng phương có cực trị thỏa mãn điều kiện
+-------------[6] Tìm $m$ để hàm số, đồ thị hàm số các hàm số khác có cực trị thỏa mãn điều kiện
+-------------[7] Toán thực tế ứng dụng cực trị của hàm số
+----------[3] Giá trị lớn nhất và giá trị nhỏ nhất của hàm số
+-------------[1] GTLN, GTNN trên đoạn $[a;b]$
+-------------[2] GTLN, GTNN trên khoảng
+-------------[3] Sử dụng các đánh giá, bất đẳng thức cổ điển
+-------------[4] Ứng dụng GTNN, GTLN trong bài toán phương trình, bất phương trình, hệ phương trình
+-------------[5] GTLN, GTNN hàm nhiều biến
+-------------[6] Toán thực tế ứng dụng GTLN, GTNN của hàm số
+----------[4] Đường tiệm cận
+-------------[1] Bài toán xác định các đường tiệm cận của hàm số (không chứa tham số) hoặc biết BBT, đồ thị
+-------------[2] Bài toán xác định các đường tiệm cận của hàm số có chứa tham số
+-------------[3] Bài toán liên quan đến đồ thị hàm số và các đường tiệm cận
+-------------[4] Toán thực tế ứng dụng tiệm cận
+----------[5] Khảo sát sự biến thiên và vẽ đồ thị hàm số
+-------------[1] Nhận dạng đồ thị
+-------------[2] Các phép biến đổi đồ thị
+-------------[3] Biện luận số giao điểm dựa vào đồ thị, bảng biến thiên
+-------------[4] Sự tương giao của hai đồ thị (liên quan đến tọa độ giao điểm)
+-------------[5] Đồ thị của hàm đạo hàm
+-------------[6] Phương trình tiếp tuyến của đồ thị hàm số
+-------------[7] Điểm đặc biệt của đồ thị hàm số
+-------------[8] Toán thực tế ứng dụng khảo sát hàm số
+-------[3] Các số đặc trưng đo mức độ phân tán cho mẫu số liệu ghép nhóm
+----------[1] Khoảng biến thiên, khoảng tứ phân vị của mẫu số liệu ghép nhóm
+-------------[1] Công thức lý thuyết
+-------------[2] Tìm khoảng biến thiên
+-------------[3] Tìm khoảng tứ phân vị
+-------------[4] Câu hỏi tổng hợp
+----------[2] Phương sai, độ lệch chuẩn của mẫu số liệu ghép nhóm
+-------------[1] Công thức lý thuyết
+-------------[2] Tìm phương sai, độ lệch chuẩn
+-------------[3] Câu hỏi tổng hợp
+-------[4] Nguyên hàm, tích phân và ứng dụng
+----------[1] Nguyên hàm
+-------------[1] Công thức lý thuyết
+-------------[2] Nguyên hàm cơ bản đa thức, phân thức
+-------------[3] Nguyên hàm cơ bản hàm lượng giác
+-------------[4] Nguyên hàm cơ bản hàm mũ, luỹ thừa
+-------------[5] Phương pháp đổi biến số cơ bản
+-------------[6] Toán thực tế áp dụng nguyên hàm
+----------[2] Tích phân
+-------------[1] Công thức lý thuyết
+-------------[2] Tích phân cơ bản đa thức, phân thức
+-------------[3] Tích phân cơ bản hàm lượng giác
+-------------[4] Tích phân cơ bản hàm mũ, luỹ thừa
+-------------[5] Phương pháp đổi biến số cơ bản
+-------------[6] Toán thực tế áp dụng nguyên hàm
+----------[3] Ứng dụng thực tế và hình học của tích phân
+-------------[1] Diện tích hình phẳng được giới hạn bởi các đồ thị
+-------------[2] Bài toán thực tế sử dụng diện tích hình phẳng
+-------------[3] Thể tích giới hạn bởi các đồ thị (tròn xoay)
+-------------[4] Thể tích tính theo mặt cắt $S(x)$
+-------------[5] Bài toán thực tế và ứng dụng thể tích tròn xoay $S(x)$
+-------[6] Một số yếu tố xác suất
+----------[1] Xác suất có điều kiện
+-------------[1] Công thức lý thuyết
+-------------[2] Tính xác suất có điều kiện bằng công thức
+-------------[3] Tính xác suất có điều kiện bằng sơ đồ cây
+-------------[4] Bài toán tổng hợp
+----------[2] Công thức xác suất toàn phần. Công thức Bayes
+-------------[1] Công thức lý thuyết
+-------------[2] Tính xác suất bằng công thức xác suất toàn phần
+-------------[3] Tính xác suất bằng công thức xác suất Bayes
+-------------[4] Bài toán tổng hợp
+----[H] Hình học
+-------[2] Tọa độ của véc-tơ trong không gian
+----------[1] Véc-tơ và các phép toán véc-tơ trong không gian (chưa toạ độ hoá)
+-------------[1] Công thức lý thuyết
+-------------[2] Tổng, hiệu, tích một số với véc-tơ
+-------------[3] Tích vô hướng và ứng dụng
+-------------[4] Toán thực tế áp dụng các phép toán véc-tơ
+----------[2] Toạ độ của véc-tơ và các công thức
+-------------[1] Công thức lý thuyết
+-------------[2] Tìm tọa độ điểm
+-------------[3] Tìm tọa độ véc-tơ
+-------------[4] Công thức toạ độ của tích vô hướng và ứng dụng
+-------------[5] Công thức toạ độ của tích có hướng và ứng dụng
+-------------[6] Toán thực tế áp dụng các phép toán toạ độ hoá véc-tơ
+-------[5] Phương trình mặt phẳng, đường thẳng, mặt cầu trong không gian $Oxyz$
+----------[1] Phương trình mặt phẳng
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Xác định véc-tơ pháp tuyến, cặp véc-tơ chỉ phương
+-------------[3] Viết phương trình tổng quát mặt phẳng
+-------------[4] Vị trí tương đối giữa hai mặt phẳng (song song, vuông góc)
+-------------[5] Khoảng cách điểm tới mặt phẳng
+-------------[6] Góc giữa hai mặt phẳng
+-------------[7] Toán thực tế áp dụng phương trình mặt phẳng
+----------[2] Phương trình đường thẳng trong không gian
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Xác định véc-tơ chỉ phương, cặp véc-tơ pháp tuyến
+-------------[3] Viết phương trình tổng quát, chính tắc, tham số đường thẳng
+-------------[4] Vị trí tương đối giữa hai đường thẳng
+-------------[5] Vị trí tương đối giữa đường thẳng và mặt phẳng
+-------------[6] Khoảng cách điểm tới đường thẳng
+-------------[7] Góc giữa hai đường thẳng, đường thẳng và mặt phẳng
+-------------[8] Toán thực tế áp dụng phương trình đường thẳng
+----------[3] Phương trình mặt cầu trong không gian
+-------------[1] Câu hỏi lý thuyết
+-------------[2] Xác định tâm, bán kính, đường kính mặt cầu
+-------------[3] Viết phương trình tổng quát mặt cầu
+-------------[4] Toán thực tế áp dụng phương trình mặt cầu
+-[6] Lớp 6
+----[D] Số học
+-------[1] Tập hợp các số tự nhiên
+----------[1] Tập hợp
+----------[2] Cách ghi số tự nhiên
+----------[3] Thứ tự trong tập hợp các số tự nhiên
+----------[4] Phép cộng và phép trừ số tự nhiên
+----------[5] Phép nhân và phép chia số tự nhiên
+----------[6] Lũy thừa với số mũ tự nhiên
+----------[7] Thứ tự thực hiện các phép tính
+-------[2] Tính chia hết trong tập hợp các số tự nhiên
+----------[1] Quan hệ chia hết và tính chất
+----------[2] Dấu hiệu chia hết
+----------[3] Số nguyên tố
+----------[4] Ước chung. Ước chung lớn nhất
+----------[5] Bội chung. Bội chung nhỏ nhất
+-------[3] Số nguyên
+----------[1] Tập hợp các số nguyên
+----------[2] Phép cộng và phép trừ số nguyên
+----------[3] Quy tắc dấu ngoặc
+----------[4] Phép nhân số nguyên
+----------[5] Phép chia hết. Ước và bội của một số nguyên
+-------[6] Phân số
+----------[1] Mở rộng phân số. Phân số bằng nhau
+----------[2] So sánh phân số. Hỗn số dương
+----------[3] Phép cộng và phép trừ phân số
+----------[4] Phép nhân và phép chia phân số
+----------[5] Hai bài toán về phân số
+-------[7] Số thập phân
+----------[1] Số thập phân
+----------[2] Tính toán với số thập phân
+----------[3] Làm tròn và ước lượng
+----------[4] Một số bài toán về tỉ số và tỉ số phần trăm
+----[H] Hình học
+-------[4] Một số hình phẳng trong thực tiễn
+----------[1] Hình tam giác đều. Hình vuông. Hình lục giác đều
+----------[2] Hình chữ nhật. Hình thoi. Hình bình hành. Hình thang cân
+----------[3] Chu vi và diện tích của một số tứ giác đã học
+-------[5] Tính đối xứng của hình phẳng trong tự nhiên
+----------[1] Hình có trục đối xứng
+----------[2] Hình có tâm đối xứng
+-------[8] Những hình học cơ bản
+----------[1] Điểm và đường thẳng
+----------[2] Điểm nằm giữa hai điểm. Tia
+----------[3] Đoạn thẳng. Độ dài đoạn thẳng
+----------[4] Trung điểm của đoạn thẳng
+----------[5] Góc
+----------[6] Số đo góc
+----[X] Xác suất - Thống kê
+-------[9] Dữ liệu và xác suất thực nghiệm
+----------[1] Dữ liệu và thu thập dữ liệu
+----------[2] Bảng thống kê và biểu đồ tranh
+----------[3] Biểu đồ cột
+----------[4] Biểu đồ cột kép
+----------[5] Kết quả có thể và sự kiện trong trò chơi, thí nghiệm
+----------[6] Xác suất thực nghiệm
+-[7] Lớp 7
+----[D] Đại số
+-------[1] Số hữu tỉ
+----------[1] Tập hợp các số hữu tỉ
+----------[2] Cộng, trừ, nhân, chia số hữu tỉ
+----------[3] Lũy thừa với số mũ tự nhiên của một số hữu tỉ
+----------[4] Thứ tự thực hiện các phép tính. Quy tắc chuyển vế
+-------[2] Số thực
+----------[1] Làm quen với số thập phân vô hạn tuần hoàn
+----------[2] Số vô tỉ. Căn bậc hai số học
+----------[3] Tập hợp các số thực
+-------[6] Tỉ lệ thức và đại lượng tỉ lệ
+----------[1] Tỉ lệ thức
+----------[2] Tính chất của dãy tỉ số bằng nhau
+----------[3] Đại lượng tỉ lệ thuận
+----------[4] Đại lượng tỉ lệ nghịch
+-------[7] Biểu thức đại số và đa thức một biến
+----------[1] Biểu thức đại số
+----------[2] Đa thức một biến
+----------[3] Phép cộng và phép trừ đa thức một biến
+----------[4] Phép nhân đa thức một biến
+----------[5] Phép chia đa thức một biến
+----[H] Hình học
+-------[3] Góc và đường thẳng song song
+----------[1] Góc ở vị trí đặc biệt. Tia phân giác của một góc
+----------[2] Hai đường thẳng song song và dấu hiệu nhận biết
+----------[3] Tiên đề Euclid. Tính chất của hai đường thẳng song song
+----------[4] Định lí và chứng minh định lí
+-------[4] Tam giác bằng nhau
+----------[1] Tổng các góc trong một tam giác
+----------[2] Hai tam giác bằng nhau. Trường hợp bằng nhau thứ nhất của tam giác
+----------[3] Trường hợp bằng nhau thứ hai và thứ ba của tam giác
+----------[4] Các trường hợp bằng nhau của tam giác vuông
+----------[5] Tam giác cân. Đường trung trực của đoạn thẳng
+-------[9] Quan hệ giữa các yếu tố trong một tam giác
+----------[1] Quan hệ giữa góc và cạnh đối diện trong một tam giác
+----------[2] Quan hệ giữa đường vuông góc và đường xiên
+----------[3] Quan hệ giữa ba cạnh của một tam giác
+----------[4] Sự đồng quy của ba đường trung tuyến, ba đường phân giác trong một tam giác
+----------[5] Sự đồng quy của ba đường trung trực, ba đường cao trong một tam giác
+-------[0] Một số hình khối trong thực tiễn
+----------[1] Hình hộp chữ nhật và hình lập phương
+----------[2] Hình lăng trụ đứng tam giác và hình lăng trụ đứng tứ giác
+----[X] Xác suất - Thống kê
+-------[5] Thu thập và biểu diễn dữ liệu
+----------[1] Thu thập và phân loại dữ liệu
+----------[2] Biểu đồ hình quạt tròn
+----------[3] Biểu đồ đoạn thẳng
+-------[8] Làm quen với biến cố và xác suất của biến cố
+----------[1] Làm quen với biến cố
+----------[2] Làm quen với xác suất của biến cố
+-[8] Lớp 8
+----[D] Đại số
+-------[1] Đa thức
+----------[1] Đơn thức
+----------[2] Đa thức
+----------[3] Phép cộng và phép trừ đa thức
+----------[4] Phép nhân đa thức
+----------[5] Phép chia đa thức cho đơn thức
+-------[2] Hằng đẳng thức đáng nhớ và ứng dụng
+----------[1] Hiệu hai bình phương. Bình phương của một tổng hay một hiệu
+----------[2] Lập phương của một tổng hay một hiệu
+----------[3] Tổng và hiệu hai lập phương
+----------[4] Phân tích đa thức thành nhân tử
+-------[6] Phân thức đại số
+----------[1] Phân thức đại số
+----------[2] Tính chất cơ bản của phân thức đại số
+----------[3] Phép cộng và phép trừ phân thức đại số
+----------[4] Phép nhân và phép chia phân thức đại số
+-------[7] Phương trình bậc nhất và hàm số bậc nhất
+----------[1] Phương trình bậc nhất một ẩn
+----------[2] Giải bài toán bằng cách lập phương trình
+----------[3] Khái niệm hàm số và đồ thị của hàm số
+----------[4] Hàm số bậc nhất và đồ thị của hàm số bậc nhất
+----------[5] Hệ số góc của đường thẳng
+----[H] Hình học
+-------[3] Tứ giác
+----------[1] Tứ giác
+----------[2] Hình thang cân
+----------[3] Hình bình hành
+----------[4] Hình chữ nhật
+----------[5] Hình thoi và hình vuông
+-------[4] Định lý Thalès
+----------[1] Định lý Thalès trong tam giác
+----------[2] Đường trung bình của tam giác
+----------[3] Tính chất đường phân giác của tam giác
+-------[9] Tam giác đồng dạng
+----------[1] Hai tam giác đồng dạng
+----------[2] Ba trường hợp đồng dạng của hai tam giác
+----------[3] Định lý Pythagore và ứng dụng
+----------[4] Các trường hợp đồng dạng của hai tam giác vuông
+----------[5] Hình đồng dạng
+----[X] Xác suất - Thống kê
+-------[5] Dữ liệu và biểu đồ
+----------[1] Thu thập và phân loại dữ liệu
+----------[2] Biểu diễn dữ liệu bằng bảng, biểu đồ
+----------[3] Phân tích số liệu thống kê dựa vào biểu đồ
+-------[8] Mở đầu về tính xác suất của biến cố
+----------[1] Kết quả có thể và kết quả thuận lợi
+----------[2] Cách tính xác suất của biến cố bằng tỉ số
+----------[3] Mối liên hệ giữa xác suất thực nghiệm với xác suất và ứng dụng
+-[9] Lớp 9
+----[D] Đại số
+-------[1] Phương trình và hệ hai phương trình bậc nhất hai ẩn
+----------[1] Khái niệm phương trình và hệ hai phương trình bậc nhất hai ẩn
+-------------[1] Nhận biết phương trình bậc nhất hai ẩn, đếm số phương trình bậc nhất 2 ẩn, nhận biết  xem xét một cặp số cho trước có là nghiệm của phương trình bậc nhất hai ẩn không.
+-------------[2] Tìm giá trị thích hợp của x hoặc y.
+-------------[3] Viết công thức nghiệm tổng quát của phương trình bậc nhất hai ẩn và biểu diễn tập nghiệm trên mặt phẳng tọa độ.
+-------------[4] Nhận biết hệ hai phương trình bậc nhất hai ẩn, đếm số hệ phương trình bậc nhất 2 ẩn, nhận biết xét xem một cặp số cho trước có là nghiệm của hệ phương trình bậc nhất hai ẩn không.
+-------------[5] Biểu diễn hình học của hệ hai phương trình bậc nhất hai ẩn
+-------------[6] Lập hệ hai phương trình bậc nhất hai ẩn từ bài toán thực tế.
+-------------[7] Tìm m để đường thẳng đi qua điểm có tọa độ cho trước, 3 đường thẳng đồng quy, 2 đường thẳng cùng đi qua 1 điểm.
+-------------[8] Tìm m để hai đường thẳng thỏa mãn điều kiện(song song, cắt nhau, trùng nhau)
+-------------[9] Tìm m để phương trình, hệ phương trình là phương trình hệ phương trình bậc nhất
+----------[2] Giải hệ hai phương trình bậc nhất hai ẩn
+-------------[1] Giải hệ phương trình bằng phương pháp thế
+-------------[2] Giải hệ phương trình bằng phương pháp cộng
+-------------[3] Giải hệ hai phương trình bằng cách đặt ẩn phụ.
+-------------[4] Tính giá trị của biểu thức có chứa nghiệm của hệ phương trình.
+-------------[5] Kiểm tra các bước giải hệ phương trình
+-------------[6] Tìm hệ số biết hệ phương trình có nghiệm cho trước 
+-------------[7] Tìm m để phương trình, hệ phương trình có nghiệm cho trước, có nghiệm thỏa mãn điều kiện
+-------------[8] Tìm hệ số cân bằng của bài toán cân bằng phương trình hóa học
+----------[3] Giải bài toán bằng cách lập hệ phương trình
+-------------[1] Giải bài toán bằng cách lập hệ phương trình dạng chuyển động cùng chiều
+-------------[2] Giải bài toán bằng cách lập hệ phương trình dạng chuyển động ngược chiều
+-------------[3] Giải bài toán bằng cách lập hệ phương trình dạng chuyển động cả đi lẫn về
+-------------[4] Giải bài toán bằng cách lập hệ phương trình dạng chuyển động trên sông
+-------------[5] Giải bài toán bằng cách lập hệ phương trình dạng năng suất
+-------------[6] Giải bài toán bằng cách lập hệ phương trình dạng làm chung làm riêng
+-------------[7] Giải bài toán bằng cách lập hệ phương trình dạng tìm số
+-------------[8] Giải bài toán bằng cách lập hệ phương trình có nội dung hình học
+-------------[9] Giải bài toán bằng cách lập hệ phương trình có nội dung hoá học, vật lý(bài toán nồng độ mol, nồng độ %,...)
+-------------[0] Giải bài toán bằng cách lập hệ phương trình dạng toán kinh tế, lợi nhuận tối ưu, lãi suất ngân hàng, mua hàng giảm giá, tăng giá,...
+-------------[X] Các dạng bài toán khác
+-------[2] Phương trình và bất phương trình bậc nhất một ẩn
+----------[1] Phương trình quy về phương trình bậc nhất một ẩn
+-------------[1] Nhận biết được phương trình tích có dạng $(ax+b)(cx+d)=0$
+-------------[2] Biến đổi được phương trình thành phương trình tích có dạng $(ax+b)(cx+d)=0$
+-------------[3] Giải được phương trình tích có dạng $(ax+b)(cx+d)=0$
+-------------[4] Tìm điều kiện xác định của phương trình chứa ẩn ở mẫu
+-------------[5] Tìm được mẫu chung của phương trình chứa ẩn ở mẫu 
+-------------[6] Giải được phương trình chứa ẩn ở mẫu quy về phương trình bậc nhất
+-------------[7] Câu hỏi lý thuyết
+----------[2] Bất đẳng thức và tính chất
+-------------[1] Nhận biết thứ tự trên tập hợp số thực
+-------------[2] Nhận biết bất đẳng thức
+-------------[3] Liên hệ bất đẳng thức giữa thứ tự và phép cộng.
+-------------[4] Liên hệ giữa thứ tự và phép nhân.
+-------------[7] Câu hỏi lý thuyết
+----------[3] Bất phương trình bậc nhất một ẩn
+-------------[1] Nhận biết được khái niệm bất phương trình bậc nhất một ẩn, nghiệm của bất phương trình bậc nhất một ẩn.
+-------------[2] Giải bất phương trình bậc nhất một ẩn.
+-------------[3] Lập và giải được bất phương trình từ bài toán thực tế.
+-------------[4] Tìm m để bất phương trình là bất phương trình bậc nhất 1 ẩn
+-------------[5] Câu hỏi lý thuyết
+-------[3] Căn bậc hai và căn bậc ba
+----------[1] Căn bậc hai và căn thức bậc hai
+-------------[1] Tính giá trị biểu thức, tìm căn bậc 2 cặn bậc 2 số học
+-------------[2] Tìm điều kiện xác định của biểu thức chứa căn thức bậc 2
+-------------[3] Rút gọn biểu thức
+-------------[4] Tìm $x$
+-------------[5] Câu hỏi lý thuyết
+----------[2] Khai căn bậc hai với phép nhân và phép chia
+-------------[1] Khai căn bậc hai và phép nhân
+-------------[2] Khai căn bậc hai và phép chia
+-------------[3] Rút gọn biểu thức
+-------------[4] Tìm $x$
+-------------[5] Câu hỏi lý thuyết
+----------[3] Biến đổi đơn giản và rút gọn biểu thức chứa căn thức bậc hai
+-------------[1] Đưa thừa số ra ngoài dấu căn
+-------------[2] Đưa thừa số vào trong dấu căn
+-------------[3] Khử mẫu của biểu thức lấy căn
+-------------[4] Câu hỏi phụ liên quan đến bài toán rút gọn
+-------------[5] Rút gọn biểu thức, trục căn thức ở mẫu
+-------------[6] Tìm $x$
+-------------[7] Câu hỏi lý thuyết
+-------------[8] Câu hỏi nhiều ý tổng hợp bài toán rút gọn
+-------------[9] Câu hỏi chưa phân dạng được
+-------------[0] Tìm biểu thức liên hợp
+----------[4] Căn bậc ba và căn thức bậc ba
+-------------[1] Tìm căn bậc ba(đẳng thức đúng, phát biểu đúng)
+-------------[2] Tính giá trị căn thức bậc ba
+-------------[3] Rút gọn biểu thức
+-------------[4] Câu hỏi phụ liên quan đến bài toán rút gọn biểu thức chứa căn bậc ba
+-------------[5] Câu hỏi lý thuyết
+-------[6] Hàm số $y=ax^2~(a \ne 0)$. Phương trình bậc hai một ẩn
+----------[1] Hàm số $y=ax^2~(a \ne 0)$
+-------------[1] Nhận biết được hàm số $y=ax^2(a\ne 0)$ . Xác định hệ số $a$  của hàm số từ công thức tổng quát.
+-------------[2] Xác định hệ số  $a$ để đồ thị của hàm số đi qua điểm $M(x_0;y_0)$  cho trước.
+-------------[3] Với mỗi hàm số đã cho tính giá trị của $y$  khi biết $x$ , của $x$  khi biết $y$ .
+-------------[4] Nhận dạng đồ thị, xác định điểm thuộc hay không thuộc ĐTHS dựa vào ĐTHS
+-------------[5] Bài toán liên quan đến tính đối xứng của ĐTHS
+-------------[6] Bài toán liên quan đến giao điểm ĐTHS bậc nhất $y=ax+b(a\ne 0)$ và ĐTHS bậc 2 $y=ax^2(a\ne 0)$
+-------------[7] Bài toán thực tế liên quan đến hàm số bậc 2 $y=ax^2(a\ne 0)$
+-------------[8] Bài toán thực tế liên quan đến hàm số bậc 2 $y=ax^2(a\ne 0)$ và hàm số bậc nhất $y=ax+b(a\ne 0)$ 
+-------------[9] Tìm m đề hàm số, đồ thị hàm số thỏa mãn điều kiện
+-------------[X] Câu hỏi lý thuyết
+----------[2] Phương trình bậc hai một ẩn
+-------------[1] Nhận biết dạng của phương trình bậc hai một ẩn. Xác định hệ số  $a$, $b$ , $c$ .
+-------------[2] Giải phương trình bậc hai một ẩn dạng đặc biệt (dạng khuyết $b$  , hoặc khuyết $c$ )
+-------------[3] Giải được phương trình bậc hai một ẩn (công thức nghiệm, công thức nghiệm thu gọn...)
+-------------[4] Vận dụng được phương trình bậc hai vào giải quyết bài toán thực tiễn
+-------------[5] Tìm m để phương trình bậc 2 một ẩn có số nghiệm theo yêu cầu
+-------------[6] Câu hỏi lý thuyết
+-------------[7] Phương trình chứa ẩn ở mẫu
+----------[3] Định lý Viète và ứng dụng
+-------------[1] Tìm điều kiện để phương trình bậc hai có nghiệm, sau đó áp dụng định lí Viète để tính tổng, tích hai nghiệm 
+-------------[2] Tìm nghiệm phương trình bậc 2, tìm điều kiện $m$ để phương trình có nghiệm $x=x_0$
+-------------[3] Tìm hai số khi biết tổng và tích của chúng
+-------------[4] Hệ thức giữa $x_1$ , $x_2$ không phụ thuộc vào tham số
+-------------[5] Bài toán có đẳng thức đối xứng $x_1$ , $x_2$
+-------------[6] Bài toán có đẳng thức bất đối xứng $x_1$ , $x_2$
+-------------[7] Vận dụng định lí Viète vào giải quyết bài toán thực tế.
+-------------[8] Câu hỏi lý thuyết
+----------[4] Giải bài toán bằng cách lập phương trình
+-------------[1] Giải bài toán bằng cách lập phương trình dạng chuyển động
+-------------[2] Giải bài toán bằng cách lập phương trình dạng năng suất
+-------------[3] Giải bài toán bằng cách lập phương trình dạng làm chung làm riêng
+-------------[4] Giải bài toán bằng cách lập phương trình dạng tìm số
+-------------[5] Giải bài toán bằng cách lập phương trình có nội dung hình học
+-------------[6] Giải bài toán bằng cách lập phương trình có nội dung vật lý, hoá học, sinh học
+-------------[7] Giải bài toán bằng cách lập hệ phương trình dạng toán kinh tế, lợi nhuận tối ưu, lãi suất ngân hàng, mua hàng giảm giá, tăng giá,...
+-------------[8] Câu hỏi thuộc dạng toán khác
+-------------[9] Câu hỏi lý thuyết
+-------[7] Câu hỏi đúng sai xuất hiện trong các kỳ thi
+----------[1] Câu hỏi dạng tổng hợp nhiều kiến thức
+-------------[1] Phương trình bậc 2, ý cuối biểu thức đại số chứa $x_1$, $x_2$ đối xứng
+-------------[2] Phương trình bậc 2, ý cuối biểu thức chứa $x_1$, $x_2$ chứa yếu tố hình học
+-------------[3] Phương trình bậc 2, ý cuối biểu thức đại số chứa $x_1$, $x_2$ không đối xứng
+-------------[4] Phương trình bậc 2, ý cuối là bài toán GTLN, GTNN
+-------------[5] Rút gọn biểu thức đại số, ý cuối tìm GTLN, GTNN
+-------------[6] Rút gọn biểu thức đại số, ý cuối tìm điểu kiện để biểu thức nguyên, chia hết,...
+-------------[7] Giải bài toán bằng cách lập hệ phương trình dạng toán kinh tế, lợi nhuận tối ưu, lãi suất ngân hàng, mua hàng giảm 
+----[H] Hình học
+-------[4] Hệ thức lượng trong tam giác vuông
+----------[1] Tỉ số lượng giác của góc nhọn
+-------------[1] Nhận biết tỉ số lượng giác của góc nhọn. Tính tỉ số lượng giác của góc nhọn trong tam giác vuông.
+-------------[2] Nhận biết 2 góc phụ nhau. Sử dụng tỉ số lượng giác của hai góc phụ nhau so sánh, sắp xếp các tỉ số lượng giác.
+-------------[3] Tính góc, cạnh trong tam giác vuông.
+-------------[4] Tính giá trị biểu thức liên quan đến tỉ số lượng giác(biết sin tính cos, tan,...)
+-------------[5] Bài toán thực tế
+-------------[6] Câu hỏi lý thuyết
+----------[2] Một số hệ thức giữa cạnh, góc trong tam giác vuông và ứng dụng
+-------------[1] Nhận biết hệ thức giữa cạnh và góc trong tam giác vuông. Áp dụng hệ thức tính độ dài cạnh trong tam giác vuông
+-------------[2] Giải tam giác vuông
+-------------[3] Tính độ dài cạnh, số đo góc trong tam giác không vuông.
+-------------[4] Chứng tỏ được hệ thức liên hệ giữa các cạnh.
+-------------[5] Bài toán thực tế tính chiều cao, khoảng cách.
+-------------[6] Câu hỏi lý thuyết
+-------[5] Đường tròn
+----------[1] Mở đầu về đường tròn
+-------------[1] Nhận biết một điểm thuộc hay không thuộc đường tròn.
+-------------[2] Nhận biết tâm đối xứng, trục đối xứng của đường tròn(và câu hỏi liên quan đến lý thuyết)
+-------------[3] Tìm bán kính đường tròn ngoại tiếp tam giác, hình chữ nhật, hình vuông,...
+-------------[4] Chứng minh các điểm cho trước cùng thuộc 1 đường tròn
+-------------[5] Bài toán tổng hợp
+-------------[6] Câu hỏi lý thuyết
+----------[2] Cung và dây của một đường tròn
+-------------[1] Nhận biết một điểm thuộc hay không thuộc đường tròn.
+-------------[2] Nhận biết tâm đối xứng, trục đối xứng của đường tròn(và câu hỏi liên quan đến lý thuyết)
+-------------[3] Tìm chu vi, bán kính, đường kính đường tròn, đường tròn ngoại tiếp tam giác, hình chữ nhật, hình vuông,...
+-------------[4] Chứng minh các điểm cho trước cùng thuộc 1 đường tròn
+-------------[5] Bài toán tổng hợp
+-------------[6] Câu hỏi lý thuyết
+-------------[7] Bài toán thực tế
+----------[3] Độ dài của cung tròn. Diện tích hình quạt tròn và hình vành khuyên
+-------------[1] Nhận biết cung, dây cung, đường kính và quan hệ giữa độ dài dây và đường kính 
+-------------[2] Nhận biết góc ở tâm, cung bị chắn và số đo cung
+-------------[3] So sánh độ dài dây và đường kính. 
+-------------[4] Tính độ dài đoạn thẳng (bán kính, dây, đường kính, khoảng cách từ tâm đến dây).
+-------------[5] Tính số đo góc ở tâm, góc nội tiếp, số đo cung bị chắn.
+-------------[6] Chứng minh hai cung bằng nhau
+-------------[7] Tính diện tích hình quạt tròn, hình vành khuyên
+-------------[8] Tính diện tích hình bất kỳ dựa vào diện tích hình quạt tròn, hình vành khuyên
+-------------[9] Bài toán thực tế liên quan đến độ dài cung
+-------------[0] Bài toán thực tế liên quan đến diện tích hình quạt tròn
+-------------[X] Câu hỏi lý thuyết
+----------[4] Vị trí tương đối của đường thẳng và đường tròn
+-------------[1] Nhận biết được vị trí tương đối của đường thẳng và đường tròn
+-------------[2] Xác định được khoảng cách từ tâm đến điểm tiếp xúc hoặc bán kính đường tròn khi biết các yếu tố liên quan.
+-------------[3] Xác định vị trí tâm đường tròn tiếp xúc với một đường thẳng cho trước
+-------------[4] Nhận biết tiếp tuyến của đường tròn
+-------------[5] Chứng minh một đường thẳng là tiếp tuyến của đường tròn
+-------------[6] Tính các độ dài, số đo góc, diện tích,... liên quan(bài toán tiếp tuyến)
+-------------[7] Chứng minh hai đoạn thẳng bằng nhau, hai đường thẳng song song, hai đường thẳng vuông góc(bài toán hai tiếp tuyến cắt nhau)
+-------------[8] Phương tích từ một điểm đến đường tròn.
+-------------[9] Chứng minh đẳng thức hình học
+-------------[0] Câu hỏi lý thuyết
+-------------[X] Bài toán thực tế
+----------[5] Vị trí tương đối của hai đường tròn
+-------------[1] Nhận biết vị trí tương đối của hai đường tròn.
+-------------[2] Các bài toán liên quan đến hai đường tròn cắt nhau.
+-------------[3] Các bài toán liên quan đến hai đường tròn không giao nhau.
+-------------[4] Các bài toán liên quan đến hai đường tròn tiếp xúc nhau
+-------------[5] Câu hỏi lý thuyết
+-------------[6] Bài toán thực tế
+-------[9] Đường tròn ngoại tiếp và đường tròn nội tiếp
+----------[1] Góc nội tiếp
+-------------[1] Nhận diện góc nội tiếp, góc ở tâm
+-------------[2] Tính số đo góc nội tiếp
+-------------[3] Tính số đo góc ở tâm thông qua góc nội tiếp và ngược lại
+-------------[4] Câu hỏi lý thuyết
+-------------[5] Bài toán thực tế
+----------[2] Đường tròn ngoại tiếp và đường tròn nội tiếp của một tam giác
+-------------[1] Nhận biết đường tròn ngoại tiếp tam giác
+-------------[2] Xác định, tính tâm và bán kính đường tròn ngoại tiếp tam giác
+-------------[3] Tính toán số đo góc liên quan đến đường tròn ngoại tiếp tam giác
+-------------[4] Tính toán số đo các cạnh, chu vi, diện tích các hình liên quan đến đường tròn ngoại tiếp
+-------------[5] Nhận biết đường tròn nội tiếp tam giác
+-------------[6] Xác định, tính tâm và bán kính đường tròn nội tiếp tam giác
+-------------[7] Tính toán số đo góc liên quan đến đường tròn nội tiếp tam giác
+-------------[8] Tính toán số đo các cạnh, chu vi, diện tích các hình liên quan đến đường tròn nội tiếp
+-------------[9] Câu hỏi lý thuyết
+-------------[0] Câu hỏi tổng hợp, nhiều ý, đúng sai, câu hỏi khó phân dạng
+-------------[X] Bài toán thực tế
+----------[3] Tứ giác nội tiếp
+-------------[1] Nhận biết được tứ giác nội tiếp đường tròn	
+-------------[2] Tính số đo góc dựa vào tứ giác nội tiếp, tổng hai góc đối bằng 180
+-------------[3] Tính bán kính, đường kính của đường tròn ngoại tiếp tứ giác
+-------------[4] Giải quyết 1 số bài toán thực tế, một số bài toán liên quan đến chủ đề khác
+-------------[5] Câu hỏi lý thuyết
+-------------[6] Tính độ dài cạnh, đoạn thẳng
+-------------[7] Bài toán cực trị
+-------------[8] Những câu hỏi khó phân dạng
+----------[4] Đa giác đều
+-------------[1] Nhận dạng được đa giác đều.
+-------------[2] Nhận biết được phép quay
+-------------[3] Nhận biết được những hình phẳng đều trong tự nhiên, nghệ thuật, kiến trúc, công nghệ chế tạo,... Nhận biết được vẻ đẹp của thế giới tự nhiên biểu hiện qua tính đều.
+-------------[4] Mô tả được các phép quay giữ nguyên hình đa giác đều
+-------------[5] Câu hỏi lý thuyết
+-------------[6] Giải quyết 1 số bài toán thức tế
+-------[0] Một số hình khối trong thực tiễn
+----------[1] Hình trụ và hình nón
+-------------[1] Nhận biết hình trụ: Đường cao, bán kính đáy, chiều cao, độ dài đường sinh, diện tích xung quanh, thể tích, đổi đơn vị.
+-------------[2] Nhận biết phép quay để tạo thành hình trụ. Tính các đại lượng liên quan thông qua công thức tính diện tích xung quanh, thể tích hình trụ.
+-------------[3] Bài toán thực tế về hình trụ
+-------------[4] Bài toán liên quan tỉ lệ thể tích hình trụ
+-------------[5] Nhận biết hình nón: đường cao, bán kính đáy, chiều cao, độ dài đường sinh, diện tích xung quanh, thể tích.
+-------------[6] Nhận biết phép quay để tạo thành hình nón. Tính các đại lượng liên quan thông qua công thức tính diện tích xung quanh và thể tích hình nón
+-------------[7] Bài toán thực tế về hình nón
+-------------[8] Bài toán liên quan tỉ lệ thể tích hình nón
+-------------[9] Câu hỏi lý thuyết
+----------[2] Hình cầu
+-------------[1] Nhận biết hình cầu, mặt cầu và các yếu tố liên quan: tâm, bán kính, đường kính, đường tròn lớn, diện tích mặt cầu, thể tích mặt cầu. Hình ảnh trong thực tế.
+-------------[2] Nhận biết phép quay để tạo thành hình cầu. Tính các đại lượng liên quan thông qua công thức tính diện tích xung quanh và thể tích hình cầu.
+-------------[3] Bài toán thực tế về hình cầu
+-------------[4] Bài toán liên quan tỉ lệ thể tích hình cầu
+-------------[5] Câu hỏi lý thuyết
+-------[7] Câu hỏi đúng sai xuất hiện trong các kỳ thi
+----------[1] Câu hỏi dạng tổng hợp nhiều kiến thức
+-------------[1] Hai tiếp tuyến cắt nhau, ý cuối tính diện tích hình phẳng
+-------------[2] Giải bài toán bằng cách lập phương trình dạng năng suất
+-------------[3] Giải bài toán bằng cách lập phương trình dạng làm chung làm riêng
+-------------[4] Hai đường tròn cắt nhau, ý cuối tính diện tích hình phẳng
+-------------[5] Giải bài toán bằng cách lập phương trình có nội dung hình học
+-------------[6] Giải bài toán bằng cách lập phương trình có nội dung vật lý, hoá học, sinh học
+-------------[7] Giải bài toán bằng cách lập hệ phương trình dạng toán kinh tế, lợi nhuận tối ưu, lãi suất ngân hàng, mua hàng giảm 
+----[X] Xác suất - Thống kê
+-------[7] Tần số và tần số tương đối
+----------[1] Bảng tần số và biểu đồ tần số
+-------------[1] Tìm số giá trị khác nhau và tần số tương ứng. 
+-------------[2] Lập bảng tần số và giải thích được ý nghĩa, vai trò của tần số trong thực tiễn.
+-------------[3] Đọc biểu đồ và phân tích số liệu dựa vào biểu đồ.
+-------------[4] Câu hỏi lý thuyết
+----------[2] Bảng tần số tương đối và biểu đồ tần số tương đối
+-------------[1] Tìm số giá trị khác nhau và tần số tương đối tương ứng
+-------------[2] Lập bảng tần số tương đối và giải thích được ý nghĩa vai trò của tần số tương đối trong thực tiễn.
+-------------[3] Đọc biểu đồ và phân tích số liệu dựa vào biểu đồ.
+-------------[4] Câu hỏi lý thuyết
+----------[3] Bảng tần số, tần số tương đối ghép nhóm và biểu đồ
+-------------[1] Nêu các nhóm số liệu, chỉ ra các giá trị nhóm và tần số của nhóm đó.
+-------------[2] Đọc, giải thích bảng thống kê và lập bảng tần số ghép nhóm, bảng tần số tương đối ghép nhóm
+-------------[3] Đọc biểu đồ tần số tương đối ghép nhóm và phân tích số liệu dựa vào biểu đồ.
+-------------[4] Câu hỏi lý thuyết
+-------[8] Xác suất của biến cố trong một số mô hình xác suất đơn giản
+----------[1] Phép thử ngẫu nhiên và không gian mẫu
+-------------[1] Mô tả không gian mẫu của phép thử và xác định số phần tử của không gian mẫu
+-------------[2] Xác kết quả thuận lợi cho một biến cố liên quan đến phép thử 
+-------------[3] Câu hỏi lý thuyết
+----------[2] Xác suất của biến cố liên quan tới phép thử
+-------------[1] Kết quả của các phép thử đồng khả năng
+-------------[2] Tính xác suất của biến cố liên quan đến phép thử
+-------------[3] Câu hỏi lý thuyết
+-------[9] Bài toán xác suất tổng hợp
+----------[1] Bài toán tính xác suất
+-------------[1] Tính xác suất dựa trên bảng, biểu đồ tần số, tần số tương đối
+-------------[2] Tính xác suất dựa trên bảng, biểu đồ tần số tương đối ghép nhóm
+-------------[3] Câu hỏi lý thuyết

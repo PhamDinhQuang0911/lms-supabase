@@ -1,0 +1,5288 @@
+{
+  "name": "workflow-Quản lý Trung tâm",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "senmessage-sdt-uid-hangloat",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -768,
+        -480
+      ],
+      "id": "676b7a98-12a8-40b8-b323-9a0936383ac0",
+      "name": "Webhook",
+      "webhookId": "fa88fd0f-deb6-474a-9e9f-888e9e22f867"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -480
+      ],
+      "id": "2dd23856-27c5-488e-8fb5-4cf2465d337d",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * (210 - 120 + 1)) + 120 }}\n"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1088,
+        -672
+      ],
+      "id": "302ce961-d49a-4a0b-b990-2ea4f360b3ab",
+      "name": "Wait",
+      "webhookId": "c7b6d8fc-8a28-4268-b763-92832cb18685"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "50cc36ec-dca4-4c4a-af70-461517452e32",
+              "leftValue": "={{ $json.recipientType }}",
+              "rightValue": "uid",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -144,
+        -480
+      ],
+      "id": "2e9c68fc-5d8d-431f-bead-974fa6fbb9c8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        288,
+        -672
+      ],
+      "id": "1f3288c9-bfd6-4134-8433-ff0c1c251592",
+      "name": "Lặp UID"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        304,
+        -368
+      ],
+      "id": "5fae84ac-c0a8-4a22-a7ec-f23ad043ce62",
+      "name": "Lặp Số điện thoại"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "senmessage-sdt-uid-canhan",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -752,
+        160
+      ],
+      "id": "a536d7e6-af8e-4d59-9adb-76236f9a8f93",
+      "name": "Webhook1",
+      "webhookId": "fa88fd0f-deb6-474a-9e9f-888e9e22f867"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "50cc36ec-dca4-4c4a-af70-461517452e32",
+              "leftValue": "={{ $json.body.recipientType }}",
+              "rightValue": "uid",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -336,
+        160
+      ],
+      "id": "ddf538fe-5600-4bbb-82dc-528b66e2439a",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        48,
+        -32
+      ],
+      "id": "a4527da4-d1cb-4541-a1da-8a9f0556e8a1",
+      "name": "Lặp UID1"
+    },
+    {
+      "parameters": {
+        "content": "GỬI NHẬN XÉT CÁ NHÂN",
+        "height": 608,
+        "width": 1296
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -784,
+        -112
+      ],
+      "typeVersion": 1,
+      "id": "088a1980-1bc6-414e-bd16-011839ffad7e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "GỬI NHẬN XÉT HÀNG LOẠT",
+        "height": 512,
+        "width": 1888
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -784,
+        -672
+      ],
+      "typeVersion": 1,
+      "id": "ca82bfbf-0a0b-4f40-a59d-66175565a81e",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "GỬI UID",
+        "height": 240,
+        "width": 448,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        32,
+        -80
+      ],
+      "typeVersion": 1,
+      "id": "e95c4855-89a7-4aed-847c-d492fc3d8c57",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * (210 - 120 + 1)) + 120 }}\n"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        -368
+      ],
+      "id": "1beeb9d0-309b-499c-a6c0-abc634094487",
+      "name": "Wait1",
+      "webhookId": "c7b6d8fc-8a28-4268-b763-92832cb18685"
+    },
+    {
+      "parameters": {
+        "content": "# GỬI TIN NHẮN NHẬN XÉT\nGV COPY PHẦN ĐỊA CHỈ WEBHOOK RỒI DÁN VÀO PHẦN MỀM QUẢN LÝ TRUNG TÂM",
+        "height": 1312,
+        "width": 2512,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1376,
+        -752
+      ],
+      "typeVersion": 1,
+      "id": "f5af4a75-5fe0-4ace-b0e4-4d54fadf5b7e",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        976
+      ],
+      "id": "4c5ca705-0008-4473-9323-5f7e26777078",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -448,
+        784
+      ],
+      "id": "dd15628b-1be9-41ff-95e7-ddc017b10742",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sendfee-layuid",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1328,
+        976
+      ],
+      "id": "85110e72-9f58-432e-a580-77b774ae79b8",
+      "name": "Gửi học phí cá nhân",
+      "webhookId": "af520bd9-a98c-4929-b876-cf38630aa426"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "SEND-GROUP",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1312,
+        1264
+      ],
+      "id": "366696e9-8b5b-4267-9745-e831470f2849",
+      "name": "Gửi file PDF nhóm",
+      "webhookId": "13910469-0cec-441a-bcc5-7045a77b43a0"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "body.file_content_base64",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1088,
+        1264
+      ],
+      "id": "66d59bf2-23f7-4cd7-96f2-4330dcd2dde5",
+      "name": "Chuyển Base 64 sang Binary"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * (210 - 120 + 1)) + 120 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        160,
+        1152
+      ],
+      "id": "2733a6f7-e4b1-46f5-b168-71f2ab34b284",
+      "name": "Wait2",
+      "webhookId": "94d19c00-3553-4168-a643-ea0ad6bd4605"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "27ee7ec9-a7a7-4d9f-ad19-8dc5d4d57d60",
+              "leftValue": "={{ $json.recipientType }}",
+              "rightValue": "phone",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        976
+      ],
+      "id": "dee02e55-28a0-476e-ae90-c7981e7d987b",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * (150 - 110 + 1)) + 110 }}\n"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        768
+      ],
+      "id": "19fa6421-3058-4791-bcaf-7044c8c1344a",
+      "name": "Wait3",
+      "webhookId": "8e0822bd-2343-48b5-b3b9-4d4df340989b"
+    },
+    {
+      "parameters": {
+        "content": "# GỬI HỌC PHÍ UID",
+        "height": 256,
+        "width": 864
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -512,
+        1072
+      ],
+      "typeVersion": 1,
+      "id": "b54af169-a3fe-429f-be49-7dfa73b1381c",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "# GỬI HỌC PHÍ SỐ ĐIỆN THOẠI",
+        "height": 256,
+        "width": 864,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -512,
+        720
+      ],
+      "typeVersion": 1,
+      "id": "9c004f10-3529-488a-b39b-afe9d3a81380",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## GỬI FILE PDF PHIẾU THU VÀO GROUP",
+        "height": 288,
+        "width": 720
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1360,
+        1136
+      ],
+      "typeVersion": 1,
+      "id": "238d651c-5cc3-4def-bd08-47d94cf4f099",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "# GỬI HỌC PHÍ CÁ NHÂN",
+        "height": 784,
+        "width": 1776,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1376,
+        656
+      ],
+      "typeVersion": 1,
+      "id": "cb37cdcc-cad7-492a-88ef-1027a0269aab",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "checkpayment-sdt-uid",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2208,
+        1152
+      ],
+      "id": "4472f451-d8fb-4382-82be-3397342626f5",
+      "name": "Webhook2",
+      "webhookId": "0f2d0be5-0761-4f6a-97fc-e7b11cf5b482"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f3c0223c-e42d-470e-bf80-0b5e8dce5d4f",
+              "leftValue": "={{ $json.body.recipientType }}",
+              "rightValue": "uid",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1968,
+        1152
+      ],
+      "id": "93db53eb-60b2-4391-8ba3-23800843e4bd",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "content": "## XÁC NHẬN THANH TOÁN TỰ ĐỘNG",
+        "height": 464,
+        "width": 880,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2272,
+        960
+      ],
+      "typeVersion": 1,
+      "id": "c80e790a-9763-492a-bf39-425dad3b0098",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.alertType }}",
+                    "rightValue": "late",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2bad1331-1f9e-4059-aa78-4e18b21dcf87"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Đi muộn"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7ad420b1-23a6-4a12-87aa-57ef394d5648",
+                    "leftValue": "={{ $json.alertType }}",
+                    "rightValue": "attendance_absent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Vắng mặt"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e0bfaea2-0222-4cd2-8d7f-d416e0a3c12f",
+                    "leftValue": "={{ $json.alertType }}",
+                    "rightValue": "final-absent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Nghỉ không phép"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1526b51d-3b14-49bd-a54e-53ea7e0cc3ab",
+                    "leftValue": "={{ $json.alertType }}",
+                    "rightValue": "class_ended",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Kết thúc lớp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e857b298-3220-4c9c-9003-0be6859d109d",
+                    "leftValue": "={{ $json.alertType }}",
+                    "rightValue": "attendance_present",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Đi học"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b5fef12a-0a45-47dc-9245-e7584e52c012",
+                    "leftValue": "={{ $json.alertType }}",
+                    "rightValue": "homework_assign",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi bài tập về nhà"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7a458afc-69f9-497b-b180-37766cfb268a",
+                    "leftValue": "={{ $json.alertType }}",
+                    "rightValue": "homework_check",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Check BTVN"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bfcb3520-27d9-4c40-adc1-228678c259f6",
+                    "leftValue": "={{ $json.alertType }}",
+                    "rightValue": "test_assign",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "gửi bài kiểm tra"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "80529100-4612-4ea6-97f0-077287edb5a7",
+                    "leftValue": "={{ $json.alertType }}",
+                    "rightValue": "homework_summary_individual",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi tổng kết BTVN cá nhâ"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "97499b93-a53c-47c8-8bee-a5e97a09c101",
+                    "leftValue": "={{ $json.alertType }}",
+                    "rightValue": "=homework_summary_group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi tổng kết BTVN nhóm"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        2016,
+        -528
+      ],
+      "id": "986da6e2-cf0b-472c-83b5-d667af89f9f4",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3360,
+        -800
+      ],
+      "id": "7b74c918-d65e-4776-bf11-457d5d687416",
+      "name": "Loop Over Items2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3568,
+        -336
+      ],
+      "id": "e2573c67-f1ed-4e34-865a-af25cd49ccdf",
+      "name": "Loop Over Items3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3440,
+        128
+      ],
+      "id": "786074e8-5775-4593-9d70-49ad88d3d15d",
+      "name": "Loop Over Items4"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 15 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4288,
+        144
+      ],
+      "id": "7df8de9e-9f54-4d95-9c0a-5ecdf253dfcf",
+      "name": "Wait4",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "883bfe65-12a6-41fb-8a74-4c6e83a9bbc1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi Group"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "72cc4d48-5da4-4552-95bc-808ddb213d37",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "=uid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi UID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "68a5fef6-29e9-4ff4-bc99-9a5e756a8e1f",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "phone",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi SĐT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3328,
+        -2144
+      ],
+      "id": "88cd95e8-ded3-4a24-9575-16f028ff8c01",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "883bfe65-12a6-41fb-8a74-4c6e83a9bbc1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi Group"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "72cc4d48-5da4-4552-95bc-808ddb213d37",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "=uid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi UID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "68a5fef6-29e9-4ff4-bc99-9a5e756a8e1f",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "phone",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi SĐT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3264,
+        -1312
+      ],
+      "id": "40080eb5-a583-4a30-93b7-c17d98173879",
+      "name": "Switch2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3488,
+        -1008
+      ],
+      "id": "cd1b17ec-1787-4491-b99c-64c734f62d4f",
+      "name": "Loop Over Items5"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4272,
+        -992
+      ],
+      "id": "4ebfaa66-3eae-4037-9617-e80e5c4cf89d",
+      "name": "Wait5",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3440,
+        -128
+      ],
+      "id": "b2de6bc9-3b7b-4f60-81d3-70cdb09f381f",
+      "name": "Loop Over Items7"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 20 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4528,
+        -128
+      ],
+      "id": "e71ea405-5a6e-48b4-a160-e2bcca7ced4f",
+      "name": "Wait7",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3440,
+        416
+      ],
+      "id": "69147637-1a45-40aa-a4da-18917e86f80b",
+      "name": "Loop Over Items8"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 20 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4240,
+        432
+      ],
+      "id": "779d8273-9b6d-4115-a006-27cc87490ac0",
+      "name": "Wait8",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3552,
+        -1824
+      ],
+      "id": "966da270-7b1b-44c6-8019-4e3295e321d8",
+      "name": "Loop Over Items9"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4160,
+        -1840
+      ],
+      "id": "9cd270d0-9b4f-4b82-86fc-79d2ce5b017e",
+      "name": "Wait9",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "883bfe65-12a6-41fb-8a74-4c6e83a9bbc1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi Group"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "72cc4d48-5da4-4552-95bc-808ddb213d37",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "=uid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi UID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "68a5fef6-29e9-4ff4-bc99-9a5e756a8e1f",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "phone",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi SĐT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3216,
+        -352
+      ],
+      "id": "4e78c948-7b2c-4e08-ac74-2ea41811d5fd",
+      "name": "Switch3"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Split Out2').item.json.recipientType }}",
+                    "rightValue": "group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "883bfe65-12a6-41fb-8a74-4c6e83a9bbc1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi Group"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "72cc4d48-5da4-4552-95bc-808ddb213d37",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "=uid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi UID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "68a5fef6-29e9-4ff4-bc99-9a5e756a8e1f",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "phone",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi SĐT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3216,
+        112
+      ],
+      "id": "7e863b0a-da8f-434c-8792-a45dec9ee707",
+      "name": "Switch4"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3472,
+        800
+      ],
+      "id": "4eee5401-33a3-499d-8dea-62c486bd0d75",
+      "name": "Loop Over Items10"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4288,
+        816
+      ],
+      "id": "f5b396e5-ced3-40ae-a77d-ba188676a679",
+      "name": "Wait10",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3440,
+        1088
+      ],
+      "id": "595f8501-d36d-4dab-9430-4e7327123f80",
+      "name": "Loop Over Items11"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4240,
+        1072
+      ],
+      "id": "5e58482e-a03b-4e3f-a93f-a6da98f06c2c",
+      "name": "Wait11",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3664,
+        1456
+      ],
+      "id": "94d0f5a0-b845-431f-add9-7c04f5979dc8",
+      "name": "Loop Over Items12"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4320,
+        1456
+      ],
+      "id": "ab2089d4-137d-458b-a3d2-ab1ae61bd885",
+      "name": "Wait12",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "883bfe65-12a6-41fb-8a74-4c6e83a9bbc1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi Group"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "72cc4d48-5da4-4552-95bc-808ddb213d37",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "=uid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi UID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "68a5fef6-29e9-4ff4-bc99-9a5e756a8e1f",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "phone",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi SĐT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3216,
+        1328
+      ],
+      "id": "755d6aff-7c5e-4bd7-9afa-ade7bb4a5858",
+      "name": "Switch6"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3664,
+        1696
+      ],
+      "id": "5569752b-cdce-4fd9-b283-bc0a618917a7",
+      "name": "Loop Over Items13"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4400,
+        1680
+      ],
+      "id": "4c46d451-0fb6-4733-913b-32fd6602fca8",
+      "name": "Wait13",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3664,
+        1920
+      ],
+      "id": "06f5f9d7-012d-4996-9535-82c594212ad6",
+      "name": "Loop Over Items14"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4368,
+        1920
+      ],
+      "id": "9ae7ed8b-d2bf-4635-a2d3-d68c610693b4",
+      "name": "Wait14",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3648,
+        2144
+      ],
+      "id": "d73cbb84-e3d1-457d-9f1b-5e4247f0ee41",
+      "name": "Loop Over Items15"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4368,
+        2128
+      ],
+      "id": "a5224f13-67b3-41cf-9ee8-d35c684e3a22",
+      "name": "Wait15",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "883bfe65-12a6-41fb-8a74-4c6e83a9bbc1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi Group"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "72cc4d48-5da4-4552-95bc-808ddb213d37",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "=uid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi UID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "68a5fef6-29e9-4ff4-bc99-9a5e756a8e1f",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "phone",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi SĐT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3216,
+        688
+      ],
+      "id": "491eed02-0e80-4628-b112-5f2707f5929b",
+      "name": "GỬI BTVN"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "883bfe65-12a6-41fb-8a74-4c6e83a9bbc1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi Group"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "72cc4d48-5da4-4552-95bc-808ddb213d37",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "=uid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi UID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "68a5fef6-29e9-4ff4-bc99-9a5e756a8e1f",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "phone",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi SĐT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3296,
+        1856
+      ],
+      "id": "cfa6918f-329b-43ac-877f-e8451cede196",
+      "name": "GỬI BÀI KIỂM TRA"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2608,
+        3120
+      ],
+      "id": "d672040f-e6ae-4244-a32c-01d54ccc3601",
+      "name": "Loop Over Items17"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3648,
+        2384
+      ],
+      "id": "710da996-1952-4599-b727-5424f9244954",
+      "name": "Loop Over Items18"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4384,
+        2384
+      ],
+      "id": "27dcc870-486f-46aa-9b8b-71458016c3e9",
+      "name": "Wait17",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3680,
+        -1296
+      ],
+      "id": "ef01a5cc-46dc-4372-9011-c68d66722b92",
+      "name": "Loop Over Items19"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 15 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4400,
+        -1280
+      ],
+      "id": "8b915709-44f0-4422-96b0-c45c1f3d8944",
+      "name": "Wait18",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "883bfe65-12a6-41fb-8a74-4c6e83a9bbc1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi Group"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "72cc4d48-5da4-4552-95bc-808ddb213d37",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "=uid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi UID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "68a5fef6-29e9-4ff4-bc99-9a5e756a8e1f",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "phone",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi SĐT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        2704,
+        -528
+      ],
+      "id": "89a0aa26-87be-4aac-8631-c634f97c93a1",
+      "name": "Switch5"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "group",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "883bfe65-12a6-41fb-8a74-4c6e83a9bbc1"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi Group"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "72cc4d48-5da4-4552-95bc-808ddb213d37",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "=uid",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi UID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "68a5fef6-29e9-4ff4-bc99-9a5e756a8e1f",
+                    "leftValue": "={{ $json.recipientType }}",
+                    "rightValue": "phone",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Gửi SĐT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3360,
+        2368
+      ],
+      "id": "1a957df4-9042-47c3-a0b8-85bef551e2cb",
+      "name": "GỬI BÀI KIỂM TRA1"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3632,
+        2624
+      ],
+      "id": "ce8528af-18d9-4dec-b8f0-edc333dea4b7",
+      "name": "Loop Over Items20"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4400,
+        2608
+      ],
+      "id": "2bfdcab7-036f-4e40-be85-78c56b5b8d9b",
+      "name": "Wait19",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "Diem-Danh",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1568,
+        -400
+      ],
+      "id": "8c4b1c21-040d-4eeb-b276-62ce34ec0184",
+      "name": "Webhook3",
+      "webhookId": "51815077-4885-449b-9fbb-ec142c40fc3d"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        -400
+      ],
+      "id": "944297e0-7dba-4c5b-9c67-eed54ef545cb",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3552,
+        -2032
+      ],
+      "id": "e8a289bc-2826-4a68-8b86-7b0b930721f2",
+      "name": "Loop Over Items6"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4032,
+        -2032
+      ],
+      "id": "03cda80a-4fc1-4674-8322-9004a3c98c46",
+      "name": "Wait6",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4176,
+        -784
+      ],
+      "id": "aaf9fb39-5f20-4b07-a981-b883a82e4c3e",
+      "name": "Wait16",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 12) + 20 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4208,
+        -352
+      ],
+      "id": "ba5bedb9-dbcc-4aed-98f1-b805901ed2c5",
+      "name": "Wait20",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "content": "GỬI ZALO VẰNG MẶT",
+        "height": 608,
+        "width": 1056,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3248,
+        -2224
+      ],
+      "typeVersion": 1,
+      "id": "a1704e49-c4dd-47d9-a611-b0df8ca33316",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "GỬI ZALO VẮNG MẶT",
+        "height": 688,
+        "width": 1456
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3248,
+        -1488
+      ],
+      "typeVersion": 1,
+      "id": "9385c2f1-56c7-449c-920c-97ca71844279",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "# KHỐI ĐIỂM DANH, GIAO BTVN",
+        "height": 5760,
+        "width": 3264,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1440,
+        -2368
+      ],
+      "typeVersion": 1,
+      "id": "723b273f-5f24-4bea-b06d-f67fbaf1c478",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "content": "# ĐĂNG NHẬP ZALO\n## Thầy cô lưu ý làm theo video hướng dẫn. \n## Sau khi đăng nhập zalo xong tuyệt đối không sử dụng tài khoản zalo đó để đăng nhập  ZALO WEB nếu đăng nhập ZALO WEB trên thiết bị khác sẽ lỗi cần quay lại để quét mã lại",
+        "height": 528,
+        "width": 928,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2336,
+        -672
+      ],
+      "typeVersion": 1,
+      "id": "038c28b7-2005-4390-b988-e3c213bf0b57",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.body.recipient }}",
+        "message": "={{ $('If3').item.json.body.message }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        -1552,
+        1056
+      ],
+      "id": "79999d68-6011-4c58-85a8-5ef6b5c9dd48",
+      "name": "Zalo Send Message3",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.body.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        -1760,
+        1248
+      ],
+      "id": "6deb8803-6ce7-49ac-a6a4-b58384b5ec34",
+      "name": "Tìm người dùng theo số điện thoại2",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "={{ $('If3').item.json.body.message }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        -1536,
+        1232
+      ],
+      "id": "0d561172-73c4-4e51-898c-6743e73ed253",
+      "name": "Zalo Send Message4",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 1,
+        "threadId": "={{ $('Gửi file PDF nhóm').item.json.body.recipient }}",
+        "message": "={{ $('Gửi file PDF nhóm').item.json.body.message }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "binary",
+        "attachmentMode": "file",
+        "binaryPropertyName": "data",
+        "fileName": "={{ $('Gửi file PDF nhóm').item.json.body.file_name }}",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        1264
+      ],
+      "id": "4a57befa-0a84-4f2a-a4bc-e57757ba6aa6",
+      "name": "Zalo Send Message",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO HỌC PHÍ TỪ HỆ THỐNG QUẢN LÝ TRUNG TÂM]   \nKính gửi phụ huynh em {{ $json.studentName }}, Lớp:\"{{ $json.className }}\". \nTrung tâm xin thông báo học phí đợt \"{{ $json.detailedItems[0].name }}\" cụ thể như sau:  \n{{ $json.feeContentString }} \nLưu ý giữ nguyên nội dung chuyển khoản để được ghi nhận tự động. Xin cảm ơn.",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "urls",
+        "attachmentMode": "image",
+        "attachmentUrls": "={{ $json.qrCodeUrl }}",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        1184
+      ],
+      "id": "8682ceb5-a8d8-4a38-bd74-bbb9461df329",
+      "name": "Zalo Send Message5",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        800
+      ],
+      "id": "3bd25409-a773-40db-98a3-2f5585e7642c",
+      "name": "Tìm người dùng theo số điện thoại12",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "={{ $('Loop Over Items1').item.json.feeContentString }} \nLưu ý giữ nguyên nội dung chuyển khoản để được ghi nhận tự động. Xin cảm ơn.",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "urls",
+        "attachmentMode": "image",
+        "attachmentUrls": "={{ $('Loop Over Items1').item.json.qrCodeUrl }}",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        400,
+        784
+      ],
+      "id": "f3cc3c8f-53ab-451c-a2b3-5a404490b6c9",
+      "name": "Zalo Send Message6",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO ĐIỂM DANH TỰ ĐỘNG]  Trung tâm xin thông báo:   \nĐã ghi nhận em {{ $json.studentName }}  CÓ MẶT trong buổi học {{ $json.sessionDate }} lúc {{ $json.checkinTime }}.  Trân trọng !!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3744,
+        144
+      ],
+      "id": "4def2340-a744-4aee-884b-38e18fa4cd2f",
+      "name": "Zalo Send Message1",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO ĐIỂM DANH TỰ ĐỘNG]\nTrung tâm xin thông báo: \nĐã ghi nhận em {{ $json.studentName }}  ĐANG VẮNG MẶT trong buổi học {{ $json.sessionDate }}. Phụ huynh vui lòng nhắc con vào lớp. Trân trọng !!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        4048,
+        -1280
+      ],
+      "id": "3fd1a69c-565e-4974-8f8f-f5f5067883bf",
+      "name": "Zalo Send Message2",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 1,
+        "threadId": "={{ $json.recipient }}",
+        "message": "={{ $json.groupMessageContent }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3616,
+        -1456
+      ],
+      "id": "c17f668c-132d-454b-adf5-aa32c592faae",
+      "name": "Zalo Send Message7",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3760,
+        -992
+      ],
+      "id": "83bf35f5-a38b-46ac-8219-bc15414bb548",
+      "name": "Tìm người dùng theo số điện thoại",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "=[THÔNG BÁO ĐIỂM DANH TỰ ĐỘNG]\nTrung tâm xin thông báo: \nĐã ghi nhận em {{ $('Loop Over Items5').item.json.studentName }}  ĐANG VẮNG MẶT trong buổi học {{ $('Loop Over Items5').item.json.sessionDate }}. Phụ huynh vui lòng nhắc con vào lớp. Trân trọng !!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        4032,
+        -992
+      ],
+      "id": "c0f00ded-f3b6-4756-8914-eccecfdd253b",
+      "name": "Zalo Send Message8",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3696,
+        432
+      ],
+      "id": "6ed627a1-7612-45a4-887f-73bbc515413c",
+      "name": "Tìm người dùng theo số điện thoại1",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "=[THÔNG BÁO ĐIỂM DANH TỰ ĐỘNG]  \nTrung tâm xin thông báo:  \nĐã ghi nhận em {{ $('Loop Over Items8').item.json.studentName }}  CÓ MẶT trong buổi học {{ $('Loop Over Items8').item.json.sessionDate }} lúc {{ $('Loop Over Items8').item.json.checkinTime }}.  Trân trọng !!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3936,
+        432
+      ],
+      "id": "fc6f0521-01dd-44eb-bf6e-4f5e0da05e53",
+      "name": "Zalo Send Message9",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 1,
+        "threadId": "={{ $json.recipient }}",
+        "message": "={{ $json.groupMessageContent }} ",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3552,
+        -2192
+      ],
+      "id": "d88ebae5-6b9f-4faa-ae25-2b61218a9a64",
+      "name": "Zalo Send Message10",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO ĐIỂM DANH TỰ ĐỘNG]\nTrung tâm xin thông báo em {{ $json.studentName }} được ghi nhận là ĐÃ VÀO LỚP. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3776,
+        -2016
+      ],
+      "id": "1b487b8e-a153-45a7-8498-65fcc219cb99",
+      "name": "Zalo Send Message11",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3744,
+        -1808
+      ],
+      "id": "ce598e48-aa65-4af5-9b66-ad533483ed96",
+      "name": "Tìm người dùng theo số điện thoại3",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "=[THÔNG BÁO ĐIỂM DANH TỰ ĐỘNG]\nTrung tâm xin thông báo em {{ $json.studentName }} được ghi nhận là ĐÃ VÀO LỚP. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3952,
+        -1792
+      ],
+      "id": "f0f93520-9a72-49a6-9a3a-42d5fd99c91b",
+      "name": "Zalo Send Message12",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 1,
+        "threadId": "={{ $json.recipient }}",
+        "message": "={{ $json.groupMessageContent }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        2960,
+        -160
+      ],
+      "id": "aaaa3fc4-9e25-4eb6-8126-f2df0a4bcf78",
+      "name": "Zalo Send Message13",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO ĐIỂM DANH TỰ ĐỘNG] \nTrung tâm xin thông báo:  \nBuổi học {{ $json.sessionDate }} thuộc lớp \"{{ $json.className }}\" đã kết thúc lúc {{ $json.endTime }}. Em {{ $json.studentName }} đang trên đường về. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3856,
+        -352
+      ],
+      "id": "0ec34424-2232-4971-8eda-cbdf0efc8940",
+      "name": "Zalo Send Message14",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3824,
+        -112
+      ],
+      "id": "77bc4c0d-83fa-4606-8bd8-a3efaa100f42",
+      "name": "Tìm người dùng theo số điện thoại4",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "=[THÔNG BÁO ĐIỂM DANH TỰ ĐỘNG] \nTrung tâm xin thông báo:  \nBuổi học {{ $('Loop Over Items7').item.json.sessionDate }} thuộc lớp \"{{ $('Loop Over Items7').item.json.className }}\" đã kết thúc lúc {{ $('Loop Over Items7').item.json.endTime }}. Em {{ $('Loop Over Items7').item.json.studentName }} đang trên đường về. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        4176,
+        -112
+      ],
+      "id": "32c9fb5c-0623-45b1-b131-e4dca2ce6244",
+      "name": "Zalo Send Message15",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 1,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO BÀI TẬP VỀ  NHÀ]\nBài tập về nhà của buổi học {{ $json.date }} của các em gồm: \nTrắc nghiệm: {{ $json.content.multipleChoice }}\nTự luận: {{ $json.content.essay }}\nCâu hỏi trả lời ngắn : {{ $json.content.shortAnswer }}\nCâu hỏi đúng sai: {{ $json.content.trueFalse }}\nHọc sinh hoàn thành và nộp trước {{ $json.content.deadlineFormatted }}.  Phụ huynh kết hợp nhắc nhở con hoàn thành BTVN đúng hạn. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3472,
+        656
+      ],
+      "id": "ebb34e3d-b474-4cf8-b928-0923b9cf843a",
+      "name": "Zalo Send Message16",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO BÀI TẬP VỀ  NHÀ] \nKính gửi phụ huynh em {{ $json.studentName }}\nBài tập về nhà của buổi học {{ $json.date }} của em {{ $json.studentName }} gồm: \nTrắc nghiệm: {{ $json.content.multipleChoice }}\nCâu hỏi trả lời ngắn : {{ $json.content.shortAnswer }}\nCâu hỏi đúng sai: {{ $json.content.trueFalse }}\nHọc sinh hoàn thành và nộp trước {{ $json.content.deadlineFormatted }}.  \nPhụ huynh kết hợp nhắc nhở con hoàn thành BTVN đúng hạn. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3824,
+        816
+      ],
+      "id": "337c18c8-46e0-4116-ab87-5c6be67fd539",
+      "name": "Zalo Send Message17",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3760,
+        1088
+      ],
+      "id": "611b6756-74cb-4b30-b7d5-c7c4992c12d1",
+      "name": "Tìm người dùng theo số điện thoại5",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "=[THÔNG BÁO BÀI TẬP VỀ  NHÀ] \nKính gửi phụ huynh em {{ $('Loop Over Items11').item.json.studentName }}\nBài tập về nhà của buổi học {{ $('Loop Over Items11').item.json.date }} của em {{ $('Loop Over Items11').item.json.studentName }} gồm: \nTrắc nghiệm: {{ $('Loop Over Items11').item.json.content.multipleChoice }}\nCâu hỏi trả lời ngắn : {{ $('Loop Over Items11').item.json.content.shortAnswer }}\nCâu hỏi đúng sai: {{ $('Loop Over Items11').item.json.content.trueFalse }}\nHọc sinh hoàn thành và nộp trước {{ $('Loop Over Items11').item.json.content.deadlineFormatted }}.  \nPhụ huynh kết hợp nhắc nhở con hoàn thành BTVN đúng hạn. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        4016,
+        1088
+      ],
+      "id": "1268bb80-d567-4f50-ae8b-14ff51633636",
+      "name": "Zalo Send Message18",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 1,
+        "threadId": "={{ $json.recipient }}",
+        "message": "={{ $json.studentList }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3536,
+        1296
+      ],
+      "id": "afc29117-7616-4a36-98df-9d2a6ac9a6b9",
+      "name": "Zalo Send Message19",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO KIỂM TRA BTVN]\nKính gửi phụ huynh học sinh em {{ $json.studentName }}\nTheo thông tin kiểm tra lúc {{ $json.checkTime }} em {{ $json.studentName }} được ghi nhận là {{ $json.status }} của buổi học {{ $json.checkTime }}.\nPhụ huynh vui lòng nhắc con hoàn thành BTVN. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        4016,
+        1456
+      ],
+      "id": "67cf1655-4869-4647-82c9-52b126341077",
+      "name": "Zalo Send Message20",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3920,
+        1696
+      ],
+      "id": "ab7b5128-b436-44ac-ab32-0641983faf47",
+      "name": "Tìm người dùng theo số điện thoại6",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "=[THÔNG BÁO KIỂM TRA BTVN]\nKính gửi phụ huynh học sinh em {{ $('Loop Over Items13').item.json.studentName }}\nTheo thông tin kiểm tra lúc {{ $('Loop Over Items13').item.json.checkTime }} em {{ $('Loop Over Items13').item.json.studentName }} được ghi nhận là {{ $('Loop Over Items13').item.json.status }} của buổi học {{ $('Loop Over Items13').item.json.date }}.\nPhụ huynh vui lòng nhắc con hoàn thành BTVN. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        4160,
+        1696
+      ],
+      "id": "d64e659b-6782-4839-a9f5-81d398e79dc2",
+      "name": "Zalo Send Message21",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO BÀI KIỂM TRA]\nTrung tâm xin thông báo em {{ $('Loop Over Items14').item.json.studentName }} có bài kiểm tra \"{{ $('Loop Over Items14').item.json.content.title }}\"\nHoàn thành trong khoảng thời gian từ {{ $('Loop Over Items14').item.json.content.startTimeFormatted }}  đến {{ $('Loop Over Items14').item.json.content.endTimeFormatted }}\nLink làm bài: {{ $('Loop Over Items14').item.json.content.link }}.\nPhụ huynh vui lòng tạo điều kiện và thời gian giám sát giúp các em hoàn thành bài hiệu quả nhất. Trân trọng\n",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3968,
+        1936
+      ],
+      "id": "5790486e-6db4-406d-83ca-e8cc30567250",
+      "name": "Zalo Send Message22",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3888,
+        2160
+      ],
+      "id": "19b124f5-f52c-4a8f-867e-2c64762493b3",
+      "name": "Tìm người dùng theo số điện thoại7",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "=[THÔNG BÁO BÀI KIỂM TRA]\nTrung tâm xin thông báo em {{ $('Loop Over Items15').item.json.studentName }} có bài kiểm tra \"{{ $('Loop Over Items15').item.json.content.title }}\"\nHoàn thành trong khoảng thời gian từ {{ $('Loop Over Items15').item.json.content.startTimeFormatted }}  đến {{ $('Loop Over Items15').item.json.content.endTimeFormatted }}\nLink làm bài: {{ $('Loop Over Items15').item.json.content.link }}.\nPhụ huynh vui lòng tạo điều kiện và thời gian giám sát giúp các em hoàn thành bài hiệu quả nhất. Trân trọng\n",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        4144,
+        2144
+      ],
+      "id": "8fa233a5-9b63-4bd1-a800-85cc197b5ae6",
+      "name": "Zalo Send Message23",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[TỔNG KẾT KIỂM TRA BTVN]\nKính thưa phụ huynh học sinh em {{ $json.studentName }}\nTheo thông tin kiểm tra lúc {{ $json.checkTime }} em {{ $json.studentName }} được ghi nhận là {{ $json.status }} của buổi học {{ $json.checkTime }}.\nTrân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        4016,
+        2400
+      ],
+      "id": "08de73b8-2e38-49ca-a8cb-8a8c93f3102a",
+      "name": "Zalo Send Message24",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3904,
+        2640
+      ],
+      "id": "102d9074-d243-4bd5-b7fc-7b8740ce26dd",
+      "name": "Tìm người dùng theo số điện thoại8",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "=[TỔNG KẾT KIỂM TRA BTVN]\nKính thưa phụ huynh học sinh em {{ $('Loop Over Items20').item.json.studentName }}\nTheo thông tin kiểm tra lúc {{ $('Loop Over Items20').item.json.checkTime }} em {{ $('Loop Over Items20').item.json.studentName }} được ghi nhận là {{ $('Loop Over Items20').item.json.status }}{{ $('Loop Over Items20').item.json.status }} của buổi học {{ $('Loop Over Items20').item.json.date }}.\nTrân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        4160,
+        2624
+      ],
+      "id": "fe72511d-b418-4c9d-86ec-83a0d8df692d",
+      "name": "Zalo Send Message25",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO ĐIỂM DANH TỰ ĐỘNG]  \nTrung tâm xin thông báo:   \nEm {{ $('Switch5').item.json.studentName }} được ghi nhận là NGHỈ HỌC KHÔNG PHÉP trong buổi học {{ $('Switch5').item.json.sessionDate }} thuộc lớp \"{{ $('Switch5').item.json.className }}\". \nPhụ huynh vui lòng nhắc con tham gia đầy đủ. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3696,
+        -768
+      ],
+      "id": "8ac86134-97b9-4ca8-934a-396e3bced9c0",
+      "name": "Zalo Send Message27",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3216,
+        -560
+      ],
+      "id": "15bc083f-e7b4-40a8-a163-4628af2beee1",
+      "name": "Loop Over Items16"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3472,
+        -544
+      ],
+      "id": "c5d272fc-3a32-40ea-8904-2fe652a2b9a1",
+      "name": "Tìm người dùng theo số điện thoại9",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=[THÔNG BÁO ĐIỂM DANH TỰ ĐỘNG]  \nTrung tâm xin thông báo:  \nEm {{ $('Switch5').item.json.studentName }} được ghi nhận là NGHỈ HỌC KHÔNG PHÉP trong buổi học {{ $('Switch5').item.json.sessionDate }} thuộc lớp \"{{ $('Switch5').item.json.className }}\". \nPhụ huynh vui lòng nhắc con tham gia đầy đủ. Trân trọng!!!",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3840,
+        -560
+      ],
+      "id": "f8e7d98d-611c-47a5-aa5f-72597b077a37",
+      "name": "Zalo Send Message28",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 16) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4144,
+        -560
+      ],
+      "id": "1c8c61d7-8dee-40e7-8eeb-9b6da98f184c",
+      "name": "Wait21",
+      "webhookId": "0f344b40-d878-427e-9984-10a0a62cf851"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 1,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=Thông báo bài kiểm tra\nCác em có 01 bài kiểm tra \"{{ $json.content.title }}\"\nThời gian từ {{ $json.content.startTimeFormatted }} đến {{ $json.content.endTimeFormatted }}\nĐề nghị phhs tạo điều kiện về thười gian và thiết bị để học sinh hoàn thành tốt.",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3472,
+        1744
+      ],
+      "id": "318981cb-c0ed-4ab6-9c27-fefecad24019",
+      "name": "Zalo Send Message29",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 1,
+        "threadId": "={{ $json.recipient }}",
+        "message": "={{ $json.groupMessageContent }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        2864,
+        3136
+      ],
+      "id": "7d3adcb7-fe7f-4570-a1a0-8d3e9105956e",
+      "name": "Gửi tổng kết BTVN Group",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        256
+      ],
+      "id": "44d77db7-d96f-414c-a339-74a265b2076f",
+      "name": "Tìm người dùng theo số điện thoại10",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "=Kính gửi Phụ huynh em {{ $('Webhook1').item.json.body.studentName }},  \nTrung tâm xin gửi nhận xét của giáo viên trong buổi học {{ $('Webhook1').item.json.body.sessionDate }} của em tại lớp \"{{ $('Webhook1').item.json.body.className }}\" như sau:\n\"{{ $('Webhook1').item.json.body.aiComment }}\" \nRất mong phụ huynh học sinh đồng hành cùng trung tâm giúp con tiến bộ. Trân trọng.",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        192,
+        240
+      ],
+      "id": "cded4398-c43f-4c91-82af-25cf87ccab77",
+      "name": "Zalo Send Message26",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $('Webhook1').item.json.body.recipient }}",
+        "message": "=Kính gửi Phụ huynh em {{ $('Webhook1').item.json.body.studentName }},  \nTrung tâm xin gửi nhận xét của giáo viên trong buổi học {{ $('Webhook1').item.json.body.sessionDate }} của em tại lớp \"{{ $('Webhook1').item.json.body.className }}\" như sau:\n\"{{ $('Webhook1').item.json.body.aiComment }}\" \nRất mong phụ huynh học sinh đồng hành cùng trung tâm giúp con tiến bộ. Trân trọng.",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -16
+      ],
+      "id": "9f8b1458-8859-461e-a69a-a591f2aaef18",
+      "name": "Zalo Send Message30",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.recipient }}",
+        "message": "=Kính gửi Phụ huynh em {{ $json.studentName }},  \nTrung tâm xin gửi nhận xét của giáo viên trong buổi học {{ $json.sessionDate }} của em tại lớp \"{{ $json.className }}\" như sau:\n\"{{ $json.aiComment }}\" \nRất mong phụ huynh học sinh đồng hành cùng trung tâm giúp con tiến bộ. Trân trọng.",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        624,
+        -656
+      ],
+      "id": "c318512a-9c79-46fb-8eed-6318479c9df8",
+      "name": "Zalo Send Message31",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.recipient }}"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        576,
+        -352
+      ],
+      "id": "37a9cc4f-cd36-41ca-b5b9-c7a698261e17",
+      "name": "Tìm người dùng theo số điện thoại11",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "=Trung tâm xin gửi tới phụ huynh học sinh em \n{{ $('Lặp Số điện thoại').item.json.studentName }} nhận xét tháng.\n{{ $('Lặp Số điện thoại').item.json.aiComment }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -368
+      ],
+      "id": "9303b582-a6c7-43aa-8167-361cb02f4b47",
+      "name": "Zalo Send Message32",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "auth",
+        "replaceOldCredential": true
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        -2256,
+        -416
+      ],
+      "id": "181d3f78-bb8d-4abd-b79d-9f653c3aebd2",
+      "name": "Zalo Login By QR",
+      "credentials": {
+        "n8nZaloApi": {
+          "id": "RfjXeXzRNfIV7w07",
+          "name": "zalo-tro-giang"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -416,
+        1168
+      ],
+      "id": "a5601c84-a1ea-4b02-afae-9b2190baf8aa",
+      "name": "Loop Over Items21"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "0989917249"
+      },
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        -1968,
+        -400
+      ],
+      "id": "7524f10f-396a-46b4-ab7d-0e6812c03143",
+      "name": "Tìm người dùng theo số điện thoại13",
+      "credentials": {
+        "zaloApi": {
+          "id": "wvSmI7K5ksRColBK",
+          "name": "055987xx _ Tg Toán Thầy.. _ 09:31 28/01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9343771a-087e-4d58-82d9-666a0949fbcc",
+              "leftValue": "={{ $('Loop Over Items1').item.json.autoSyncUid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -32,
+        704
+      ],
+      "id": "93e5e20a-9f05-4b89-8c84-7b98003476d4",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9536ae74-fcc9-4033-8ba6-2af8d7f01114",
+              "leftValue": "={{ $json.alertType }}",
+              "rightValue": "monthly_report",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -352,
+        -480
+      ],
+      "id": "b6c375ff-5b49-4804-89b6-948d0987bc98",
+      "name": "If5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Lặp UID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Lặp UID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lặp Số điện thoại",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lặp UID": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message31",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lặp Số điện thoại": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Lặp UID1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lặp UID1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message30",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Lặp Số điện thoại",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gửi học phí cá nhân": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gửi file PDF nhóm": {
+      "main": [
+        [
+          {
+            "node": "Chuyển Base 64 sang Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chuyển Base 64 sang Binary": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items21",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items21",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GỬI BTVN",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GỬI BÀI KIỂM TRA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GỬI BÀI KIỂM TRA1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items17",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message27",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items3": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items4": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait4": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message10",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch2": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message7",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items19",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items5": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait5": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items7": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait7": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items8": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait8": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items9": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait9": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch3": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message13",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch4": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items10": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message17",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait10": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items11": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait11": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items12": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message20",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait12": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch6": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message19",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items12",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items13": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait13": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items14": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message22",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait14": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items15": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait15": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GỬI BTVN": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message16",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items10",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GỬI BÀI KIỂM TRA": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message29",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items14",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items17": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Gửi tổng kết BTVN Group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items18": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message24",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait17": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items18",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items19": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait18": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items19",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch5": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GỬI BÀI KIỂM TRA1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Loop Over Items18",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items20",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items20": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait19": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items20",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook3": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items6": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait6": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait16": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait20": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tìm người dùng theo số điện thoại2": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo Send Message5": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tìm người dùng theo số điện thoại12": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo Send Message6": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo Send Message1": {
+      "main": [
+        [
+          {
+            "node": "Wait4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo Send Message2": {
+      "main": [
+        [
+          {
+            "node": "Wait18",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tìm người dùng theo số điện thoại": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message8",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message8": {
+      "main": [
+        [
+          {
+            "node": "Wait5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Tìm người dùng theo số điện thoại1": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message9",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message9": {
+      "main": [
+        [
+          {
+            "node": "Wait8",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message11": {
+      "main": [
+        [
+          {
+            "node": "Wait6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tìm người dùng theo số điện thoại3": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo Send Message12": {
+      "main": [
+        [
+          {
+            "node": "Wait9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo Send Message14": {
+      "main": [
+        [
+          {
+            "node": "Wait20",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tìm người dùng theo số điện thoại4": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo Send Message15": {
+      "main": [
+        [
+          {
+            "node": "Wait7",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message17": {
+      "main": [
+        [
+          {
+            "node": "Wait10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tìm người dùng theo số điện thoại5": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message18",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message18": {
+      "main": [
+        [
+          {
+            "node": "Wait11",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message20": {
+      "main": [
+        [
+          {
+            "node": "Wait12",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Tìm người dùng theo số điện thoại6": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message21",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message21": {
+      "main": [
+        [
+          {
+            "node": "Wait13",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message22": {
+      "main": [
+        [
+          {
+            "node": "Wait14",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message23": {
+      "main": [
+        [
+          {
+            "node": "Wait15",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Tìm người dùng theo số điện thoại7": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message23",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message24": {
+      "main": [
+        [
+          {
+            "node": "Wait17",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Tìm người dùng theo số điện thoại8": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message25",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message25": {
+      "main": [
+        [
+          {
+            "node": "Wait19",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Zalo Send Message27": {
+      "main": [
+        [
+          {
+            "node": "Wait16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items16": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Tìm người dùng theo số điện thoại9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tìm người dùng theo số điện thoại9": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message28",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo Send Message28": {
+      "main": [
+        [
+          {
+            "node": "Wait21",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait21": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tìm người dùng theo số điện thoại10": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message26",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo Send Message31": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tìm người dùng theo số điện thoại11": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message32",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zalo Send Message32": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items21": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Zalo Send Message5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Zalo Send Message6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Zalo Send Message6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "68338aa0-aba7-43f4-b42e-844a32372eb4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e2d5da445f84ade5f61733498fc152347799ff33bb8c6ad6a5af4573e424813b"
+  },
+  "id": "GzEUgpg1gtT94TIo",
+  "tags": []
+}

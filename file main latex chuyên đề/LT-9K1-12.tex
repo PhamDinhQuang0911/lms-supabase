@@ -1,0 +1,93 @@
+\newpage
+%\setcounter{section}{1}
+\section{MỘT SỐ HỆ THỨC GIỮA CẠNH, GÓC TRONG TAM GIÁC VUÔNG}
+\subsection{Kiến thức trọng tâm}
+	\subsubsection{Hệ thức giữa cạnh huyền và cạnh góc vuông}
+	\begin{boxdn}
+	Trong tam giác vuông, mỗi cạnh góc vuông bằng cạnh huyền nhân với sin góc đối hoặc nhân với côsin góc kề.
+	\end{boxdn}
+	\begin{note}
+	\immini{
+	Trong tam giác $A B C$ vuông tại $A$, ta có 
+	\[
+	\begin{aligned}
+	b&=a \cdot \sin B=a \cdot \cos C;\\
+	c&=a \cdot \sin C=a \cdot \cos B.
+	\end{aligned}
+	\]}
+	{
+	\begin{tikzpicture}[line cap=round,line join=round,font=\footnotesize,scale=0.75]
+	\def\r{2}
+	\path (0,0) coordinate (O)
+	(125:\r) coordinate (A)
+	(180:\r) coordinate (B)
+	(0:\r) coordinate (C)
+	;
+	\draw (A)--(B)--(C)--cycle;
+	\path (A)--(B) node[midway,left]{$c$};
+	\path (A)--(C) node[midway,above]{$b$};
+	\path (C)--(B) node[midway,below]{$a$};
+	\pic[draw,angle radius=4pt]{right angle=B--A--C};
+	\foreach \t/\g in {A/90,B/-135,C/-45}{
+	\fill (\t) circle (1pt) node[shift={(\g:7pt)}]{$ \t $};
+	}
+	\end{tikzpicture}
+	}
+	\end{note}
+	\subsubsection{Hệ thức giữa hai cạnh góc vuông}
+	\begin{boxdn}
+	Trong tam giác vuông, mỗi cạnh góc vuông bằng cạnh góc vuông kia nhân với tang góc đối hoặc nhân với côtang góc kề.
+	\end{boxdn}
+	\begin{luuy}
+	\immini{
+	Trong tam giác $A B C$ vuông tại $A$, ta có \[
+	\begin{aligned}
+	b&=c \cdot \tan B=c \cdot \cot C;\\
+	c&=b \cdot \tan C=b \cdot \cot B.\\
+	a^2&=c^2+b^2
+	\end{aligned}
+	\]}
+	{\begin{tikzpicture}[line cap=round,line join=round,font=\footnotesize,scale=0.75]
+	\def\r{2}
+	\path (0,0) coordinate (O)
+	(125:\r) coordinate (A)
+	(180:\r) coordinate (B)
+	(0:\r) coordinate (C)
+	;
+	\draw (A)--(B)--(C)--cycle;
+	\path (A)--(B) node[midway,left]{$c$};
+	\path (A)--(C) node[midway,above]{$b$};
+	\path (C)--(B) node[midway,below]{$a$};
+	\pic[draw,angle radius=4pt]{right angle=B--A--C};
+	\foreach \t/\g in {A/90,B/-135,C/-45}{
+	\fill (\t) circle (1pt) node[shift={(\g:7pt)}]{$ \t $};
+	}
+	\end{tikzpicture}}
+	\end{luuy}
+	\begin{luuy}
+	Việc tính tất cả cạnh, góc chưa biết của một tam giác vuông khi biết 1 số yếu tố được gọi là \lq\lq giải tam giác vuông\rq\rq
+	\end{luuy}
+	\immini{
+	\begin{note}
+	Trong đo đạc, khi người quan sát có hướng nhìn ngang theo tia $Ox$ (Hình bên) thì
+	\begin{itemize}
+	\item Góc $\widehat{xOA}$ gọi là góc nghiêng lên hay góc nâng;
+	\item Góc $\widehat{xOB}$ gọi là góc nghiêng xuống hay góc hạ.
+	\end{itemize}
+	\end{note}
+	}
+	{
+	\begin{tikzpicture}[scale=0.5]
+	\def\r{4}
+	\path 	(0,0) coordinate (O)
+	(35:\r) coordinate (A) node[xshift=6mm,rotate=-30]{\twemoji[scale=.8]{airplane}}
+	(-20:\r) coordinate (B) node[xshift=6mm]{\twemoji[scale=.8]{boat}}
+	(0:\r) coordinate (x);
+	\draw 	(A)--(O)--(B);
+	\draw [dashed] (O)--(x);
+	\foreach \x/\g in {A/90,B/-90,O/180,x/60} \fill[blue] (\x) circle (0pt)($(\g:3mm)+(\x)$) node {$\x$};	
+	\draw pic[draw,angle radius=6mm,thick]{angle=x--O--A};
+	\draw pic[draw,double,angle radius=8mm,thick]{angle=B--O--x};
+	\end{tikzpicture}
+	}
+%%%%%%%%%%%%%%%%%%

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kho Chuyên Đề LaTeX - Thầy Choang</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ea580c">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QMath">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- TikZJax -->
+    <link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
+    <script src="https://tikzjax.com/v1/tikzjax.js"></script>
+
+    <!-- MathJax for rendering math -->
+    <script>
+    window.MathJax = {
+      loader: { load: ['[tex]/noerrors', '[tex]/noundefined'] },
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        packages: {'[+]': ['noerrors', 'noundefined']},
+        macros: {
+          heva: ["\\left\\{\\begin{aligned}#1\\end{aligned}\\right.", 1],
+          hoac: ["\\left[\\begin{aligned}#1\\end{aligned}\\right.", 1],
+          tich: "\\cdot",
+          deg: "^\\circ",
+          R: "\\mathbb{R}",
+          N: "\\mathbb{N}",
+          Z: "\\mathbb{Z}",
+          vectors: ["\\overrightarrow{#1}", 1],
+          mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1]
+        }
+      },
+      options: {
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process'
+      }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body { font-family: 'Nunito', sans-serif; background-color: #F8FAFC; }
+        .modal { transition: opacity 0.2s ease; }
+        body.modal-active { overflow: hidden; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+    <link rel="stylesheet" href="/styles.css?v=5">
+    <script src="ai-id-assigner.js"></script>
+<meta name="view-transition" content="same-origin" /></head>
+<body class="h-screen flex overflow-hidden text-gray-800 bg-gray-50">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col shrink-0 h-full shadow-lg relative z-20">
+        <div class="h-16 flex items-center gap-3 px-6 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors" onclick="window.location.href='dashboard.html'">
+            <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-arrow-left"></i></div>
+            <span class="font-bold text-gray-700">Về Bảng điều khiển</span>
+        </div>
+        <div class="p-6 flex-1 flex flex-col overflow-hidden">
+            <h2 class="text-xl font-black text-brand mb-6 flex items-center tracking-tight"><i class="fa-solid fa-book-journal-whills mr-2 text-2xl"></i> Kho Chuyên Đề</h2>
+            <button onclick="window.showImportModal()" class="w-full py-3 bg-brand text-white font-bold rounded-xl shadow-lg shadow-teal-200 hover:bg-teal-700 hover:shadow-teal-300 transition-all mb-4 flex items-center justify-center gap-2 transform active:scale-95">
+                <i class="fa-solid fa-upload"></i> Import `.tex`
+            </button>
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 mt-4">Danh sách chuyên đề</div>
+            <div id="topicList" class="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <!-- List of topics will go here -->
+                <div class="text-center text-sm text-gray-400 py-4"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full bg-gray-50 relative z-10">
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center px-8 shrink-0 justify-between shadow-sm">
+            <h1 id="mainTitle" class="text-xl font-bold text-gray-800 tracking-tight">Chi tiết Chuyên đề</h1>
+        </header>
+        
+        <div class="flex-1 overflow-y-auto p-8" id="mainContent">
+            <div class="flex flex-col items-center justify-center h-full text-gray-400">
+                <i class="fa-solid fa-folder-open text-6xl mb-4 opacity-30"></i>
+                <p class="font-medium">Chọn một chuyên đề bên trái hoặc tạo mới</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="fixed inset-0 bg-gray-900/60 z-[100] hidden flex justify-center items-center backdrop-blur-sm modal opacity-0">
+        <div class="bg-white w-[900px] max-w-[95%] max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden transform scale-95 transition-all duration-300" id="importModalContent">
+            
+            <!-- Header -->
+            <div class="bg-white px-6 py-4 flex justify-between items-center shrink-0 border-b border-gray-100">
+                <h3 class="text-xl font-black text-gray-800"><i class="fa-solid fa-file-import mr-2 text-brand"></i> Import Chuyên đề LaTeX</h3>
+                <button onclick="window.closeImportModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-all"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-6 bg-gray-50/50">
+                <!-- Tên chuyên đề -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Tên Chuyên Đề (Sẽ hiển thị trong danh sách)</label>
+                    <input type="text" id="topicName" placeholder="VD: Chuyên đề 1 - Hệ thức lượng trong tam giác vuông" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-brand focus:ring-2 focus:ring-teal-100 outline-none transition-all font-medium">
+                </div>
+                
+                <!-- Tuỳ chọn phân cấp -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mt-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Tuỳ chọn Phân cấp (Mặc định)</label>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Cấp 1 (\section)</label>
+                            <input type="text" id="optSection" value="Bài" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Cấp 2 (\subsection)</label>
+                            <input type="text" id="optSubsection" value="Mục" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Cấp 3 (\subsubsection)</label>
+                            <input type="text" id="optSubsubsection" value="Phần" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none font-medium">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cấu hình VPS -->
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mt-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Máy chủ Biên dịch Hình ảnh (VPS TikZ)</label>
+                    <select id="vpsModeSelector" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none font-bold text-sm mb-2" onchange="document.getElementById('vpsUrlContainer').classList.toggle('hidden', this.value === 'free')">
+                        <option value="free">VPS Free Tier (Mặc định - Tuần tự, an toàn)</option>
+                        <option value="personal">VPS Cá nhân (Batching - Nhanh gấp 10 lần)</option>
+                    </select>
+                    <div id="vpsUrlContainer" class="hidden mt-2">
+                        <label class="block text-xs text-gray-500 mb-1">Địa chỉ API VPS Cá nhân (IP & Port):</label>
+                        <input type="text" id="vpsCustomUrl" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none font-mono text-sm" placeholder="VD: https://api.qmath.io.vn">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <!-- Khu vực Upload File LaTeX -->
+                    <div class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 hover:border-brand transition-all relative group shadow-sm">
+                        <input type="file" id="texFiles" multiple accept=".tex" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="window.handleTexFilesSelect(event)">
+                        <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl group-hover:bg-blue-100 transition-colors"><i class="fa-solid fa-file-code"></i></div>
+                        <h4 class="font-bold text-gray-800 text-lg">1. Chọn các file `.tex`</h4>
+                        <p class="text-sm text-gray-500 mt-1">Chọn Main.tex cùng các file LT, TL, TN...</p>
+                        <div id="texFileList" class="mt-4 text-xs text-left max-h-32 overflow-y-auto text-blue-700 font-mono bg-blue-50/50 border border-blue-100 p-3 rounded-lg hidden"></div>
+                    </div>
+
+                    <!-- Khu vực Upload Thư mục Ảnh -->
+                    <div class="bg-white border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 hover:border-orange-500 transition-all relative group shadow-sm">
+                        <input type="file" id="imgFolder" webkitdirectory directory multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="window.handleImgFolderSelect(event)">
+                        <div class="w-16 h-16 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl group-hover:bg-orange-100 transition-colors"><i class="fa-solid fa-images"></i></div>
+                        <h4 class="font-bold text-gray-800 text-lg">2. Chọn thư mục Ảnh (Tùy chọn)</h4>
+                        <p class="text-sm text-gray-500 mt-1">Dành cho các file có dùng lệnh \includegraphics</p>
+                        <div id="imgFileList" class="mt-4 text-xs font-bold text-center text-orange-600 bg-orange-50/50 border border-orange-100 p-3 rounded-lg hidden"></div>
+                    </div>
+                </div>
+                
+                <!-- Tiến độ phân tích -->
+                <div id="importProgressContainer" class="hidden bg-white p-5 rounded-xl border border-gray-200 shadow-sm animate-fade-in-up">
+                    <div class="flex justify-between text-sm mb-3 font-bold text-gray-700">
+                        <span id="importStatusText" class="flex items-center gap-2"><i class="fa-solid fa-gear fa-spin text-brand"></i> Đang phân tích cấu trúc...</span>
+                        <span id="importPercent" class="text-brand">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner">
+                        <div id="importProgressBar" class="bg-brand h-full rounded-full transition-all duration-300 relative overflow-hidden" style="width: 0%">
+                            <div class="absolute inset-0 bg-white/20 w-full animate-pulse"></div>
+                        </div>
+                    </div>
+                    <!-- Chi tiết tiến độ TikZ -->
+                    <div id="tikzProgressDetail" class="mt-3 text-xs font-medium text-gray-500 hidden flex items-center justify-between bg-gray-50 p-2 rounded">
+                        <span>Đang gửi VPS biên dịch TikZ...</span>
+                        <span id="tikzCount" class="font-bold text-brand bg-teal-50 px-2 py-0.5 rounded">0/0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-6 border-t border-gray-100 bg-white flex justify-end gap-3 shrink-0">
+                <button onclick="window.closeImportModal()" class="px-6 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-all">Hủy</button>
+                <button id="btnStartImport" onclick="window.startImportProcess()" class="px-8 py-2.5 bg-brand text-white font-bold rounded-xl shadow-lg shadow-teal-200 hover:bg-teal-700 hover:shadow-teal-300 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-play"></i> Bắt đầu xử lý
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Script & Logic -->
+    <script type="module">
+        import { 
+            initializeApp, getAuth, onAuthStateChanged,
+            getFirestore, collection, getDocs, doc, setDoc, getDoc, serverTimestamp, query, where,
+            supabase
+        } from "./supabase-db-compat.js";
+        import { formatContent } from './utils.js?v=3';
+        
+        const app = initializeApp({});
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- UI FUNCS ---
+        window.showImportModal = () => {
+            const m = document.getElementById('importModal');
+            const mc = document.getElementById('importModalContent');
+            
+            // Load VPS settings from localStorage
+            const vpsMode = localStorage.getItem('tikzVpsMode') || 'personal';
+            const vpsUrl = localStorage.getItem('tikzVpsUrl') || 'https://api.qmath.io.vn';
+            document.getElementById('vpsModeSelector').value = vpsMode;
+            document.getElementById('vpsCustomUrl').value = vpsUrl;
+            document.getElementById('vpsUrlContainer').classList.toggle('hidden', vpsMode === 'free');
+
+            m.classList.remove('hidden');
+            setTimeout(() => {
+                m.classList.remove('opacity-0');
+                mc.classList.remove('scale-95');
+                mc.classList.add('scale-100');
+            }, 10);
+        };
+        window.closeImportModal = () => {
+            const m = document.getElementById('importModal');
+            const mc = document.getElementById('importModalContent');
+            m.classList.add('opacity-0');
+            mc.classList.remove('scale-100');
+            mc.classList.add('scale-95');
+            setTimeout(() => { m.classList.add('hidden'); }, 300);
+        };
+
+        // --- FILE SELECTION STATE ---
+        window.selectedTexFiles = [];
+        window.selectedImgFiles = [];
+        
+        window.handleTexFilesSelect = (e) => {
+            window.selectedTexFiles = Array.from(e.target.files);
+            const list = document.getElementById('texFileList');
+            if(window.selectedTexFiles.length > 0) {
+                list.classList.remove('hidden');
+                list.innerHTML = window.selectedTexFiles.map(f => `<div class="mb-1 truncate"><i class="fa-regular fa-file-code mr-1 text-blue-500"></i> ${f.name}</div>`).join('');
+            } else {
+                list.classList.add('hidden');
+            }
+        };
+
+        window.handleImgFolderSelect = (e) => {
+            window.selectedImgFiles = Array.from(e.target.files);
+            const list = document.getElementById('imgFileList');
+            if(window.selectedImgFiles.length > 0) {
+                list.classList.remove('hidden');
+                list.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Đã chọn ${window.selectedImgFiles.length} ảnh.`;
+            } else {
+                list.classList.add('hidden');
+            }
+        };
+
+        import { parseTopicFromTex } from './topic-parser.js';
+
+        const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
+
+        window.startImportProcess = async () => {
+            const name = document.getElementById('topicName').value.trim();
+            if(!name) return alert('Vui lòng nhập tên chuyên đề!');
+            if(window.selectedTexFiles.length === 0) return alert('Vui lòng chọn ít nhất 1 file .tex!');
+            
+            // Save VPS settings
+            localStorage.setItem('tikzVpsMode', document.getElementById('vpsModeSelector').value);
+            localStorage.setItem('tikzVpsUrl', document.getElementById('vpsCustomUrl').value.trim());
+
+            document.getElementById('importProgressContainer').classList.remove('hidden');
+            document.getElementById('btnStartImport').disabled = true;
+            document.getElementById('btnStartImport').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+            
+            const progressText = document.getElementById('importStatusText');
+            const percentText = document.getElementById('importPercent');
+            const bar = document.getElementById('importProgressBar');
+            const tikzDetail = document.getElementById('tikzProgressDetail');
+            const tikzCount = document.getElementById('tikzCount');
+
+            const updateProgress = (text, percent, details = null) => {
+                progressText.innerHTML = `<i class="fa-solid fa-gear fa-spin text-brand"></i> ${text}`;
+                percentText.innerText = `${percent}%`;
+                bar.style.width = `${percent}%`;
+                if(details && details.showTikZ) {
+                    tikzDetail.classList.remove('hidden');
+                    tikzCount.innerText = `${details.done}/${details.total}`;
+                }
+            };
+
+            try {
+                // Parse LaTeX sang JSON
+                const options = {
+                    section: document.getElementById('optSection').value.trim() || 'Bài',
+                    subsection: document.getElementById('optSubsection').value.trim() || 'Mục',
+                    subsubsection: document.getElementById('optSubsubsection').value.trim() || 'Phần'
+                };
+                const topicData = await parseTopicFromTex(window.selectedTexFiles, window.selectedImgFiles, updateProgress, options);
+
+                // [AI ID ASSIGNER] Thu thập tất cả câu hỏi từ cây chapters
+                const allQuestions = [];
+                (topicData.chapters || []).forEach(ch => {
+                    (ch.sections || []).forEach(sec => {
+                        (sec.dangs || []).forEach(dang => {
+                            (dang.items || []).forEach(item => {
+                                if (item.type && item.type !== 'theory' && item.type !== 'subsubsection') {
+                                    allQuestions.push(item);
+                                }
+                            });
+                        });
+                    });
+                });
+
+                if (allQuestions.length > 0 && typeof window.checkAndAssignMissingIds === 'function' && (window.globalIdTree || []).length > 0) {
+                    const missingCount = allQuestions.filter(q => !q.mapId || !q.mapId.trim()).length;
+                    if (missingCount > 0) {
+                        updateProgress(`Phát hiện ${missingCount} câu hỏi chưa có ID. Đang gán bằng AI...`, 88);
+                        try {
+                            await window.checkAndAssignMissingIds(allQuestions, { db: db });
+                        } catch (e) {
+                            console.warn('[AI ID Assigner] Bỏ qua gán ID:', e.message);
+                            if (window.showToast) window.showToast('⚠️ AI gán ID: ' + e.message, 'warning');
+                        }
+                    }
+                }
+
+                updateProgress("Đang nén dữ liệu lên Cloudflare...", 96);
+                
+                // Lưu JSON lên Cloudflare thay vì Firebase
+                const jsonString = JSON.stringify(topicData.chapters);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const formData = new FormData();
+                const fileName = `topic_data_${Date.now()}.json`;
+                formData.append('file', blob, fileName);
+                
+                const uploadRes = await fetch(CLOUDFLARE_UPLOAD_API, { method: 'PUT', body: formData });
+                if (!uploadRes.ok) throw new Error("Upload Cloudflare thất bại");
+                const uploadData = await uploadRes.json();
+                const dataUrl = uploadData.url;
+
+                updateProgress("Đang lưu metadata vào Firestore...", 98);
+                
+                // Lưu Metadata vào Firestore (dùng collection folders để né lỗi permission)
+                const docRef = doc(collection(db, "folders"));
+                await setDoc(docRef, {
+                    title: name,
+                    type: 'topic_bank',
+                    dataUrl: dataUrl,
+                    createdAt: serverTimestamp(),
+                    teacherId: auth.currentUser.uid
+                });
+                
+                updateProgress("Hoàn tất!", 100);
+                alert('Import Chuyên Đề thành công!');
+                window.closeImportModal();
+                loadTopicList();
+            } catch(e) {
+                console.error(e);
+                alert('Lỗi Import: ' + e.message);
+            } finally {
+                document.getElementById('btnStartImport').disabled = false;
+                document.getElementById('btnStartImport').innerHTML = '<i class="fa-solid fa-play"></i> Bắt đầu xử lý';
+                setTimeout(() => {
+                    document.getElementById('importProgressContainer').classList.add('hidden');
+                    tikzDetail.classList.add('hidden');
+                    bar.style.width = '0%';
+                }, 2000);
+            }
+        };
+
+        const loadTopicList = async () => {
+            const listEl = document.getElementById('topicList');
+            listEl.innerHTML = '<div class="text-center text-sm text-gray-400 py-4"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>';
+            try {
+                // Query collection folders có type là topic_bank
+                const q = query(collection(db, "folders"), where("type", "==", "topic_bank"), where("teacherId", "==", auth.currentUser.uid));
+                const querySnapshot = await getDocs(q);
+                if(querySnapshot.empty) {
+                    listEl.innerHTML = '<div class="text-center text-sm text-gray-400 py-4">Chưa có chuyên đề nào</div>';
+                    return;
+                }
+                let html = '';
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    html += `<div class="px-4 py-3 hover:bg-teal-50 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-teal-100 bg-white shadow-sm font-bold text-gray-700 flex items-center gap-3 mb-2" onclick="viewTopic('${doc.id}')">
+                        <div class="w-8 h-8 rounded bg-teal-100 text-teal-600 flex items-center justify-center shrink-0"><i class="fa-solid fa-book"></i></div>
+                        <div class="truncate flex-1">${data.title}</div>
+                    </div>`;
+                });
+                listEl.innerHTML = html;
+            } catch(e) {
+                console.error(e);
+                listEl.innerHTML = '<div class="text-center text-sm text-red-400 py-4">Lỗi tải dữ liệu</div>';
+            }
+        };
+
+        window.viewTopic = async (id) => {
+            document.getElementById('mainContent').innerHTML = '<div class="flex items-center justify-center h-full flex-col gap-4"><i class="fa-solid fa-spinner fa-spin text-4xl text-brand"></i><p class="text-gray-500 font-bold">Đang tải dữ liệu từ Cloudflare...</p></div>';
+            
+            // 1. Lấy metadata từ Firestore
+            const docSnap = await getDoc(doc(db, "folders", id));
+            if(!docSnap.exists()) return;
+            const meta = docSnap.data();
+            document.getElementById('mainTitle').innerText = meta.title;
+            
+            try {
+                // 2. Fetch JSON từ Cloudflare URL
+                const res = await fetch(meta.dataUrl);
+                const chaptersData = await res.json();
+                
+                // 3. Render HTML
+                let html = `<div class="max-w-4xl mx-auto space-y-6 pb-20">`;
+                chaptersData.forEach((ch, i) => {
+                    html += `<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h2 class="text-xl font-black text-brand mb-4">Chương ${i+1}: ${ch.title}</h2>`;
+                    ch.sections.forEach((sec, j) => {
+                        html += `<div class="ml-4 mb-6 border-l-2 border-teal-100 pl-4">
+                            <h3 class="text-lg font-bold text-gray-800 mb-3">Bài ${j+1}: ${sec.title}</h3>`;
+                        sec.dangs.forEach((d, k) => {
+                            html += `<div class="bg-gray-50 rounded-xl p-4 mb-4">
+                                <h4 class="font-bold text-teal-700 mb-3 flex items-center gap-2"><i class="fa-solid fa-layer-group"></i> ${d.title}</h4>
+                                <div class="space-y-4 text-sm">`;
+                            
+                            d.items.forEach((item, idx) => {
+                                if(item.type === 'theory') {
+                                    html += `<div class="p-3 bg-white border border-yellow-200 rounded-lg shadow-sm">
+                                        <div class="font-bold text-yellow-700 text-xs mb-1 uppercase">Lý thuyết / Chú ý</div>
+                                        <div class="math-content overflow-x-auto">${formatContent(item.content)}</div>
+                                    </div>`;
+                                } else if(item.type === 'multiple_choice') {
+                                    html += `<div class="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                        <div class="font-bold text-gray-700 mb-2">Câu hỏi Trắc nghiệm:</div>
+                                        <div class="math-content overflow-x-auto mb-3">${formatContent(item.content)}</div>
+                                        <div class="grid grid-cols-2 gap-2">`;
+                                    item.options.forEach((opt, oIdx) => {
+                                        const l = ['A','B','C','D'][oIdx];
+                                        const isCorrect = l === item.correctAnswer;
+                                        html += `<div class="p-2 border rounded ${isCorrect ? 'bg-green-50 border-green-200 font-bold' : 'border-gray-100'} flex gap-2">
+                                            <span class="${isCorrect ? 'text-green-600' : 'text-gray-500'}">${l}.</span> 
+                                            <div class="math-content overflow-x-auto flex-1">${formatContent(opt)}</div>
+                                        </div>`;
+                                    });
+                                    html += `</div></div>`;
+                                } else if(item.type === 'essay') {
+                                    html += `<div class="p-4 bg-white border border-blue-200 rounded-lg shadow-sm">
+                                        <div class="font-bold text-blue-700 mb-2">Câu hỏi Tự luận:</div>
+                                        <div class="math-content overflow-x-auto">${formatContent(item.content)}</div>
+                                        ${item.solution ? `<div class="mt-3 p-3 bg-gray-50 text-gray-600 rounded text-xs border border-gray-200"><strong class="text-gray-700">Giải:</strong><div class="math-content overflow-x-auto mt-1">${formatContent(item.solution)}</div></div>` : ''}
+                                    </div>`;
+                                } else if(item.type === 'subsubsection') {
+                                    html += `<h5 class="text-md font-bold text-teal-800 mt-4 mb-2">${item.content}</h5>`;
+                                }
+                            });
+
+                            html += `</div></div>`;
+                        });
+                        html += `</div>`;
+                    });
+                    html += `</div>`;
+                });
+                html += `</div>`;
+                document.getElementById('mainContent').innerHTML = html;
+                
+                // Gọi MathJax để render công thức
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    window.MathJax.typesetPromise();
+                }
+            } catch(e) {
+                console.error(e);
+                document.getElementById('mainContent').innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Lỗi tải dữ liệu: ${e.message}</div>`;
+            }
+        };
+
+        // Load initial data
+        window.globalIdTree = [];
+        window.aiKeys = [];
+
+        onAuthStateChanged(auth, async user => {
+            if(user) {
+                // Tải MapID Tree và AI Keys song song
+                await Promise.all([
+                    getDoc(doc(db, 'configurations', 'map_id_tree')).then(snap => {
+                        if (snap.exists()) window.globalIdTree = snap.data().tree || [];
+                    }).catch(() => {}),
+                    getDoc(doc(db, 'configurations', 'ai_keys')).then(snap => {
+                        if (snap.exists()) window.aiKeys = snap.data().keys || [];
+                    }).catch(() => {})
+                ]);
+                loadTopicList();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>

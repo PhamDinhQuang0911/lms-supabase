@@ -1,0 +1,406 @@
+/* File nguồn để build styles.css — KHÔNG nhúng file này vào HTML.
+   Build: npm run build:css  ->  sinh ra styles.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Biến màu accent dùng chung (dạng "R G B" để hỗ trợ độ mờ bg-accent/10...).
+   Mặc định: 249 115 22 = #F97316 (đúng với giao diện hiện tại). */
+:root {
+  --color-accent: 249 115 22;
+}
+
+/* ============================================================
+   QMATH POLISH LAYER — hiệu ứng "macOS" dùng chung cho mọi trang
+   (file này được build vào styles.css, KHÔNG cần sửa từng trang)
+   ============================================================ */
+
+/* ---------- 1. Bóng đổ mềm nhiều lớp (thay bóng mặc định của Tailwind) ---------- */
+.shadow-sm  { box-shadow: 0 1px 2px rgb(15 23 42 / 0.05); }
+.shadow     { box-shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 2px 6px rgb(15 23 42 / 0.05); }
+.shadow-md  { box-shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 5px 12px rgb(15 23 42 / 0.07); }
+.shadow-lg  { box-shadow: 0 2px 4px rgb(15 23 42 / 0.04), 0 12px 28px rgb(15 23 42 / 0.10); }
+.shadow-xl  { box-shadow: 0 3px 6px rgb(15 23 42 / 0.04), 0 18px 40px rgb(15 23 42 / 0.12); }
+.shadow-2xl { box-shadow: 0 4px 8px rgb(15 23 42 / 0.05), 0 28px 60px rgb(15 23 42 / 0.16); }
+
+/* ---------- 2. Bo góc lớn hơn một chút, đồng nhất kiểu macOS ---------- */
+.rounded-lg  { border-radius: 0.625rem; }  /* 10px thay vì 8px  */
+.rounded-xl  { border-radius: 0.875rem; }  /* 14px thay vì 12px */
+.rounded-2xl { border-radius: 1.125rem; }  /* 18px thay vì 16px */
+
+/* ---------- 3. Hiệu ứng lún nút khi bấm (mọi nút trên toàn site) ---------- */
+button:not(:disabled):active,
+.sidebar-item:active,
+a[onclick]:active {
+  transform: scale(0.965);
+  filter: brightness(0.96);
+}
+/* nút không tự khai báo transition vẫn nảy lại mượt khi thả tay
+   (:where -> độ ưu tiên thấp, không đè các class duration-* có sẵn) */
+button:where(:not(:disabled)) { transition-duration: 0.15s; }
+
+/* ---------- 4. Chuyển tab mềm: nội dung trượt nhẹ + mờ dần vào ----------
+   (CSS animation tự chạy lại mỗi khi phần tử bỏ class `hidden`) */
+@media (prefers-reduced-motion: no-preference) {
+  .tab-content:not(.hidden),
+  .view-section:not(.hidden),
+  [id^="tabContent"]:not(.hidden) {
+    animation: qm-page-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  html { scroll-behavior: smooth; }
+}
+@keyframes qm-page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- 5. Kính mờ kiểu macOS ---------- */
+/* Header dính trên cùng: nền trắng mờ + blur */
+header.sticky {
+  background-color: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: blur(14px) saturate(1.8);
+  backdrop-filter: blur(14px) saturate(1.8);
+}
+/* Lớp phủ tối sau modal: làm mờ nội dung phía sau như cửa sổ Mac */
+.fixed.inset-0[class*="bg-gray-900"],
+.fixed.inset-0[class*="bg-black"] {
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+
+/* ---------- 6. Toast thông báo trượt vào có lực nảy nhẹ ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .notification-toast {
+    animation: qm-toast-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+@keyframes qm-toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ---------- 7. Focus ring mềm khi điều hướng bằng bàn phím ---------- */
+:focus-visible {
+  outline: 2.5px solid rgb(15 118 110 / 0.55);
+  outline-offset: 2px;
+}
+
+/* ---------- 8. Ô nhập liệu: viền sáng dịu khi focus (nếu trang chưa tự style) ---------- */
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 3px rgb(15 118 110 / 0.12);
+}
+
+/* ---------- 9. Thanh cuộn mỏng, bo tròn ---------- */
+* { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ---------- 10. Màu bôi đen văn bản theo brand ---------- */
+::selection { background: #99f6e4; color: #134e4a; }
+
+/* ============================================================
+   PHẦN NÂNG CẤP ĐẬM — sidebar app-style, nút gradient, toast pro
+   ============================================================ */
+
+/* ---------- 11. SIDEBAR kiểu app hiện đại (student + dashboard) ---------- */
+.sidebar-item, .nav-item {
+  font-weight: 600;
+  border-radius: 0.875rem;
+  margin: 2px 0;
+  transition: background-color .2s, color .2s, transform .18s, box-shadow .2s;
+}
+/* icon thành "chip" vuông bo góc như icon app */
+.sidebar-item > i, .nav-item > i {
+  width: 2.1rem; height: 2.1rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 0.65rem;
+  background: #F1F5F9; color: #64748B;
+  font-size: 0.95rem;
+  transition: background-color .2s, color .2s, transform .2s;
+  flex-shrink: 0;
+}
+.sidebar-item:hover { background: #F0FDFA; transform: translateX(3px); }
+.sidebar-item:hover > i { background: #CCFBF1; color: #0F766E; }
+.nav-item:hover { background: #EFF6FF; transform: translateX(3px); }
+.nav-item:hover > i { background: #DBEAFE; color: #2563EB; }
+
+/* Active: pill gradient đầy màu + chữ trắng (điểm nhấn "LMS lớn") */
+.sidebar-item.active {
+  background: linear-gradient(135deg, #14B8A6, #0F766E);
+  color: #fff; font-weight: 800;
+  border-right: none;
+  box-shadow: 0 6px 16px rgb(13 148 136 / 0.35);
+}
+.sidebar-item.active > i { background: rgb(255 255 255 / 0.22); color: #fff; }
+.sidebar-item.active:hover { background: linear-gradient(135deg, #14B8A6, #0F766E); color: #fff; }
+.nav-item.active {
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  color: #fff; font-weight: 800;
+  border-right: none;
+  box-shadow: 0 6px 16px rgb(37 99 235 / 0.35);
+}
+.nav-item.active > i { background: rgb(255 255 255 / 0.22); color: #fff !important; }
+.nav-item.active:hover { background: linear-gradient(135deg, #3B82F6, #2563EB); }
+
+/* ---------- 12. NÚT CHÍNH: gradient có chiều sâu + bóng màu ---------- */
+.bg-brand      { background-image: linear-gradient(135deg, #14B8A6, #0F766E); }
+.bg-accent     { background-image: linear-gradient(135deg, #FB923C, #EA580C); }
+.bg-teal-600   { background-image: linear-gradient(135deg, #14B8A6, #0D9488); }
+.bg-blue-600   { background-image: linear-gradient(135deg, #3B82F6, #2563EB); }
+.bg-indigo-600 { background-image: linear-gradient(135deg, #6366F1, #4F46E5); }
+.bg-purple-600 { background-image: linear-gradient(135deg, #A855F7, #9333EA); }
+.bg-green-600  { background-image: linear-gradient(135deg, #34D399, #059669); }
+.bg-red-600    { background-image: linear-gradient(135deg, #F87171, #DC2626); }
+/* bóng màu cho nút/link dùng các màu trên */
+:is(button, a).bg-brand,  :is(button, a).bg-teal-600 { box-shadow: 0 4px 14px rgb(13 148 136 / 0.30); }
+:is(button, a).bg-accent   { box-shadow: 0 4px 14px rgb(234 88 12 / 0.30); }
+:is(button, a).bg-blue-600 { box-shadow: 0 4px 14px rgb(37 99 235 / 0.30); }
+:is(button, a).bg-green-600 { box-shadow: 0 4px 14px rgb(5 150 105 / 0.30); }
+:is(button, a).bg-red-600  { box-shadow: 0 4px 14px rgb(220 38 38 / 0.30); }
+/* hover sáng nhẹ (bù cho việc gradient đè hover:bg-*-700) */
+button:where(:not(:disabled)):hover { filter: brightness(1.05); }
+
+/* ---------- 13. TOAST THÔNG BÁO kiểu pro: glass + icon nảy + thanh thời gian ---------- */
+.notification-toast {
+  position: relative; overflow: hidden;
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.92);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  box-shadow: 0 4px 10px rgb(15 23 42 / 0.06), 0 18px 40px rgb(15 23 42 / 0.16);
+}
+/* icon thành huy hiệu tròn có màu + hiệu ứng nảy khi hiện */
+.notification-toast > i {
+  width: 2.2rem; height: 2.2rem; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 9999px; margin-top: 0 !important;
+  background: color-mix(in srgb, currentColor 14%, white);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .notification-toast > i { animation: qm-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+}
+@keyframes qm-pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+/* thanh thời gian chạy dưới đáy toast (khớp 3s tự đóng) */
+.notification-toast::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: 100%;
+  background: #94A3B8; opacity: 0.5;
+  transform-origin: left;
+  animation: qm-progress 3s linear forwards;
+}
+.notification-toast[class*="border-green"]::after { background: #10B981; }
+.notification-toast[class*="border-red"]::after   { background: #EF4444; }
+.notification-toast[class*="border-blue"]::after  { background: #3B82F6; }
+.notification-toast[class*="border-orange"]::after,
+.notification-toast[class*="border-yellow"]::after { background: #F59E0B; }
+@keyframes qm-progress { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* ---------- 14. MODAL bật lên có lực nảy nhẹ kiểu macOS ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .modal:not(.hidden) .modal-content {
+    animation: qm-modal-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+}
+@keyframes qm-modal-in {
+  from { opacity: 0; transform: scale(0.94) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ---------- 15. Thẻ bấm được (div có onclick) nổi lên khi hover ---------- */
+div[onclick].bg-white { transition: transform 0.2s, box-shadow 0.2s; }
+div[onclick].bg-white:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 3px 6px rgb(15 23 42 / 0.05), 0 16px 32px rgb(15 23 42 / 0.12);
+}
+
+/* ============================================================
+   16. GIAO DIỆN THEO MÙA (data-season trên <html>, do student.html đặt)
+   ============================================================ */
+:root {
+  /* Mặc định (Hạ - Blue) */
+  --color-primary-50: 239 246 255;
+  --color-primary-100: 219 234 254;
+  --color-primary-200: 191 219 254;
+  --color-primary-500: 59 130 246;
+  --color-primary-600: 37 99 235;
+  --color-primary-700: 29 78 216;
+  --color-primary-800: 30 64 175;
+}
+
+[data-season="spring"] {
+  /* Xuân - Pink */
+  --color-primary-50: 253 242 248;
+  --color-primary-100: 252 231 243;
+  --color-primary-200: 251 207 232;
+  --color-primary-500: 236 72 153;
+  --color-primary-600: 219 39 119;
+  --color-primary-700: 190 24 93;
+  --color-primary-800: 157 23 77;
+  --season-a: #F472B6; --season-b: #E11D48; --season-soft: #FDF2F8; --season-shadow: rgb(225 29 72 / 0.32); 
+}
+
+[data-season="summer"] { 
+  /* Hạ - Blue */
+  --color-primary-50: 239 246 255;
+  --color-primary-100: 219 234 254;
+  --color-primary-200: 191 219 254;
+  --color-primary-500: 59 130 246;
+  --color-primary-600: 37 99 235;
+  --color-primary-700: 29 78 216;
+  --color-primary-800: 30 64 175;
+  --season-a: #60A5FA; --season-b: #2563EB; --season-soft: #EFF6FF; --season-shadow: rgb(37 99 235 / 0.32); 
+}
+
+[data-season="autumn"] { 
+  /* Thu - Orange */
+  --color-primary-50: 255 247 237;
+  --color-primary-100: 255 237 213;
+  --color-primary-200: 254 215 170;
+  --color-primary-500: 249 115 22;
+  --color-primary-600: 234 88 12;
+  --color-primary-700: 194 65 12;
+  --color-primary-800: 154 52 18;
+  --season-a: #F59E0B; --season-b: #EA580C; --season-soft: #FFF7ED; --season-shadow: rgb(234 88 12 / 0.32); 
+}
+
+[data-season="winter"] { 
+  /* Đông - Indigo */
+  --color-primary-50: 238 242 255;
+  --color-primary-100: 224 231 255;
+  --color-primary-200: 199 210 254;
+  --color-primary-500: 99 102 241;
+  --color-primary-600: 79 70 229;
+  --color-primary-700: 67 56 202;
+  --color-primary-800: 55 48 163;
+  --season-a: #818CF8; --season-b: #4F46E5; --season-soft: #EEF2FF; --season-shadow: rgb(79 70 229 / 0.32); 
+}
+
+/* Mục sidebar đang chọn nhuộm màu mùa */
+[data-season] .sidebar-item.active {
+  background: linear-gradient(135deg, var(--season-a), var(--season-b));
+  box-shadow: 0 6px 16px var(--season-shadow);
+}
+/* Mục nav dashboard (giáo viên) đang chọn cũng nhuộm màu mùa */
+[data-season] .nav-item.active {
+  background: linear-gradient(135deg, var(--season-a), var(--season-b));
+  box-shadow: 0 6px 16px var(--season-shadow);
+}
+/* Banner chào mừng: học sinh (teal->blue) và giáo viên (blue->pink) nhuộm màu mùa */
+[data-season] .from-teal-600.to-blue-600,
+[data-season] .from-blue-500.to-pink-500 {
+  background-image: linear-gradient(to bottom right, var(--season-a), var(--season-b));
+}
+/* Sidebar phủ nhẹ sắc mùa ở đỉnh */
+[data-season] #sidebar { background-image: linear-gradient(180deg, var(--season-soft), rgb(255 255 255) 26%); }
+
+/* Tranh trang trí theo mùa ở góc phải banner (cây đào / đảo dừa / cây phong / người tuyết) */
+.qm-season-decor {
+  position: absolute; right: 16px; bottom: 0;
+  width: 150px; height: 112px;
+  pointer-events: none; z-index: 5;
+  filter: drop-shadow(0 4px 10px rgb(0 0 0 / 0.15));
+}
+.qm-season-decor svg { width: 100%; height: 100%; display: block; }
+@media (max-width: 767px) { .qm-season-decor { width: 100px; height: 75px; right: 8px; opacity: 0.85; } }
+@media (prefers-reduced-motion: no-preference) {
+  .qm-season-decor { animation: qm-decor-in 0.8s cubic-bezier(0.34, 1.3, 0.64, 1); }
+}
+@keyframes qm-decor-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Icon rơi: SVG mềm, rơi + đung đưa + xoay */
+.falling-item {
+  position: absolute; top: -30px; pointer-events: none; user-select: none;
+  opacity: 0; z-index: 1; text-shadow: none;
+  animation: qm-fall linear infinite;
+}
+.falling-item svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.08)); }
+@keyframes qm-fall {
+  0%   { transform: translateY(-30px) translateX(0) rotate(0deg); opacity: 0; }
+  8%   { opacity: 0.75; }
+  50%  { transform: translateY(45vh) translateX(14px) rotate(160deg); opacity: 0.75; }
+  92%  { opacity: 0.55; }
+  100% { transform: translateY(92vh) translateX(-10px) rotate(330deg); opacity: 0; }
+}
+
+/* ============================================================
+   17. DARK MODE trang học sinh (scope: body[data-page="student"])
+   Nguyên tắc: nền tối slate, chữ sáng — KHÔNG bao giờ trùng màu nền/chữ.
+   ============================================================ */
+.dark body[data-page="student"] { background-color: #0B1220; color: #CBD5E1; color-scheme: dark; }
+
+/* Bề mặt */
+.dark [data-page="student"] .bg-white { background-color: #1E293B; }
+.dark [data-page="student"] .bg-gray-50,
+.dark [data-page="student"] .bg-gray-100 { background-color: #273449; }
+.dark [data-page="student"] .bg-gray-200 { background-color: #334155; }
+.dark [data-page="student"] .bg-teal-50 { background-color: rgb(19 78 74 / 0.35); }
+.dark [data-page="student"] .bg-teal-50\/30 { background-color: rgb(19 78 74 / 0.20); }
+.dark [data-page="student"] .bg-teal-100 { background-color: rgb(19 78 74 / 0.55); }
+.dark [data-page="student"] .bg-red-50 { background-color: rgb(127 29 29 / 0.30); }
+.dark [data-page="student"] .bg-red-100 { background-color: rgb(127 29 29 / 0.45); }
+.dark [data-page="student"] .bg-yellow-100 { background-color: rgb(113 63 18 / 0.40); }
+.dark [data-page="student"] :is(.bg-orange-50, .bg-orange-100) { background-color: rgb(124 45 18 / 0.40); }
+.dark [data-page="student"] :is(.bg-indigo-50, .bg-purple-100) { background-color: rgb(49 46 129 / 0.45); }
+.dark [data-page="student"] .bg-green-100 { background-color: rgb(20 83 45 / 0.45); }
+.dark [data-page="student"] .bg-green-50 { background-color: rgb(20 83 45 / 0.30); }
+.dark [data-page="student"] .bg-blue-100, .dark [data-page="student"] .bg-blue-50 { background-color: rgb(30 58 138 / 0.40); }
+
+/* Chữ — luôn đủ tương phản trên nền tối */
+.dark [data-page="student"] :is(.text-gray-900, .text-gray-800) { color: #E2E8F0; }
+.dark [data-page="student"] .text-gray-700 { color: #CBD5E1; }
+.dark [data-page="student"] :is(.text-gray-600, .text-gray-500) { color: #94A3B8; }
+.dark [data-page="student"] :is(.text-gray-400, .text-gray-300) { color: #64748B; }
+.dark [data-page="student"] :is(.text-teal-700, .text-teal-600) { color: #5EEAD4; }
+.dark [data-page="student"] .text-red-600 { color: #FCA5A5; }
+.dark [data-page="student"] :is(.text-yellow-700, .text-yellow-600) { color: #FDE68A; }
+.dark [data-page="student"] :is(.text-green-700, .text-green-600) { color: #86EFAC; }
+.dark [data-page="student"] :is(.text-blue-700, .text-blue-600) { color: #93C5FD; }
+.dark [data-page="student"] :is(.text-orange-700, .text-orange-600) { color: #FDBA74; }
+.dark [data-page="student"] :is(.text-indigo-700, .text-indigo-600, .text-purple-700) { color: #C4B5FD; }
+
+/* Viền */
+.dark [data-page="student"] :is(.border-gray-50, .border-gray-100, .border-gray-200, .border-teal-50, .border-teal-100, .border-teal-200, .border-white, .border-indigo-50, .border-indigo-100, .border-blue-100, .border-orange-100, .border-yellow-100) { border-color: #334155; }
+.dark [data-page="student"] :is(.border-red-100, .border-red-200) { border-color: rgb(153 27 27 / 0.5); }
+
+/* Hover */
+.dark [data-page="student"] :is(.hover\:bg-gray-50:hover, .hover\:bg-gray-100:hover) { background-color: #334155; }
+.dark [data-page="student"] .hover\:bg-teal-50:hover { background-color: rgb(19 78 74 / 0.35); }
+.dark [data-page="student"] .hover\:bg-red-50:hover { background-color: rgb(127 29 29 / 0.30); }
+.dark [data-page="student"] .hover\:bg-teal-200:hover { background-color: rgb(19 78 74 / 0.70); }
+
+/* Ô nhập liệu */
+.dark [data-page="student"] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background-color: #0F172A; border-color: #334155; color: #E2E8F0;
+}
+.dark [data-page="student"] ::placeholder { color: #64748B; }
+
+/* Các class nền đặc biệt trong student.html */
+.dark [data-page="student"] .bg-\[\#F0FDFA\] { background-color: #0B1220; }
+.dark [data-page="student"] .bg-white\/90 { background-color: rgb(17 28 46 / 0.9); }
+.dark [data-page="student"] .bg-gray-50\/50 { background-color: rgb(39 52 73 / 0.5); }
+.dark [data-page="student"] .text-brand { color: #5EEAD4; }
+.dark [data-page="student"] .text-accent { color: #FDBA74; }
+
+/* Mục sidebar đang chọn: chữ LUÔN trắng trong dark (thắng mapping text-gray-600) */
+.dark [data-page="student"] .sidebar-item.active,
+.dark [data-page="student"] .sidebar-item.active:hover { color: #fff; }
+
+/* Sidebar & thành phần polish trong dark */
+.dark [data-page="student"] .sidebar-item > i { background: #334155; color: #94A3B8; }
+.dark [data-page="student"] .sidebar-item:hover { background: rgb(19 78 74 / 0.30); }
+.dark [data-page="student"] .sidebar-item.active > i { background: rgb(255 255 255 / 0.22); color: #fff; }
+.dark [data-page="student"] .notification-toast { background: rgb(30 41 59 / 0.92); }
+.dark [data-page="student"] #sidebar { background-image: none; background-color: #111C2E; }
+.dark header.sticky { background-color: rgb(15 23 42 / 0.82); }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #64748B; }
+.dark { scrollbar-color: #475569 transparent; }
+/* Sắc mùa trên sidebar tắt trong dark để giữ nền tối sạch (banner + item active vẫn giữ màu mùa) */

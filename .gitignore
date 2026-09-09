@@ -1,0 +1,13 @@
+node_modules/
+backup_phase2/
+schema_discovery.json
+*.py
+*.sql
+*.aux
+*.log
+*.synctex.gz
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
+.env

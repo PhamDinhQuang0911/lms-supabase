@@ -1,0 +1,1382 @@
+\subsection{Bài tập tự luận}
+%%==========Bài 1
+\begin{bt}
+	Giải các tam giác vuông ở hình sau. Làm tròn kết quả độ dài đến hàng đơn vị và số đo góc đến độ.
+	\begin{center}
+	\begin{tikzpicture}[line cap=round,line join=round,font=\footnotesize,xscale=0.8,yscale=0.55,scale=.8]
+	\def\r{2}
+	\path (0,0) coordinate (A)
+	(3,0) coordinate (C)
+	(0,{3*tan(53)}) coordinate (B)
+	;
+	\draw (A)--(C)--(B)--cycle;
+	\path (A)--(C)node[midway,below]{$6$};
+	\path (A)--(B)node[midway,left]{$5$};
+	\pic[draw,angle radius=4pt]{right angle=B--A--C};
+	\foreach \t/\g in {A/-90,B/90,C/-45}{
+	\fill (\t) circle (1pt) node[shift={(\g:7pt)}]{$ \t $};
+	}
+	\path ($(A)!.5!(C)$)++(-90:1.1) node{a)};
+	\end{tikzpicture}\quad	
+	\begin{tikzpicture}[font=\footnotesize,scale=.7]
+	\def\r{3}
+	\path 	(0,0) coordinate (A)
+	(0:1.2*\r) coordinate (C)
+	(90:0.7*\r) coordinate (B);
+	\draw 	(A)--(B) node[midway, left]{$6$}--(C) node[midway, right]{$11$}--cycle;
+	\draw pic[draw,angle radius=2mm]{right angle=B--A--C};
+	\foreach \x/\g in {A/-90,C/-90,B/90} \fill[black] (\x) circle (1pt)($(\g:3mm)+(\x)$) node {$\x$};
+	\path ($(A)!.5!(C)$)++(-90:0.8) node{b)};
+	\end{tikzpicture}\quad
+	\begin{tikzpicture}[font=\footnotesize,scale=0.65]
+	\def\r{3}
+	\path 	(65:\r) coordinate (D)
+	(180:\r) coordinate (E)
+	(0:\r) coordinate (F);
+	\draw 	(D)--(E)--(F)--(D) node[midway, right]{$9$};
+	\draw pic[draw,,angle radius=4mm]{angle=F--E--D};
+	\draw pic["$32^\circ$",angle radius=15mm]{angle=F--E--D};
+	\draw pic[draw,angle radius=2mm]{right angle=F--D--E};
+	\foreach \x/\g in {D/90,E/-90,F/-90} \fill[black] (\x) circle (1pt)($(\g:3mm)+(\x)$) node {$\x$};
+	\draw (-90:1) node{c)};
+	\end{tikzpicture} \quad
+	\begin{tikzpicture}[font=\footnotesize,scale=0.6]
+	\def\r{3}
+	\path 	(0,0) coordinate (P)
+	(180:\r) coordinate (Q)
+	(90:1.1*\r) coordinate (R);
+	\draw 	(P)--(R) node[midway, right]{$9$}--(Q) node[midway, left]{$13$}--cycle;
+	\draw pic[draw,angle radius=2mm]{right angle=R--P--Q};
+	\foreach \x/\g in {P/-90,Q/-90,R/90} \fill[black] (\x) circle (1pt)($(\g:3mm)+(\x)$) node {$\x$};
+	\path ($(Q)!.5!(P)$)++(-90:1) node{d)};
+	\end{tikzpicture}
+	\end{center}
+	\loigiai{
+	\begin{enumerate}
+	\item Xét $\triangle A B C$ vuông tại $A$, theo định lí Pythagore, ta có\\
+	$BC=\sqrt{AB^2+AC^2}=\sqrt{5^2+8^2} \approx 9{,}4.$\\
+	Ta có $\tan C=\dfrac{A B}{AC}=\dfrac{5}{8}=0{,}625$.\\
+	Từ đó tìm được $\widehat{C} \approx 32^\circ$, suy ra $\widehat{B}=90^\circ-\widehat{C} \approx 90^\circ-32^\circ=58^\circ$.
+	\item Xét tam giác $ABC$ vuông tại $A$, ta có:\\
+	$\sin C=\dfrac{AB}{BC}=\dfrac{6}{11}$ suy ra $\widehat{C} \approx 33^\circ$, $\widehat{B} \approx 90^\circ - 33^\circ = 57^\circ$.\\
+	Theo định lí Pythagore, ta có \\
+	$AC=\sqrt{BC^2-AB^2}=\sqrt{11^2-6^2}=\sqrt{121-36} \approx 9$.
+	\item Xét tam giác $DEF$ vuông tại $D$, ta có:\\
+	$\widehat{F} = 90^\circ - 32^\circ = 58^\circ$.\\
+	$DE=DF \cdot \cot E = 9 \cdot \cot 32^\circ \approx 14$.\\
+	$\sin E=\dfrac{DF}{EF}$ nên $EF=\dfrac{DF}{\sin E} = \dfrac{9}{\sin 32^\circ} \approx 17$.
+	\item Xét tam giác $PQR$ vuông tại $P$, ta có:\\
+	$\cos R=\dfrac{PR}{QR}=\dfrac{9}{13}$, suy ra $\widehat{R} \approx 46^\circ$, $\widehat{Q} \approx 90^\circ - 46^\circ = 44^\circ$.\\
+	Theo định lí Pythagore, ta có:\\
+	$QP=\sqrt{QR^2-RP^2}=\sqrt{13^2-9^2}=\sqrt{169-81} \approx 9$.
+	\end{enumerate}
+	}
+\end{bt}
+%%==========Bài 2
+\begin{bt}
+	Giải tam giác $A B C$ vuông tại $A$ biết:
+	\begin{listEX}[4]
+	\item $AB = 4$, $AC = 6$;
+	\item $A B=4$, $B C=8$;
+	\item $A B=3$, $\widehat{B}=42^\circ$;
+	\item $B C=9$, $\widehat{C}=53^{\circ}$;
+	\end{listEX}
+	\loigiai{
+	\begin{listEX}
+	\item %a
+	Xét tam giác $ABC$ vuông tại $A$., ta có
+	\immini{
+	$BC^2 = AB^2 + AC^2= 4^2 + 6^2 = 52$ hay $BC = \sqrt{52}\approx 7{,}2$ (cm);\\
+	$\tan B =\dfrac{AC}{AB}=\dfrac{6}{4}=\dfrac{3}{2}$,	suy	ra	$\widehat{B}\approx 56^\circ$;\\
+	$\widehat{B}+\widehat{C}= 90^\circ$	(tổng hai	góc	nhọn của tam giác vuông),\\ 
+	suy ra $\widehat{C} = 90^\circ -\widehat{B}= 90^\circ - 56^\circ = 34^\circ$.
+	}
+	{\vspace*{-3mm}
+	\begin{tikzpicture}[scale=0.6]
+	\path (0,0) coordinate (A)--+(4,0) coordinate (C)--++(0,1) coordinate (y)
+	($(C)!1!-40:(A)$) coordinate (x)
+	(intersection of C--x and A--y) coordinate (B);
+	\draw (A)--(B)node[left,pos=0.5]{$4$}--(C)--cycle node[below,pos=0.5]{$6$};
+	\pic[draw,angle radius=4pt]{right angle=B--A--C};
+	\foreach \t/\g in {A/180,B/90,C/0}{
+	\draw[fill=black] (\t) circle (1pt) node[shift={(\g:7pt)},font=\scriptsize]{$ \t $};
+	}
+	\end{tikzpicture}
+	}
+	\item %b
+	Xét tam giác $ABC$ vuông tại $A$, ta có
+	\immini{
+	$AC=\sqrt{BC^2-AC^2}=\sqrt{8^2-4^2}=4\sqrt{3}\approx6{,}928$.\\
+	$\cos B=\dfrac{AB}{BC}=\dfrac{4}{8}=\dfrac{1}{2}$\\
+	$\Rightarrow \widehat{B}=60^\circ$.\\
+	$\widehat{C}=90^\circ-60^\circ=30^\circ$.
+	}{\vspace*{-3mm}
+	\begin{tikzpicture}[line cap=round,line join=round,font=\footnotesize,xscale=0.85,yscale=0.35]
+	\path (0,0) coordinate (A)
+	(3,0) coordinate (B)
+	(0,{3*tan(60)}) coordinate (C)
+	;
+	\draw (A)--(B)--(C)--cycle;
+	\pic[draw,angle radius=4pt]{right angle=B--A--C};
+	\foreach \t/\g in {A/-90,B/-135,C/90}{
+	\fill (\t) circle (1pt) node[shift={(\g:7pt)}]{$ \t $};
+	}
+	\path (A)--(B) node[midway, below]{$4$};
+	\path (B)--(C) node[midway, above]{$8$};
+	\end{tikzpicture}}
+	\item %c
+	Xét $\triangle A B C$ vuông tại $A$, ta có
+	\immini{
+	$\widehat{C}=90^\circ-\widehat{B}=90^\circ-42^\circ=48^\circ$;\\
+	$A C=A B \cdot \tan B=3 \cdot \tan 42^\circ \approx 2{,}701$.\\
+	Ta có
+	$\cos B=\dfrac{A B}{B C}$, suy ra \\
+	$B C=\dfrac{A B}{\cos B}=\dfrac{3}{\cos 42^\circ} \approx 4{,}037.$
+	}{\vspace*{-3mm}
+	\begin{tikzpicture}[line cap=round,line join=round,font=\footnotesize,scale=0.75]
+	\def\r{2}
+	\path (0,0) coordinate (A)
+	(3,0) coordinate (B)
+	(0,{3*tan(42)}) coordinate (C)
+	;
+	\draw (A)--(B)--(C)--cycle;
+	\path (A)--(B)node[midway, below]{$3$};
+	\pic[draw,angle radius=12pt,angle eccentricity=1.7,"$42^\circ$"]{angle=C--B--A};
+	\pic[draw,angle radius=4pt]{right angle=B--A--C};
+	\foreach \t/\g in {A/-90,B/-135,C/90}{
+	\fill (\t) circle (1pt) node[shift={(\g:7pt)}]{$ \t $};
+	}
+	\end{tikzpicture}	
+	}
+	\item %d
+	Xét tam giác $ABC$ vuông tại $A$, ta có
+	\immini{
+	$\sin C=\dfrac{AB}{BC}\Rightarrow AB=\sin C\cdot BC=\sin 53^\circ\cdot 9\approx7{,}2$.\\
+	$\cos C=\dfrac{AC}{BC}\Rightarrow AC=BC\cdot \cos C=9\cdot \cos 53^\circ\approx5{,}4$.\\
+	$\widehat{B}=90^\circ-\widehat{C}=90^\circ-53^\circ=37^\circ$.
+	}
+	{\vspace*{-3mm}
+	\begin{tikzpicture}[line cap=round,line join=round,font=\footnotesize,yscale=0.5]
+	\def\r{2}
+	\path (0,0) coordinate (A)
+	(3,0) coordinate (C)
+	(0,{3*tan(53)}) coordinate (B)
+	;
+	\draw (A)--(C)--(B)--cycle;
+	\path (C)--(B)node[midway, above right]{$9$};
+	\pic[draw,angle radius=12pt,angle eccentricity=1.7,"$53^\circ$"]{angle=B--C--A};
+	\pic[draw,angle radius=4pt]{right angle=B--A--C};
+	\foreach \t/\g in {A/-90,B/90,C/-45}{
+	\fill (\t) circle (1pt) node[shift={(\g:7pt)}]{$ \t $};
+	}
+	\end{tikzpicture}}
+	\end{listEX}
+	}
+\end{bt}
+%%%==========Bài 3
+%\begin{bt}
+%	Giải tam giác $ABC$ vuông tại $A$, biết:
+%	\begin{listEX}[2]
+%	\item $AB = 3{,}5$ và $AC = 4{,}2$;
+%	\item $AB = 3{,}0$ và $BC = 4{,}5$;
+%	\item $\widehat{B} = 50^{\circ}$ và $AB = 3{,}7$;
+%	\item $\widehat{B} = 57^{\circ}$ và $BC = 4{,}5$.
+%	\end{listEX}
+%	\loigiai{
+%	\begin{listEX}
+%	\item 
+%	\immini{
+%	Ta có $\tan B = \dfrac{AC}{AB} = \dfrac{4{,}2}{3{,}5}\approx \tan 50^{\circ}12'$.\\
+%	Suy ra $\widehat{B}\approx 50^{\circ}12'$ mà $\widehat{B} + \widehat{C} = 90^{\circ}$\\ 
+%	nên	$\widehat{C} = 90^{\circ} - \widehat{B} = 90^{\circ} - 50^{\circ}12' = 39^{\circ}48'$.\\
+%	Mặt khác, theo định lí Py-ta-go ta có 	
+%	$$BC = \sqrt{AB^2 + AC^2} = \sqrt{3{,}5^2 + 4{,}2^2}\approx 5{,}5.$$
+%	}
+%	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=0.6]
+%	\tkzDefPoints{0/0/B} 
+%	\coordinate (C) at ($(B)+(6,0)$); 
+%	\tkzDefTriangle[two angles = 50 and 40](B,C) \tkzGetPoint{A} 
+%	\pgfresetboundingbox 
+%	\tkzMarkRightAngles[size=.3](B,A,C) 
+%	\tkzDrawPolygon(A,B,C)
+%	\tkzLabelSegments[color=black,left](A,B){$3{,}5$}
+%	\tkzLabelSegments[color=black,right](A,C){$4{,}2$}
+%	\tkzDrawPoints[fill=black](A,B,C) 
+%	\tkzLabelPoints[above](A) 
+%	\tkzLabelPoints[left](B) 
+%	\tkzLabelPoints[right](C) 
+%	\end{tikzpicture}
+%	}
+%	\item
+%	\immini
+%	{Do giả thiết ta có $\sin C = \dfrac{AB}{BC} = \dfrac{3{,}0}{4{,}5}\approx \sin 41^{\circ}49'$ suy ra $\widehat{C} = 41^{\circ}49'$.\\
+%	Mà $\widehat{B} + \widehat{C} = 90^{\circ}$ nên $\widehat{B} = 90^{\circ} - \widehat{C} = 90^{\circ} - 41^{\circ}49' = 48^{\circ}11'$.\\
+%	Mặt khác theo định lí Py-ta-go ta có
+%	$$AC = \sqrt{BC^2 - AB^2} = \sqrt{4{,}5^2 - 3{,}0^2}\approx 3{,}4.$$ 
+%	}
+%	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=0.6]
+%	\tkzDefPoints{0/0/B} 
+%	\coordinate (C) at ($(B)+(6,0)$); 
+%	\tkzDefTriangle[two angles = 50 and 40](B,C) \tkzGetPoint{A} 
+%	\pgfresetboundingbox 
+%	\tkzMarkRightAngles[size=.3](B,A,C) 
+%	\tkzDrawPolygon(A,B,C)
+%	\tkzLabelSegments[color=black,left](A,B){$3{,}0$}
+%	\tkzLabelSegments[color=black,below](B,C){$4{,}5$}
+%	\tkzDrawPoints[fill=black](A,B,C) 
+%	\tkzLabelPoints[above](A) 
+%	\tkzLabelPoints[left](B) 
+%	\tkzLabelPoints[right](C) 
+%	\end{tikzpicture}
+%	}
+%	\item
+%	\immini
+%	{Ta có $\widehat{C} = 90^{\circ} - \widehat{B} = 90^{\circ} - 50^{\circ} = 40^{\circ}$.\\
+%	Mặt khác $AC = AB\cdot\tan B = 3{,}7\cdot \tan 50^{\circ}\approx 4{,}4$.\\
+%	Tương tự $BC = \dfrac{AB}{\cos B} = \dfrac{3{,}7}{\cos 50^{\circ}}\approx 5{,}8$.
+%	}
+%	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=0.6]
+%	\tkzDefPoints{0/0/B} 
+%	\coordinate (C) at ($(B)+(6,0)$); 
+%	\tkzDefTriangle[two angles = 50 and 40](B,C) \tkzGetPoint{A} 
+%	\pgfresetboundingbox 
+%	\tkzMarkRightAngles[size=.3](B,A,C) 
+%	\tkzDrawPolygon(A,B,C)
+%	\tkzLabelSegments[color=black,left](A,B){$3{,}7$}
+%	\tkzMarkAngles[size=.5,arc=l](C,B,A)
+%	\tkzLabelAngles[pos=1.2](C,B,A){\tiny $50^\circ$}
+%	\tkzDrawPoints[fill=black](A,B,C) 
+%	\tkzLabelPoints[above](A) 
+%	\tkzLabelPoints[left](B) 
+%	\tkzLabelPoints[right](C) 
+%	\end{tikzpicture}
+%	}
+%	\item
+%	\immini
+%	{Ta có $\widehat{C} = 90^{\circ} - 57^{\circ} = 33^{\circ}$.\\
+%	Mặt khác $AB = BC\cdot \cos B = 4{,}5\cdot \cos 57^{\circ}\approx 2{,}5$\\
+%	và $AC = BC\cdot\sin B = 4{,}5\cdot \sin 57^{\circ}\approx 3{,}8$.
+%	}
+%	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=0.6]
+%	\tkzDefPoints{0/0/B} 
+%	\coordinate (C) at ($(B)+(6,0)$); 
+%	\tkzDefTriangle[two angles = 57 and 33](B,C) \tkzGetPoint{A} 
+%	\pgfresetboundingbox 
+%	\tkzMarkRightAngles[size=.3](B,A,C) 
+%	\tkzDrawPolygon(A,B,C)
+%	\tkzLabelSegments[color=black,below](B,C){$4{,}5$}
+%	\tkzMarkAngles[size=.5,arc=l](C,B,A)
+%	\tkzLabelAngles[pos=1.2](C,B,A){\tiny $57^\circ$}
+%	\tkzDrawPoints[fill=black](A,B,C) 
+%	\tkzLabelPoints[above](A) 
+%	\tkzLabelPoints[left](B) 
+%	\tkzLabelPoints[right](C) 
+%	\end{tikzpicture}
+%	}
+%	\end{listEX}
+%	}
+%\end{bt}
+%%==========Bài 4
+\begin{bt}
+	Cho hình chữ nhật $ABCD$ thỏa mãn $AC = 6$ cm. $\widehat{BAC}=47^\circ$. Tính độ dài các đoạn thẳng $AB$, $AD$.
+	\loigiai{
+	\immini{
+	Xét tam giác $ABC$ vuông tại $B$, ta có\\
+	$AB = AC \cdot \cos \widehat{BAC}= 6\cdot \cos 47^\circ\approx 4{,}1$ (cm).\\
+	$BC = AC \cdot \sin \widehat{BAC}= 6\cdot \sin 47^\circ\approx 4{,}4$ (cm).\\
+	Vì tam giác $ABCD$ là hình chữ nhật nên $AD =BC\approx 4{,}4$ (cm).
+	}
+	{
+	\begin{tikzpicture}[declare function={r=3;}]
+	\path (0,0) coordinate (A)--+(3,0) coordinate (B)
+	($(A)!1!-47:(B)$) coordinate (x)
+	($(B)!0.3!90:(A)$) coordinate (y)
+	(intersection of A--x and B--y) coordinate (C)
+	($(A)+(C)-(B)$) coordinate (D)
+	;
+	\path pic["\scriptsize$47^\circ$", angle eccentricity=2,draw,angle radius=12pt, double]{angle= C--A--B};
+	\draw (A)--(B)--(C)--(D)--cycle (A)--(C)node[right,pos=0.5]{$6$ cm};
+	\foreach \t/\g in {A/90,B/90,C/0,D/180}{
+	\draw[fill=black] (\t) circle (1pt) node[shift={(\g:7pt)},font=\scriptsize]{$ \t $};
+	}
+	\end{tikzpicture}
+	}
+	}
+\end{bt}
+%%==========Bài 5
+\begin{bt}
+	Cho tam giác $ABC$ vuông tại $A$, đường cao $AH$. Biết $AB = 2{,}5$, $BH = 1{,}5$. Tính $\widehat{B}$, $\widehat{C}$ và $AC$.
+	\loigiai
+	{\immini
+	{Xét tam giác $ABH$ vuông tại $H$, ta có\\
+	$\cos B = \dfrac{BH}{AB} = \dfrac{1{,}5}{2{,}5}\approx \cos 53^{\circ}8'$ suy ra $\widehat{B}\approx 53^{\circ}8'$.\\
+	Mà $\widehat{B} + \widehat{C} = 90^{\circ}$ nên $\widehat{C} = 90^{\circ} - 53^{\circ}8' = 36^{\circ}52'$.\\
+	Xét $\triangle ABC$ vuông tại $A$, ta có\\
+	$AC = AB\cdot \tan B = 2{,}5\cdot\tan 53^{\circ}8'\approx 3{,}3$. 	
+	}
+	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=.8] 
+	\tkzDefPoints{0/0/B} 
+	\coordinate (C) at ($(B)+(6,0)$); 
+	\tkzDefTriangle[two angles = 53 and 37](B,C) \tkzGetPoint{A}
+	%\tkzDrawAltitude(B,C)(A) \tkzGetPoint{H}
+	\tkzDefPointBy[projection = onto C--B](A) \tkzGetPoint{H}
+	\pgfresetboundingbox 
+	\tkzMarkRightAngles[size=.3](B,A,C A,H,C) 
+	\tkzDrawPolygon(A,B,C)
+	\tkzDrawSegments(A,H)
+	\tkzLabelSegments[color=black,below](B,H){$1{,}5$}
+	\tkzLabelSegments[color=black,left](A,B){$2{,}5$}
+	\tkzDrawPoints[fill=black](A,B,C,H) 
+	\tkzLabelPoints[above](A) 
+	\tkzLabelPoints[left](B) 
+	\tkzLabelPoints[right](C)
+	\tkzLabelPoints[below](H) 
+	\end{tikzpicture}
+	}
+	}
+\end{bt}
+%%==========Bài 6
+\begin{bt}
+	Cho tam giác $ABC$ có $\widehat{B} = 65^{\circ}$, $\widehat{C} = 45^{\circ}$ và $AB = 2{,}8\, \mathrm{cm}$. Tính các góc và cạnh còn lại của tam giác đó (gọi là giải tam giác $ABC$).
+	\loigiai
+	{\immini
+	{Ta có $\widehat{A} = 180^{\circ} - \widehat{B} - \widehat{C} = 180^{\circ} - 65^{\circ} - 45^{\circ} = 70^{\circ}$.\\
+	Kẻ đường cao $AH$. Xét $\triangle ABH$ vuông tại $H$, ta có
+	$AH = AB\cdot\sin B = 2{,}8\cdot\sin 65^{\circ}\approx 2{,}54\, \left(\mathrm{cm}\right)$.\\
+	Tương tự $BH = AB\cdot\cos B = 2{,}8\cdot\cos 65^{\circ}\approx 1{,}18\, \left(\mathrm{cm}\right)$.\\
+	Mặt khác, do giả thiết suy ra tam giác $HAC$ vuông cân tại $H$ nên $HA = HC$. Do đó $BC \approx 2{,}54 + 1{,}18 = 3{,}7\, \left(\mathrm{cm}\right)$.\\
+	Xét $\triangle AHC$ vuông tại $H$, ta có\\
+	$$AC = \dfrac{HA}{\sin C}\approx \dfrac{2{,}54}{\sin 45^{\circ}}\approx 3{,}6\, \left(\mathrm{cm}\right).$$
+	}
+	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=0.75] 
+	\tkzDefPoints{0/0/B} 
+	\coordinate (C) at ($(B)+(6,0)$); 
+	\tkzDefTriangle[two angles = 65 and 45](B,C) \tkzGetPoint{A}
+	%\tkzDrawAltitude(B,C)(A) \tkzGetPoint{H}
+	\tkzDefPointBy[projection = onto C--B](A) \tkzGetPoint{H}
+	\pgfresetboundingbox 
+	\tkzMarkRightAngles[size=.3](A,H,C) 
+	\tkzDrawPolygon(A,B,C)
+	\tkzDrawSegments[dashed](A,H)
+	\tkzLabelSegments[color=black,left](A,B){$2{,}8$}
+	\tkzLabelAngles[pos=0.6](C,B,A){$65^\circ$}
+	\tkzLabelAngles[pos=0.7](A,C,B){$45^\circ$}
+	\tkzDrawPoints[fill=black](A,B,C,H) 
+	\tkzLabelPoints[above](A) 
+	\tkzLabelPoints[left](B) 
+	\tkzLabelPoints[right](C)
+	\tkzLabelPoints[below](H) 
+	\end{tikzpicture}
+	}
+	}
+\end{bt}
+%%%==========Bài 7
+%\begin{bt}
+%	Giải tam giác $ABC$ biết $\widehat{B} = 65^{\circ}$, $\widehat{C} = 40^{\circ}$ và $BC = 4{,}2\, \mathrm{cm}$.
+%	\loigiai
+%	{\immini
+%	{Ta có $\widehat{A} = 180^{\circ} - \widehat{B} - \widehat{C} = 180^{\circ} - 65^{\circ} - 40^{\circ} = 75^{\circ}$.\\
+%	Kẻ đường cao $BH$. Xét $\triangle BCH$ vuông tại $H$, ta có
+%	$BH = BC\cdot\sin C = 4{,}2\cdot\sin 40^{\circ}\approx 2{,}70\, \left(\mathrm{cm}\right)$.\\ 
+%	Tương tự, xét $\triangle ABH$ vuông tại $H$, ta có
+%	\[AB = \dfrac{BH}{\sin A} = \dfrac{2{,}70}{\sin 75^{\circ}}\approx 2{,}8\, \left(\mathrm{cm}\right).\]
+%	}
+%	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=.6] 
+%	\tkzDefPoints{0/0/B} 
+%	\coordinate (C) at ($(B)+(6,0)$); 
+%	\tkzDefTriangle[two angles = 65 and 40](B,C) \tkzGetPoint{A}
+%	%\tkzDrawAltitude(A,C)(B) \tkzGetPoint{H}
+%	\tkzDefPointBy[projection = onto C--A](B) \tkzGetPoint{H}
+%	\pgfresetboundingbox 
+%	\tkzMarkRightAngles[size=.3](B,H,C) 
+%	\tkzDrawPolygon(A,B,C)
+%	\tkzDrawSegments[dashed](B,H)
+%	\tkzLabelSegments[color=black,below](B,C){$4{,}2$}
+%	\tkzLabelAngles[pos=0.7](A,C,B){$40^\circ$}
+%	\tkzMarkAngles[size=.5,arc=l](C,B,A)
+%	\tkzDrawPoints[fill=black](A,B,C,H) 
+%	\tkzLabelPoints[above](A) 
+%	\tkzLabelPoints[left](B) 
+%	\tkzLabelPoints[right](C)
+%	\tkzLabelPoints[above right](H) 
+%	\end{tikzpicture}
+%	}
+%	\noindent Mặt khác, ta có 
+%	\allowdisplaybreaks
+%	\begin{eqnarray*}
+%	AC &=& AH + CH = BH\cdot\left(\cot A + \cot C\right)\\
+%	&\approx& 2{,}70\cdot\left(\cot 75^{\circ} + \cot 40^{\circ}\right)\approx 3{,}9\, \left(\mathrm{cm}\right)
+%	\end{eqnarray*}
+%	}
+%\end{bt}
+%%%==========Bài 8
+%\begin{bt}
+%	Giải tam giác nhọn $ABC$ biết $\widehat{B} = 60^{\circ}$, $AB = 3{,}0$ và $BC = 4{,}5$.
+%	\loigiai
+%	{\immini
+%	{Kẻ đường cao $AH\perp BC$. Xét $\triangle ABH$ vuông tại $H$, ta có
+%	$AH = AB\cdot\sin B = 3{,}0\cdot\sin 60^{\circ}\approx 2{,}6$.\\ 
+%	Tương tự, xét $BH = AB\cdot \cos B = 3{,}0\cdot \cos 60^{\circ} = 1{,}5$.\\
+%	Mà $HC = BC - BH = 4{,}5 - 1{,}5 = 3{,}0$.\\
+%	Theo định lí Py-ta-go ta có $AB^2 = BH^2 + AH^2 = 3{,}0^2 + 2{,}6^2 = 15{,}76$ suy ra $AB = \sqrt{15{,}76}\approx 4{,}0$.\\
+%	Xét $\triangle AHC$ vuông tại $H$ ta có $\tan\widehat{ACH} = \dfrac{AH}{HC}\approx \dfrac{2{,}6}{3{,}0}\approx\tan 40^{\circ}55'$.\\
+%	Do $\widehat{A}= 180^{\circ} - \widehat{B} - \widehat{C} \approx 180^{\circ} - \left(60^{\circ} + 40^{\circ}55'\right) = 79^{\circ}5'$. 
+%	}
+%	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=0.9] 
+%	\tkzDefPoints{0/0/B} 
+%	\coordinate (C) at ($(B)+(6,0)$); 
+%	\tkzDefTriangle[two angles = 60 and 41](B,C) \tkzGetPoint{A}
+%	%\tkzDrawAltitude(B,C)(A) \tkzGetPoint{H}
+%	\tkzDefPointBy[projection = onto C--B](A) \tkzGetPoint{H}
+%	\draw[|<->|]($(B)-(0,.5)$)--($(C)-(0,.5)$) node[pos=.5,fill=white,sloped]{$4{,}5$cm};
+%	\pgfresetboundingbox 
+%	\tkzMarkRightAngles[size=.3](A,H,C) 
+%	\tkzDrawPolygon(A,B,C)
+%	\tkzDrawSegments[dashed](A,H)
+%	\tkzLabelSegments[color=black,left](A,B){$3{,}0$}
+%	\tkzLabelSegments[color=black,right](A,C){$3{,}8$}
+%	\tkzLabelAngles[pos=0.6](C,B,A){$60^\circ$}
+%	\tkzDrawPoints[fill=black](A,B,C,H) 
+%	\tkzLabelPoints[above](A) 
+%	\tkzLabelPoints[left](B) 
+%	\tkzLabelPoints[right](C)
+%	\tkzLabelPoints[below](H) 
+%	\end{tikzpicture}
+%	}
+%	}
+%\end{bt}
+%%==========Bài 9
+\begin{bt}
+%	\immini{
+	Cho tam giác $\triangle ABC$, kẻ $AH\perp BC$, biết $\widehat{C}=41^\circ$, $\widehat{BAH}=28^\circ$, $AH=4~\text{cm}$ tính độ dài của mỗi đoạn thẳng sau
+	\begin{listEX}[2]
+	\item $HB$ và $HC$.
+	\item $AH$ và $AC$.
+	\end{listEX}
+%	}
+%	{
+%	\begin{tikzpicture}[scale=.7]
+%	\path (0,0) coordinate (O)--+(2,0) coordinate (C)
+%	($(C)!2!-41:(O)$) coordinate (A)
+%	($(O)!(A)!(C) $) coordinate (H)
+%	($(A)!1!-28:(H)$) coordinate (y)
+%	(intersection of A--y and O--C) coordinate (B)
+%	;
+%	\path pic["\scriptsize$41^\circ$", angle eccentricity=2,draw,angle radius=12pt, double]{angle= A--C--B};
+%	\path pic["\scriptsize$28^\circ$", angle eccentricity=2,draw,angle radius=15pt]{angle= B--A--H};
+%	\path pic[draw,angle radius=5pt]{right angle= A--H--C};
+%	\draw (A)--(B)--(C)--cycle (A)--(H)node[right,pos=0.5]{$4$ cm};
+%	\foreach \t/\g in {A/90,B/180,C/0,H/-90}{
+%	\draw[fill=white] (\t) circle (1pt) node[shift={(\g:7pt)},font=\scriptsize]{$ \t $};
+%	} 
+%	\end{tikzpicture}
+%	}
+	\loigiai{
+	\begin{enumerate}
+	\item Xét tam giác $ABH$ vuông tại $H$, ta có\\
+	$HB = AH \cdot \tan \widehat{BAH}= 4\cdot \tan 28^\circ\approx 2{,}1$ (cm).\\
+	Vì tam giác $ACH$ vuông lại $H$ nên $HC = AH \cdot \cot C= 4\cdot \cot 41^\circ\approx 4{,}6$ (cm).
+	\item Xét lam giác $ABH$ vuông lại $H$, ta có\\
+	$\cos \widehat{BAH}=\dfrac{AH}{AB}$ hay $AB= \dfrac{AH}{\cos \widehat{BAH}}=\dfrac{4}{\cos 28^\circ}\approx 4{,}5$ (cm).\\
+	Do tam giác $ACH$	vuông tại $H$ nên $\sin C=\dfrac{AH}{AC}$ hay $AC=\dfrac{AH}{\sin C}=\dfrac{4}{\sin 41^\circ}\approx 6{,}1$ (cm).
+	\end{enumerate}
+	}
+\end{bt}
+%%==========Bài 10
+\begin{bt}
+	Cho tam giác $ABC$ biết $AB=c$, $AC=b$, $\widehat{BAC}=\alpha$. Chứng minh rằng diện tích tam giác $ABC$ có diện tích là $S = \dfrac{1}{2}\cdot b\cdot c\cdot\sin\alpha$.
+%	\begin{center}
+%	\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=.85]
+%	\tkzDefPoints{0/0/B}
+%	\coordinate (C) at ($(B)+(6,0)$);
+%	\tkzDefShiftPoint[B](70:4){A}
+%	\pgfresetboundingbox
+%	\tkzDrawSegments(A,B B,C C,A)
+%	\tkzLabelSegments[color=black,left](A,B){$c$}
+%	\tkzLabelSegments[color=black,right](A,C){$b$}
+%	\tkzMarkAngles[size=.5,arc=l](B,A,C)
+%	\tkzLabelAngles[pos=0.7](B,A,C){$\alpha$}
+%	\tkzDrawPoints[fill=black](A,B,C)
+%	\tkzLabelPoints[above](A)
+%	\tkzLabelPoints[left](B)
+%	\tkzLabelPoints[right](C)
+%	\end{tikzpicture}	
+%	\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=1.2]
+%	\tkzDefPoints{0/0/B}
+%	\coordinate (C) at ($(B)+(4,0)$);
+%	\tkzDefTriangle[two angles = 35 and 30](B,C) \tkzGetPoint{A}
+%	\tkzDefPointBy[homothety = center C ratio 3/2](A) \tkzGetPoint{E}
+%	\pgfresetboundingbox
+%	\tkzDrawSegments(A,B B,C C,E)
+%	\tkzLabelSegments[color=black,left](A,B){$c$}
+%	\tkzLabelSegments[color=black,right](A,C){$b$}
+%	\tkzMarkAngles[size=.4,arc=l](E,A,B)
+%	\tkzLabelAngles[pos=-0.6](E,A,B){$\alpha$}
+%	\tkzDrawPoints[fill=black](A,B,C)
+%	\tkzLabelPoints[above](A)
+%	\tkzLabelPoints[left](B)
+%	\tkzLabelPoints[right](C)
+%	\end{tikzpicture}	
+%	\end{center}
+	\loigiai
+	{Vẽ đường cao $BH$ của tam giác $ABC$.
+	\begin{center}
+	\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=.85]
+	\tkzDefPoints{0/0/B}
+	\coordinate (C) at ($(B)+(6,0)$);
+	\tkzDefShiftPoint[B](70:4){A}
+	%\tkzDrawAltitude[dashed](A,C)(B) \tkzGetPoint{H}
+	\tkzDefPointBy[projection = onto C--A](B) \tkzGetPoint{H}
+	\pgfresetboundingbox
+	\tkzDrawSegments(A,B B,C C,A B,H)
+	\tkzLabelSegments[color=black,left](A,B){$c$}
+	\tkzLabelSegments[color=black,right](A,C){$b$}
+	\tkzMarkAngles[size=.5,arc=l](B,A,C)
+	\tkzLabelAngles[pos=0.7](B,A,C){$\alpha$}
+	\tkzDrawPoints[fill=black](A,B,C,H)
+	\tkzLabelPoints[above](A)
+	\tkzLabelPoints[left](B)
+	\tkzLabelPoints[right](C,H)
+	\tkzMarkRightAngles[size=.2](B,H,A)
+	\end{tikzpicture}\quad
+	\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=1.2]
+	\tkzDefPoints{0/0/B}
+	\coordinate (C) at ($(B)+(4,0)$);
+	\tkzDefTriangle[two angles = 35 and 30](B,C) \tkzGetPoint{A}
+	\tkzDefPointBy[homothety = center C ratio 3/2](A) \tkzGetPoint{E}
+	%\tkzDrawAltitude[dashed](A,C)(B) \tkzGetPoint{H}
+	\tkzDefPointBy[projection = onto C--A](B) \tkzGetPoint{H}
+	\pgfresetboundingbox
+	\tkzDrawSegments(A,B B,C C,E B,H)
+	\tkzLabelSegments[color=black,left](A,B){$c$}
+	\tkzLabelSegments[color=black,right](A,C){$b$}
+	\tkzMarkAngles[size=.4,arc=l](E,A,B)
+	\tkzLabelAngles[pos=-0.6](E,A,B){$\alpha$}
+	\tkzDrawPoints[fill=black](A,B,C,H)
+	\tkzLabelPoints[above](A,H)
+	\tkzLabelPoints[left](B)
+	\tkzLabelPoints[right](C)
+	\tkzMarkRightAngles[size=.2](B,H,A)
+	\end{tikzpicture}
+	\end{center}	
+	Xét $\triangle ABH$ vuông tại $H$, ta có $BH = AB\cdot \sin A = c\cdot\sin\alpha$.\\
+	Do đó diện tích $S$ của tam giác $ABC$ là $$S = \dfrac{1}{2}\cdot AC\cdot BH = \dfrac{1}{2}\cdot b\cdot c\cdot\sin\alpha.$$
+	\begin{nx} Qua ví dụ này ta có thêm một cách tính diện tích tam giác. Diện tích tam giác bằng nửa tích hai cạnh nhân với sin của góc nhọn xen giữa hai đường thẳng chứa hai cạnh đó.
+	\end{nx}
+	}
+\end{bt}
+%%%==========Bài 11
+%\begin{bt}
+%	Tứ giác $ABCD$ như hình vẽ phía dưới. Biết $AC = 3{,}8$, $BD = 5{,}0$ và $\alpha = 65^{\circ}$. Tính diện tích của tứ giác đó.
+%	\loigiai
+%	{\immini
+%	{Vẽ $AH\perp BD$ và $CK\perp BD$. Xét $\triangle OAH$ ta có $AH = OA\cdot\sin\alpha$.\\
+%	Tương tự, xét $\triangle OCK$ ta có $CK = OC\cdot\sin\alpha$.\\
+%	Mà $S_{\triangle ABD} = \dfrac{1}{2}\cdot BD\cdot AH = \dfrac{1}{2}\cdot BD\cdot OA\cdot\sin\alpha.$\\
+%	Tương tự $S_{\triangle BCD} = \dfrac{1}{2}\cdot BD\cdot CK = \dfrac{1}{2}\cdot BD\cdot OC\cdot\sin\alpha.$
+%	Gọi $S$ là diện tích tứ giác $ABCD$ ta có 
+%	\allowdisplaybreaks
+%	\begin{eqnarray*}
+%	S &=& S_{\triangle ABD} + S_{\triangle BCD}\\
+%	&=& \dfrac{1}{2}\cdot BD\cdot OA\cdot\sin\alpha + 
+%	\dfrac{1}{2}\cdot BD\cdot OC\cdot\sin\alpha\\
+%	&=& \dfrac{1}{2}\cdot BD\cdot\sin\alpha\cdot\left(OA + OC\right)\\
+%	&=& \dfrac{1}{2}\cdot BD\cdot AC\cdot\sin\alpha = \dfrac{1}{2}\cdot 5{,}0\cdot 3{,}8\cdot\sin65^{\circ}\approx 8{,}6.
+%	\end{eqnarray*}
+%	}
+%	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=1]
+%	\tkzDefPoints{0/0/D}
+%	\coordinate (C) at ($(D)+(6,1)$);
+%	\tkzDefShiftPoint[D](70:3){A}
+%	\tkzDefShiftPoint[D](45:6){B}
+%	%\tkzDrawAltitude(B,D)(A) \tkzGetPoint{H}
+%	%\tkzDrawAltitude(B,D)(C) \tkzGetPoint{K}
+%	\tkzDefPointBy[projection = onto D--B](A) \tkzGetPoint{H}
+%	\tkzDefPointBy[projection = onto D--B](C) \tkzGetPoint{K}
+%	\tkzInterLL(A,C)(B,D) \tkzGetPoint{O}
+%	\pgfresetboundingbox
+%	\tkzDrawPolygon(A,B,C,D)
+%	\tkzDrawSegments(B,D A,C A,H C,K)
+%	\tkzMarkRightAngles[size=0.3](A,H,B)
+%	\tkzMarkRightAngles[size=0.3](C,K,D)
+%	\tkzLabelAngles[pos=0.5](C,O,B){$\alpha$}
+%	\tkzMarkAngles[size=.3,arc=l](C,O,B)
+%	\tkzDrawPoints[fill=black](D,C,A,B,H,K)
+%	\tkzLabelPoints[above](A,B)
+%	\tkzLabelPoints[left](K,D)
+%	\tkzLabelPoints[right](C)
+%	\tkzLabelPoints[below right](H)
+%	\tkzLabelPoints[below](O)
+%	\end{tikzpicture}
+%	}
+%	}
+%\end{bt}
+%%==========Bài 12
+\begin{bt}
+	Tam giác $ABC$ có $\widehat{B}+ \widehat{C} = 60^{\circ}$, $AB = 3$, $AC = 6$. Tính độ dài đường phân giác $AD$.
+	\loigiai
+	{\immini
+	{Do giả thiết $\widehat{B}+ \widehat{C} = 60^{\circ}$ nên $\widehat{BAC} = 180^{\circ} - 60^{\circ} = 120^{\circ}$.\\
+	Mà $AD$ là đường phân giác nên $\widehat{BAD} = \widehat{CAD} = 60^{\circ}$.\\
+	Mà $S_{\triangle ABC} = \dfrac{1}{2}\cdot AB\cdot AC\cdot\sin\widehat{BAC} = \dfrac{1}{2}\cdot 3\cdot 6\cdot\sin 120^{\circ} = \dfrac{18}{2}\cdot \sin 60^{\circ}$.\\
+	Mặt khác 
+	$S_{\triangle ABD} = \dfrac{1}{2}\cdot AB\cdot AD\cdot\sin\widehat{BAD} = \dfrac{1}{2}\cdot AB\cdot AD\cdot\sin 60^{\circ}$\\
+	và 	
+	$S_{\triangle ACD} = \dfrac{1}{2}\cdot AC\cdot AD\cdot\sin\widehat{DAC} = \dfrac{1}{2}\cdot AC\cdot AD\cdot\sin 60^{\circ}$
+	}
+	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=.7]
+	\tkzDefPoints{0/0/B}
+	\coordinate (C) at ($(B)+(6,0)$);
+	\tkzDefShiftPoint[B](70:4){A}
+	\tkzDefLine[bisector](B,A,C) \tkzGetPoint{T}
+	\tkzInterLL(C,B)(A,T) \tkzGetPoint{D}
+	\pgfresetboundingbox
+	\tkzLabelSegments[color=black,above left](A,B){$3$}
+	\tkzLabelSegments[color=black,above right](A,C){$6$}
+	\tkzLabelSegments[color=black,above](D,B){$S_1$}
+	\tkzLabelSegments[color=black,above](D,C){$S_2$}
+	\tkzMarkAngles[size=.5,arc=l](B,A,D)
+	\tkzMarkAngles[size=.6,arc=l](D,A,C)
+	\tkzDrawSegments(A,B B,C C,A A,D)
+	\tkzDrawPoints[fill=black](A,B,C,D)
+	\tkzLabelPoints[above](A)
+	\tkzLabelPoints[left](B)
+	\tkzLabelPoints[right](C)
+	\end{tikzpicture}
+	}
+	}
+\end{bt}
+%%%==========Bài 13
+%\begin{bt}
+%	Hình bình hành $ABCD$ có $AC\perp AD$ và $AD = 3{,}5$, $\widehat{D} = 50^{\circ}$. Tính diện tích của hình bình hành.
+%	\loigiai
+%	{\immini
+%	{Xét $\triangle ADC$ vuông tại $A$, ta có $AC = AD\cdot\tan\widehat{ADC} = 3{,}5\cdot \tan 50^{\circ}$.\\
+%	Khi đó gọi $S$ là diện tích hình bình hành $ABCD$, ta có 
+%	$$S = AD\cdot AC = 3{,}5\cdot 3{,}5\cdot \tan 50^{\circ}\approx 14{,}6.$$
+%	}
+%	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,font=\footnotesize,scale=0.8]
+%	\tkzDefPoints{0/0/D}
+%	\coordinate (C) at ($(D)+(5.445,0)$);
+%	\tkzDefShiftPoint[D](50:3.5){A}
+%	\coordinate (B) at ($(A)+(C)-(D)$);
+%	\pgfresetboundingbox
+%	\tkzDrawPolygon(A,B,C,D)
+%	\tkzDrawSegments(A,C)
+%	\tkzMarkRightAngles[size=0.4](D,A,C)
+%	\tkzLabelAngles[pos=0.85](C,D,A){$50^\circ$}
+%	\tkzLabelSegments[color=black,above](D,A){$3{,}5$}
+%	\tkzMarkAngles[size=.4,arc=l](C,D,A)
+%	\tkzDrawPoints[fill=black](A,B,C,D)
+%	\tkzLabelPoints[above](A,B)
+%	\tkzLabelPoints[below](C,D)
+%	\end{tikzpicture}
+%	}
+%	}
+%\end{bt}
+%%==========Bài 14
+\begin{bt}
+	Hình thang $ABCD$ ($AB\parallel CD$) có $\widehat{D} = 90^{\circ}$, $\widehat{C} = 38^{\circ}$, $AB = 3{,}5$, $AD = 3{,}1$. Tính diện tích hình thang đó. 
+	\loigiai
+	{\immini
+	{Vẽ $BH\perp CD$, do giả thiết suy ra $ABHD$ là hình chữ nhật. Do đó $BH = 3{,}1$, $DH = 3{,}5$.\\
+	Xét $\triangle BHC$ vuông tại $H$, ta có 
+	$$HC = BH\cdot\cot C = 3{,}1\cdot\cot 38^{\circ}\approx 4{,}0.$$
+	Mà $CD = DH + HC = 3{,}5 + 4{,}0 = 7{,}5$.\\
+	Gọi $S$ là diện tích hình thang $ABCD$ khi đó 
+	$$S = \dfrac{\left(AB + CD\right)\cdot BH}{2} = \dfrac{\left(3{,}5 + 7{,}5\right)\cdot 3{,}1}{2} = 17{,}1.$$
+	}
+	{\begin{tikzpicture}[line join = round, line cap = round,>=stealth,
+	font=\footnotesize,scale=.9]
+	%Trịnh Văn Luân
+	\tkzDefPoints{0/0/D}
+	\coordinate (C) at ($(D)+(7,0)$);
+	\coordinate (A) at ($(D)+(0,3.1)$);
+	\coordinate (B) at ($(A)+(3.5,0)$);
+	\tkzDefPointBy[projection= onto C--D](B)
+	\tkzGetPoint{H}
+	\tkzDrawSegments[dashed](H,B)
+	%
+	\tkzLabelSegment(A,B){$3,5$}
+	\path (D)--(A) node[above,midway,sloped]{$3,1$};
+	\tkzLabelAngles[pos=.7](B,C,H){$38^\circ$}
+	\pgfresetboundingbox
+	\tkzMarkRightAngles[size=0.3](A,D,C D,A,B B,H,D)
+	\tkzDrawPolygon(A,B,C,D)
+	\tkzDrawPoints[fill=black](D,C,A,B,H)
+	\tkzLabelPoints[above](A,B)
+	\tkzLabelPoints[left](D)
+	\tkzLabelPoints[right](C)
+	\tkzLabelPoints[below](H)
+	\end{tikzpicture}	
+	}	
+	}
+\end{bt}
+%%==========Bài 15
+\begin{bt}
+	\immini{Một chiếc thang dài $3$ m. Cần đặt chân thang cách chân tường một khoảng bằng bao nhiêu mét (làm tròn đến số thập phân thứ hai) để nó tạo được với mặt đất một góc \lq\lq an toàn\rq\rq\ $65^\circ$ (tức là đảm bảo thang chắc chắn khi sử dụng)?}
+	{
+	\begin{tikzpicture}[scale=0.4,font=\footnotesize]
+	\fill[pink!50] (0,0)--(5,-1)--(5,4)--(0,5)--(0,0);
+	\coordinate (A) at (2,-2/5);
+	\coordinate (B) at (2,{5-2/5});
+	\coordinate (C) at (0.5,-2/5);	
+	\foreach \x in {0.6,0.8, ..., 1.8}
+	{
+	\draw[line width=3pt]({\x},{5*\x-3.1)/1.5})--($({\x},{5*\x-3.1)/1.5})+(-1,1/5)$);
+	}
+	\def\x{0.5}\def\y{2}
+	\draw[line width=3pt]($({\x},{5*\x-3.1)/1.5})+(-1,1/5)$)--($({\y},{5*\y-3.1)/1.5})+(-1,1/5)$);
+	\draw(C)--(A)--(B);
+	\draw[line width=3pt](B)--(C);
+	\draw pic[draw=black,angle radius=3pt] {right angle = B--A--C}; 
+	\pic[draw,angle radius=10pt,angle eccentricity=2,"$65^\circ$"]{angle=A--C--B};
+	\end{tikzpicture}
+	}
+	\loigiai{
+	Khoảng cách từ thang đến chân trường để nó tạo với mặt đất một góc ``an toàn'' là\\
+	$3\cdot \cos 65^\circ\approx1{,}27$ (m).\\
+	Vậy khoảng cách từ thang đến chân tường để nó tạo với mặt đất một góc ``an toàn'' là khoảng $1{,}27$ m.
+	}
+\end{bt}
+%%==========Bài 16
+\begin{bt}
+	\immini{Một khúc sông rộng khoảng $250$ m. Một con đò chèo qua sông bị dòng nước đẩy xiên nên phải chèo khoảng $320$ m mới sang được bờ bên kia. Hỏi dòng nước đã đẩy con đò đi lệch một góc $\alpha$ bằng bao nhiêu độ (làm tròn đến phút)?.}
+	{
+	\begin{tikzpicture}[font=\scriptsize,>=stealth,scale=.45]
+	\clip (-1.5,-0.5) rectangle (4.5,4.5);
+	\draw[decorate, decoration={random steps, segment length=3mm, amplitude=1pt}, lime!70!black, line width=.5mm, double=cyan!20, double distance=4cm](-1,2)--(4,2);
+	\path (0,0) coordinate (A)
+	(0,4) coordinate (B)
+	(3,4) coordinate (C)
+	;
+	\draw[dashed] (B)--(A)--(C);
+	\pic[draw,angle radius=4pt]{right angle=A--B--C};
+	\pic[draw,angle radius=6pt,angle eccentricity=1.7,"$\alpha$"]{angle=C--A--B};
+	\path (A)--(B) node[midway,sloped,above]{$250$ m};
+	\path (A)--(C) node[midway,sloped,below]{$320$ m};
+	\path (A)--(C) node[pos=0.75,sloped,above]{\resizebox{!}{0.5cm}{\twemoji{1f6a3}}};
+	\end{tikzpicture}
+	}
+	\loigiai{
+	Ta có $\cos \alpha =\dfrac{250}{320}=\dfrac{25}{32}\Rightarrow \alpha \approx 38^\circ37'$.\\
+	Vậy dòng nước đã đẩy con đò đi lệch một góc khoảng $38^\circ37'$.
+	}
+\end{bt}
+%%==========Bài 17
+\begin{bt}
+	\immini{
+	Trong trò chơi đánh đu của một lễ hội vào mùa xuân, khi ngươi chơi nhún đều. Cây đu sẽ đưa người chơi dao động quanh vị trí cân bằng. Hình bên minh hoạ người chơi đang ở vị trí $A$ với $OA=5$ m và dây $OA$ tạo với phương thẳng đứng một góc là $\widehat{AOI}=16^\circ$. Tính khoảng cách $AI$ (làm tròn kết quả đến hàng phần trăm của mét)?
+	}
+	{
+	\begin{tikzpicture}[scale=0.85,font=\scriptsize,line join=round,line cap=round,>=stealth]
+	\path
+	(0,0) coordinate (O)
+	($(O)+(-50:3cm)$) coordinate (M)
+	($(O)+(-130:3cm)$) coordinate (N)
+	($(O)+(-110:3cm)$) coordinate (H)
+	($(O)+(-90:3cm)$) coordinate (A)	
+	($(O)!(H)!(A)$) coordinate (I)	
+	;
+	\draw (M) arc (-50:-130:3cm);
+	\path pic["\scriptsize$16^\circ$", angle eccentricity=2,draw,angle radius=16pt, double]{angle= H--O--I};
+	\draw[dashed] (M)--(O)--(N) (O)--($(O)+(-90:3.5)$)
+	(O)--(H)node[left,pos=0.6]{$5$ m};
+	\draw[<->] (H)--(I)node[midway, above]{$h$};
+	\foreach \p/\q in {O/90,I/110}
+	\fill[black] (\p) circle (1.0pt) ($(\p)+(\q:2.5mm)$) node{$\p$};	
+	\node[] at (0.25,-3)[below]{Vị trí cân bằng};	
+	\fill (M) circle(1.0pt) (N) circle(1.0pt) (H) circle(2pt) node[below]{$A$};	
+	\end{tikzpicture}
+	}
+	\loigiai{
+	Vì tam giác $OAI$ vuông tại $I$ nên
+	$$AI = OA\cdot \sin \widehat{AOI} = 5\cdot \sin 16^\circ\approx 1{,}38~\text{(m)}.$$
+	}
+\end{bt}
+%%==========Bài 18
+\begin{bt}
+%\immini
+%{
+	Một máy bay cất cánh từ vị trí $A$ trên đường băng của sân bay và bay theo đường thẳng $AB$ tạo với phương nằm ngang $AC$ một góc là $20^{\circ}$. Sau $5$ giây, máy bay ở độ cao $BC=110$ m. Em hãy tính khoảng cách $AB$ (làm tròn kết quả đến hàng trăm của mét).
+%}
+%{
+%	\begin{tikzpicture}[thick,scale=.7,nodes={scale=0.6},scale=.7]
+%	%---Nội dung---%
+%	\draw (0,0)coordinate(B)node[below]{$C$}--(0,2.2)coordinate(C)node[above]{$B$}--(-6.89,0)coordinate(A)node[left]{$A$}--(B);
+%	\draw (A) node[shift={(7:1.7)}]{$20^\circ$};
+%	\draw pic[draw,angle radius=12mm]{angle=B--A--C};%Theo chiều dương, tùy chọn double,fill=yellow!50,-stealth,dashed
+%	\foreach \i in {A,B,C}{\fill (\i) circle(1.5pt) ;}
+%	\path 	($(A)+(0.5,0.75)$) node[rotate=-25]{\twemoji[scale=1]{airplane}};
+%	%--------------%
+%	\end{tikzpicture}
+%}
+	\loigiai{
+	Xét $\Delta ABC$ vuông tại $C$ ta có\\
+	$\sin A=\dfrac{BC}{AB}$. Suy ra $AB=\dfrac{BC}{\sin A}=\dfrac{110}{\sin 20^\circ}\approx 361{,}62 (\text{m})$\\
+	Vậy khoảng cách từ $A$ đến $B$ là khoảng $361{,}62$ m.
+	}
+\end{bt}
+%%%==========Bài 19
+%\begin{bt}
+%	\immini{Bóng trên mặt đất của một cây dài $25$ m. Tính chiều cao của cây (làm tròn đến dm), biết rằng tia nắng mặt trời tạo với mặt đất góc $40^\circ$.}
+%	{
+%	\begin{tikzpicture}[scale=.5]
+%	\definecolor{lightcornflowerblue}{rgb}{0.6, 0.81, 0.93}
+%	\definecolor{cadmiumgreen}{rgb}{0.0, 0.42, 0.24}
+%	\definecolor{trueblue}{rgb}{0.0, 0.45, 0.81}
+%	\definecolor{tumbleweed}{rgb}{0.87, 0.67, 0.53}%màu cát
+%	\definecolor{forestgreen(web)}{rgb}{0.13, 0.55, 0.13}
+%	\definecolor{darkpastelgreen}{rgb}{0.01, 0.75, 0.24}
+%	\definecolor{bronze}{rgb}{0.8, 0.5, 0.2}
+%	\tikzset{cay/.pic={
+%	\def\T{ %Thân
+%	(-.33,0)%trái
+%	..controls +(-50:.25) and +(40:.45) .. (-.57,-1.45)
+%	..controls +(20:.1) and +(-160:.15) .. (-.1,-1.3)
+%	..controls +(-120:.1) and +(60:.15) .. (-.2,-1.6)
+%	..controls +(-30:.1) and +(-140:.15) .. (.15,-1.3)
+%	..controls +(-20:.1) and +(-160:.15) .. (.57,-1.4)
+%	..controls +(170:.4) and +(-160:.1) .. (.35,0)
+%	..controls +(110:.5) and +(80:.5) .. (-.33,0)
+%	;}
+%	%\draw \T;
+%	\fill[bronze] \T;
+%	\def\C{ 
+%	(0,.3)
+%	..controls +(-100:.25) and +(-60:.2) .. (-.3,.1)
+%	..controls +(-100:.25) and +(-60:.2) .. (-.6,0)
+%	..controls +(-120:.45) and +(-110:.35) .. (-1,.2)
+%	..controls +(-150:.5) and +(-140:.35) .. (-1.15,.7)%nút giao
+%	..controls +(-170:.4) and +(-170:.35) .. (-1,1.15)
+%	..controls +(140:.35) and +(110:.4) .. (-.37,1.35)
+%	..controls +(110:.25) and +(80:.3) .. (-.15,1.35)
+%	..controls +(80:.3) and +(95:.8) .. (.55,1.1)
+%	..controls +(80:.2) and +(95:.2) .. (.8,1.1)
+%	..controls +(20:.1) and +(95:.1) .. (.95,1)
+%	..controls +(-20:.4) and +(35:.25) .. (1,.47)
+%	..controls +(-30:.3) and +(-20:.3) .. (.75,0.05)%nút giao
+%	..controls +(-120:.3) and +(-60:.2) .. (.35,0)
+%	..controls +(175:.2) and +(-160:.1) .. (.2,0.2)
+%	..controls +(-160:.1) and +(-70:.1) .. (0,.3)
+%	;}
+%	\draw \C;
+%	\fill[forestgreen(web)] \C;
+%	\def\C1{ 
+%	(-1.15,.7)%nút giao
+%	..controls +(-170:.4) and +(-170:.35) .. (-1,1.15)
+%	..controls +(140:.35) and +(110:.4) .. (-.37,1.35)
+%	..controls +(110:.25) and +(80:.3) .. (-.15,1.35)
+%	..controls +(80:.3) and +(95:.8) .. (.55,1.1)
+%	..controls +(80:.2) and +(95:.2) .. (.8,1.1)
+%	..controls +(20:.1) and +(95:.1) .. (.95,1)
+%	..controls +(-20:.4) and +(35:.25) .. (1,.47)
+%	..controls +(-50:.5) and +(-85:.6) .. (.65,.55)% gần nút giao
+%	..controls +(-160:.4) and +(-120:.4) .. (0,.7)
+%	..controls +(-150:.2) and +(-80:.4) .. (-.63,.6)
+%	..controls +(-140:.5) and +(-130:.4) .. (-1.15,.7)
+%	;}
+%	%\draw \C1;
+%	\fill[darkpastelgreen] \C1;
+%	\def\G{ %Gân
+%	(-.8,.2)
+%	..controls +(-35:.1) and +(130:.35) .. 
+%	(-.32,0)%nút giao
+%	..controls +(-40:.1) and +(45:.35) .. (-.42,-1.25)
+%	(-.32,0)%nút giao
+%	..controls +(120:.1) and +(-45:.35) .. (-.58,.45)
+%	(-.32,0)%nút giao
+%	..controls +(80:.1) and +(-170:.35) .. (-.05,.45)
+%	(-.28,.3)
+%	..controls +(80:.1) and +(-60:.05) .. (-.35,.55)
+%	%Gân phải
+%	(.45,-1.3)
+%	..controls +(130:.6) and +(-160:.3) .. (.6,0.35)
+%	(.37,0)
+%	..controls +(35:.2) and +(-150:.1) .. (.66,0.15)
+%	(.37,0)
+%	..controls +(80:.2) and +(-40:.1) .. (.18,0.4)
+%	(.31,0.25)
+%	..controls +(80:.1) and +(-150:.1) .. (.38,0.5)
+%	(.25,-0.15)
+%	..controls +(-110:.05) and +(110:.05) .. (.2,-0.5)%gân dọc
+%	(.2,-0.25)
+%	..controls +(-110:.05) and +(110:.05) .. (.17,-0.45)
+%	(-.2,-0.15)
+%	..controls +(-70:.1) and +(110:.05) .. (-.18,-0.5)
+%	(-.15,-0.15)
+%	..controls +(-70:.1) and +(110:.05) .. (-.15,-0.7)
+%	(-.05,-0.8)
+%	..controls +(-80:.15) and +(-10:.15) .. (-.3,-1.28)
+%	(-.1,-0.9)
+%	..controls +(-110:.1) and +(20:.05) .. (-.2,-1.1)
+%	(.1,-1)
+%	..controls +(-50:.05) and +(120:.05) .. (.15,-1.2)
+%	(.1,-1.15)
+%	..controls +(-50:.05) and +(120:.05) .. (.12,-1.2)
+%	(.15,-.75)
+%	..controls +(-120:.1) and +(-140:.1) .. (.22,-.9)
+%	..controls +(70:.12) and +(120:.05) .. (.18,-.9)
+%	;}
+%	\draw \G;
+%	}}
+%	\path (0,0) coordinate (A)
+%	(4,0) coordinate (B)
+%	(4,3.2cm) coordinate (C);
+%	\path (B)--(C) pic[pos=0.45,scale=1.1]{cay};
+%	\draw (A)--(B)--(C)--cycle;
+%	\path (A)--(B) node[below,midway]{$25$ m};
+%	\pic[draw,angle radius=12pt, angle eccentricity=2.25,"$40^\circ$"]{angle=B--A--C};
+%	\end{tikzpicture}
+%	}
+%	\normalfont
+%	\loigiai{
+%	Đổi $25$ m= $250$ dm.\\
+%	Chiều cao của cây là $25:\cos 40^\circ\approx 326$ dm.
+%	}
+%\end{bt}
+%%==========Bài 20
+\begin{bt}
+%	\immini{
+		Một chiếc máy bay bay lên với vận tốc $500\mathrm{~km/h}$. Đường bay lên tạo với phương nằm ngang một góc $30^\circ$. Hỏi sau $1{,}2$ phút, máy bay lên cao được bao nhiêu kilômét theo phương thẳng đứng?
+%	}
+%	{
+%	\begin{tikzpicture}[line cap=round,line join=round,font=\footnotesize,scale=0.7]
+%	\path (0,0) coordinate (A)
+%	(4,0) coordinate (H)
+%	(4,{4*tan(30)}) coordinate (B);
+%	\draw (A)--(B)--(H)--cycle;
+%	\path ($(A)+(0.5,0.75)$) node[rotate=-15]{\twemoji[scale=0.6]{airplane}};
+%	\pic[draw,angle radius=12pt,angle eccentricity=2,"$30^\circ$"]{angle=H--A--B};
+%	\foreach \t/\g in {A/-90,B/90,H/-45}{
+%	\draw[fill=white] (\t) circle (1pt) node[shift={(\g:7pt)}]{$ \t $};
+%	}
+%	\end{tikzpicture}
+%	}
+	\loigiai{
+	Trong hình vẽ, $A B$ là đoạn đường máy bay bay lên trong $1{,}2$ phút, $B H$ chính là độ cao máy bay đạt được sau $1{,}2$ phút đó.\\
+	Ta có $1{,}2$ phút $=\dfrac{1}{50}$ giờ nên $A B=500 \cdot \dfrac{1}{50}=10~(\mathrm{km} )$.\\
+	Tam giác $A B H$ vuông tại $H$, có $\widehat{A}=30^\circ$. Theo Định lí 1, ta có
+	\[B H=A B \cdot \sin A=10 \cdot \sin 30^\circ=10 \cdot \dfrac{1}{2}=5~(\mathrm{km}).\]
+	Vậy sau $1{,}2$ phút, máy bay lên cao được $5\mathrm{~km}$.
+	}
+\end{bt}
+%%==========Bài 21
+\begin{bt}
+\immini
+{
+	Hai con thuyền $P$ và $Q$ cách nhau $300$ m và thẳng hàng với chân $B$ của tháp hải đăng ở trên bờ biển. Từ $P$ và $Q$, người ta nhìn thấy tháp hải đăng dưới các góc $\widehat{BPQ}=14^\circ$ và $\widehat{BQA}=42^\circ$. Đặt $h=AB$ là chiều cao của tháp hải đăng.
+	\begin{enumerate}
+	\item Tính $BQ$ và $BP$ theo $h$.
+	\item Tính chiều cao của tháp hải đăng (kết quả làm tròn đến hàng phần mười).
+	\end{enumerate}
+}
+{
+	\begin{tikzpicture}[line join=round, line cap=round,scale=.35,transform shape,>=stealth]
+	\definecolor{alizarin}{rgb}{0.82, 0.1, 0.26}
+	\definecolor{floralwhite}{rgb}{1.0, 0.98, 0.94}
+	\definecolor{brown(traditional)}{rgb}{0.59, 0.29, 0.0}
+	\definecolor{bostonuniversityred}{rgb}{0.8, 0.0, 0.0}
+	\definecolor{tumbleweed}{rgb}{0.87, 0.67, 0.53}%cát
+	\definecolor{deepskyblue}{rgb}{0.0, 0.75, 1.0}
+	\definecolor{cerulean}{rgb}{0.0, 0.48, 0.65}
+	\definecolor{cadmiumorange}{rgb}{0.93, 0.53, 0.18}
+	\tikzset{thuyen_a/.pic={%Buồm
+	\def\T{ (.8,1.95)
+	..controls +(-140:1.4) and +(85:.5) .. (-1.2,-1.3)
+	..controls +(40:.5) and +(100:.65) ..(.8,-1.45)--cycle;}
+	\def\M{ (.8,1.95)
+	..controls +(-140:1.4) and +(85:.5) .. (-1.2,-1.3)
+	..controls +(30:.4) and +(170:.4) ..(.25,-1.05)
+	..controls +(85:1.4) and +(-140:.45) .. (.8,1.75);}
+	\def\B{ %buồm màu đậm
+	(.05,1.15)..controls +(-20:.2) and +(100:.1) .. (.47,0.85)
+	..controls +(-130:.01) and +(80:.1) ..(.4,0.37)
+	..controls +(130:.01) and +(10:.2) .. (-.25,.7)--cycle
+	(-.58,.2)..controls +(-15:.5) and +(100:.1) .. (.33,-.2)--(.28,-.7)
+	..controls +(-130:.01) and +(80:.1) ..(-.87,-.35)--cycle;}
+	\def\c{ %vòng cung thân thuyền
+	(-1.9,-1.2)..controls +(40:.2) and +(150:.1) ..(2.3,-1.2);}
+	\def\t{ %thân thuyền
+	(-1.3,-2.2)
+	..controls +(140:.45) and +(-60:.4) ..(-1.9,-1.2)
+	..controls +(-20:1) and +(-150:.5) .. (2.3,-1.2)
+	..controls +(-80:.5) and +(60:.4) ..(2,-2.2)
+	..controls +(160:.1) and +(-40:.1) ..(1.75,-2.1)
+	..controls +(160:.5) and +(-40:.5) ..(.9,-2.1)
+	..controls +(160:.5) and +(-40:.5) ..(-.2,-2.1)
+	..controls +(160:.5) and +(-40:.5) ..(-1.35,-2.15);}
+	\def\S{ %sóng
+	(-1.35,-2.15)..controls +(160:.5) and +(-40:.5) ..(-2.5,-2.15)
+	(3.5,-2.2)..controls +(160:.2) and +(-40:.5) ..(2,-2.2)
+	%----
+	(3,-2.5)..controls +(160:.5) and +(-40:.5) ..(1.4,-2.5)
+	..controls +(160:.5) and +(-40:.5) ..(.3,-2.5)
+	..controls +(160:.5) and +(-40:.5) ..(-.75,-2.55);}
+	\draw \c;\draw \t;\draw \T;\draw \M;\draw \B;
+	\draw[color=deepskyblue] \S;\fill[cadmiumorange!80] \M;
+	\fill[cadmiumorange] \B;\fill[cerulean] \t;
+	%Cờ, cột
+	\draw[line width=1] (.8,2.4)--(.8,-1.4) ;
+	\draw[fill=red] (.8,2.3)--(1.6,2.2)--(.8,1.9)--cycle;}}
+	\tikzset{thuyen_b/.pic={%Buồm
+	\def\T{ (.8,1.95)
+	..controls +(-140:1.4) and +(85:.5) .. (-1.2,-1.3)
+	..controls +(40:.5) and +(100:.65) ..(.8,-1.45)--cycle;}
+	\def\M{ (.8,1.95)
+	..controls +(-140:1.4) and +(85:.5) .. (-1.2,-1.3)
+	..controls +(30:.4) and +(170:.4) ..(.25,-1.05)
+	..controls +(85:1.4) and +(-140:.45) .. (.8,1.75);}
+	\def\B{ %buồm màu đậm
+	(.05,1.15)..controls +(-20:.2) and +(100:.1) .. (.47,0.85)
+	..controls +(-130:.01) and +(80:.1) ..(.4,0.37)
+	..controls +(130:.01) and +(10:.2) .. (-.25,.7)--cycle
+	(-.58,.2)..controls +(-15:.5) and +(100:.1) .. (.33,-.2)--(.28,-.7)
+	..controls +(-130:.01) and +(80:.1) ..(-.87,-.35)--cycle;}
+	\def\c{ %vòng cung thân thuyền
+	(-1.9,-1.2)..controls +(40:.2) and +(150:.1) ..(2.3,-1.2);}
+	\def\t{ %thân thuyền
+	(-1.3,-2.2)
+	..controls +(140:.45) and +(-60:.4) ..(-1.9,-1.2)
+	..controls +(-20:1) and +(-150:.5) .. (2.3,-1.2)
+	..controls +(-80:.5) and +(60:.4) ..(2,-2.2)
+	..controls +(160:.1) and +(-40:.1) ..(1.75,-2.1)
+	..controls +(160:.5) and +(-40:.5) ..(.9,-2.1)
+	..controls +(160:.5) and +(-40:.5) ..(-.2,-2.1)
+	..controls +(160:.5) and +(-40:.5) ..(-1.35,-2.15);}
+	\def\S{ %sóng
+	(-1.35,-2.15)..controls +(160:.5) and +(-40:.5) ..(-2.5,-2.15)
+	(3.5,-2.2)..controls +(160:.2) and +(-40:.5) ..(2,-2.2)
+	%----
+	(3,-2.5)..controls +(160:.5) and +(-40:.5) ..(1.4,-2.5)
+	..controls +(160:.5) and +(-40:.5) ..(.3,-2.5)
+	..controls +(160:.5) and +(-40:.5) ..(-.75,-2.55);}
+	\draw \c;\draw \t;\draw \T;\draw \M;\draw \B;
+	\draw[color=deepskyblue] \S;\fill[cadmiumorange!80] \M;
+	\fill[red] \B;\fill[cadmiumorange] \t;
+	%Cờ, cột
+	\draw[line width=1] (.8,2.4)--(.8,-1.4) ;
+	\draw[fill=red] (.8,2.3)--(1.6,2.2)--(.8,1.9)--cycle;}}
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\tikzset{hai_dang/.pic={
+	\draw[line width=1] (0,2.6)--(0,2.4);
+	\draw[fill=alizarin] (0,2.4)--(.55,1.86)--(0,1.86);
+	\draw[fill=alizarin!95] (0,2.4)--(-.55,1.86)--(0,1.86);
+	\draw[fill=alizarin!90] (.6,1.86) rectangle (-.6,1.8);
+	\fill[floralwhite!10] (.25,1) rectangle (.5,1.8);
+	\fill[floralwhite!40] (0,1) rectangle (.25,1.8);
+	\fill[floralwhite!70] (0,1) rectangle (-.25,1.8);
+	\fill[floralwhite] (-.25,1) rectangle (-.5,1.8);
+	\draw (-.5,1.8) rectangle (.5,1);
+	\draw[fill=brown(traditional)!50] (-.55,1.2) rectangle (.55,1);
+	\draw[color=brown(traditional)!80, line width=2] 
+	(-.6,1)--(-.6,1.33)(-.5,1)--(-.5,1.33)
+	(-.4,1)--(-.4,1.33)(-.3,1)--(-.3,1.33)
+	(-.15,1)--(-.15,1.33)(.18,1)--(.18,1.33)
+	(.35,1)--(.35,1.33)(.5,1)--(.5,1.33)
+	(.63,1)--(.63,1.33)(0,1)--(0,1.33);
+	\draw[color=brown(traditional)!80, line width=4] 
+	(.62,1)--(.4,.5)(-.62,1)--(-.4,.5);
+	\fill[floralwhite!70] (-.48,1)--(.48,1)--(.7,-2.6)--(-.7,-2.6)--cycle;
+	\fill[bostonuniversityred!80] (-.5,.55)--(-.55,0)--(.55,0)--(.5,.55)--cycle (-.57,-.45)--(-.6,-1.05)--(.6,-1.05)--(.57,-.45)--cycle(-.64,-1.55)--(-.67,-2.1)--(.67,-2.1)--(.64,-1.55)--cycle;
+	\draw (-.48,1)--(.48,1)--(.7,-2.6)--(-.7,-2.6)--cycle;
+	\draw[fill=brown(traditional)!80](-.05,1) rectangle (.05,.65);
+	\draw[fill=brown(traditional)!80](-.65,1.3) rectangle (.65,1.35);
+	\draw[fill=brown(traditional)!80](-.65,.94) rectangle (.65,1.05);}}
+	\tikzset{cua/.pic={
+	\draw[fill=gray!80] (-.1,.1)--(.1,.1)
+	..controls +(88:.4) and +(92:.4) ..(-.1,.1);}}
+	\fill[red](1,0) circle (.5pt);
+	\path 	(2,1.5) coordinate (A)
+	(2,-1.6) coordinate (B)
+	(-2.1,-1.6) coordinate (Q)
+	(-8.1,-1.6) coordinate (P);
+	\path(2,0)pic[scale=.6]{hai_dang};
+	\path(2,0)pic[scale=.6]{cua};
+	\path(2,-.6)pic[scale=.6]{cua};
+	\path(2,-1.25)pic[scale=.6]{cua};
+	\path(-3,-1)pic[scale=.4]{thuyen_a};
+	\path (-9,-1) pic[scale=.4]{thuyen_b};
+	\foreach \d/\g in {A/90,B/-90,P/-90,Q/-90}\path[draw,fill=white] (\d) circle(1pt) + (\g:9pt) node {$\d$};
+	\draw [very thick] (B)--(P)--(A) (A)--(Q);
+	\draw [yellow] (A)--(B);
+	\draw pic[draw,angle radius=2mm,thick]{right angle=P--B--A};
+	\draw pic[draw,angle radius=4mm,thick]{angle=B--Q--A};
+	\draw pic["$42^\circ$",angle radius=14mm]{angle=B--Q--A};
+	\draw pic[draw,angle radius=4mm,thick]{angle=B--P--A};
+	\draw pic["$14^\circ$",angle radius=18mm,font=\scriptsize]{angle=B--P--A};
+	\end{tikzpicture}
+}
+	\loigiai{
+	\begin{enumerate}
+	\item Xét tam giác $BQA$ vuông tại $B$, ta có $\tan Q=\dfrac{AB}{QB}$ nên $BQ=\dfrac{AB}{\tan 42^\circ} = \dfrac{h}{\tan 42^\circ}$.\\
+	Xét tam giác $BPA$ vuông tại $B$, ta có $\tan P=\dfrac{AB}{PB}$ nên $PB=\dfrac{AB}{\tan 14^\circ} = \dfrac{h}{\tan 14^\circ}$.
+	\item Ta có $BP-BQ=300$. Suy ra 
+	$\begin{aligned}[t]
+	&\dfrac{h}{\tan 42^\circ} - \dfrac{h}{\tan 14^\circ} =300\\
+	&h=\dfrac{300}{\dfrac{1}{\tan 14^\circ} - \dfrac{1}{\tan 42^\circ}} \approx 103{,}4 \text{ (m).}
+	\end{aligned}$\\
+	Vậy chiều cao của tháp hải đăng là khoảng $103{,}4$ m.
+	\end{enumerate}
+	}
+\end{bt}
+%%==========Bài 22
+\begin{bt}
+	Cho tam giác $\triangle AOB$ có $OH\perp AB$, biết $OH=4$ m, $\widehat{AOH}=42^\circ$, $\widehat{HOB}=28^\circ$. Tính độ dài $AB$
+	\loigiai{
+	Xét tam giác $OHA$ vuông tại $H$ ta có $HA=OH \cdot \tan \widehat{HOA} = 4 \cdot \tan 42^\circ \approx 3{,}6$ (m).\\
+	Xét tam giác $OHB$ vuông tại $H$ ta có $HB=OH \cdot \tan \widehat{HOB} = 4 \cdot \tan 28^\circ \approx 2{,}1$ (m).\\
+	Vậy chiều cao của cây là $AB=HA+HB=3{,}6 + 2{,}1 = 5{,}7$ m.
+	}
+\end{bt}
+%%==========Bài 23
+\begin{bt}
+	\immini{
+	Để ước lượng chiều cao của một tháp mà không cần lên đỉnh tháp, người ta sử dụng giác kế, thước cuộn, máy tính cầm tay. Chẳng hạn, ở hình bên, để đo chiều cao $AD$ của tháp, người ta đặt giác kế tại một điểm quan sát cách chân tháp một khoảng $CD=OB=a$, trong đó chiều cao của điểm đặt giác kế là $OC=b$. Quay thanh giác kế sao cho khi ngắm thanh này ta nhìn thấy đỉnh $A$ của tháp, đọc trên giác kế số đo $\alpha$ của góc $AOB$. Tính chiều cao của tháp, biết $\alpha=42^{\circ}$; $b=13{,}81$ m; $a=90$ m (làm tròn kết quả đến hàng phần trăm của mét).
+	}{
+	\begin{tikzpicture}[scale=0.45, font=\footnotesize, line join = round, line cap = round,>=stealth]
+	\def\h{5.5}\def\b{1}\def\a{5}
+	\path (0,0) coordinate (D)
+	(0,\h) coordinate (A)
+	(0,\b) coordinate (B)
+	(-\a,\b) coordinate (O)
+	(-\a,0) coordinate (C)
+	;
+	%-------------
+	\def\kc{0.6}
+	%ống trên
+	\fill[ball color=cyan!30] ([xshift=-\kc cm]D)--++(2*\kc,0)--([xshift=0.7*\kc cm,yshift=-3mm]A)coordinate(M1)--++(-1.4*\kc,0)--cycle;
+	%ống dưới
+	\fill[ball color=cyan] ([xshift=-1.1*\kc cm]D)--++(2.2*\kc,0)--([xshift=0.9*\kc cm,yshift=-2cm]A)--++(-1.8*\kc,0)--cycle;
+	%mái trên
+	\fill[red] (A)--([xshift=4pt]M1)coordinate(M2)--++(-1.4*\kc cm-8pt,0)--cycle;
+	\fill[black] (M2)rectangle+(-1.4*\kc cm-8pt,-2pt);
+	%mái giữa
+	\fill[red] ([yshift=-1.25cm,xshift=0.7*\kc cm+5pt]A)coordinate(M3) rectangle +(-1.4*\kc cm-10pt,3mm);
+	\draw[black,line width=2.5pt] (M3)--++(-1.4*\kc cm-10pt,0);
+	%mái dưới
+	\fill[red] ([yshift=-2cm,xshift=0.7*\kc cm+7pt]A)coordinate(M4) rectangle +(-1.4*\kc cm-14pt,3.5mm);
+	\draw[black,line width=3pt] (M4)--++(-1.4*\kc cm-14pt,0);
+	%cửa sổ
+	\draw[orange,line width=6pt] (D)++(-0.3*\kc,1.25)--++(0,5mm)
+	(D)++(0.3*\kc,2.5)--++(0,5mm);
+	%-------------
+	\draw[blue, line width=1pt] (A)--(D)--(C)--(O)--cycle;
+	\draw[blue,dashed] (B)--(O);
+	\draw[dotted] (O)--++(-0.6,0)	(C)--++(-0.6,0) (C)--++(0,-0.6) (D)--++(0,-0.6)
+	;
+	\draw[red,<->] (C)++(0,-3mm)--++(\a,0) node[below,midway]{$a$};
+	\draw[red,<->] (O)++(-3mm,0)--++(0,-\b) node[left,midway]{$b$};
+	\foreach \diem/\goc in {A/45,B/0,D/-45,C/-135,O/120}
+	{ 
+	\fill[black] (\diem) circle (1.5pt) node[shift={(\goc:0.35)}]{$\diem$};
+	}
+	\draw pic[draw=black,angle radius=5pt] {right angle = O--B--A};
+	\draw pic[draw=black,angle radius=5pt] {right angle = C--D--A};
+	\draw pic[draw,blue,angle radius=2mm,angle eccentricity=1.8,"$\alpha$"] {angle = B--O--A}; 
+	\end{tikzpicture}
+	}
+	\loigiai{
+	Vì tam giác $O A B$ vuông tại $B$ nên
+	\begin{eqnarray*}
+	AB=OB\cdot\tan\widehat{AOB}=90\cdot\tan 42^{\circ}\approx 81{,}04 \text{ (m).}
+	\end{eqnarray*}
+	Vậy chiều cao của tháp khoảng
+	\begin{eqnarray*}
+	81{,}04+13{,}81=94{,}85 \text{ (m).}
+	\end{eqnarray*}
+	}
+\end{bt}
+%%==========Bài 24
+\begin{bt}
+	\immini{
+	Trong công việc, người ta cần ước lượng khoảng cách từ vị trí $O$ đến khu đất có dạng hình thang $MNPQ$ nhưng không thể đo được trực tiếp, khoảng cách đó được tính bằng khoảng cách từ $O$ đến đường thẳng $MN$. Người ta chọn vị trí $A$ ở đáy $MN$ và đo được $OA=18 ~\mathrm{m}$, $\widehat{OAN}=44^\circ$. Tính khoảng cách từ vị trí $O$ đến khu đất (làm tròn kết quả đến hàng phần mười của mét).
+	}{
+	\begin{tikzpicture}[cham/.style={circle,fill=black,inner sep=.7pt},font=\footnotesize,scale=.65]
+	\path (0,0) coordinate (M) (5,0) coordinate (N) (4.5,1) coordinate (P) (.5,1) coordinate (Q)
+	(1,0) coordinate (A) ++(-44:3.5) coordinate (O) ($(M)!(O)!(N)$) coordinate (B);
+	\fill[gray!60] (M)--(N)--(P)--(Q)--cycle;
+	\draw (A)node[cham]{}--node[sloped,below]{$18$~m}(O)node[cham]{};	\draw[dashed] (O)--(B)node[cham]{};
+	\pic[draw=blue,angle radius=4] {right angle=A--B--O};
+	\draw pic["$44^\circ$" scale=.8,draw, angle radius = 10pt,angle eccentricity=1.8]{angle = O--A--B};
+	\foreach \i/\j in {A/-120,B/-45,O/-90,M/-120,N/-40,P/40,Q/140} \fill (\i) node[shift={(\j:.22)}]{$\i$};
+	\begin{scope}[shift={(2.5,-1.5)},scale=.17]
+	\definecolor{maungoai}{RGB}{143,227,255}
+	\definecolor{mautrong}{RGB}{176,240,255}
+	\definecolor{lua}{RGB}{103,201,25}
+	\def\vongngoai{(2.7,3.3) .. controls (4.4,5.3) and (8,5.2) ..
+	(9.9,4.2) .. controls (14,3) and (15.1,1.3) ..
+	(9.8,.1) .. controls (5.6,-0) and (2.9,0) ..
+	(1.4,.4) .. controls (-1.4,1.4) and (0.5,2.3) ..
+	(2.7,3.3) -- cycle}
+	\tikzset{caylua/.pic={
+	\fill[lua]
+	(1.1,2.1) -- (1.8,2.1) .. controls (1.7,2.7) and
+	(2.3,3.1) .. (2.6,3.5) .. controls (2.4,3.5) and
+	(2.2,3.4) .. (2,3.2) -- (2.4,4) .. controls
+	(2,3.7) and (1.7,3.5) .. (1.5,3.2) .. controls
+	(1.3,3.5) and (1,3.7) .. (0.7,3.9) .. controls
+	(0.8,3.6) and (1.1,3.4) .. (1.1,3.2) .. controls
+	(0.8,3.4) and (0.6,3.5) .. (0.4,3.6) .. controls
+	(0.9,3.1) and (1.2,2.6) .. (1.1,2.1) -- cycle;}}
+	\fill[maungoai]\vongngoai;
+	\fill[mautrong]
+	(3.4,3.3) .. controls (6,5.7) and (8,4.6) ..
+	(10.4,3.7) .. controls (13.2,2.7) and (12.5,.6) ..
+	(9.8,.5) .. controls (7.2,.5) and (3.9,0) ..
+	(2.2,.9) .. controls (0.3,2) and (1.9,2.7) ..
+	(3.4,3.3) -- cycle;
+	\path (0,.2) pic[rotate=0,scale=.1]{caylua} (9,3) pic[rotate=0,scale=.07]{caylua};
+	\end{scope}
+	\end{tikzpicture}
+	}
+	\loigiai{
+	Xét $\triangle OAB$ vuông tại $B$, ta có:
+	$OB=OA \cdot \sin{A}=18\cdot \sin 44^\circ \approx 12{,}5~\mathrm{m}.$\\
+	Vậy khoảng cách từ $O$ đến khu đất là $12{,}5$ m.
+	}
+\end{bt}
+%%==========Bài 25
+\begin{bt}
+	\immini
+	{
+	Từ vị trí $A$ ở phía trên một tòa nhà có chiều cao $AD=68$ m, bác Duy nhìn thấy vị trí $C$ cao nhất của một tháp truyền hình, góc tạo bởi tia $AC$ và tia $AH$ theo phương nằm ngang là $\widehat{CAH}=43^\circ$. Bác Duy cũng nhìn thấy chân tháp tại vị trí $B$ mà góc tạo bởi tia $AB$ và tia $AH$ là $\widehat{BAH}=28^\circ$, điểm $H$ thuộc đoạn thẳng $BC$. Tính khoảng cách $BD$ từ chân tháp đến chân tòa nhà và chiều cao $BC$ của tháp truyền hình (làm tròn kết quả đến hàng phần mười của mét).
+	}
+	{
+	\begin{tikzpicture}[thick, font = \footnotesize, scale = 0.43]
+	\def\a{2.5}
+	\def\b{4}
+	\path 
+	(0,0) coordinate (D)++(90:\a) coordinate (A)++(0:\b) coordinate (H)
+	(D)++(0:\b) coordinate (B)
+	($(B)!5/2!(H)$)coordinate(C)
+	(A)++(180:0.4)coordinate(A1)
+	(D)++(180:0.4)coordinate(D1)
+	(C)++(-60:0.5)coordinate(E)++(-90:.5)coordinate(F)++(0:.1)coordinate(G)++(-90:1.5)coordinate(I)++(0:.1)coordinate(J)
+	($(D)!(J)!(B)$)coordinate(K)
+	(C)++(240:0.5)coordinate(E1)++(-90:.5)coordinate(F1)++(180:.1)coordinate(G1)++(-90:1.5)coordinate(I1)++(180:.1)coordinate(J1)
+	($(D)!(J1)!(B)$)coordinate(K1)
+	;
+	\fill[green!50!] (D)--(A)--(A1)--(D1)--cycle;
+	\fill[pattern=horizontal lines] (D)--(A)--(A1)--(D1)--cycle;
+	\fill[cyan!40!] (C)--(E)--(F)--(G)--(I)--(J)--(K)--(K1)--(J1)--(I1)--(G1)--(F1)--(E1)--cycle;
+	\fill[pattern=grid] (C)--(E)--(F)--(G)--(I)--(J)--(K)--(K1)--(J1)--(I1)--(G1)--(F1)--(E1)--cycle;
+	\draw 
+	(C)--(E)--(F)--(G)--(I)--(J)--(K)
+	(C)--(E1)--(F1)--(G1)--(I1)--(J1)--(K1)
+	(A)--(D)node[right,midway]{$68$ m}--(B)
+	(A)--(C)--(B)--(A)--(H)
+	pic[draw, angle radius = 25pt, "$28^\circ$", angle eccentricity = 1.5]{ angle = B--A--H}
+	pic[draw,double, angle radius = 20pt, "$43^\circ$", angle eccentricity = 1.5]{ angle = H--A--C}
+	pic[draw,angle radius = 6pt]{right angle = A--D--B}
+	pic[draw,angle radius = 6pt]{right angle = A--H--C}
+	;
+	\foreach \x/\g in {A/90,D/-90,B/-90,H/0,C/90}
+	\fill (\x) circle (1pt)
+	+(\g:4.5mm) node{$\x$};
+	\end{tikzpicture}
+	}
+	\loigiai{
+	Do $AD\parallel BC$ nên $\widehat{ABD}=\widehat{BAH}=28^\circ$ (so le trong).\\
+	Xét $\triangle ABD$ vuông tại $D$ có $BD=AD\cdot\cot\widehat{ABD}=68\cdot\cot 28^\circ\approx 127{,}9$ (m).\\
+	Do $ADBH$ là hình chữ nhật nên $BD=AH$ và $AD=BH$.\\
+	Xét $\triangle AHC$ vuông tại $H$ có $CH=AH\cdot\tan\widehat{CAH}=127{,}9\cdot \tan 43^\circ\approx 119{,}3$ (m).\\
+	Vậy chiều cao của tháp truyền hình là $BC=BH+HC\approx 68+119{,}3=187{,}3$ (m)
+	}
+\end{bt}
+%%==========Bài 26
+\begin{bt}
+	\immini{Để ước lượng chiều cao của một cây trong sân trường, bạn Hoàng đứng ở sân 
+	trường (theo phương thẳng đứng), mắt bạn Hoàng đặt tại vị trí $C$ cách mặt đất 
+	một khoảng $CB=DH=1{,}64$ m và cách cây một khoảng $CD=BH=6$ m. Tính chiều cao 
+	$AH$ của cây (làm tròn kết quả đến hàng phần trăm của mét), biết góc nhìn 
+	$ACD$ bằng $38^\circ$ minh họa ở hình bên.
+	}
+	{
+	\begin{tikzpicture}[scale=.43, font=\scriptsize, line join=round, line cap=round, >=stealth]
+		\tikzset{treetop/.style = {
+				decoration={random steps, segment length=0.4mm},
+				decorate
+			},trunk/.style = {
+				decoration={random steps, segment length=2mm,amplitude=0.2mm},
+				decorate}
+		}
+		\tikzset{man/.pic={%
+				\fill[brown]
+				(1.3,12.6) .. controls (1.2,13.3) and (1.3,13.9) ..
+				(1.5,14) .. controls (1.8,14.2) and (2,14.5) ..
+				(2.6,14) .. controls (2.6,13.3) and (2.6,12.6) ..
+				(2.5,12.5) -- cycle;
+				%áo
+				\draw[brown,line width=1.4](3.3,11.4) ..controls (3.7,11.7) and (3.8,11.6) .. (4,12.3);
+				\fill[cyan!70!white]
+				(1.3,12.6) -- (2.5,12.5) -- (2.6,12.2) 
+				.. controls	(3.7,12.4) and (3.2,9) .. (3.3,9.6) 
+				.. controls	(3.1,9.3) and (3.1,9.4) .. (3.1,9.3) 
+				.. controls	(3,9.1) and (2.6,9) .. (2.7,8.4) -- (.8,8.5)
+				..	controls (1,8.8) and (1,8.9) .. (1,9.4) 
+				.. controls	(0,12) and (.8,12) .. (1.3,12.6)
+				;
+				%chân
+				\fill[brown]
+				(.5,6) -- (.3,3.8) -- (.1,.8) -- (.6,.8) --
+				(.8,2.6) -- (.9,3.7) -- (1.3,5.7) -- cycle
+				(1.7,6) -- (1.6,3.4) -- (1.6,.6) -- (2.3,.9) ..
+				controls (2.3,1.6) and (2.2,2.3) .. (2.2,3.3) .. controls
+				(2.6,4.4) and (2.5,5.1) .. (2.9,5.8);
+				%quần
+				\fill[red!50!yellow]
+				(.8,8.5) .. controls (.7,8.1) and (.4,7.8) ..
+				(.7,6.7) .. controls (.6,6.6) and (.5,6.5) ..
+				(.5,5.8) .. controls (.7,5.7) and (1,5.7) ..
+				(1.3,5.7) -- (1.4,6.6) -- (1.5,5.8) .. controls
+				(2,5.7) and (2.6,5.7) .. (3.1,5.8) .. controls
+				(3.1,6.7) and (3,7.5) .. (2.7,8.4) -- cycle;
+				%giày
+				\fill[cyan!60!yellow]
+				(2.3,.9) .. controls (2.7,.6) and (3,.4) ..
+				(3.4,.5) .. controls (3.3,.3) and (3.5,.1) ..
+				(3.1,0) .. controls (2.6,.1) and (2.2,.1) ..
+				(1.7,.1) .. controls (1.5,.3) and (1.6,.4) ..
+				(1.6,.6) -- (2.3,.9)
+				(0.1,0.8) .. controls (-0.0,0.7) and (-0.0,0.3) ..
+				(0.1,0.2) .. controls (0.4,0.2) and (0.8,0.5) ..
+				(1.3,0.4) .. controls (1.4,0.5) and (1.3,0.8) ..
+				(1.3,0.9) .. controls (1.1,0.7) and (0.9,0.9) ..
+				(0.6,0.8) -- (0.1,0.8);}}
+		\path 
+		(-5,-2.1) coordinate (C)
+		(-5,-3) coordinate (B)
+		(0,-3) coordinate (H)
+		(0,-2.1) coordinate (D)
+		($(C)!1!38:(D)$) coordinate (Cx)
+		(intersection of C--Cx and H--D) coordinate (A)	;
+		\path ($(B)+(-.2,0)$) pic[rotate=0,scale=.07]{man};	
+		\foreach \w/\f in {0.3/30,0.2/50,0.1/70} 
+		\fill [brown!\f!black, trunk] (0,0) ++(-\w/2,0) rectangle +(\w,-3);
+		\begin{scope}
+			\clip(-1,-1.8)--++(2,0)--++(-1,4)--cycle;
+			\foreach \n/\f in {1.8/40,1.2/50,1/60,0.7/70,0.6/80,0.4/90}
+			\fill [green!\f!black] ellipse (\n/1.5 and \n);
+		\end{scope}	
+		\draw (B)--(H)--(D);
+		\draw [dashed](B)--(C)node[midway,left]{$1{,}64$ m}--(A)--(D)--(C)node[midway,below]{$6$ m};	
+		\pic[draw,"$38^{\circ}$", angle eccentricity=1.4,angle radius=0.8cm]{angle=D--C--A};
+		\draw pic[draw, angle radius=2mm]{right angle=B--H--A};
+		\draw pic[draw, angle radius=2mm]{right angle=C--D--A};
+		\foreach \x/\g in {A/90,B/-90,C/180,H/-90,D/0} 
+		\fill[black] (\x)+(\g:3mm) node {$\x$};
+	\end{tikzpicture}
+}
+	\loigiai{
+	\begin{eqnarray*}
+	\triangle ACD~\text{vuông tại}~D\\
+	\tan\widehat{ACD}&=&\dfrac{AD}{CD}\\
+	AD&=&CD\cdot\tan\widehat{ACD}\\
+	AD&=&6\cdot\tan 38^\circ\\
+	AH&=&AD+DH=6\cdot\tan38^\circ+ 1{,}64\\
+	AH&\approx&6{,}33
+	\end{eqnarray*}
+	Vậy chiều cao của cây $AH\approx6{,}33$ m.
+	}
+\end{bt}

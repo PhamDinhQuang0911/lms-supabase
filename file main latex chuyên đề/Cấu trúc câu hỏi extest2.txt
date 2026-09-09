@@ -1,0 +1,78 @@
+
+**Cấu trúc gói ex_test bao gồm các loại câu hỏi có cấu trúc như sau
+**Cấu trúc câu trắc nghiệm
+\begin{ex}
+Nội dung câu hỏi ở đây
+\choice
+{ Phương án A}
+{ \True Phương án B}% Trước phương án đúng có ký hiệu \True
+{ Phương án C}
+{ Phương án D}
+\loigiai{
+Nội dung lời giải ở đây
+}
+\end{ex}
+
+**Cấu trúc tự luận
+Với câu có nhiều ý ngắn cần chia cột
+\begin{ex}
+Nội dung lời dẫn
+	\begin{enumEX}[a)]{số cột của các ý}
+	\item ý 1
+	\item ý 2
+	\item ý 3
+\end{enumEX}
+	\loigiai{
+\begin{enumerate}[a)]
+	\item Lời giải ý 1
+	\item Lời giải ý 2
+	\item Lời giải ý 3
+\end{enumerate}
+	}
+\end{ex}
+
+Câu tự luận các ý dài, không cần chia cột
+\begin{ex}
+Nội dung lời dẫn
+	\begin{enumerate}[a)]
+	\item ý 1
+	\item ý 2
+	\item ý 3
+\end{enumerate}
+	\loigiai{
+\begin{enumerate}[a)]
+	\item Lời giải ý 1
+	\item Lời giải ý 2
+	\item Lời giải ý 3
+\end{enumerate}
+	}
+\end{ex}
+
+**Cấu trúc câu đúng sai 
+\begin{ex}
+	Nội dung câu hỏi ở đây
+	\choiceTF
+	{ Mệnh đề 1}
+	{ \True Mệnh đề 2}% Trước Mệnh đề đúng có ký hiệu \True
+	{ Mệnh đề 3}
+	{ \True Mệnh đề 4}% Trước Mệnh đề đúng có ký hiệu \True
+	\loigiai{
+	\begin{itemchoice}
+		\itemch Giải thích cho mệnh đề 1
+		\itemch Giải thích cho mệnh đề 2
+		\itemch Giải thích cho mệnh đề 3
+		\itemch Giải thích cho mệnh đề 4
+	\end{itemchoice}
+	}
+\end{ex}
+**Cấu trúc câu trả lời ngắn
+\begin{ex}
+	Nội dung câu hỏi ở đây
+	\shortans{ Đáp số được làm tròn ở dạng thập phân hiện nhiều nhất 4 ký tự tính cả dấu `,`}
+	\loigiai{
+		Nội dung lời giải ở đây
+	}
+\end{ex}
+Một số các lưu ý 
+1: Đảm bảo trong các phương án của câu trắc nghiệm không có các ký tự đánh dấu phương án như A, B, C, D. Cuối các phương án không có cấu "." câu
+2: Trong các mệnh đề ở câu đúng sai không có các ký hiệu đánh dấu mệnh đề như " a, b,c ,d hay (a), (b), (c), (d), (1), (2), (3), (4)" và Cuối các phương án không có cấu "." câu

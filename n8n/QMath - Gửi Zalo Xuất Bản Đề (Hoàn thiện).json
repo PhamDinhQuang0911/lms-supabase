@@ -1,0 +1,481 @@
+{
+  "name": "QMath - Gửi Zalo Xuất Bản Đề (Bản Hoàn Thiện)",
+  "nodes": [
+    {
+      "id": "a9566be0-6038-4af8-bba4-16ba6d68e5e1",
+      "name": "Chuẩn bị Dữ liệu",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        4720,
+        2608
+      ],
+      "parameters": {
+        "jsCode": "let items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  let phone = $('Loop').item.json.targetPhoneParent || $('Loop').item.json.targetPhone;\n  items[i].json.documentId = phone;\n  let realUid = items[i].json.threadId || items[i].json.response?.uid;\nitems[i].json.uid = realUid ? \"UID_\" + realUid : \"\";\n}\nreturn items;"
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "qmath-zalo-publish",
+        "options": {
+          "respondWithCors": true
+        }
+      },
+      "id": "49acf71d-de9a-4e20-8749-84c7737ed14d",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        2752,
+        2240
+      ],
+      "webhookId": "65372435-324a-4984-8828-aa14fe629d28"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.messages",
+        "options": {}
+      },
+      "id": "ec878022-77be-43e5-bb91-0f838d996e43",
+      "name": "Split Out Messages",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2960,
+        2240
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "89659a1d-28e0-42f5-88e0-c12e4b820b07",
+      "name": "Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        3152,
+        2240
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "group"
+            },
+            {
+              "value2": "individual",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "f13d7ee6-84d2-413d-a8e3-8996cfad44d7",
+      "name": "Switch Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        3360,
+        2240
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 1,
+        "threadId": "={{ $json.targetGroupUid }}",
+        "message": "={{ $json.messageContent }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "id": "8234fc99-6bd5-40dd-a687-57fc050cd448",
+      "name": "Gửi Zalo Nhóm",
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3552,
+        2048
+      ],
+      "credentials": {
+        "zaloApi": {
+          "id": "kMMCpcPVoMsbnsy7",
+          "name": "055987xx _ Tg Toán Thầy.. _ 15:01 26/06"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.targetZaloUid }}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "id": "2c824be1-a9de-4457-ac60-c3c2e1da0be7",
+      "name": "Đã có UID chưa?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        3552,
+        2448
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.targetZaloUid }}",
+        "message": "={{ $json.messageContent }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "id": "83fdc3d7-8be8-4a38-806f-edcaa7c2a8a0",
+      "name": "Gửi cá nhân (Có UID)",
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3760,
+        2640
+      ],
+      "credentials": {
+        "zaloApi": {
+          "id": "kMMCpcPVoMsbnsy7",
+          "name": "055987xx _ Tg Toán Thầy.. _ 15:01 26/06"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "findUser",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "phoneNumber": "={{ $json.targetPhoneParent ? $json.targetPhoneParent : $json.targetPhone }}"
+      },
+      "id": "63d544f9-73ab-4a88-8d41-a9d10a58aa44",
+      "name": "Tìm Zalo qua SĐT",
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3760,
+        2352
+      ],
+      "credentials": {
+        "zaloApi": {
+          "id": "kMMCpcPVoMsbnsy7",
+          "name": "055987xx _ Tg Toán Thầy.. _ 15:01 26/06"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "useSession": true,
+        "connectToId": "717682179432150574",
+        "noticeUserId": "",
+        "threadType": 0,
+        "threadId": "={{ $json.response.uid }}",
+        "message": "={{ $('Loop').item.json.messageContent }}",
+        "messageFormat": "plain",
+        "urgency": 0,
+        "sendTypingEvent": true,
+        "attachmentType": "none",
+        "mentions": {},
+        "reaction": {},
+        "quote": {},
+        "styles": {},
+        "ttl": 0
+      },
+      "id": "065c2b57-7dbc-4f4e-bc0f-0cdc0c9e36a0",
+      "name": "Gửi cá nhân (Tìm được UID)",
+      "type": "n8n-nodes-ultimate.zalo",
+      "typeVersion": 1,
+      "position": [
+        3952,
+        2352
+      ],
+      "credentials": {
+        "zaloApi": {
+          "id": "kMMCpcPVoMsbnsy7",
+          "name": "055987xx _ Tg Toán Thầy.. _ 15:01 26/06"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * (50 - 10 + 1)) + 30 }}"
+      },
+      "id": "53de86fc-a09e-47b6-9581-653fd06a8b2e",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4352,
+        2240
+      ],
+      "webhookId": "940aef95-23d4-4762-8708-03662d7a9398"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "upsert",
+        "projectId": "lms-thitracnghiem",
+        "collection": "zalo_uids",
+        "updateKey": "documentId",
+        "columns": "uid"
+      },
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        5024,
+        2576
+      ],
+      "id": "2ea29eb9-7f8b-40c8-8feb-8b1cf764c2c6",
+      "name": "Lưu UID vào Firebase",
+      "credentials": {
+        "googleApi": {
+          "id": "BHe3jRYUDyClE0n0",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.documentId }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.uid }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        },
+        "combineOperation": "all"
+      },
+      "id": "if-valid-uid-12345",
+      "name": "Check Valid UID",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        4900,
+        2600
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chuẩn bị Dữ liệu": {
+      "main": [
+        [
+          {
+            "node": "Check Valid UID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lưu UID vào Firebase": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Split Out Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Messages": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop": {
+      "main": [
+        [
+          {
+            "node": "Switch Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Type": {
+      "main": [
+        [
+          {
+            "node": "Gửi Zalo Nhóm",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Đã có UID chưa?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gửi Zalo Nhóm": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Đã có UID chưa?": {
+      "main": [
+        [
+          {
+            "node": "Tìm Zalo qua SĐT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gửi cá nhân (Có UID)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gửi cá nhân (Có UID)": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tìm Zalo qua SĐT": {
+      "main": [
+        [
+          {
+            "node": "Gửi cá nhân (Tìm được UID)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gửi cá nhân (Tìm được UID)": {
+      "main": [
+        [
+          {
+            "node": "Chuẩn bị Dữ liệu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Valid UID": {
+      "main": [
+        [
+          {
+            "node": "Lưu UID vào Firebase",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "2153fc8b-ce70-42b5-9cb3-90e7d2ec808b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e2d5da445f84ade5f61733498fc152347799ff33bb8c6ad6a5af4573e424813b"
+  },
+  "id": "rjM9EAD4Fz0JOjQ9",
+  "tags": []
+}
