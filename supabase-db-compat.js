@@ -53,13 +53,18 @@ export const DEFAULT_ADMIN = {
 };
 
 class SupabaseAuth {
-    constructor() {
+    constructor(isDefault = true) {
+        this.isDefault = isDefault;
         this.listeners = [];
-        const saved = localStorage.getItem(AUTH_STORAGE_KEY);
-        if (saved) {
-            try {
-                this.currentUser = JSON.parse(saved);
-            } catch (e) {
+        if (isDefault) {
+            const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+            if (saved) {
+                try {
+                    this.currentUser = JSON.parse(saved);
+                } catch (e) {
+                    this.currentUser = null;
+                }
+            } else {
                 this.currentUser = null;
             }
         } else {
@@ -74,9 +79,12 @@ class SupabaseAuth {
     }
 }
 
-const authInstance = new SupabaseAuth();
+const authInstance = new SupabaseAuth(true);
 
 export function getAuth(app) {
+    if (app && app.name && app.name !== '[DEFAULT]') {
+        return new SupabaseAuth(false);
+    }
     return authInstance;
 }
 
@@ -126,7 +134,9 @@ export async function signInWithEmailAndPassword(auth, email, password) {
     };
 
     auth.currentUser = userObj;
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userObj));
+    if (auth.isDefault !== false) {
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userObj));
+    }
     auth._notify();
     return { user: userObj };
 }
@@ -160,9 +170,11 @@ export async function createUserWithEmailAndPassword(auth, email, password) {
 }
 
 export async function signOut(auth) {
-    auth.currentUser = null;
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    auth._notify();
+    if (!auth || auth.isDefault !== false) {
+        if (auth) auth.currentUser = null;
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        if (auth && auth._notify) auth._notify();
+    }
     return Promise.resolve();
 }
 

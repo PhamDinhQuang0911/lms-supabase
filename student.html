@@ -494,7 +494,19 @@
                         <div class="bg-blue-600 h-full rounded-full w-1/3 animate-[pulse_2s_infinite]"></div>
                     </div>
                 </div>
-                <button onclick="window.closeProcessingModal()" class="text-xs text-gray-400 font-bold hover:text-red-500">Hủy theo dõi (Vẫn xử lý ngầm)</button>
+                <!-- Khối nút Kiểm tra lại sau 30 giây -->
+                <div id="recheckPaymentBox" class="mt-2 w-full border-t border-gray-100 pt-3">
+                    <div id="recheckCountdownNotice" class="text-[11px] text-blue-800 font-medium mb-2 flex items-center justify-center gap-1">
+                        <i class="fa-regular fa-clock text-blue-600"></i>
+                        <span>Có thể bấm kiểm tra lại sau <b id="recheckCountdownNum">30s</b>...</span>
+                    </div>
+                    <button type="button" id="btnRecheckPayment" onclick="window.recheckStudentPayment()" class="hidden w-full py-2.5 px-4 text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer" style="background: linear-gradient(135deg, #f59e0b, #ea580c);">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>Kiểm tra lại thanh toán</span>
+                    </button>
+                </div>
+
+                <button onclick="window.closeProcessingModal()" class="text-xs text-gray-400 font-bold hover:text-red-500 mt-2 block mx-auto">Hủy theo dõi (Vẫn xử lý ngầm)</button>
             </div>
 
             <div id="successState" class="hidden">
@@ -510,6 +522,28 @@
         </div>
     </div>
     <div id="notificationContainer" class="fixed top-5 right-5 z-[120] flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- Modal hỗ trợ lưu ảnh QR cho điện thoại -->
+    <div id="mobileQrSaveModal" class="hidden fixed inset-0 z-[320] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-4 max-w-xs w-full text-center shadow-2xl relative animate-scale-up">
+            <button type="button" onclick="document.getElementById('mobileQrSaveModal').classList.add('hidden')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center text-sm cursor-pointer">
+                <i class="fa-solid fa-times"></i>
+            </button>
+            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-2 text-base">
+                <i class="fa-solid fa-hand-pointer animate-bounce"></i>
+            </div>
+            <h4 class="font-black text-gray-800 text-xs sm:text-sm mb-1">Lưu mã QR vào máy</h4>
+            <p class="text-[11px] text-gray-500 mb-2.5 leading-tight">
+                <b>Chạm và giữ vào ảnh QR</b> bên dưới 1-2 giây, sau đó chọn <b>"Lưu hình ảnh"</b> để lưu vào album.
+            </p>
+            <div class="p-2 bg-gray-50 rounded-xl border border-gray-200 inline-block">
+                <img id="mobileSaveQrImg" src="" class="w-44 h-44 object-contain rounded-lg mx-auto" alt="QR Code">
+            </div>
+            <button type="button" onclick="document.getElementById('mobileQrSaveModal').classList.add('hidden')" class="mt-3 w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer">
+                Đã lưu xong / Đóng
+            </button>
+        </div>
+    </div>
 
     <script type="module">
         import { 
@@ -1592,16 +1626,42 @@
                         </div>
                         <div id="stepQR" class="hidden w-full flex-col items-center animate-fade-in">
                             <div class="text-center mb-4"><h3 class="font-black text-2xl text-primary-700 mb-1">Quét mã VietQR</h3><p class="text-gray-500 text-sm">Sử dụng App ngân hàng để quét</p></div>
-                            <div class="relative w-64 h-64 bg-white p-2 rounded-xl shadow-xl border-4 border-primary-50 mb-4 group mx-auto">
+                            <div class="relative w-64 h-64 bg-white p-2 rounded-xl shadow-xl border-4 border-primary-50 mb-3 group mx-auto">
                                 <img id="vietQrImage" class="w-full h-full object-contain rounded-lg">
                                 <div id="qrLoading" class="absolute inset-0 bg-white flex flex-col items-center justify-center rounded-lg z-10"><div class="dashed-loader mb-2"></div><span class="text-xs font-bold text-primary-600">Đang tạo QR...</span></div>
                             </div>
-                            <div class="w-full max-w-sm bg-blue-50/50 p-3 rounded-xl border border-blue-100 text-sm space-y-2 mb-4 mx-auto text-left">
-                                <div class="flex justify-between"><span class="text-gray-500">Ngân hàng</span><b class="text-blue-700" id="bankNameDisplay">...</b></div>
-                                <div class="flex justify-between"><span class="text-gray-500">Số tài khoản</span><b class="text-blue-700 font-mono" id="accountNoDisplay">...</b></div>
-                                <div class="flex justify-between items-center pt-2 border-t border-blue-200/50"><span class="text-gray-500">Nội dung</span><b class="text-orange-600 font-mono text-xs" id="transferContentDisplay">...</b></div>
+                            <div class="w-full max-w-sm mx-auto">
+                                <div class="mb-2 flex justify-center">
+                                    <button type="button" id="btnDownloadQr" onclick="window.downloadQrCode()" class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-md text-[10px] font-bold shadow-2xs active:scale-95 transition-all cursor-pointer" title="Lưu mã QR vào thư viện ảnh">
+                                        <i class="fa-solid fa-download text-[9px]"></i> Tải ảnh QR
+                                    </button>
+                                </div>
+                                <div class="bg-blue-50/70 p-2.5 rounded-xl border border-blue-100 text-xs space-y-1.5 mb-3 text-left">
+                                    <div class="flex justify-between items-center gap-1">
+                                        <div class="flex items-center gap-1 min-w-0">
+                                            <span class="text-gray-500 text-[10px] sm:text-[11px] shrink-0">Ngân hàng:</span>
+                                            <b class="text-blue-900 text-[10px] sm:text-[11px] font-bold truncate" id="bankNameDisplay">...</b>
+                                        </div>
+                                        <button type="button" onclick="window.copyPaymentField('bankNameDisplay', 'Tên ngân hàng')" class="text-[9px] sm:text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-50 shadow-2xs cursor-pointer shrink-0">Copy</button>
+                                    </div>
+                                    <div class="flex justify-between items-center gap-1">
+                                        <div class="flex items-center gap-1 min-w-0">
+                                            <span class="text-gray-500 text-[10px] sm:text-[11px] shrink-0">Số tài khoản:</span>
+                                            <b class="text-blue-700 font-mono text-[11px] sm:text-xs font-black tracking-wide truncate" id="accountNoDisplay">...</b>
+                                            <span class="text-gray-400 text-[9px] sm:text-[10px] truncate hidden sm:inline" id="accountOwnerDisplay"></span>
+                                        </div>
+                                        <button type="button" onclick="window.copyPaymentField('accountNoDisplay', 'Số tài khoản')" class="text-[9px] sm:text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-50 shadow-2xs cursor-pointer shrink-0">Copy</button>
+                                    </div>
+                                    <div class="flex justify-between items-center gap-1 pt-1.5 border-t border-blue-200/50">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-[9px] sm:text-[10px] uppercase font-bold text-blue-800">Nội dung CK:</div>
+                                            <b class="text-orange-600 font-mono text-[11px] sm:text-xs break-all select-all" id="transferContentDisplay">...</b>
+                                        </div>
+                                        <button type="button" onclick="window.copyPaymentField('transferContentDisplay', 'Nội dung')" class="text-[9px] sm:text-[10px] font-bold text-orange-600 hover:text-orange-800 bg-white px-2 py-0.5 rounded border border-orange-200 hover:bg-orange-50 shadow-2xs cursor-pointer shrink-0">Copy</button>
+                                    </div>
+                                </div>
                             </div>
-                            <button onclick="window.confirmPayment()" class="w-full max-w-sm py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-check-circle"></i> ĐÃ CHUYỂN KHOẢN XONG</button>
+                            <button id="btnConfirmPaymentStudent" onclick="window.confirmPayment()" class="w-full max-w-sm py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-check-circle"></i> ĐÃ CHUYỂN KHOẢN XONG</button>
                             <button onclick="window.resetQrState()" class="mt-3 text-xs text-gray-400 font-bold hover:text-primary-600 underline">Quay lại sửa voucher</button>
                         </div>
                     </div>
@@ -1834,14 +1894,336 @@
             img.src = qrUrl;
         };
 
-        window.confirmPayment = async () => {
-            const btn = document.querySelector('#stepQR button');
-            const oldBtnContent = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo đơn...'; 
-            btn.disabled = true;
+        // Sao chép từng trường thông tin thanh toán độc lập
+        window.copyPaymentField = (elementId, labelName) => {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const text = (el.innerText || el.textContent || '').trim();
+            if (!text || text === '...') return;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    window.showNotification(`Đã sao chép ${labelName}: ${text}`, "success");
+                }).catch(() => fallbackCopy(text, labelName));
+            } else {
+                fallbackCopy(text, labelName);
+            }
+        };
+
+        function fallbackCopy(text, labelName) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                window.showNotification(`Đã sao chép ${labelName}: ${text}`, "success");
+            } catch(e) {
+                window.showNotification("Không thể sao chép, bạn hãy bôi đen để copy nhé!", "error");
+            }
+            document.body.removeChild(ta);
+        }
+
+        // Tải ảnh mã VietQR về thiết bị
+        window.downloadQrCode = async () => {
+            const qrImg = document.getElementById('vietQrImage');
+            if (!qrImg || !qrImg.src) {
+                window.showNotification("Chưa có mã QR để tải!", "warning");
+                return;
+            }
+            const btn = document.getElementById('btnDownloadQr');
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[9px]"></i> Đang xử lý...';
+            }
+
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+            const showMobileSaveModal = (imgSrc) => {
+                const modal = document.getElementById('mobileQrSaveModal');
+                const modalImg = document.getElementById('mobileSaveQrImg');
+                if (modal && modalImg) {
+                    modalImg.src = imgSrc;
+                    modal.classList.remove('hidden');
+                } else {
+                    window.open(imgSrc, '_blank');
+                }
+            };
 
             try {
-                // 1. Tạo đơn hàng lên Firebase
+                let blob = null;
+                try {
+                    const res = await fetch(qrImg.src, { mode: 'cors' });
+                    if (res.ok) blob = await res.blob();
+                } catch(fetchErr) {
+                    console.warn("Fetch trực tiếp không được, thử canvas:", fetchErr);
+                }
+
+                if (!blob) {
+                    blob = await new Promise((resolve) => {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = () => {
+                            try {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = img.naturalWidth || 400;
+                                canvas.height = img.naturalHeight || 400;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0);
+                                canvas.toBlob((b) => resolve(b), 'image/png');
+                            } catch(e) { resolve(null); }
+                        };
+                        img.onerror = () => resolve(null);
+                        img.src = qrImg.src;
+                    });
+                }
+
+                if (isMobile) {
+                    if (blob && navigator.canShare) {
+                        try {
+                            const file = new File([blob], `VietQR_QMath_${Date.now()}.png`, { type: 'image/png' });
+                            if (navigator.canShare({ files: [file] })) {
+                                await navigator.share({
+                                    title: 'Mã QR QMath',
+                                    text: 'Mã QR thanh toán khóa học QMath',
+                                    files: [file]
+                                });
+                                window.showNotification("Đã mở chia sẻ mã QR! Bạn hãy chọn 'Lưu hình ảnh' nhé.", "success");
+                                return;
+                            }
+                        } catch(shareErr) {
+                            if (shareErr.name === 'AbortError') return;
+                            console.warn("Web Share không thành công:", shareErr);
+                        }
+                    }
+
+                    const previewSrc = blob ? URL.createObjectURL(blob) : qrImg.src;
+                    showMobileSaveModal(previewSrc);
+                    window.showNotification("Nhấn giữ vào ảnh 1-2 giây rồi chọn 'Lưu hình ảnh' vào máy nhé!", "info");
+                    return;
+                }
+
+                if (blob) {
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = `VietQR_QMath_${Date.now()}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+                    window.showNotification("Đã tải mã QR về máy thành công!", "success");
+                } else {
+                    window.open(qrImg.src, '_blank');
+                }
+
+            } catch (err) {
+                console.error("Lỗi downloadQrCode:", err);
+                if (isMobile) {
+                    showMobileSaveModal(qrImg.src);
+                } else {
+                    window.open(qrImg.src, '_blank');
+                }
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            }
+        };
+
+        window._studentRecheckTimer = null;
+        window._currentStudentOrderId = null;
+
+        const isOrderApproved = (data) => {
+            if (!data) return false;
+            const s = String(data.status || '').toLowerCase().trim();
+            return s === 'paid' || s === 'approved' || s === 'completed' || s === 'success';
+        };
+
+        // Kích hoạt quét giao dịch tức thì qua Google Apps Script / Webhook (Non-blocking & No-error)
+        window.triggerImmediateScan = (isAuto = true) => {
+            const scanUrl = dynamicBankConfig?.SCAN_TRIGGER_URL || "https://script.google.com/macros/s/AKfycbxTRrSksmNVCb9UjOXhfTmKjY4XFrZO5QlIc_CnPoemUEEo5akhPoCmpYv3_x78AN_neQ/exec";
+            if (!scanUrl) return;
+
+            try {
+                const pingUrl = scanUrl + (scanUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                const img = new Image();
+                img.src = pingUrl;
+            } catch(e) {}
+
+            try {
+                fetch(scanUrl, {
+                    method: 'GET',
+                    mode: 'no-cors',
+                    credentials: 'omit',
+                    cache: 'no-store'
+                }).catch(() => {});
+            } catch(e) {}
+
+            if (!isAuto && window.showNotification) {
+                window.showNotification("⚡ Đã gửi yêu cầu đối soát giao dịch tới hệ thống!", "info");
+            }
+        };
+
+        // Bắt đầu đếm ngược 30 giây để hiện nút "Kiểm tra lại"
+        window.startStudentRecheckCountdown = (seconds = 30) => {
+            if (window._studentRecheckTimer) clearInterval(window._studentRecheckTimer);
+            const box = document.getElementById('recheckPaymentBox');
+            const notice = document.getElementById('recheckCountdownNotice');
+            const numEl = document.getElementById('recheckCountdownNum');
+            const btn = document.getElementById('btnRecheckPayment');
+            if (!box) return;
+
+            box.classList.remove('hidden');
+            if (btn) btn.classList.add('hidden');
+            if (notice) notice.classList.remove('hidden');
+            if (numEl) numEl.innerText = `${seconds}s`;
+
+            let remaining = seconds;
+            window._studentRecheckTimer = setInterval(() => {
+                remaining--;
+                if (remaining > 0) {
+                    if (numEl) numEl.innerText = `${remaining}s`;
+                } else {
+                    clearInterval(window._studentRecheckTimer);
+                    window._studentRecheckTimer = null;
+                    if (notice) notice.classList.add('hidden');
+                    if (btn) {
+                        btn.classList.remove('hidden');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-rotate"></i> <span>Kiểm tra lại thanh toán</span>';
+                    }
+                }
+            }, 1000);
+        };
+
+        // Hàm Kiểm tra lại thanh toán thủ công (Check DB Cực Nhanh <100ms + Gọi Webhook Dự Phòng)
+        window.recheckStudentPayment = async () => {
+            const btn = document.getElementById('btnRecheckPayment');
+            const originHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đối soát và kiểm tra đơn...';
+            }
+
+            try {
+                // 1. Phục hồi orderId nếu bị mất (do reload trang hoặc đổi app)
+                let orderId = window._currentStudentOrderId;
+                if (!orderId) {
+                    try {
+                        const raw = localStorage.getItem('pendingStudentCheckoutOrderId');
+                        if (raw) {
+                            try {
+                                const parsed = JSON.parse(raw);
+                                if (parsed && parsed.id && (Date.now() - (parsed.timestamp || 0) < 2 * 3600 * 1000)) {
+                                    orderId = parsed.id;
+                                    window._currentStudentOrderId = orderId;
+                                }
+                            } catch(e) {
+                                if (typeof raw === 'string' && raw.length > 5) {
+                                    orderId = raw;
+                                    window._currentStudentOrderId = orderId;
+                                }
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                const contentEl = document.getElementById('transferContentDisplay');
+                const contentText = contentEl ? contentEl.innerText.trim() : '';
+                if (!orderId && contentText && contentText !== '...') {
+                    try {
+                        const { data: foundOrder } = await supabase.from('orders').select('*').eq('content', contentText).maybeSingle();
+                        if (foundOrder && foundOrder.id) {
+                            orderId = foundOrder.id;
+                            window._currentStudentOrderId = orderId;
+                        }
+                    } catch(e) {
+                        console.warn("Lỗi tìm đơn theo content:", e);
+                    }
+                }
+
+                if (!orderId) {
+                    window.showNotification("Không tìm thấy thông tin đơn hàng hiện tại!", "error");
+                    return;
+                }
+
+                const onPaymentSuccess = async (data) => {
+                    document.getElementById('processingState')?.classList.add('hidden');
+                    document.getElementById('successState')?.classList.remove('hidden');
+                    if (window._studentRecheckTimer) {
+                        clearInterval(window._studentRecheckTimer);
+                        window._studentRecheckTimer = null;
+                    }
+                    document.getElementById('recheckPaymentBox')?.classList.add('hidden');
+                    try { localStorage.removeItem('pendingStudentCheckoutOrderId'); } catch(e) {}
+                    await loadMyPurchased(auth.currentUser); 
+                    await loadMarket(); 
+                    if (processingListener) {
+                        processingListener();
+                        processingListener = null;
+                    }
+                };
+
+                // 2. [CỰC NHANH - <100ms]: Kiểm tra trực tiếp Database trước
+                const { data: orderData } = await supabase.from('orders').select('*').eq('id', orderId).maybeSingle();
+                if (orderData && isOrderApproved(orderData)) {
+                    await onPaymentSuccess(orderData);
+                    window.showNotification("🎉 Đơn hàng đã được xác nhận thanh toán thành công!", "success");
+                    return;
+                }
+
+                // 3. Nếu chưa -> Gọi webhook quét giao dịch chạy nền (không block UI)
+                if (window.triggerImmediateScan) {
+                    window.triggerImmediateScan(false);
+                }
+
+                // 4. Smart Polling kiểm tra lại Database (lần 1 sau 1.2s)
+                await new Promise(r => setTimeout(r, 1200));
+                const { data: orderData1 } = await supabase.from('orders').select('*').eq('id', orderId).maybeSingle();
+                if (orderData1 && isOrderApproved(orderData1)) {
+                    await onPaymentSuccess(orderData1);
+                    window.showNotification("🎉 Đã đối soát thành công! Khóa học đã được kích hoạt.", "success");
+                    return;
+                }
+
+                // Smart Polling kiểm tra lại Database (lần 2 sau 1.5s nữa)
+                await new Promise(r => setTimeout(r, 1500));
+                const { data: orderData2 } = await supabase.from('orders').select('*').eq('id', orderId).maybeSingle();
+                if (orderData2 && isOrderApproved(orderData2)) {
+                    await onPaymentSuccess(orderData2);
+                    window.showNotification("🎉 Đã đối soát thành công! Khóa học đã được kích hoạt.", "success");
+                    return;
+                }
+
+                // 5. Nếu vẫn chưa có biến động tiền
+                window.showNotification("Hệ thống đã gửi yêu cầu đối soát tới ngân hàng. Nếu bạn vừa chuyển tiền, ngân hàng có thể mất 30s - 1 phút để cập nhật số dư. Bạn vui lòng thử bấm lại sau giây lát nhé!", "info");
+
+            } catch (err) {
+                console.error("Lỗi recheckStudentPayment:", err);
+                window.showNotification("Có lỗi khi kiểm tra đơn: " + err.message, "error");
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-rotate"></i> <span>Kiểm tra lại thanh toán</span>';
+                }
+            }
+        };
+
+        window.confirmPayment = async () => {
+            const btn = document.getElementById('btnConfirmPaymentStudent') || document.querySelector('#stepQR button');
+            const oldBtnContent = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo đơn...'; 
+                btn.disabled = true;
+            }
+
+            try {
+                // 1. Tạo đơn hàng lên Firebase / Supabase
                 const docRef = await addDoc(collection(db, "orders"), {
                     userId: auth.currentUser.uid,
                     userName: auth.currentUser.displayName || "No Name",
@@ -1855,11 +2237,25 @@
                     createdAt: new Date().toISOString()
                 });
 
+                window._currentStudentOrderId = docRef.id;
+                try {
+                    localStorage.setItem('pendingStudentCheckoutOrderId', JSON.stringify({
+                        id: docRef.id,
+                        content: document.getElementById('transferContentDisplay')?.innerText || '',
+                        timestamp: Date.now()
+                    }));
+                } catch(e) {}
+
                 // 2. Chuyển đổi giao diện: Ẩn Payment, Hiện Processing
                 document.getElementById('paymentModal').classList.add('hidden');
                 document.getElementById('processingModal').classList.remove('hidden');
                 document.getElementById('processingState').classList.remove('hidden');
                 document.getElementById('successState').classList.add('hidden');
+
+                // Kích hoạt đếm ngược 30 giây để hiện nút "Kiểm tra lại"
+                if (window.startStudentRecheckCountdown) {
+                    window.startStudentRecheckCountdown(30);
+                }
 
                 // 3. Kích hoạt lắng nghe dữ liệu Real-time
                 if (processingListener) processingListener(); // Hủy cái cũ nếu có
@@ -1868,8 +2264,15 @@
                     if (snapshot.exists()) {
                         const data = snapshot.data();
                         
-                        // Khi Script Google cập nhật trạng thái thành 'paid'
-                        if (data.status === 'paid' || data.status === 'approved') {
+                        // Khi Script Google hoặc Admin duyệt đơn thành công
+                        if (isOrderApproved(data)) {
+                            try { localStorage.removeItem('pendingStudentCheckoutOrderId'); } catch(e) {}
+                            if (window._studentRecheckTimer) {
+                                clearInterval(window._studentRecheckTimer);
+                                window._studentRecheckTimer = null;
+                            }
+                            document.getElementById('recheckPaymentBox')?.classList.add('hidden');
+
                             // a. Hiện thông báo thành công
                             document.getElementById('processingState').classList.add('hidden');
                             document.getElementById('successState').classList.remove('hidden');
@@ -1889,8 +2292,10 @@
 
             } catch(e) { 
                 window.showNotification("Lỗi: " + e.message, "error"); 
-                btn.innerHTML = oldBtnContent;
-                btn.disabled = false;
+                if (btn) {
+                    btn.innerHTML = oldBtnContent;
+                    btn.disabled = false;
+                }
             }
         };
 
