@@ -580,18 +580,29 @@
         window.examHistory = [];
         window.briefNotes = {}; 
 
-        function saveLocal() {
+        let dbSyncTimeout = null;
+        function saveLocal(immediate = false) {
             if(currentUser && examId) {
                 localStorage.setItem(`ans_${currentUser.uid}_${examId}`, JSON.stringify(userAnswers));
                 localStorage.setItem(`brief_${currentUser.uid}_${examId}`, JSON.stringify(window.briefNotes || {}));
                 if (Object.keys(userAnswers).length > 0 || Object.keys(window.briefNotes || {}).length > 0) {
-                    const attemptRef = doc(db, "exam_attempts", `${currentUser.uid}_${examId}`);
-                    setDoc(attemptRef, { 
-                        examId: examId, 
-                        answers: userAnswers, 
-                        briefNotes: window.briefNotes || {},
-                        updatedAt: Date.now() 
-                    }, { merge: true }).catch(() => {});
+                    const performSync = () => {
+                        const attemptRef = doc(db, "exam_attempts", `${currentUser.uid}_${examId}`);
+                        setDoc(attemptRef, { 
+                            examId: examId, 
+                            answers: userAnswers, 
+                            briefNotes: window.briefNotes || {},
+                            updatedAt: Date.now() 
+                        }, { merge: true }).catch(() => {});
+                    };
+
+                    if (immediate) {
+                        if (dbSyncTimeout) clearTimeout(dbSyncTimeout);
+                        performSync();
+                    } else {
+                        if (dbSyncTimeout) clearTimeout(dbSyncTimeout);
+                        dbSyncTimeout = setTimeout(performSync, 1000);
+                    }
                 }
             }
         }
@@ -1616,6 +1627,7 @@
             clearInterval(timerInterval); 
             // [QUAN TRỌNG] Dừng việc đồng bộ Cloud
             if(syncInterval) clearInterval(syncInterval);
+            if(dbSyncTimeout) clearTimeout(dbSyncTimeout);
 
             // 1. TÍNH ĐIỂM (LOGIC CŨ)
             let totalScore = 0; let correct = 0; const normShort = (v) => String(v ?? '').trim().toLowerCase().replace(/\$/g, '').replace(/\s+/g, ' ').replace(/,/g, '.');

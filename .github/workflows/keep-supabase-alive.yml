@@ -1,0 +1,20 @@
+﻿name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Tự động chạy mỗi ngày 2 lần (00:00 và 12:00 UTC)
+    - cron: '0 0,12 * * *'
+  workflow_dispatch: # Cho phép bấm nút chạy thủ công từ tab Actions trên GitHub
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          echo "Đang ping Supabase vào lúc: 09/19/2026 23:58:55"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1bmlxYW5idW1jcnFjZGxjdmFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NDE4MTMsImV4cCI6MjEwNDUxNzgxM30.MWSv1QKVlQ9r-8r0hkrqWsmm75hULq_VjPCbTqXDe-o" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1bmlxYW5idW1jcnFjZGxjdmFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NDE4MTMsImV4cCI6MjEwNDUxNzgxM30.MWSv1QKVlQ9r-8r0hkrqWsmm75hULq_VjPCbTqXDe-o" \
+            "https://cuniqanbumcrqcdlcvad.supabase.co/rest/v1/site_settings?limit=1")
+          echo "Trạng thái HTTP Supabase phản hồi: $HTTP_STATUS"
