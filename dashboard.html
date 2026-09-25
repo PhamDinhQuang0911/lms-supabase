@@ -1624,27 +1624,26 @@
             <div class="p-3 sm:p-4 overflow-y-auto custom-scrollbar space-y-2.5 flex-1">
                 <input type="hidden" id="adminEditDocId" value="">
 
-                <!-- 1. HÀNG THÔNG TIN CƠ BẢN, TÀI KHOẢN & VAI TRÒ (GỌN GÀNG, KÈM MẬT KHẨU) -->
-                <div class="p-3 bg-gray-50/80 dark:bg-[#242033] border border-gray-200 dark:border-[#38344D] rounded-xl space-y-2.5">
-                    <!-- Hàng 1: Email/Tài khoản + Tên hiển thị + Cấp độ vai trò -->
-                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
-                        <div class="sm:col-span-5">
+                <!-- 1. HÀNG THÔNG TIN CƠ BẢN, TÀI KHOẢN & VAI TRÒ (RESPONSIVE CHUẨN MOBILE & DESKTOP) -->
+                <div class="p-3 bg-gray-50/80 dark:bg-[#242033] border border-gray-200 dark:border-[#38344D] rounded-xl space-y-3">
+                    <!-- Hàng 1: Email/Tài khoản + Tên hiển thị + Cấp độ vai trò (1 cột trên mobile, 3 cột trên desktop) -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="w-full">
                             <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Email / Tài Khoản Đăng Nhập (*)</label>
                             <input type="text" id="adminEditEmail" placeholder="trogiang@gmail.com hoặc cothuha" class="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 font-mono bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
                         </div>
-                        <div class="sm:col-span-4">
+                        <div class="w-full">
                             <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Tên Hiển Thị (Họ & Tên)</label>
                             <input type="text" id="adminEditDisplayName" placeholder="Vd: Cô Thu Hà (GV Toán)" class="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
                         </div>
-                        <!-- Vai trò: Segmented Switch -->
-                        <div class="sm:col-span-3">
+                        <div class="w-full">
                             <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Cấp Độ Vai Trò (*)</label>
-                            <div class="flex items-center p-0.5 bg-gray-200 dark:bg-gray-800 rounded-lg text-xs font-bold border border-gray-300 dark:border-gray-700">
-                                <label id="lblRoleAdmin" class="flex-1 text-center py-1 px-1 rounded-md cursor-pointer transition-all bg-purple-600 text-white select-none">
+                            <div class="flex items-center p-0.5 bg-gray-200 dark:bg-gray-800 rounded-lg text-xs font-bold border border-gray-300 dark:border-gray-700 h-[31px]">
+                                <label id="lblRoleAdmin" class="flex-1 h-full flex items-center justify-center py-1 px-1 rounded-md cursor-pointer transition-all bg-purple-600 text-white select-none">
                                     <input type="radio" name="adminRoleChoice" value="admin" checked onchange="window.handleRoleChoiceChange(this.value)" class="sr-only">
                                     <span>🛡️ Admin</span>
                                 </label>
-                                <label id="lblRoleSuper" class="flex-1 text-center py-1 px-1 rounded-md cursor-pointer transition-all text-gray-700 dark:text-gray-300 select-none">
+                                <label id="lblRoleSuper" class="flex-1 h-full flex items-center justify-center py-1 px-1 rounded-md cursor-pointer transition-all text-gray-700 dark:text-gray-300 select-none">
                                     <input type="radio" name="adminRoleChoice" value="super_admin" onchange="window.handleRoleChoiceChange(this.value)" class="sr-only">
                                     <span>👑 Super</span>
                                 </label>
@@ -1652,15 +1651,15 @@
                         </div>
                     </div>
 
-                    <!-- Hàng 2: Mật khẩu đăng nhập + Ghi chú phân công -->
-                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end pt-1.5 border-t border-gray-200/70 dark:border-gray-700/50">
-                        <div class="sm:col-span-5">
+                    <!-- Hàng 2: Mật khẩu đăng nhập + Ghi chú phân công (1 cột trên mobile, 2 cột trên desktop) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2.5 border-t border-gray-200/70 dark:border-gray-700/50">
+                        <div class="w-full">
                             <div class="flex items-center justify-between mb-1">
                                 <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300">
                                     <span id="lblAdminPassText">Mật Khẩu Đăng Nhập</span> <span id="adminPassRequiredStar" class="text-red-500 font-bold">(*)</span>
                                 </label>
-                                <button type="button" onclick="window.generateRandomAdminPassword()" class="text-[10px] text-purple-600 dark:text-purple-400 hover:underline font-bold flex items-center gap-1 cursor-pointer">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Tạo mật khẩu
+                                <button type="button" onclick="window.generateRandomAdminPassword()" class="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-bold flex items-center gap-1 cursor-pointer">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Tạo tự động
                                 </button>
                             </div>
                             <div class="relative">
@@ -1674,11 +1673,11 @@
                                     </button>
                                 </div>
                             </div>
-                            <div id="adminPassHint" class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Cấp mật khẩu để giáo viên đăng nhập trực tiếp tại trang chủ.</div>
+                            <div id="adminPassHint" class="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Cấp mật khẩu để giáo viên đăng nhập trực tiếp tại trang chủ.</div>
                         </div>
-                        <div class="sm:col-span-7">
+                        <div class="w-full">
                             <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Ghi Chú Phân Công / Chuyên Môn</label>
-                            <input type="text" id="adminEditNote" placeholder="Vd: Quản lý lớp 9A1, chuyên đề Hình học..." class="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
+                            <input type="text" id="adminEditNote" placeholder="Vd: Quản lý lớp 9A1, phụ trách chuyên đề Hình học..." class="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
                         </div>
                     </div>
                 </div>
