@@ -3292,6 +3292,42 @@
                     window.showToast('Chưa cấu hình API MathType; các công thức MathType có thể không hiển thị. Văn bản Word vẫn được nạp.', 'warning');
                 }
 
+                function extractEmbeddedRaster(arrayBuffer) {
+                    const bytes = new Uint8Array(arrayBuffer);
+                    if (!bytes || bytes.length < 16) return null;
+                    for (let i = 0; i <= bytes.length - 16; i++) {
+                        if (bytes[i] === 0x89 && bytes[i + 1] === 0x50 && bytes[i + 2] === 0x4e && bytes[i + 3] === 0x47 &&
+                            bytes[i + 4] === 0x0d && bytes[i + 5] === 0x0a && bytes[i + 6] === 0x1a && bytes[i + 7] === 0x0a) {
+                            for (let k = i + 8; k <= bytes.length - 8; k++) {
+                                if (bytes[k] === 0x49 && bytes[k + 1] === 0x45 && bytes[k + 2] === 0x4e && bytes[k + 3] === 0x44) {
+                                    return { mime: 'image/png', data: bytes.subarray(i, k + 8) };
+                                }
+                            }
+                        }
+                    }
+                    for (let i = 0; i <= bytes.length - 4; i++) {
+                        if (bytes[i] === 0xff && bytes[i + 1] === 0xd8 && bytes[i + 2] === 0xff) {
+                            for (let k = i + 3; k <= bytes.length - 2; k++) {
+                                if (bytes[k] === 0xff && bytes[k + 1] === 0xd9) {
+                                    return { mime: 'image/jpeg', data: bytes.subarray(i, k + 2) };
+                                }
+                            }
+                        }
+                    }
+                    return null;
+                }
+
+                function uint8ArrayToBase64(bytes) {
+                    let binary = '';
+                    const len = bytes.byteLength;
+                    const chunkSize = 16384;
+                    for (let i = 0; i < len; i += chunkSize) {
+                        const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+                        binary += String.fromCharCode.apply(null, chunk);
+                    }
+                    return btoa(binary);
+                }
+
                 // Mammoth mặc định bỏ qua gạch chân. Ép xuất <u> để parser nhận được
                 // A./a) được giáo viên gạch chân làm đáp án đúng.
                 const mammothOptions = {
@@ -3302,6 +3338,15 @@
                             return element.readAsArrayBuffer().then(async (buf) => {
                                 try {
                                     const arrayBuffer = (buf instanceof ArrayBuffer) ? buf : (buf.buffer ? buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) : new Uint8Array(buf).buffer);
+                                    
+                                    // 1. Ưu tiên trích xuất ảnh raster (PNG/JPEG) nhúng trực tiếp trong EMF/WMF (ảnh gốc chất lượng cao từ Word)
+                                    const embedded = extractEmbeddedRaster(arrayBuffer);
+                                    if (embedded) {
+                                        const b64 = uint8ArrayToBase64(embedded.data);
+                                        return { src: `data:${embedded.mime};base64,${b64}`, alt: 'Hình minh họa' };
+                                    }
+
+                                    // 2. Dự phòng: giải mã vector bằng canvas nếu không có raster nhúng
                                     if (typeof window.convertMetafileToDataUrl === 'function') {
                                         const pngUrl = await window.convertMetafileToDataUrl(arrayBuffer, { dpiScale: 2 });
                                         if (pngUrl) return { src: pngUrl, alt: 'Hình minh họa' };

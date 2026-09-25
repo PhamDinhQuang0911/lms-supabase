@@ -6965,7 +6965,52 @@ async function processDeferredImages(ctx, deferredImages, recursionDepth = 0) {
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
+
+function extractEmbeddedRaster(buffer) {
+  const bytes = new Uint8Array(buffer);
+  if (!bytes || bytes.length < 16) return null;
+  for (let i = 0; i <= bytes.length - 16; i++) {
+    if (bytes[i] === 0x89 && bytes[i + 1] === 0x50 && bytes[i + 2] === 0x4e && bytes[i + 3] === 0x47 &&
+        bytes[i + 4] === 0x0d && bytes[i + 5] === 0x0a && bytes[i + 6] === 0x1a && bytes[i + 7] === 0x0a) {
+      for (let k = i + 8; k <= bytes.length - 8; k++) {
+        if (bytes[k] === 0x49 && bytes[k + 1] === 0x45 && bytes[k + 2] === 0x4e && bytes[k + 3] === 0x44) {
+          return { mime: "image/png", data: bytes.subarray(i, k + 8) };
+        }
+      }
+    }
+  }
+  for (let i = 0; i <= bytes.length - 4; i++) {
+    if (bytes[i] === 0xff && bytes[i + 1] === 0xd8 && bytes[i + 2] === 0xff) {
+      for (let k = i + 3; k <= bytes.length - 2; k++) {
+        if (bytes[k] === 0xff && bytes[k + 1] === 0xd9) {
+          return { mime: "image/jpeg", data: bytes.subarray(i, k + 2) };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function uint8ArrayToBase64(bytes) {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(bytes).toString("base64");
+  }
+  let binary = "";
+  const len = bytes.byteLength;
+  const chunkSize = 16384;
+  for (let i = 0; i < len; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+    binary += String.fromCharCode.apply(null, chunk);
+  }
+  return btoa(binary);
+}
+
 async function convertMetafileToDataUrl(buffer, options, recursionDepth = 0) {
+  const embedded = extractEmbeddedRaster(buffer);
+  if (embedded) {
+    const b64 = uint8ArrayToBase64(embedded.data);
+    return `data:${embedded.mime};base64,${b64}`;
+  }
   await ensureNodeCanvasModule();
   if (recursionDepth > MAX_METAFILE_RECURSION) {
     return null;
@@ -7031,6 +7076,8 @@ async function convertEmfInternal(buffer, view, header, options, recursionDepth)
       return null;
     }
     const { canvas, ctx } = setup;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     emfLog(
       `convertEmfInternal: canvas created ${canvas.width}\xD7${canvas.height} (dpiScale=${dpiScale})`
     );
@@ -7101,6 +7148,8 @@ async function convertWmfInternal(buffer, view, options, recursionDepth) {
       return null;
     }
     const { canvas, ctx } = setup;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     replayWmfRecords(view, ctx, header, canvas.width, canvas.height, replayOptions);
     ctx.restore();
