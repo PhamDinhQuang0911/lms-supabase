@@ -4,7 +4,7 @@
   "description": "Nền tảng thi và làm bài tập toán trực tuyến",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#f9fafb",
+  "background_color": "#ffffff",
   "theme_color": "#ea580c",
   "icons": [
     {
@@ -14,10 +14,16 @@
       "purpose": "any maskable"
     },
     {
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/app-icon.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
