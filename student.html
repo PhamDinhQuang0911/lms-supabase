@@ -259,24 +259,33 @@
             border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
         }
         .lb-box-theme {
-            background-color: #f8fafc !important;
+            background-color: #ffffff !important;
             color: #0f172a !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+        .lb-tab-bg {
+            background-color: #ffffff !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        .lb-tab-filter-container {
+            background-color: #f1f5f9 !important;
+            border: 1px solid #e2e8f0 !important;
         }
         .lb-item-normal-theme {
             background-color: #ffffff !important;
-            border: 2px solid #cbd5e1 !important;
+            border: 1.5px solid #e2e8f0 !important;
             color: #0f172a !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
         }
         .lb-item-normal-theme:hover {
-            border-color: #94a3b8 !important;
+            border-color: #cbd5e1 !important;
             background-color: #f8fafc !important;
         }
         .lb-item-me-theme {
             background-color: #fffbeb !important;
             border: 2px solid #f59e0b !important;
             color: #78350f !important;
-            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25) !important;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2) !important;
         }
         .lb-text-name {
             color: #0f172a !important;
@@ -288,18 +297,14 @@
         }
         .lb-podium-card {
             background: linear-gradient(180deg, #fffbeb 0%, #fff7ed 50%, #ffffff 100%) !important;
-            border: 2px solid #fcd34d !important;
-            box-shadow: 0 4px 10px -2px rgba(245, 158, 11, 0.15) !important;
+            border: 1.5px solid #fde68a !important;
+            box-shadow: 0 4px 12px -2px rgba(245, 158, 11, 0.12) !important;
         }
         .lb-rank-badge {
             background-color: #f1f5f9 !important;
-            border: 1.5px solid #cbd5e1 !important;
+            border: 1px solid #e2e8f0 !important;
             color: #334155 !important;
             font-weight: 800 !important;
-        }
-        .lb-tab-filter-container {
-            background-color: #e2e8f0 !important;
-            border: 1.5px solid #cbd5e1 !important;
         }
         .lb-tab-btn-active {
             background-color: #ea580c !important;
@@ -1007,9 +1012,14 @@
                             <p class="lb-subtext text-[11px] md:text-xs truncate mt-0.5 font-medium max-w-[240px] md:max-w-[400px]" id="lbExamTitle">Đang tải tên bài thi...</p>
                         </div>
                     </div>
-                    <button onclick="window.closeExamLeaderboard()" class="w-7 h-7 rounded-full bg-black/25 hover:bg-black/45 flex items-center justify-center text-white text-xs transition-colors shrink-0 cursor-pointer" title="Đóng">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button id="lbThemeToggleBtn" onclick="window.toggleLeaderboardTheme()" class="w-7 h-7 rounded-full bg-black/25 hover:bg-black/45 flex items-center justify-center text-white text-xs transition-colors cursor-pointer" title="Đổi giao diện Sáng / Tối">
+                            <i id="lbThemeIcon" class="fa-solid fa-moon"></i>
+                        </button>
+                        <button onclick="window.closeExamLeaderboard()" class="w-7 h-7 rounded-full bg-black/25 hover:bg-black/45 flex items-center justify-center text-white text-xs transition-colors shrink-0 cursor-pointer" title="Đóng">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Thống kê nhanh (Pills) gọn -->
@@ -2020,7 +2030,28 @@
             };
         }
 
+        window.toggleLeaderboardTheme = () => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            try {
+                localStorage.setItem('qmath_theme', isDark ? 'dark' : 'light');
+            } catch(e) {}
+            window.updateLbThemeIcon(isDark);
+        };
+
+        window.updateLbThemeIcon = (isDark) => {
+            const icon = document.getElementById('lbThemeIcon');
+            const btn = document.getElementById('lbThemeToggleBtn');
+            const isCurrentlyDark = isDark !== undefined ? isDark : document.documentElement.classList.contains('dark');
+            if (icon) {
+                icon.className = isCurrentlyDark ? 'fa-solid fa-sun text-yellow-300' : 'fa-solid fa-moon text-white';
+            }
+            if (btn) {
+                btn.title = isCurrentlyDark ? 'Chuyển sang giao diện Sáng' : 'Chuyển sang giao diện Tối';
+            }
+        };
+
         window.openExamLeaderboard = async (targetExamId, examTitle = 'Đề thi', forceRefresh = false) => {
+            window.updateLbThemeIcon();
             const modal = document.getElementById('examLeaderboardModal');
             if (!modal) return;
 

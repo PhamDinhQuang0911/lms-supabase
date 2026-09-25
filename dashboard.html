@@ -4739,6 +4739,78 @@
             }
         });
 
+        window.generateClassPrefix = (classId) => {
+            const currentClass = (window.allClassesData || []).find(c => c.id === (classId || currentViewingClassId));
+            const name = currentClass?.name || '';
+            if (!name) return 'hs_';
+            let clean = name.toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .replace(/đ/g, "d")
+                .replace(/[^a-z0-9]/g, '');
+            if (!clean) return 'hs_';
+            return clean + '_';
+        };
+
+        window.createUniqueStudentWithAuth = async (baseUser, pass, name, classPrefix) => {
+            let cleanUser = (baseUser || '').toLowerCase().trim()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .replace(/đ/g, "d")
+                .replace(/[^a-z0-9._-]/g, '');
+
+            if (!cleanUser) {
+                cleanUser = (name || 'student').toLowerCase().trim()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/[^a-z0-9]/g, '');
+            }
+
+            const prefix = classPrefix || '';
+            let candidateUser = cleanUser.startsWith(prefix) ? cleanUser : (prefix + cleanUser);
+
+            let counter = 0;
+            let finalUser = null;
+            let finalUsername = candidateUser;
+            let finalEmail = `${finalUsername}@hocsinh.com`;
+            let isRenamed = false;
+
+            const isTakenInMemory = (u) => {
+                return (currentClassStudents || []).some(s => (s.username || '').toLowerCase() === u.toLowerCase());
+            };
+
+            while (isTakenInMemory(finalUsername)) {
+                counter++;
+                finalUsername = `${candidateUser}_${counter}`;
+                finalEmail = `${finalUsername}@hocsinh.com`;
+                isRenamed = true;
+            }
+
+            while (!finalUser && counter <= 50) {
+                try {
+                    finalUser = await createStudentAuth(finalEmail, pass, name);
+                } catch (err) {
+                    if (err.code === 'auth/email-already-in-use') {
+                        counter++;
+                        finalUsername = `${candidateUser}_${counter}`;
+                        finalEmail = `${finalUsername}@hocsinh.com`;
+                        isRenamed = true;
+                    } else {
+                        throw err;
+                    }
+                }
+            }
+
+            if (!finalUser) {
+                throw new Error("Không thể tạo tài khoản sau 50 lần thử đổi tên tránh trùng lặp.");
+            }
+
+            return {
+                uid: finalUser.uid,
+                username: finalUsername,
+                email: finalEmail,
+                isRenamed: isRenamed
+            };
+        };
+
         document.getElementById('addStudentBtn').addEventListener('click', async () => {
             if (!window.requirePermission('students.manage', 'thêm học sinh mới')) return;
             if (!currentViewingClassId) return;
@@ -4747,24 +4819,24 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
             btn.disabled = true;
             const name = document.getElementById('newStudentName').value.trim();
-            const user = document.getElementById('newStudentUser').value.trim().toLowerCase();
+            const rawUser = document.getElementById('newStudentUser').value.trim().toLowerCase();
             const pass = document.getElementById('newStudentPass').value;
-            if (!name || !user || !pass) {
+            if (!name || !rawUser || !pass) {
                 window.showNotification("Nhập đủ thông tin!", "error");
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 return;
             }
-            const fakeEmail = `${user}@hocsinh.com`;
             try {
-                const newUser = await createStudentAuth(fakeEmail, pass, name);
+                const classPrefix = window.generateClassPrefix(currentViewingClassId);
+                const authRes = await window.createUniqueStudentWithAuth(rawUser, pass, name, classPrefix);
                 const teacherEmail = (window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '') || '').toLowerCase().trim();
                 const newStudent = {
-                    uid: newUser.uid,
+                    uid: authRes.uid,
                     name: name,
-                    username: user,
+                    username: authRes.username,
                     password: pass,
-                    email: fakeEmail,
+                    email: authRes.email,
                     teacherId: currentUserUid,
                     teacherEmail: teacherEmail,
                     createdAt: new Date().toISOString()
@@ -4776,12 +4848,19 @@
                 document.getElementById('newStudentName').value = '';
                 document.getElementById('newStudentUser').value = '';
                 document.getElementById('newStudentPass').value = '';
-                window.showNotification("Thêm thành công và đã tạo tài khoản!", "success");
+                
+                let notifyMsg = `Thêm thành công! Tên đăng nhập: ${authRes.username}`;
+                if (authRes.isRenamed) {
+                    notifyMsg += ` (Tự động thêm đuôi chống trùng)`;
+                }
+                window.showNotification(notifyMsg, "success");
             } catch (e) {
                 console.error(e);
-                if(e.code === 'auth/email-already-in-use') window.showNotification("Tên đăng nhập đã tồn tại!", "error");
-                else window.showNotification("Lỗi: " + e.message, "error");
-            } finally { btn.innerHTML = originalText; btn.disabled = false; }
+                window.showNotification("Lỗi: " + e.message, "error");
+            } finally { 
+                btn.innerHTML = originalText; 
+                btn.disabled = false; 
+            }
         });
 
         async function createStudentAuth(email, password, displayName) {
@@ -4812,7 +4891,83 @@
         window.downloadTemplate = () => { const data = [["Họ và tên", "Tên đăng nhập", "Mật khẩu", "SBD", "Giới tính", "SĐT HS", "SĐT PHHS"], ["Nguyễn Văn A", "nguyenvana", "123456", "001", "Nam", "098...", "091..."]]; const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "DanhSach"); XLSX.writeFile(wb, "Mau_DS_Hoc_Sinh.xlsx"); }
         window.handleFileUpload = (input) => { 
             if (!window.requirePermission('students.manage', 'nhập học sinh từ Excel')) { input.value = ''; return; }
-            const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = async function(e) { const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1}); let addedCount = 0; const teacherEmail = (window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '') || '').toLowerCase().trim(); for(let i = 1; i < jsonData.length; i++) { const row = jsonData[i]; if(row[0] && row[1]) { try { const name = row[0]; const user = row[1]; const pass = String(row[2] || '123456'); const fakeEmail = `${user}@hocsinh.com`; let studentUid = ""; try { const newUser = await createStudentAuth(fakeEmail, pass, name); studentUid = newUser.uid; } catch(e) { console.log("User exists or error", e); } const newStudent = { uid: studentUid, name, username: user, password: pass, email: fakeEmail, sbd: row[3]||'', gender: row[4]||'Nam', phoneStudent: row[5]||'', phoneParent: row[6]||'', teacherId: currentUserUid, teacherEmail: teacherEmail, createdAt: new Date().toISOString() }; await updateDoc(doc(db, "classes", currentViewingClassId), { students: arrayUnion(newStudent) }); currentClassStudents.push(newStudent); addedCount++; } catch(e) { console.error(e); } } } if(addedCount > 0) { renderStudentList(currentClassStudents); await updateDoc(doc(db, "classes", currentViewingClassId), { studentCount: currentClassStudents.length }); window.showNotification(`Đã thêm ${addedCount} học sinh!`, "success"); } input.value = ""; }; reader.readAsArrayBuffer(file); }
+            if (!currentViewingClassId) { input.value = ''; return; }
+            const file = input.files[0]; if (!file) return; 
+            const reader = new FileReader(); 
+            reader.onload = async function(e) { 
+                try {
+                    const data = new Uint8Array(e.target.result); 
+                    const workbook = XLSX.read(data, {type: 'array'}); 
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1}); 
+                    let addedCount = 0; 
+                    let renamedCount = 0;
+                    const teacherEmail = (window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '') || '').toLowerCase().trim(); 
+                    const classPrefix = window.generateClassPrefix(currentViewingClassId);
+
+                    window.showNotification(`Đang nạp học sinh (Gắn tiền tố lớp ${classPrefix})...`, 'info');
+
+                    for(let i = 1; i < jsonData.length; i++) { 
+                        const row = jsonData[i]; 
+                        if(row && (row[0] || row[1])) { 
+                            try { 
+                                const name = (row[0] || 'Học sinh').toString().trim(); 
+                                const user = (row[1] || '').toString().trim(); 
+                                const pass = String(row[2] || '123456'); 
+                                
+                                const authRes = await window.createUniqueStudentWithAuth(user, pass, name, classPrefix);
+                                if (authRes.isRenamed) renamedCount++;
+
+                                const newStudent = { 
+                                    uid: authRes.uid, 
+                                    name, 
+                                    username: authRes.username, 
+                                    password: pass, 
+                                    email: authRes.email, 
+                                    sbd: row[3] ? String(row[3]) : '', 
+                                    gender: row[4] ? String(row[4]) : 'Nam', 
+                                    phoneStudent: row[5] ? String(row[5]) : '', 
+                                    phoneParent: row[6] ? String(row[6]) : '', 
+                                    teacherId: currentUserUid, 
+                                    teacherEmail: teacherEmail, 
+                                    createdAt: new Date().toISOString() 
+                                }; 
+                                await updateDoc(doc(db, "classes", currentViewingClassId), { 
+                                    students: arrayUnion(newStudent),
+                                    studentIds: arrayUnion(newStudent.uid)
+                                }); 
+                                currentClassStudents.push(newStudent); 
+                                addedCount++; 
+                            } catch(e) { 
+                                console.error("Lỗi thêm học sinh dòng " + i, e); 
+                            } 
+                        } 
+                    } 
+                    if(addedCount > 0) { 
+                        renderStudentList(currentClassStudents); 
+                        await updateDoc(doc(db, "classes", currentViewingClassId), { studentCount: currentClassStudents.length }); 
+                        let msg = `Đã thêm thành công ${addedCount} học sinh!`;
+                        if (renamedCount > 0) {
+                            msg += ` (${renamedCount} học sinh được tự động thêm đuôi _1, _2 chống trùng)`;
+                        }
+                        window.showNotification(msg, "success"); 
+                        // Tự động xuất file Excel đã chuẩn hóa tài khoản
+                        setTimeout(() => {
+                            if (typeof window.exportStudentsExcel === 'function') {
+                                window.exportStudentsExcel();
+                            }
+                        }, 800);
+                    } else {
+                        window.showNotification("Không tìm thấy dữ liệu hợp lệ trong file Excel!", "warning");
+                    }
+                } catch(err) {
+                    console.error("Lỗi đọc file Excel:", err);
+                    window.showNotification("Lỗi đọc file: " + err.message, "error");
+                } finally {
+                    input.value = ""; 
+                }
+            }; 
+            reader.readAsArrayBuffer(file); 
+        };
         // --- TÍNH NĂNG XUẤT EXCEL DANH SÁCH HỌC SINH ---
         window.exportStudentsExcel = () => {
             if (!currentClassStudents || currentClassStudents.length === 0) {
