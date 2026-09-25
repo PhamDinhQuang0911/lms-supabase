@@ -1125,13 +1125,11 @@
             (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches);
 
         if (!isMobileOrApple && !isStandaloneApp && typeof enableMultiTabIndexedDbPersistence === 'function') {
-            try {
-                enableMultiTabIndexedDbPersistence(db).catch((err) => {
+            enableMultiTabIndexedDbPersistence(db).catch((err) => {
                 if (err.code == 'failed-precondition') console.warn('Đang mở nhiều tab (Multi-tab mode active).');
                 else if (err.code == 'unimplemented') console.warn('Trình duyệt không hỗ trợ cache.');
             });
         }
-            } catch(e) {} }
 
         const ADMIN_EMAILS = ["phamdinhquang0911@gmail.com", "phamngockhanh.942001@gmail.com", "phamngockhanh.942002@gmail.com"];
         let currentClassExams = [];
