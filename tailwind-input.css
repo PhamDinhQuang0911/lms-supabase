@@ -29,44 +29,45 @@
 .rounded-xl  { border-radius: 0.875rem; }  /* 14px thay vì 12px */
 .rounded-2xl { border-radius: 1.125rem; }  /* 18px thay vì 16px */
 
-/* ---------- 3. Hiệu ứng lún nút khi bấm (mọi nút trên toàn site) ---------- */
-button:not(:disabled):active,
-.sidebar-item:active,
-a[onclick]:active {
-  transform: scale(0.965);
-  filter: brightness(0.96);
-}
-/* nút không tự khai báo transition vẫn nảy lại mượt khi thả tay
-   (:where -> độ ưu tiên thấp, không đè các class duration-* có sẵn) */
-button:where(:not(:disabled)) { transition-duration: 0.15s; }
-
-/* ---------- 4. Chuyển tab mềm: nội dung trượt nhẹ + mờ dần vào ----------
-   (CSS animation tự chạy lại mỗi khi phần tử bỏ class `hidden`) */
-@media (prefers-reduced-motion: no-preference) {
-  .tab-content:not(.hidden),
-  .view-section:not(.hidden),
-  [id^="tabContent"]:not(.hidden) {
-    animation: qm-page-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+/* ---------- 3. Hiệu ứng lún nút khi bấm (chỉ áp dụng cho chuột/desktop để tránh giật nháy khi vuốt chạm trên mobile) ---------- */
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):active,
+  .sidebar-item:active,
+  .nav-item:active,
+  a[onclick]:active {
+    transform: scale(0.965);
+    filter: brightness(0.96);
   }
-  html { scroll-behavior: smooth; }
+  button:where(:not(:disabled)) { transition-duration: 0.15s; }
+}
+
+/* ---------- 4. Chuyển tab mềm: nội dung trượt nhẹ + mờ dần vào (chỉ áp dụng desktop) ----------
+   (Trên mobile tắt hoàn toàn để tránh chớp giật opacity khi lướt tab hoặc bấm nút) */
+@media (prefers-reduced-motion: no-preference) and (min-width: 768px) {
+  .tab-content:not(.hidden),
+  [id^="tabContent"]:not(.hidden) {
+    animation: qm-page-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
 @keyframes qm-page-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: none; }
 }
 
-/* ---------- 5. Kính mờ kiểu macOS ---------- */
-/* Header dính trên cùng: nền trắng mờ + blur */
-header.sticky {
-  background-color: rgba(255, 255, 255, 0.82);
-  -webkit-backdrop-filter: blur(14px) saturate(1.8);
-  backdrop-filter: blur(14px) saturate(1.8);
-}
-/* Lớp phủ tối sau modal: làm mờ nội dung phía sau như cửa sổ Mac */
-.fixed.inset-0[class*="bg-gray-900"],
-.fixed.inset-0[class*="bg-black"] {
-  -webkit-backdrop-filter: blur(7px);
-  backdrop-filter: blur(7px);
+/* ---------- 5. Kính mờ kiểu macOS (chỉ áp dụng desktop để tiết kiệm GPU mobile) ---------- */
+@media (min-width: 768px) {
+  /* Header dính trên cùng: nền trắng mờ + blur */
+  header.sticky {
+    background-color: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: blur(14px) saturate(1.8);
+    backdrop-filter: blur(14px) saturate(1.8);
+  }
+  /* Lớp phủ tối sau modal: làm mờ nội dung phía sau như cửa sổ Mac */
+  .fixed.inset-0[class*="bg-gray-900"],
+  .fixed.inset-0[class*="bg-black"] {
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+  }
 }
 
 /* ---------- 6. Toast thông báo trượt vào có lực nảy nhẹ ---------- */

@@ -444,9 +444,16 @@ function processLatexLists(text) {
     };
 
     processed = processed.replace(/\\begin\{itemchoice\}([\s\S]*?)\\end\{itemchoice\}/gi, (match, body) => {
-        const items = body.split('\\itemch').filter(s => s.trim().length > 0);
-        const htmlItems = items.map(item => `<li class="flex items-start gap-2 mb-1"><span class="text-blue-600 font-bold shrink-0">•</span><div class="leading-relaxed">${item.trim()}</div></li>`).join('');
-        return `<ul class="my-3 pl-2 list-none">${htmlItems}</ul>`;
+        const items = body.split(/\\itemch\b/g).filter(s => s.trim().length > 0);
+        const htmlItems = items.map((item, idx) => {
+            const letter = String.fromCharCode(97 + idx); // a, b, c, d
+            return `<li class="flex items-start gap-2.5 mb-2.5 p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/50"><span class="w-6 h-6 rounded-lg bg-amber-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">${letter}</span><div class="leading-relaxed flex-1 text-gray-800 dark:text-gray-200 text-sm font-medium">${item.trim()}</div></li>`;
+        }).join('');
+        return `<ul class="my-3 pl-0 list-none space-y-2">${htmlItems}</ul>`;
+    });
+
+    processed = processed.replace(/\\begin\{nx\}([\s\S]*?)\\end\{nx\}/gi, (match, body) => {
+        return `<div class="my-3 p-3.5 border-l-4 border-teal-500 bg-teal-50 dark:bg-teal-950/30 text-teal-900 dark:text-teal-200 rounded-r-xl shadow-2xs"><strong class="block mb-1 text-teal-800 dark:text-teal-300 flex items-center gap-1.5"><i class="fa-solid fa-lightbulb text-teal-600"></i>Nhận xét:</strong>${body}</div>`;
     });
 
     const regexCols = /\\begin\{\s*(?:listEX|enumEX)\s*\}([\s\S]*?)\\end\{\s*(?:listEX|enumEX)\s*\}/gi;
@@ -566,6 +573,7 @@ export const formatContent = (text) => {
     processed = processed.replace(/\\begin\{(?:ex|bt|vd|cau|question)\}(?:\[.*?\])?/g, '');
     processed = processed.replace(/\\end\{(?:ex|bt|vd|cau|question)\}/g, '');
     processed = processed.replace(/\\immini(?:\[.*?\])?\s*\{/g, '{'); // Strip \immini but keep the group
+    processed = processed.replace(/\\loigiai\s*\{/gi, '');
 
     // 1. Clean Text (Math-safe replacements)
     processed = processed.replace(/\\centering/g, "");
@@ -573,6 +581,8 @@ export const formatContent = (text) => {
     processed = processed.replace(/\\allowdisplaybreaks(\[.*?\])?/g, "");
     processed = processed.replace(/\\lq\\lq/g, '"').replace(/\\rq\\rq/g, '"').replace(/\\lq/g, '"').replace(/\\rq/g, '"');
     processed = processed.replace(/\\wideparen\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
+    processed = processed.replace(/\\widearc\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
+    processed = processed.replace(/\\cung\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
     processed = processed.replace(/\\(h|v)space\*?\{[^}]+\}/g, '').replace(/\\(no)?indent/g, '');
 
     // 2. Structure
@@ -728,3 +738,10 @@ export const watermarkImage = (file, text) => {
         };
     });
 };
+
+if (typeof window !== 'undefined') {
+    window.formatContent = formatContent;
+    window.autoScaleTables = autoScaleTables;
+    window.renderTikz = renderTikz;
+}
+

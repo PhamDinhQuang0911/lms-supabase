@@ -1988,13 +1988,553 @@ document.addEventListener('paste', function(e) {
 });
 
 // Hàm thu phóng ảnh cho người dùng
-window.zoomImg = function(btn, factor) {
-    const imgContainer = btn.closest('.image-zoom-container');
-    const img = imgContainer.querySelector('img');
-    if(!img) return;
-    let currentHeight = parseFloat(img.style.maxHeight) || 180;
-    img.style.maxHeight = (currentHeight * factor) + 'px';
+// ============================================================
+// --- TÍNH NĂNG SỐ HÓA SÁCH & GÁN MÃ CCCD (CHỈ GỒM SỐ) ---
+// ============================================================
+
+window.selectedDigitizeFiles = [];
+
+function analyzeMapIdDetails(mapId) {
+    let subject = "Toán";
+    let level = "Thông hiểu";
+    let levelColor = "blue";
+    let grade = "9";
+
+    if (!mapId) return { subject, level, levelColor, grade };
+
+    const clean = mapId.trim().toUpperCase();
+    const gradeMatch = clean.match(/^([0-2]?[0-9])/);
+    if (gradeMatch) grade = gradeMatch[1];
+
+    if (clean.includes('D')) subject = "Đại số";
+    else if (clean.includes('H')) subject = "Hình học";
+    else if (clean.includes('X')) subject = "Xác suất";
+
+    if (clean.includes('N') || clean.includes('NB')) {
+        level = "Nhận biết"; levelColor = "green";
+    } else if (clean.includes('H') || clean.includes('TH')) {
+        level = "Thông hiểu"; levelColor = "blue";
+    } else if (clean.includes('V') || clean.includes('VD')) {
+        if (clean.includes('C') || clean.includes('VDC')) {
+            level = "Vận dụng cao"; levelColor = "red";
+        } else {
+            level = "Vận dụng"; levelColor = "amber";
+        }
+    } else if (clean.includes('C')) {
+        level = "Vận dụng cao"; levelColor = "red";
+    }
+
+    return { subject, level, levelColor, grade };
+}
+
+function parseTexBeginLine(line, env) {
+    const trimmed = line.trimEnd();
+    const regex = new RegExp(`^(\\s*)\\\\begin\\{${env}\\}(.*)$`);
+    const m = trimmed.match(regex);
+    if (!m) return null;
+
+    const indent = m[1] || '';
+    let rest = m[2];
+    let rawArg = '';
+    let commentPart = '';
+
+    // Lấy tham số tùy chọn [...]
+    const argMatch = rest.match(/^\s*\[(.*?)\]/);
+    if (argMatch) {
+        rawArg = argMatch[1].trim();
+        rest = rest.substring(argMatch[0].length);
+    }
+
+    // Lấy phần chú thích %...
+    const commentIdx = rest.indexOf('%');
+    if (commentIdx !== -1) {
+        commentPart = rest.substring(commentIdx);
+    }
+
+    let source = '';
+    let mapId = '';
+
+    if (commentPart) {
+        const bracketMatches = Array.from(commentPart.matchAll(/\[(.*?)\]/g)).map(x => x[1].trim());
+        if (bracketMatches.length >= 2) {
+            source = bracketMatches[0];
+            mapId = bracketMatches[1];
+        } else if (bracketMatches.length === 1) {
+            const single = bracketMatches[0];
+            if (/^[0-2]?[0-9][A-Z][0-9]/i.test(single)) {
+                mapId = single;
+            } else {
+                source = single;
+            }
+        } else {
+            const textComment = commentPart.replace(/^%+/, '').trim();
+            if (textComment) source = textComment;
+        }
+    }
+
+    let existingCccd = null;
+    if (/^\d{4,9}$/.test(rawArg)) {
+        existingCccd = rawArg;
+    } else if (rawArg) {
+        if (!mapId && /^[0-2]?[0-9][A-Z][0-9]/i.test(rawArg)) {
+            mapId = rawArg;
+        } else if (!source) {
+            source = rawArg;
+        }
+    }
+
+    return { indent, rawArg, source, mapId, existingCccd };
+}
+
+function parseQuestionBodyForBank(rawBody, env) {
+    const { content, solution } = extractLoigiai(rawBody);
+    let bodyText = content.replace(/^%[^\n\r]*[\r\n]*/, ''); // Bỏ comment đầu dòng nếu có
+    let type = 'tracnghiem';
+    let options = [];
+    let correct = -1;
+    let statements = [];
+    let answer = '';
+
+    // 1. Trắc nghiệm 4 phương án (\choice)
+    const choiceData = extractBracesAfterCommand(bodyText, '\\choice', 4);
+    if (choiceData.found && choiceData.contents.length === 4) {
+        type = 'tracnghiem';
+        choiceData.contents.forEach((opt, idx) => {
+            let cleanOpt = opt.trim();
+            if (cleanOpt.includes('\\True')) {
+                correct = idx;
+                cleanOpt = cleanOpt.replace('\\True', '').trim();
+            }
+            options.push(cleanOpt);
+        });
+        bodyText = bodyText.substring(0, choiceData.startIndex) + bodyText.substring(choiceData.endIndex);
+    } else {
+        // 2. Đúng / Sai (\choiceTF)
+        const choiceTFData = extractBracesAfterCommand(bodyText, '\\choiceTF', 4);
+        if (choiceTFData.found && choiceTFData.contents.length === 4) {
+            type = 'dung_sai';
+            let corrects = [];
+            choiceTFData.contents.forEach((opt, idx) => {
+                let cleanOpt = opt.trim();
+                const isTrue = cleanOpt.includes('\\True');
+                cleanOpt = cleanOpt.replace('\\True', '').trim();
+                statements.push({ text: cleanOpt, correct: isTrue });
+                if (isTrue) corrects.push(idx);
+            });
+            correct = corrects;
+            bodyText = bodyText.substring(0, choiceTFData.startIndex) + bodyText.substring(choiceTFData.endIndex);
+        } else {
+            // 3. Điền khuyết / Trả lời ngắn (\shortans)
+            const shortansData = extractBracesAfterCommand(bodyText, '\\shortans', 1);
+            if (shortansData.found && shortansData.contents.length === 1) {
+                type = 'dien_khuyet';
+                answer = shortansData.contents[0].trim();
+                options = [answer];
+                bodyText = bodyText.substring(0, shortansData.startIndex) + bodyText.substring(shortansData.endIndex);
+            } else {
+                if (env === 'bt' || env === 'vd' || env === 'vidu') {
+                    type = 'tuluan';
+                }
+            }
+        }
+    }
+
+    return {
+        content: bodyText.trim(),
+        solution: solution.trim(),
+        type,
+        options,
+        correct,
+        statements,
+        answer
+    };
+}
+
+// Lấy mã CCCD kế tiếp qua BankService
+async function fetchNextAvailableCccd() {
+    if (window.BankService) {
+        return await window.BankService.getNextAvailableCccd();
+    }
+    return 10000001;
+}
+
+window.openDigitizeBookModal = async function(options = {}) {
+    const modal = document.getElementById('digitizeBookModal');
+    if (!modal) return;
+
+    // Reset giao diện
+    window.selectedDigitizeFiles = [];
+    const fileList = document.getElementById('digitizeFileList');
+    if (fileList) { fileList.innerHTML = ''; fileList.classList.add('hidden'); }
+    const progressArea = document.getElementById('digitizeProgressArea');
+    if (progressArea) progressArea.classList.add('hidden');
+    const resultArea = document.getElementById('digitizeResultArea');
+    if (resultArea) resultArea.classList.add('hidden');
+    const logBox = document.getElementById('digitizeLogBox');
+    if (logBox) logBox.innerHTML = '';
+
+    const btnStart = document.getElementById('btnStartDigitize');
+    if (btnStart) { btnStart.disabled = false; btnStart.innerHTML = '<i class="fa-solid fa-bolt"></i> Bắt đầu Số Hóa & Xuất TeX'; }
+
+    // Gợi ý mã sách
+    const bookMapIdInput = document.getElementById('digitizeBookMapId');
+    if (bookMapIdInput) {
+        bookMapIdInput.value = window.currentBookData?.mapId || document.getElementById('bookMapId')?.value || '';
+    }
+
+    // Lấy số CCCD tiếp theo
+    const startInput = document.getElementById('digitizeStartCccd');
+    const hintEl = document.getElementById('lblNextCccdHint');
+    if (startInput) {
+        startInput.value = '';
+        if (hintEl) hintEl.textContent = 'Đang kiểm tra...';
+        const nextCccd = await fetchNextAvailableCccd();
+        startInput.value = nextCccd;
+        if (hintEl) hintEl.textContent = `Gợi ý: ${nextCccd}`;
+    }
+
+    modal.classList.remove('hidden');
 };
+
+window.closeDigitizeBookModal = function() {
+    const modal = document.getElementById('digitizeBookModal');
+    if (modal) modal.classList.add('hidden');
+};
+
+window.digitizeCurrentLessonTeX = function() {
+    window.openDigitizeBookModal({ fromCurrentLesson: true });
+};
+
+window.handleDigitizeFileSelect = function(input) {
+    const files = Array.from(input.files || []);
+    if (files.length === 0) return;
+
+    window.selectedDigitizeFiles = files;
+    const listEl = document.getElementById('digitizeFileList');
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    listEl.classList.remove('hidden');
+
+    files.forEach((f, idx) => {
+        const item = document.createElement('div');
+        item.className = "flex items-center justify-between px-3 py-1.5 bg-white rounded-lg border border-gray-200 text-xs";
+        item.innerHTML = `
+            <span class="font-bold text-gray-700 truncate"><i class="fa-regular fa-file-code text-teal-600 mr-2"></i>${f.name}</span>
+            <span class="text-gray-400 font-mono">${(f.size / 1024).toFixed(1)} KB</span>
+        `;
+        listEl.appendChild(item);
+    });
+};
+
+function downloadTextAsFile(filename, text) {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Chạy hàng đợi upload Cloudflare R2 với giới hạn đồng thời (concurrency)
+async function uploadQuestionsConcurrency(qList, concurrency, onProgress) {
+    const BASE_URL = "https://upload-helper.phamngockhanh-942001.workers.dev/";
+    let completed = 0;
+    let failed = 0;
+    let nextIndex = 0;
+
+    const worker = async () => {
+        while (nextIndex < qList.length) {
+            const currentIndex = nextIndex++;
+            const q = qList[currentIndex];
+            try {
+                const blob = new Blob([JSON.stringify(q)], { type: 'application/json' });
+                const formData = new FormData();
+                formData.append('file', blob, `bank/${q.id}.json`);
+                const res = await fetch(BASE_URL, { method: 'PUT', body: formData });
+                if (res.ok) completed++;
+                else failed++;
+            } catch(e) {
+                console.error("Lỗi upload R2 câu:", q.id, e);
+                failed++;
+            }
+            if (onProgress) onProgress(completed + failed, qList.length, completed, failed);
+        }
+    };
+
+    const workers = [];
+    for (let i = 0; i < Math.min(concurrency, qList.length); i++) {
+        workers.push(worker());
+    }
+    await Promise.all(workers);
+    return { completed, failed };
+}
+
+window.startDigitizeProcess = async function() {
+    const files = window.selectedDigitizeFiles;
+    if (!files || files.length === 0) {
+        alert("Vui lòng chọn ít nhất 1 file .tex để số hóa!");
+        return;
+    }
+
+    const startInputVal = parseInt(document.getElementById('digitizeStartCccd')?.value);
+    let currentCccd = (!isNaN(startInputVal) && startInputVal >= 10000000) ? startInputVal : await fetchNextAvailableCccd();
+
+    const bookMapIdVal = (document.getElementById('digitizeBookMapId')?.value || '').trim();
+    const keepExisting = document.getElementById('digitizeKeepExistingCccd')?.checked ?? true;
+    const uploadToBank = document.getElementById('digitizeUploadToBank')?.checked ?? true;
+    const importToActiveLesson = document.getElementById('digitizeImportToActiveLesson')?.checked ?? true;
+
+    // Giao diện bắt đầu
+    const btnStart = document.getElementById('btnStartDigitize');
+    if (btnStart) {
+        btnStart.disabled = true;
+        btnStart.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+    }
+
+    const progressArea = document.getElementById('digitizeProgressArea');
+    const progressBar = document.getElementById('digitizeProgressBar');
+    const progressStatus = document.getElementById('digitizeProgressStatus');
+    const progressPercent = document.getElementById('digitizeProgressPercent');
+    const logBox = document.getElementById('digitizeLogBox');
+    const downloadContainer = document.getElementById('digitizeDownloadButtons');
+
+    if (progressArea) progressArea.classList.remove('hidden');
+    if (logBox) logBox.innerHTML = '';
+    if (downloadContainer) downloadContainer.innerHTML = '';
+
+    const appendLog = (msg, color = 'text-gray-300') => {
+        if (!logBox) return;
+        const p = document.createElement('p');
+        p.className = `${color} leading-tight`;
+        p.innerHTML = msg;
+        logBox.appendChild(p);
+        logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    appendLog(`🚀 Bắt đầu quá trình số hóa ${files.length} file .tex...`, 'text-teal-400 font-bold');
+    appendLog(`🔢 Mã CCCD khởi tạo: <span class="text-yellow-300">${currentCccd}</span>`, 'text-teal-300');
+
+    let totalQuestionsCount = 0;
+    const allProcessedFiles = [];
+    const allQuestionsToUpload = [];
+
+    // BƯỚC 1: XỬ LÝ TEXT TỪNG FILE LATEX
+    for (let fIdx = 0; fIdx < files.length; fIdx++) {
+        const file = files[fIdx];
+        appendLog(`\n📄 [File ${fIdx + 1}/${files.length}] Đang phân tích: <b>${file.name}</b>...`, 'text-blue-300');
+
+        const rawText = await file.text();
+        const isCRLF = rawText.includes('\r\n');
+        const lineEnding = isCRLF ? '\r\n' : '\n';
+        const lines = rawText.split(/\r?\n/);
+
+        const updatedLines = [];
+        let fileQCount = 0;
+        let inQuestion = false;
+        let currentEnv = '';
+        let currentQuestionInfo = null;
+        let currentBodyLines = [];
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+
+            // Bắt đầu một câu hỏi
+            const beginMatch = line.match(/^\s*\\begin\{(ex|bt|vd|vidu)\}/);
+            if (beginMatch) {
+                currentEnv = beginMatch[1];
+                inQuestion = true;
+                currentBodyLines = [];
+
+                const parsed = parseTexBeginLine(line, currentEnv);
+                let assignedCccd;
+
+                if (keepExisting && parsed.existingCccd) {
+                    assignedCccd = parsed.existingCccd;
+                } else {
+                    assignedCccd = currentCccd++;
+                }
+
+                // Xuất lại câu hỏi dạng chuẩn: \begin{ex}[CCCD]%[nguồn]%[mã ID nếu có]
+                const newLine = `${parsed.indent}\\begin{${currentEnv}}[${assignedCccd}]%[${parsed.source}]%[${parsed.mapId}]`;
+                updatedLines.push(newLine);
+
+                currentQuestionInfo = {
+                    cccd: assignedCccd,
+                    env: currentEnv,
+                    source: parsed.source,
+                    mapId: parsed.mapId
+                };
+
+                fileQCount++;
+                totalQuestionsCount++;
+                continue;
+            }
+
+            // Kết thúc câu hỏi
+            if (inQuestion) {
+                const endMatch = line.match(new RegExp(`^\\s*\\\\end\\{${currentEnv}\\}`));
+                if (endMatch) {
+                    inQuestion = false;
+                    updatedLines.push(line);
+
+                    // Đóng gói dữ liệu câu hỏi để lưu vào Ngân hàng
+                    const rawBody = currentBodyLines.join('\n');
+                    const parsedBody = parseQuestionBodyForBank(rawBody, currentQuestionInfo.env);
+                    const mapAnalysis = analyzeMapIdDetails(currentQuestionInfo.mapId);
+
+                    const qData = window.BankService ? window.BankService.createBankQuestion({
+                        mapId: currentQuestionInfo.mapId || "",
+                        source: currentQuestionInfo.source || "",
+                        type: parsedBody.type,
+                        content: parsedBody.content,
+                        solution: parsedBody.solution,
+                        options: parsedBody.options,
+                        correct: parsedBody.correct,
+                        statements: parsedBody.statements,
+                        answer: parsedBody.answer,
+                        subject: mapAnalysis.subject,
+                        level: mapAnalysis.level,
+                        levelColor: mapAnalysis.levelColor,
+                        point: 0.25,
+                        bookMapId: bookMapIdVal || "",
+                        fileName: file.name
+                    }, String(currentQuestionInfo.cccd)) : {
+                        id: String(currentQuestionInfo.cccd),
+                        cccd: String(currentQuestionInfo.cccd),
+                        mapId: currentQuestionInfo.mapId || "",
+                        source: currentQuestionInfo.source || "",
+                        type: parsedBody.type,
+                        content: parsedBody.content,
+                        solution: parsedBody.solution,
+                        options: parsedBody.options,
+                        correct: parsedBody.correct,
+                        statements: parsedBody.statements,
+                        answer: parsedBody.answer,
+                        subject: mapAnalysis.subject,
+                        level: mapAnalysis.level,
+                        levelColor: mapAnalysis.levelColor,
+                        point: 0.25,
+                        bookMapId: bookMapIdVal || "",
+                        fileName: file.name,
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    allQuestionsToUpload.push(qData);
+                    appendLog(`  ✓ [${qData.cccd}] \\begin{${currentQuestionInfo.env}}[${qData.cccd}]%[${qData.source}]%[${qData.mapId}] (${qData.type})`);
+                    currentQuestionInfo = null;
+                    continue;
+                } else {
+                    currentBodyLines.push(line);
+                    updatedLines.push(line);
+                    continue;
+                }
+            }
+
+            // Dòng thông thường ngoài câu hỏi: Giữ nguyên 100% không suy suyển
+            updatedLines.push(line);
+        }
+
+        const updatedContent = updatedLines.join(lineEnding);
+        const exportFileName = file.name.replace(/\.(tex|txt)$/i, '') + '_ID.tex';
+        allProcessedFiles.push({
+            name: exportFileName,
+            content: updatedContent,
+            count: fileQCount
+        });
+
+        appendLog(`  ↳ Hoàn tất: <b>${fileQCount} câu hỏi</b> đã gán mã CCCD.`, 'text-green-400');
+    }
+
+    // BƯỚC 2: TỰ ĐỘNG TẢI FILE TEX VỀ MÁY & TẠO NÚT TẢI
+    allProcessedFiles.forEach(f => {
+        downloadTextAsFile(f.name, f.content);
+        if (downloadContainer) {
+            const btn = document.createElement('button');
+            btn.className = "px-3 py-1.5 bg-white border border-teal-300 text-teal-700 font-bold rounded-lg hover:bg-teal-50 text-xs flex items-center gap-1.5 shadow-xs";
+            btn.innerHTML = `<i class="fa-solid fa-download"></i> Tải lại: ${f.name} (${f.count} câu)`;
+            btn.onclick = () => downloadTextAsFile(f.name, f.content);
+            downloadContainer.appendChild(btn);
+        }
+    });
+
+    // BƯỚC 3: NẠP LÊN NGÂN HÀNG CÂU HỎI CLOUDFLARE R2
+    if (uploadToBank && allQuestionsToUpload.length > 0) {
+        appendLog(`\n☁️ Đang nạp ${allQuestionsToUpload.length} câu hỏi lên Ngân hàng câu hỏi R2 qua BankService...`, 'text-yellow-400 font-bold');
+        if (progressStatus) progressStatus.innerHTML = '<i class="fa-solid fa-cloud-arrow-up fa-spin"></i> Đang nạp lên Ngân hàng câu hỏi R2...';
+
+        let uploadResult;
+        if (window.BankService) {
+            uploadResult = await window.BankService.uploadQuestionsToBank(allQuestionsToUpload, {
+                concurrency: 6,
+                onProgress: (done, total, success, fail) => {
+                    const percent = Math.round((done / total) * 100);
+                    if (progressBar) progressBar.style.width = `${percent}%`;
+                    if (progressPercent) progressPercent.textContent = `${done}/${total} (${percent}%)`;
+                }
+            });
+            appendLog(`✅ Hoàn tất tải lên R2! Thành công: ${uploadResult.successCount} câu | Lỗi: ${uploadResult.failCount} câu`, 'text-green-400 font-bold');
+        } else {
+            uploadResult = await uploadQuestionsConcurrency(allQuestionsToUpload, 6, (done, total, success, fail) => {
+                const percent = Math.round((done / total) * 100);
+                if (progressBar) progressBar.style.width = `${percent}%`;
+                if (progressPercent) progressPercent.textContent = `${done}/${total} (${percent}%)`;
+            });
+            appendLog(`✅ Hoàn tất tải lên R2! Thành công: ${uploadResult.completed} câu | Lỗi: ${uploadResult.failed} câu`, 'text-green-400 font-bold');
+        }
+    }
+
+    // BƯỚC 4: LƯU MÃ CCCD KẾ TIẾP VÀO BỘ ĐẾM TRUNG TÂM
+    const lastAssignedCccd = currentCccd - 1;
+    if (window.BankService) {
+        await window.BankService.updateLatestCccdCounter(lastAssignedCccd);
+    } else {
+        localStorage.setItem('last_generated_cccd', String(lastAssignedCccd));
+    }
+
+    // BƯỚC 5: NẠP VÀO BÀI HỌC HIỆN TẠI (NẾU CÓ CHỌN)
+    if (importToActiveLesson && allProcessedFiles.length > 0 && window.currentNodeIndex && window.currentBookData) {
+        try {
+            const firstContent = allProcessedFiles[0].content;
+            const parsedSections = parseTreeStructure(firstContent);
+            if (parsedSections.length > 0) {
+                const { cIdx, lIdx } = window.currentNodeIndex;
+                let targetLesson = window.currentBookData.chapters[cIdx].lessons[lIdx];
+                targetLesson.title = parsedSections[0].title;
+                targetLesson.subsections = parsedSections[0].subsections;
+                renderTreeSidebar();
+                showEditorPane();
+                appendLog(`📖 Đã nạp thành công nội dung đã gán CCCD vào Bài học trên Mục lục sách!`, 'text-indigo-300');
+            }
+        } catch(e) {
+            console.warn("Lỗi nạp bài học hiện tại:", e);
+        }
+    }
+
+    // HOÀN TẤT
+    if (progressBar) progressBar.style.width = `100%`;
+    if (progressPercent) progressPercent.textContent = `100%`;
+    if (progressStatus) progressStatus.innerHTML = '<i class="fa-solid fa-check text-green-500"></i> Hoàn tất toàn bộ!';
+
+    const resultArea = document.getElementById('digitizeResultArea');
+    const resultTitle = document.getElementById('digitizeResultTitle');
+    const resultDesc = document.getElementById('digitizeResultDesc');
+
+    if (resultArea) resultArea.classList.remove('hidden');
+    if (resultTitle) resultTitle.textContent = `Số hóa thành công ${totalQuestionsCount} câu hỏi!`;
+    if (resultDesc) resultDesc.textContent = `Tất cả file .tex đã được gán mã CCCD [${startInputVal || 10000001} ➔ ${lastAssignedCccd}], nạp vào Ngân hàng và tự động tải về máy.`;
+
+    if (btnStart) {
+        btnStart.disabled = false;
+        btnStart.innerHTML = '<i class="fa-solid fa-check"></i> Đã Hoàn Tất';
+    }
+
+    showToast(`Đã số hóa thành công ${totalQuestionsCount} câu hỏi!`, 'success');
+};
+
 
 
 

@@ -70,10 +70,10 @@
                     <button onclick="window.switchCourseView('grid')" id="btn-view-grid" class="p-2.5 rounded-lg text-gray-400 hover:text-brand transition-all w-10 h-10 flex items-center justify-center"><i class="fa-solid fa-border-all"></i></button>
                 </div>
 
-                <button onclick="window.openVoucherManager()" class="flex-1 md:flex-none bg-white text-orange-600 border border-orange-100 px-4 py-2.5 rounded-xl hover:bg-orange-50 shadow-sm font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                <button id="btnOpenVoucher" onclick="window.openVoucherManager()" class="flex-1 md:flex-none bg-white text-orange-600 border border-orange-100 px-4 py-2.5 rounded-xl hover:bg-orange-50 shadow-sm font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap">
                     <i class="fa-solid fa-ticket"></i> <span class="hidden sm:inline">Voucher</span>
                 </button>
-                <button onclick="document.getElementById('courseId').value=''; document.getElementById('cType').value='course'; if(window.toggleProductFields) window.toggleProductFields(); document.getElementById('cTitle').value=''; document.getElementById('cDocFileUrl').value=''; document.getElementById('cBookWeight').value=''; document.getElementById('cThumb').value=''; document.getElementById('thumbPreviewBox').classList.add('hidden'); document.getElementById('thumbEmptyState').classList.remove('hidden'); window.toggleModal('courseModal', true);" class="flex-1 md:flex-none bg-brand text-white px-4 py-2.5 rounded-xl hover:bg-teal-800 shadow-lg shadow-teal-700/20 font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                <button id="btnCreateCourse" onclick="document.getElementById('courseId').value=''; document.getElementById('cType').value='course'; if(document.getElementById('cStatus')) document.getElementById('cStatus').value='active'; if(document.getElementById('cAntiScreenshot')) document.getElementById('cAntiScreenshot').checked=true; if(window.toggleProductFields) window.toggleProductFields(); document.getElementById('cTitle').value=''; document.getElementById('cDocFileUrl').value=''; document.getElementById('cBookWeight').value=''; document.getElementById('cThumb').value=''; document.getElementById('thumbPreviewBox').classList.add('hidden'); document.getElementById('thumbEmptyState').classList.remove('hidden'); window.toggleModal('courseModal', true);" class="flex-1 md:flex-none bg-brand text-white px-4 py-2.5 rounded-xl hover:bg-teal-800 shadow-lg shadow-teal-700/20 font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap">
                     <i class="fa-solid fa-plus"></i> Thêm mới
                 </button>
             </div>
@@ -104,26 +104,34 @@
         </div>
     </div>
 
-    <div id="courseModal" class="modal hidden fixed inset-0 z-50 flex items-end md:items-center justify-center bg-gray-900/60 backdrop-blur-md sm:p-4 transition-all">
+    <div id="courseModal" class="modal hidden fixed inset-0 z-50 flex items-end md:items-center justify-center bg-gray-900/60 backdrop-blur-md sm:p-4 transition-all" onclick="if(event.target === this) window.toggleModal('courseModal', false)">
         <div class="bg-white w-full md:max-w-2xl h-full md:h-auto md:max-h-[90vh] md:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden flex flex-col">
             <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
                 <div>
                     <h3 class="font-extrabold text-gray-800 text-xl" id="modalTitle">Thiết lập Khóa học</h3>
                     <p class="text-xs text-gray-400 font-semibold mt-1">Điền thông tin cơ bản và hình ảnh hiển thị</p>
                 </div>
-                <button onclick="window.toggleModal('courseModal')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"><i class="fa-solid fa-times"></i></button>
+                <button onclick="window.toggleModal('courseModal', false)" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors cursor-pointer" title="Đóng"><i class="fa-solid fa-times"></i></button>
             </div>
             
             <div class="p-8 space-y-6 overflow-y-auto custom-scrollbar">
                 <input type="hidden" id="courseId">
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <div class="col-span-1 md:col-span-3">
+    <div class="col-span-1 md:col-span-2">
         <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1">Loại Sản Phẩm Đăng Bán</label>
         <select id="cType" onchange="window.toggleProductFields()" class="w-full px-5 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:border-brand focus:ring-4 focus:ring-brand/10 outline-none transition-all font-bold text-brand">
             <option value="course">🎬 Khóa học trực tuyến (Có giáo án cấu trúc)</option>
             <option value="document_soft">📄 Tài liệu bản mềm (Hệ thống tự động gửi File qua Email)</option>
             <option value="document_hard">📚 Sách bản cứng (Yêu cầu HS điền địa chỉ giao hàng)</option>
+        </select>
+    </div>
+
+    <div class="col-span-1 md:col-span-1">
+        <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1">Trạng Thái Bán Hàng</label>
+        <select id="cStatus" class="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:border-brand focus:ring-4 focus:ring-brand/10 outline-none transition-all font-bold text-gray-700">
+            <option value="active">🟢 Đang mở bán</option>
+            <option value="sold_out">🔴 Bán hết (Hết hàng)</option>
         </select>
     </div>
 
@@ -186,6 +194,19 @@
                     <textarea id="cDesc" rows="3" class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:border-brand outline-none text-sm resize-none" placeholder="Giới thiệu sơ lược về khóa học này..."></textarea>
                 </div>
 
+                <div class="flex items-center justify-between p-4 bg-rose-50/50 rounded-xl border border-rose-100">
+                    <div>
+                        <span class="text-xs font-black text-rose-800 uppercase flex items-center gap-1.5">
+                            <i class="fa-solid fa-shield-halved text-rose-600"></i> Cấm chụp màn hình bài giảng & tài liệu
+                        </span>
+                        <p class="text-[11px] text-gray-500 mt-0.5">Chặn phím tắt PrintScreen, vuốt 3 ngón tay & cảnh báo vi phạm bản quyền</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                        <input type="checkbox" id="cAntiScreenshot" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-rose-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    </label>
+                </div>
+
                 <div>
                     <div class="flex items-center justify-between mb-2 ml-1">
                         <label class="block text-xs font-black text-gray-500 uppercase">Ảnh bìa sản phẩm / Sách / Khóa học</label>
@@ -238,8 +259,8 @@
             </div>
 
             <div class="px-8 py-5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 sticky bottom-0">
-                <button onclick="window.toggleModal('courseModal')" class="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-200 rounded-xl transition-colors">Hủy bỏ</button>
-                <button onclick="window.saveCourseBasic()" class="px-8 py-2.5 bg-brand text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">Lưu Thiết Lập</button>
+                <button type="button" onclick="window.toggleModal('courseModal', false)" class="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">Hủy bỏ</button>
+                <button type="button" onclick="window.saveCourseBasic()" class="px-8 py-2.5 bg-brand text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer">Lưu Thiết Lập</button>
             </div>
         </div>
     </div>
@@ -470,6 +491,93 @@
     </div>
 </div>
 
+    <!-- MODAL: SAO CHÉP THÔNG TIN ĐƠN HÀNG (QUICK ORDER COPY) -->
+    <div id="orderCopyDetailModal" class="hidden fixed inset-0 z-[120] bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up border border-gray-100 my-auto">
+            <!-- Header -->
+            <div class="px-5 py-3.5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-teal-50 via-emerald-50 to-white">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                        <i class="fa-solid fa-copy"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-gray-800 text-sm sm:text-base flex items-center gap-2">
+                            <span>Sao chép thông tin đơn hàng</span>
+                            <span id="orderCopyModalOrderIdBadge" class="text-[11px] font-mono font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-md">#...</span>
+                        </h3>
+                        <p id="orderCopyModalSubtitle" class="text-[11px] text-gray-500 font-medium">Người nhận: ...</p>
+                    </div>
+                </div>
+                <button onclick="window.closeOrderCopyModal()" class="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-white flex items-center justify-center transition-colors cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-4 sm:p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+                <!-- Banner: Copy lần lượt tuần tự -->
+                <div class="p-3.5 bg-gradient-to-r from-teal-700 via-teal-800 to-emerald-800 rounded-xl text-white shadow-md">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-teal-100">Copy tuần tự tạo vận đơn nhanh</span>
+                        </div>
+                        <button onclick="window.resetOrderSequentialStep()" class="text-[11px] text-teal-200 hover:text-white underline cursor-pointer">
+                            <i class="fa-solid fa-rotate-left mr-0.5"></i> Bắt đầu lại
+                        </button>
+                    </div>
+
+                    <!-- Progress Step Badges -->
+                    <div id="orderCopyStepBadges" class="grid grid-cols-3 sm:grid-cols-6 gap-1 mb-3 text-[10px] font-bold">
+                        <!-- Rendered dynamically: 1. Tên, 2. SĐT, 3. Địa chỉ, 4. Xã, 5. Huyện, 6. Tỉnh -->
+                    </div>
+
+                    <!-- Big Step Action Button -->
+                    <button id="btnModalSequentialCopy" onclick="window.handleModalSequentialCopy()" class="w-full py-2.5 bg-white hover:bg-teal-50 text-teal-900 rounded-xl font-black text-sm shadow transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-play text-teal-600"></i>
+                        <span id="btnModalSequentialCopyText">Bấm để Copy: Họ tên (Bước 1/6)</span>
+                    </button>
+                </div>
+
+                <!-- Danh sách các trường thông tin riêng lẻ -->
+                <div class="space-y-2">
+                    <div class="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">
+                        Hoặc bấm sao chép từng mục riêng biệt:
+                    </div>
+
+                    <div id="orderCopyFieldsList" class="space-y-1.5">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- Các nút gộp nhanh tiện lợi -->
+                <div class="pt-2 border-t border-gray-100 space-y-2">
+                    <div class="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">
+                        Sao chép gộp nhanh:
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button onclick="window.copyOrderFullAddress()" class="px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl border border-gray-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                            <i class="fa-solid fa-house text-teal-600"></i>
+                            <span>Copy Toàn bộ địa chỉ</span>
+                        </button>
+                        <button onclick="window.copyOrderOneLineSummary()" class="px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl border border-gray-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                            <i class="fa-solid fa-bolt text-amber-500"></i>
+                            <span>Copy Gộp 1 dòng (Tên+SĐT+ĐC)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400 font-bold">
+                <span>Mẹo: Sang app vận chuyển paste rồi quay lại bấm tiếp</span>
+                <button onclick="window.closeOrderCopyModal()" class="px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-bold transition cursor-pointer">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL ĐIỀU CHỈNH ẢNH BÌA THÔNG MINH -->
     <div id="imageAdjustModal" class="hidden fixed inset-0 z-[100] bg-gray-900/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up">
@@ -560,8 +668,8 @@
     <script type="module">
         import { 
             supabase, initializeApp, getAuth, onAuthStateChanged,
-            getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, orderBy, getDoc, where, writeBatch,
-            getStorage, ref, deleteObject
+            getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, onSnapshot,
+            getStorage, ref, uploadBytes, getDownloadURL
         } from "./supabase-db-compat.js";
 
         // CẤU HÌNH SUPABASE
@@ -634,27 +742,82 @@
         };
         window.closeConfirm = () => document.getElementById('confirmModal').classList.add('hidden');
 
-        // --- MAIN LOAD ---
-        // --- MAIN LOAD (TỐI ƯU TỐC ĐỘ - PARALLEL LOADING) ---
-        onAuthStateChanged(auth, async (user) => { 
-            let isAuthed = !!user;
-            if (!isAuthed) {
-                try {
-                    const session = (await supabase.auth.getSession())?.data?.session;
-                    if (session) isAuthed = true;
-                } catch(e) {}
-            }
-            if (!isAuthed && window.location.search.includes('test_admin=1')) {
-                isAuthed = true;
-            }
+        // ================= RBAC & SYSTEM ROLES =================
+        const ROOT_SUPER_ADMINS = [
+            "phamdinhquang0911@gmail.com",
+            "phamquang09112001@gmail.com",
+            "phamngockhanh.942001@gmail.com",
+            "phamngockhanh.942002@gmail.com"
+        ];
+        let canManageCourses = false;
+        let canDeleteCourses = false;
+        let canViewCourses = false;
 
-            if (!isAuthed) {
+        async function checkCoursePermissions(user) {
+            const userEmail = (user.email || '').toLowerCase().trim();
+            if (ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(userEmail)) {
+                canManageCourses = true;
+                canDeleteCourses = true;
+                canViewCourses = true;
+                return true;
+            }
+            try {
+                const cfgRef = doc(db, "configurations", "admin_roles");
+                const cfgSnap = await getDoc(cfgRef);
+                let acc = null;
+                if (cfgSnap.exists()) {
+                    const accounts = cfgSnap.data().accounts || [];
+                    acc = accounts.find(a => (a.email || '').toLowerCase() === userEmail);
+                }
+                if (!acc) {
+                    const q = query(collection(db, "admin_accounts"), where("email", "==", userEmail));
+                    const qSnap = await getDocs(q);
+                    if (!qSnap.empty) acc = qSnap.docs[0].data();
+                }
+                if (acc) {
+                    if (acc.status === 'locked') {
+                        alert('⛔ Tài khoản của bạn đã bị khóa bởi Super Admin!');
+                        window.location.href = "index.html";
+                        return false;
+                    }
+                    if (acc.role === 'super_admin') {
+                        canManageCourses = true;
+                        canDeleteCourses = true;
+                        canViewCourses = true;
+                        return true;
+                    }
+                    const perms = Array.isArray(acc.permissions) ? acc.permissions : [];
+                    canManageCourses = perms.includes('courses.manage');
+                    canDeleteCourses = perms.includes('courses.delete') || canManageCourses;
+                    canViewCourses = canManageCourses || perms.includes('courses.use') || perms.includes('courses.view');
+                    return canViewCourses;
+                }
+            } catch (err) {
+                console.warn("Lỗi kiểm tra quyền khóa học:", err);
+            }
+            return false;
+        }
+
+        // --- MAIN LOAD ---
+        onAuthStateChanged(auth, async (user) => { 
+            if(!user) {
                 window.location.href='index.html'; 
                 return;
             }
+            const allowed = await checkCoursePermissions(user);
+            if (!allowed) {
+                alert("⛔ Bạn không có quyền truy cập Quản lý Khóa học!");
+                window.location.href = "dashboard.html";
+                return;
+            }
 
-            const p1 = loadCourses();
-            await Promise.all([p1]); 
+            // Áp dụng quyền ẩn/hiện các nút trên thanh công cụ
+            const btnVoucher = document.getElementById('btnOpenVoucher');
+            if (btnVoucher) btnVoucher.style.display = canManageCourses ? '' : 'none';
+            const btnCreate = document.getElementById('btnCreateCourse');
+            if (btnCreate) btnCreate.style.display = canManageCourses ? '' : 'none';
+
+            await loadCourses();
         });
 
         let courseViewMode = 'list'; // Mặc định
@@ -686,27 +849,13 @@
             document.getElementById('viewGridContainer').classList.add('hidden');
 
             try {
-                const { data, error } = await supabase.from('public_courses').select('*').order('created_at', { ascending: false });
-                if (error) throw error;
-                cachedCourses = (data || []).map(d => ({
-                    id: d.id,
-                    title: d.title,
-                    type: d.type,
-                    price: d.price,
-                    originalPrice: d.original_price,
-                    tag: d.tag,
-                    thumbnail: d.thumbnail,
-                    image: d.image,
-                    description: d.description,
-                    weight: d.weight,
-                    shippingFee: d.shipping_fee,
-                    students: d.students,
-                    fakeStudents: d.fake_students,
-                    previewLink: d.preview_link,
-                    curriculum: d.curriculum,
-                    createdAt: d.created_at,
-                    updatedAt: d.updated_at
-                }));
+                const q = query(collection(db, "public_courses"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                cachedCourses = [];
+                
+                querySnapshot.forEach(doc => {
+                    cachedCourses.push({ id: doc.id, ...doc.data() });
+                });
                 
                 renderCoursesUI();
             } catch(e) { window.showToast(e.message, 'error'); }
@@ -752,42 +901,48 @@
                     iconClass = "fa-truck-fast text-amber-500";
                 }
 
+                const isSoldOut = (c.status === 'sold_out' || c.isSoldOut === true);
+                const soldOutBadge = isSoldOut ? '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-1 ml-1 border border-red-200"><i class="fa-solid fa-ban mr-0.5"></i> BÁN HẾT</span>' : '';
+
                 // --- RENDER LIST ROW ---
                 listTable.innerHTML += `
-                <tr class="hover:bg-gray-50 border-b border-gray-100 group transition-colors">
+                <tr class="hover:bg-gray-50 border-b border-gray-100 group transition-colors ${isSoldOut ? 'bg-red-50/20' : ''}">
                     <td class="p-4"><img src="${thumb}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 shadow-sm"></td>
-                    <td class="p-4"><div class="font-bold text-gray-800 group-hover:text-brand transition-colors">${c.title}</div>${typeBadge}</td>
+                    <td class="p-4"><div class="font-bold text-gray-800 group-hover:text-brand transition-colors">${c.title}</div>${typeBadge}${soldOutBadge}</td>
                     <td class="p-4 text-xs text-gray-500 font-bold">${strucText}</td>
                     <td class="p-4 text-center"><span class="bg-primary-50 text-primary-700 px-2.5 py-1 rounded-full text-xs font-bold border border-primary-100">${c.students || 0} lượt</span></td>
                     <td class="p-4 text-right">
                         <div class="flex justify-end gap-2">
+                            <button onclick="window.toggleCourseAntiScreenshot('${c.id}')" class="p-2 ${c.antiScreenshot === false ? 'bg-gray-100 text-gray-400' : 'bg-rose-50 text-rose-600'} rounded-lg hover:bg-rose-600 hover:text-white transition-all shadow-sm" title="${c.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh bài giảng (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình bài giảng (Bấm để cho phép)'}"><i class="fa-solid ${c.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'}"></i></button>
                             <button onclick="window.openStudentManager('${c.id}')" class="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Quản lý KH/Học viên"><i class="fa-solid fa-user-plus"></i></button>
-                            <button onclick="window.openCurriculumEditor('${c.id}')" class="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all shadow-sm ${c.type !== 'course' ? 'hidden' : ''}" title="Soạn giáo án"><i class="fa-solid fa-book-open"></i></button>
+                            ${canManageCourses ? `<button onclick="window.openCurriculumEditor('${c.id}')" class="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all shadow-sm ${c.type !== 'course' ? 'hidden' : ''}" title="Soạn giáo án"><i class="fa-solid fa-book-open"></i></button>` : ''}
                             <button onclick="window.copyProductLinkAdmin('${c.id}')" class="p-2 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-600 hover:text-white transition-all shadow-sm" title="Copy link mua hàng"><i class="fa-solid fa-share-nodes"></i></button>
-                            <button onclick="window.editCourse('${c.id}')" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-all"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="window.deleteCourse('${c.id}')" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all"><i class="fa-solid fa-trash"></i></button>
+                            ${canManageCourses ? `<button onclick="window.editCourse('${c.id}')" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-all" title="Chỉnh sửa"><i class="fa-solid fa-pen"></i></button>` : ''}
+                            ${(canManageCourses || canDeleteCourses) ? `<button onclick="window.deleteCourse('${c.id}')" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all" title="Xóa"><i class="fa-solid fa-trash"></i></button>` : ''}
                         </div>
                     </td>
                 </tr>`;
 
                 // --- RENDER GRID CARD ---
                 gridContainer.innerHTML += `
-                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-brand/30 transition-all overflow-hidden flex flex-col group h-full">
+                <div class="bg-white rounded-2xl border ${isSoldOut ? 'border-red-200' : 'border-gray-200'} shadow-sm hover:shadow-lg hover:border-brand/30 transition-all overflow-hidden flex flex-col group h-full">
                     <div class="h-40 bg-gray-100 relative overflow-hidden">
                         <img src="${thumb}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        ${isSoldOut ? '<div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg shadow"><i class="fa-solid fa-ban mr-0.5"></i> BÁN HẾT</div>' : ''}
                         <div class="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg backdrop-blur-sm"><i class="fa-solid fa-shopping-cart"></i> ${c.students||0}</div>
                     </div>
                     <div class="p-5 flex flex-col flex-1">
                         <h3 class="font-bold text-gray-800 text-lg mb-1 line-clamp-2 group-hover:text-brand transition-colors">${c.title}</h3>
-                        <div>${typeBadge}</div>
+                        <div>${typeBadge}${soldOutBadge}</div>
                         <p class="text-xs text-gray-500 font-bold mt-3 mb-4 flex items-center gap-2"><i class="fa-solid ${iconClass}"></i> ${strucText}</p>
                         
-                        <div class="mt-auto grid grid-cols-5 gap-2 pt-4 border-t border-gray-100">
+                        <div class="mt-auto grid grid-cols-${canManageCourses ? '6' : '3'} gap-2 pt-4 border-t border-gray-100">
+                            <button onclick="window.toggleCourseAntiScreenshot('${c.id}')" class="col-span-1 py-2 ${c.antiScreenshot === false ? 'bg-gray-50 text-gray-400' : 'bg-rose-50 text-rose-600'} rounded-lg hover:bg-rose-600 hover:text-white transition-colors" title="${c.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình (Bấm để cho phép)'}"><i class="fa-solid ${c.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'}"></i></button>
                             <button onclick="window.openStudentManager('${c.id}')" class="col-span-1 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-colors" title="Học viên/Đơn hàng"><i class="fa-solid fa-user-plus"></i></button>
-                            <button onclick="window.openCurriculumEditor('${c.id}')" class="col-span-1 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-colors" title="Giáo án"><i class="fa-solid fa-book-open"></i></button>
+                            ${canManageCourses ? `<button onclick="window.openCurriculumEditor('${c.id}')" class="col-span-1 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-colors" title="Giáo án"><i class="fa-solid fa-book-open"></i></button>` : ''}
                             <button onclick="window.copyProductLinkAdmin('${c.id}')" class="col-span-1 py-2 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-600 hover:text-white transition-colors" title="Copy link mua hàng"><i class="fa-solid fa-share-nodes"></i></button>
-                            <button onclick="window.editCourse('${c.id}')" class="col-span-1 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-colors"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="window.deleteCourse('${c.id}')" class="col-span-1 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"><i class="fa-solid fa-trash"></i></button>
+                            ${canManageCourses ? `<button onclick="window.editCourse('${c.id}')" class="col-span-1 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-colors" title="Chỉnh sửa"><i class="fa-solid fa-pen"></i></button>` : ''}
+                            ${(canManageCourses || canDeleteCourses) ? `<button onclick="window.deleteCourse('${c.id}')" class="col-span-1 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors" title="Xóa"><i class="fa-solid fa-trash"></i></button>` : ''}
                         </div>
                     </div>
                 </div>`;
@@ -1055,11 +1210,16 @@ window.toggleProductFields = () => {
 
 // Hàm tải dữ liệu lên form sửa
 window.editCourse = async (id) => {
+    if (!canManageCourses) {
+        window.showToast("⛔ Bạn không có quyền chỉnh sửa khóa học!", "error");
+        return;
+    }
     const d = await getDoc(doc(db, "public_courses", id));
     if(d.exists()) {
         const dt = d.data();
         document.getElementById('courseId').value = id;
         document.getElementById('cType').value = dt.type || 'course';
+        if(document.getElementById('cStatus')) document.getElementById('cStatus').value = (dt.status === 'sold_out' || dt.isSoldOut === true) ? 'sold_out' : 'active';
         document.getElementById('cTitle').value = dt.title || '';
         
         document.getElementById('cOriginalPrice').value = dt.originalPrice || '';
@@ -1075,6 +1235,7 @@ window.editCourse = async (id) => {
         if(document.getElementById('cPreviewLink')) document.getElementById('cPreviewLink').value = dt.previewLink || '';
         
         window.toggleProductFields();
+        if(document.getElementById('cAntiScreenshot')) document.getElementById('cAntiScreenshot').checked = (dt.antiScreenshot !== false);
         
         if(dt.thumbnail) {
             document.getElementById('previewThumb').src = dt.thumbnail;
@@ -1092,17 +1253,26 @@ window.editCourse = async (id) => {
 
 // Hàm lưu dữ liệu
 window.saveCourseBasic = async () => {
+    if (!canManageCourses) {
+        window.showToast("⛔ Bạn không có quyền lưu thay đổi khóa học!", "error");
+        return;
+    }
     const id = document.getElementById('courseId').value;
     const type = document.getElementById('cType').value; // Lấy type từ Dropdown
+    const statusVal = document.getElementById('cStatus')?.value || 'active';
+    const isSoldOutVal = (statusVal === 'sold_out');
     
     const data = {
         type: type, // <-- BẮT BUỘC PHẢI LƯU TRƯỜNG NÀY ĐỂ INDEX.HTML HIỂU ĐƯỢC
+        status: statusVal,
+        isSoldOut: isSoldOutVal,
         title: document.getElementById('cTitle').value,
         originalPrice: parseInt(document.getElementById('cOriginalPrice').value) || 0,
         price: parseInt(document.getElementById('cPrice').value) || 0,
         students: parseInt(document.getElementById('cStudents').value) || 0,
         desc: document.getElementById('cDesc').value,
         thumbnail: document.getElementById('cThumb').value,
+        antiScreenshot: document.getElementById('cAntiScreenshot') ? document.getElementById('cAntiScreenshot').checked : true,
         
         // Lưu trường đặc thù tùy theo phân loại
         fileUrl: type === 'document_soft' ? (document.getElementById('cDocFileUrl')?.value.trim() || '') : null,
@@ -1134,6 +1304,29 @@ window.saveCourseBasic = async () => {
         window.showToast(e.message, 'error'); 
     } finally {
         if(btn) { btn.innerHTML = originalText; btn.disabled = false; }
+    }
+};
+
+window.toggleCourseAntiScreenshot = async (courseId) => {
+    if (!canManageCourses) {
+        window.showToast("⛔ Bạn không có quyền thay đổi cấu hình bảo mật khóa học!", "error");
+        return;
+    }
+    const c = cachedCourses.find(x => x.id === courseId);
+    if (!c) return;
+    const currentVal = (c.antiScreenshot !== false);
+    const newVal = !currentVal;
+
+    try {
+        await updateDoc(doc(db, "public_courses", courseId), {
+            antiScreenshot: newVal,
+            updatedAt: new Date().toISOString()
+        });
+        c.antiScreenshot = newVal;
+        renderCoursesUI();
+        window.showToast(newVal ? `Đã BẬT cấm chụp màn hình: ${c.title}` : `Đã CHO PHÉP chụp ảnh: ${c.title}`);
+    } catch(err) {
+        window.showToast("Lỗi cập nhật: " + err.message, "error");
     }
 };
 
@@ -1601,6 +1794,10 @@ function renderCurriculumTree() {
         };
 
         window.saveCurriculum = async () => {
+            if (!canManageCourses) {
+                window.showToast("⛔ Bạn không có quyền chỉnh sửa giáo án!", "error");
+                return;
+            }
             const btn = document.querySelector('button[onclick="saveCurriculum()"]');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
             try {
@@ -1635,7 +1832,12 @@ function renderCurriculumTree() {
             }
         };
         window.closeCurriculumModal = () => window.customConfirm("Đóng mà không lưu?", () => document.getElementById('curriculumModal').classList.add('hidden'));
-       window.deleteCourse = (id) => window.customConfirm("Hành động này sẽ xóa vĩnh viễn khóa học và ảnh banner trên R2. Bạn có chắc chắn không?", async () => {
+       window.deleteCourse = (id) => {
+            if (!canManageCourses && !canDeleteCourses) {
+                window.showToast("⛔ Bạn không có quyền xóa khóa học!", "error");
+                return;
+            }
+            window.customConfirm("Hành động này sẽ xóa vĩnh viễn khóa học và ảnh banner trên R2. Bạn có chắc chắn không?", async () => {
             const btn = document.querySelector(`button[onclick="window.deleteCourse('${id}')"]`);
             const originalContent = btn ? btn.innerHTML : '';
             if(btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
@@ -1679,6 +1881,7 @@ function renderCurriculumTree() {
                 if(btn) btn.innerHTML = originalContent;
             }
         });
+    };
         // Hàm phụ trợ: Xóa file trên Storage dựa vào URL
         async function deleteFileByUrl(url) {
             if (!url) return;
@@ -2134,10 +2337,11 @@ window.importCurriculum = (input) => {
             document.getElementById('enrolledStudentsList').innerHTML = '<tr><td colspan="4" class="p-8 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải danh sách...</td></tr>';
 
             try {
-                // 1. Lấy thông tin sản phẩm từ Supabase
-                const { data: cData } = await supabase.from('public_courses').select('*').eq('id', courseId).maybeSingle();
+                // 1. Lấy thông tin sản phẩm
+                const cSnap = await getDoc(doc(db, "public_courses", courseId));
                 let isBook = false;
-                if (cData) {
+                if (cSnap.exists()) {
+                    const cData = cSnap.data();
                     currentManageCourseTitle = cData.title;
                     isBook = cData.type === 'document_hard' || cData.type === 'book';
                     document.getElementById('studentManagerCourseTitle').innerText = currentManageCourseTitle;
@@ -2153,31 +2357,23 @@ window.importCurriculum = (input) => {
                     if (addStudentArea) addStudentArea.classList.toggle('hidden', isBook);
                 }
 
-                // 2. Lấy TẤT CẢ đơn hàng & Tự động dọn dẹp đơn pending/cancelled quá 30 phút chưa thanh toán
-                if (!window._userMap) {
-                    window._userMap = {};
-                    try {
-                        const { data: uList } = await supabase.from('users').select('id, email, display_name');
-                        (uList || []).forEach(u => {
-                            if (u.id) window._userMap[u.id] = u.email || u.display_name;
-                        });
-                    } catch(e) {}
-                }
-
-                const { data: orderList } = await supabase.from('orders').select('*').eq('course_id', courseId);
+                // 2. Lấy TẤT CẢ đơn hàng & Tự động dọn dẹp đơn pending/cancelled quá 30 phút chưa thanh toán (0 reads phát sinh)
+                const q = query(collection(db, "orders"), where("courseId", "==", courseId));
+                const snap = await getDocs(q);
                 allStudentsData = [];
                 const now = Date.now();
                 const junkOrdersToDelete = [];
 
-                (orderList || []).forEach(data => {
+                snap.forEach(d => {
+                    const data = d.data();
                     const isPending = (data.status === 'pending');
                     const isCancelled = (data.status === 'cancelled' || data.status === 'abandoned');
-                    const createdAtTime = data.created_at ? new Date(data.created_at).getTime() : 0;
+                    const createdAtTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
                     const isOlderThan30Min = (now - createdAtTime > 30 * 60 * 1000);
 
                     // Đơn bỏ dở / quá hạn: Chỉ dọn nếu đã quá 30 phút kể cả pending hay cancelled
                     if ((isPending || isCancelled) && isOlderThan30Min) {
-                        junkOrdersToDelete.push(data.id);
+                        junkOrdersToDelete.push(d.id);
                         return; // Bỏ qua, không hiển thị lên bảng
                     }
 
@@ -2187,21 +2383,37 @@ window.importCurriculum = (input) => {
                     }
 
                     allStudentsData.push({
-                        id: data.id,
-                        name: data.shipping_info?.name || data.user_name || "Không tên",
-                        email: data.user_email || window._userMap?.[data.user_id] || data.user_id || "",
-                        date: data.created_at,
+                        id: d.id,
+                        name: data.shippingInfo?.name || data.userName || "Không tên",
+                        email: data.userEmail || data.userId || "",
+                        date: data.createdAt,
                         status: data.status || 'pending',
                         amount: data.amount || 0,
-                        shippingInfo: data.shipping_info || null,
+                        shippingInfo: data.shippingInfo || null,
                         content: data.content || ''
                     });
                 });
 
-                // Tự động xóa ngầm các đơn bỏ dở quá 30 phút khỏi Supabase
+                // Tự động đối soát & bù lượt mua ảo cho các đơn đã thanh toán thành công nhưng chưa được cộng
+                const uncountedPaidOrders = [];
+                snap.forEach(d => {
+                    const data = d.data();
+                    if ((data.status === 'paid' || data.status === 'approved') && data.studentCountIncremented !== true) {
+                        uncountedPaidOrders.push(d.id);
+                    }
+                });
+                if (uncountedPaidOrders.length > 0) {
+                    updateDoc(doc(db, "public_courses", courseId), {
+                        students: increment(uncountedPaidOrders.length)
+                    }).catch(e => console.warn("Lỗi cập nhật lượt mua đối soát:", e));
+                    Promise.allSettled(uncountedPaidOrders.map(id => updateDoc(doc(db, "orders", id), { studentCountIncremented: true })))
+                        .catch(e => console.warn("Lỗi đánh dấu đơn đối soát:", e));
+                }
+
+                // Tự động xóa ngầm các đơn bỏ dở quá 30 phút khỏi Firestore
                 if (junkOrdersToDelete.length > 0) {
                     console.log(`[Auto-Clean] Đang dọn ${junkOrdersToDelete.length} đơn quá 30 phút chưa thanh toán:`, junkOrdersToDelete);
-                    supabase.from('orders').delete().in('id', junkOrdersToDelete)
+                    Promise.allSettled(junkOrdersToDelete.map(id => deleteDoc(doc(db, "orders", id))))
                         .then(() => {
                             window.showToast(`🧹 Đã tự động dọn dẹp ${junkOrdersToDelete.length} đơn chờ quá hạn (>30 phút).`, "info");
                         });
@@ -2267,14 +2479,14 @@ window.importCurriculum = (input) => {
                         <th class="p-3">Thông tin người đặt</th>
                         <th class="p-3">Địa chỉ giao hàng</th>
                         <th class="p-3 text-center">Trạng thái & Ngày</th>
-                        <th class="p-3 text-right pr-4">Hành động</th>
+                        <th class="p-3 text-right pr-4 min-w-[220px]">Hành động</th>
                     </tr>`;
                 } else {
                     thead.innerHTML = `<tr>
                         <th class="p-3 pl-4 w-10"><input type="checkbox" id="selectAllOrders" onchange="window.toggleSelectAll(this)" class="w-4 h-4 accent-brand cursor-pointer rounded"></th>
                         <th class="p-3">Thông tin học viên</th>
                         <th class="p-3 text-center" colspan="2">Trạng thái & Ngày</th>
-                        <th class="p-3 text-right pr-4">Hành động</th>
+                        <th class="p-3 text-right pr-4 min-w-[160px]">Hành động</th>
                     </tr>`;
                 }
             }
@@ -2311,6 +2523,18 @@ window.importCurriculum = (input) => {
                 const timeStr = s.date ? new Date(s.date).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) : '';
 
                 if (isBook) {
+                    const copyBtnGroup = `
+                        <div class="inline-flex items-center rounded-lg border border-teal-300 bg-teal-50 hover:border-teal-400 p-0.5 shadow-2xs transition-all">
+                            <button onclick="window.handleOrderSequentialCopy('${s.id}', event)" id="btnSeqCopy_${s.id}" class="px-2.5 py-1 text-teal-800 hover:text-white hover:bg-teal-600 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Bấm lần lượt để copy: Họ tên ➔ SĐT ➔ Địa chỉ ➔ Xã ➔ Huyện ➔ Tỉnh">
+                                <i class="fa-solid fa-copy text-teal-600"></i>
+                                <span id="btnSeqCopyText_${s.id}">Copy lần lượt</span>
+                            </button>
+                            <button onclick="window.openOrderCopyModal('${s.id}', event)" class="px-1.5 py-1 text-teal-700 hover:text-teal-900 hover:bg-teal-100 rounded-md text-xs transition-all cursor-pointer border-l border-teal-200" title="Mở bảng chi tiết & copy từng mục riêng biệt">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                        </div>
+                    `;
+
                     html += `<tr class="hover:bg-blue-50/20 border-b border-gray-100 transition-colors ${rowBg} group">
                         <td class="p-3 pl-4"><input type="checkbox" class="order-checkbox w-4 h-4 accent-brand cursor-pointer rounded" data-id="${s.id}" onchange="window.updateBulkDeleteBtn()"></td>
                         <td class="p-3">
@@ -2318,19 +2542,41 @@ window.importCurriculum = (input) => {
                                 ${icon}
                                 <div class="min-w-0">
                                     <div class="font-bold text-gray-800 text-sm truncate">${s.name}</div>
-                                    <div class="text-xs text-teal-600 font-bold">${s.shippingInfo?.phone || ''}</div>
+                                    <div class="text-xs text-teal-600 font-bold flex items-center gap-1">
+                                        ${s.shippingInfo?.phone ? `
+                                            <span onclick="window.copyToClipboard('${s.shippingInfo.phone}'); window.showToast('📞 Đã copy SĐT: ${s.shippingInfo.phone}');" class="cursor-pointer hover:underline inline-flex items-center gap-1" title="Bấm để copy nhanh SĐT">
+                                                <i class="fa-solid fa-phone text-[10px]"></i> ${s.shippingInfo.phone}
+                                            </span>
+                                        ` : ''}
+                                    </div>
                                     <div class="text-[10px] text-gray-400 font-mono truncate">${s.email}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="p-3 max-w-[220px]"><div class="text-xs text-gray-600 leading-relaxed">${shipAddr || '<span class="text-gray-300">Chưa có địa chỉ</span>'}</div></td>
+                        <td class="p-3 max-w-[220px]">
+                            <div class="text-xs text-gray-600 leading-relaxed group/addr relative">
+                                <span>${shipAddr || '<span class="text-gray-300">Chưa có địa chỉ</span>'}</span>
+                                ${shipAddr ? `
+                                    <button onclick="window.copyToClipboard('${shipAddr.replace(/'/g, "\\'")}'); window.showToast('🏠 Đã copy toàn bộ địa chỉ');" class="ml-1 opacity-0 group-hover:opacity-100 text-teal-600 hover:text-teal-800 text-[10px] transition-opacity cursor-pointer inline-flex items-center" title="Copy toàn bộ địa chỉ">
+                                        <i class="fa-solid fa-copy"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
                         <td class="p-3 text-center">
                             ${badge}
                             <div class="text-[10px] text-gray-400 mt-1">${dateStr} ${timeStr}</div>
                         </td>
-                        <td class="p-3 text-right pr-4"><div class="flex justify-end gap-1">${actionBtns}</div></td>
+                        <td class="p-3 text-right pr-4"><div class="flex items-center justify-end gap-1.5">${copyBtnGroup} ${actionBtns}</div></td>
                     </tr>`;
                 } else {
+                    const copyCourseBtn = `
+                        <button onclick="window.handleOrderSequentialCopy('${s.id}', event)" id="btnSeqCopy_${s.id}" class="px-2 py-1 bg-teal-50 hover:bg-teal-600 text-teal-700 hover:text-white border border-teal-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap" title="Copy thông tin học viên">
+                            <i class="fa-solid fa-copy"></i>
+                            <span id="btnSeqCopyText_${s.id}">Copy</span>
+                        </button>
+                    `;
+
                     html += `<tr class="hover:bg-blue-50/20 border-b border-gray-100 transition-colors ${rowBg} group">
                         <td class="p-3 pl-4"><input type="checkbox" class="order-checkbox w-4 h-4 accent-brand cursor-pointer rounded" data-id="${s.id}" onchange="window.updateBulkDeleteBtn()"></td>
                         <td class="p-3">
@@ -2346,11 +2592,281 @@ window.importCurriculum = (input) => {
                             ${badge}
                             <div class="text-[10px] text-gray-400 mt-1">${dateStr} ${timeStr}</div>
                         </td>
-                        <td class="p-3 text-right pr-4"><div class="flex justify-end gap-1">${actionBtns}</div></td>
+                        <td class="p-3 text-right pr-4"><div class="flex items-center justify-end gap-1.5">${copyCourseBtn} ${actionBtns}</div></td>
                     </tr>`;
                 }
             });
             listContainer.innerHTML = html;
+        };
+
+
+        // ── LOGIC SAO CHÉP THÔNG TIN ĐƠN HÀNG (COPY LẦN LƯỢT / TUẦN TỰ) ──────────────
+        window._orderCopyState = window._orderCopyState || {};
+        window._activeCopyOrderId = null;
+
+        window.copyToClipboard = async (text) => {
+            if (!text) return false;
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+            } catch (err) {
+                console.warn("Clipboard API failed, fallback to execCommand", err);
+            }
+            try {
+                const textarea = document.createElement("textarea");
+                textarea.value = text;
+                textarea.style.position = "fixed";
+                textarea.style.left = "-9999px";
+                textarea.style.top = "-9999px";
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                return successful;
+            } catch (err) {
+                console.error("Copy fallback error", err);
+                return false;
+            }
+        };
+
+        window.getOrderCopySteps = (orderId) => {
+            const s = allStudentsData.find(item => item.id === orderId);
+            if (!s) return [];
+            const si = s.shippingInfo || {};
+            const name = (si.name || s.name || "").trim();
+            const phone = (si.phone || "").trim();
+            const detailAddress = (si.detailAddress || "").trim();
+            const ward = (si.ward || "").trim();
+            const district = (si.district || "").trim();
+            const province = (si.province || "").trim();
+            const fullAddress = [detailAddress, ward, district, province].filter(x => x).join(', ') || (si.address || "").trim();
+
+            const steps = [];
+            if (name) steps.push({ key: 'name', label: 'Họ tên', fullLabel: 'Họ và tên khách hàng', icon: 'fa-user', value: name });
+            if (phone) steps.push({ key: 'phone', label: 'SĐT', fullLabel: 'Số điện thoại', icon: 'fa-phone', value: phone });
+            if (detailAddress) {
+                steps.push({ key: 'detailAddress', label: 'Địa chỉ', fullLabel: 'Địa chỉ chi tiết (số nhà/đường)', icon: 'fa-house', value: detailAddress });
+            } else if (fullAddress) {
+                steps.push({ key: 'detailAddress', label: 'Địa chỉ', fullLabel: 'Địa chỉ giao hàng', icon: 'fa-house', value: fullAddress });
+            }
+            if (ward) steps.push({ key: 'ward', label: 'Phường/Xã', fullLabel: 'Phường / Xã', icon: 'fa-location-dot', value: ward });
+            if (district) steps.push({ key: 'district', label: 'Quận/Huyện', fullLabel: 'Quận / Huyện', icon: 'fa-city', value: district });
+            if (province) steps.push({ key: 'province', label: 'Tỉnh/TP', fullLabel: 'Tỉnh / Thành phố', icon: 'fa-map', value: province });
+
+            if (steps.length === 0) {
+                if (s.name) steps.push({ key: 'name', label: 'Họ tên', fullLabel: 'Họ và tên', icon: 'fa-user', value: s.name });
+                if (s.email) steps.push({ key: 'email', label: 'Tài khoản', fullLabel: 'Email / Tên đăng nhập', icon: 'fa-envelope', value: s.email });
+            }
+
+            return steps;
+        };
+
+        window.handleOrderSequentialCopy = (orderId, event) => {
+            if (event) event.stopPropagation();
+            const steps = window.getOrderCopySteps(orderId);
+            if (!steps || steps.length === 0) {
+                window.showToast("Không có thông tin để copy!", "error");
+                return;
+            }
+
+            const state = window._orderCopyState[orderId] || { stepIdx: 0, timer: null };
+            let idx = state.stepIdx % steps.length;
+            const currentStep = steps[idx];
+            const nextIdx = (idx + 1) % steps.length;
+            const isLast = (idx === steps.length - 1);
+            const nextStep = steps[nextIdx];
+
+            // 1. Sao chép vào Clipboard
+            window.copyToClipboard(currentStep.value);
+
+            // 2. Cập nhật state & timer
+            if (state.timer) clearTimeout(state.timer);
+            state.stepIdx = isLast ? 0 : nextIdx;
+
+            // 3. Cập nhật hiển thị nút trên dòng bảng
+            const btnTextEl = document.getElementById(`btnSeqCopyText_${orderId}`);
+            const btnEl = document.getElementById(`btnSeqCopy_${orderId}`);
+            if (btnTextEl && btnEl) {
+                if (!isLast) {
+                    btnTextEl.innerHTML = `[${idx+1}/${steps.length}] ${currentStep.label} ✓ ➔ Tiếp: ${nextStep.label}`;
+                    btnEl.className = "px-2.5 py-1 text-white bg-amber-500 hover:bg-amber-600 rounded-md text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-sm animate-pulse";
+                } else {
+                    btnTextEl.innerHTML = `✅ Đã copy xong ${steps.length}/${steps.length} mục!`;
+                    btnEl.className = "px-2.5 py-1 text-white bg-emerald-600 hover:bg-emerald-700 rounded-md text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-sm";
+                }
+
+                state.timer = setTimeout(() => {
+                    if (btnTextEl) btnTextEl.innerText = "Copy lần lượt";
+                    if (btnEl) btnEl.className = "px-2.5 py-1 text-teal-800 hover:text-white hover:bg-teal-600 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap";
+                    state.stepIdx = 0;
+                }, 20000);
+            }
+            window._orderCopyState[orderId] = state;
+
+            // 4. Đồng bộ modal nếu đang mở đúng đơn này
+            if (window._activeCopyOrderId === orderId) {
+                window.renderOrderCopyModalContent(orderId);
+            }
+
+            // 5. Toast thông báo
+            if (!isLast) {
+                window.showToast(`📋 [${idx+1}/${steps.length}] Đã copy ${currentStep.label}: <span class="text-teal-700 font-black">${currentStep.value}</span> (Bấm tiếp để copy ${nextStep.label})`, 'success');
+            } else {
+                window.showToast(`🎉 [${steps.length}/${steps.length}] Đã copy ${currentStep.label}: <span class="text-teal-700 font-black">${currentStep.value}</span> (Đã hoàn tất toàn bộ đơn!)`, 'success');
+            }
+        };
+
+        window.openOrderCopyModal = (orderId, event) => {
+            if (event) event.stopPropagation();
+            window._activeCopyOrderId = orderId;
+            const modal = document.getElementById('orderCopyDetailModal');
+            if (modal) modal.classList.remove('hidden');
+            window.renderOrderCopyModalContent(orderId);
+        };
+
+        window.closeOrderCopyModal = () => {
+            const modal = document.getElementById('orderCopyDetailModal');
+            if (modal) modal.classList.add('hidden');
+            window._activeCopyOrderId = null;
+        };
+
+        window.renderOrderCopyModalContent = (orderId) => {
+            const s = allStudentsData.find(item => item.id === orderId);
+            if (!s) return;
+            const steps = window.getOrderCopySteps(orderId);
+            const state = window._orderCopyState[orderId] || { stepIdx: 0 };
+            const currentIdx = state.stepIdx % (steps.length || 1);
+            const currentStep = steps[currentIdx] || { label: 'Họ tên' };
+
+            const badgeEl = document.getElementById('orderCopyModalOrderIdBadge');
+            if (badgeEl) badgeEl.innerText = `#${s.id ? s.id.slice(-6) : 'ORD'}`;
+            const subEl = document.getElementById('orderCopyModalSubtitle');
+            if (subEl) subEl.innerHTML = `Khách: <b>${s.name}</b> • Sản phẩm: <span class="text-teal-700">${currentManageCourseTitle || 'Sách/Khóa học'}</span>`;
+
+            // Badges
+            const badgesContainer = document.getElementById('orderCopyStepBadges');
+            if (badgesContainer) {
+                badgesContainer.innerHTML = steps.map((step, idx) => {
+                    const isCurrent = (idx === currentIdx);
+                    const isPassed = (idx < currentIdx);
+                    return `
+                        <div class="p-1.5 rounded-lg text-center transition-all ${
+                            isCurrent 
+                                ? 'bg-amber-400 text-gray-900 ring-2 ring-white shadow font-black scale-105' 
+                                : isPassed 
+                                    ? 'bg-teal-900/60 text-emerald-300 font-bold' 
+                                    : 'bg-teal-950/40 text-teal-300/70 font-medium'
+                        }">
+                            <div class="text-[9px] opacity-75">${isPassed ? '✓ ' : ''}Bước ${idx + 1}</div>
+                            <div class="truncate">${step.label}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Modal Sequential Button
+            const modalSeqBtnText = document.getElementById('btnModalSequentialCopyText');
+            if (modalSeqBtnText) {
+                modalSeqBtnText.innerHTML = `Bấm để Copy: <b>${currentStep.label}</b> (Bước ${currentIdx + 1}/${steps.length})`;
+            }
+
+            // Fields list
+            const fieldsList = document.getElementById('orderCopyFieldsList');
+            if (fieldsList) {
+                fieldsList.innerHTML = steps.map((step, idx) => {
+                    const isCurrent = (idx === currentIdx);
+                    return `
+                        <div class="p-2.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                            isCurrent ? 'bg-amber-50/60 border-amber-300 shadow-xs ring-1 ring-amber-200' : 'bg-gray-50/80 border-gray-200 hover:bg-gray-100/70'
+                        }">
+                            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                                <div class="w-7 h-7 rounded-lg ${isCurrent ? 'bg-amber-500 text-white' : 'bg-white text-teal-700 border border-gray-200'} flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                                    <i class="fa-solid ${step.icon}"></i>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-[10px] font-bold ${isCurrent ? 'text-amber-800' : 'text-gray-400'} uppercase tracking-wide flex items-center gap-1">
+                                        <span>${step.fullLabel || step.label}</span>
+                                        ${isCurrent ? '<span class="bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded text-[9px] font-black animate-pulse">👉 Chờ copy</span>' : ''}
+                                    </div>
+                                    <div class="text-xs font-bold text-gray-800 truncate font-mono mt-0.5 select-all" title="${step.value}">${step.value}</div>
+                                </div>
+                            </div>
+                            <button onclick="window.copySingleField('${step.key}', this)" class="px-3 py-1.5 bg-white hover:bg-teal-600 text-teal-700 hover:text-white border border-teal-200 hover:border-teal-600 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs shrink-0 cursor-pointer" data-value="${step.value.replace(/"/g, '&quot;')}">
+                                <i class="fa-solid fa-copy"></i>
+                                <span>Sao chép</span>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        };
+
+        window.copySingleField = (key, btnEl) => {
+            const val = btnEl.getAttribute('data-value');
+            if (!val) return;
+            window.copyToClipboard(val);
+            const origHtml = btnEl.innerHTML;
+            const origClass = btnEl.className;
+            btnEl.className = "px-3 py-1.5 bg-emerald-600 text-white border border-emerald-600 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs shrink-0";
+            btnEl.innerHTML = '<i class="fa-solid fa-check"></i> <span>Đã chép!</span>';
+            setTimeout(() => {
+                btnEl.className = origClass;
+                btnEl.innerHTML = origHtml;
+            }, 1500);
+            window.showToast(`✅ Đã copy: <b>${val}</b>`);
+        };
+
+        window.handleModalSequentialCopy = () => {
+            if (!window._activeCopyOrderId) return;
+            window.handleOrderSequentialCopy(window._activeCopyOrderId);
+        };
+
+        window.resetOrderSequentialStep = () => {
+            if (!window._activeCopyOrderId) return;
+            const orderId = window._activeCopyOrderId;
+            if (window._orderCopyState[orderId]) {
+                window._orderCopyState[orderId].stepIdx = 0;
+            }
+            const btnTextEl = document.getElementById(`btnSeqCopyText_${orderId}`);
+            const btnEl = document.getElementById(`btnSeqCopy_${orderId}`);
+            if (btnTextEl) btnTextEl.innerText = "Copy lần lượt";
+            if (btnEl) btnEl.className = "px-2.5 py-1 text-teal-800 hover:text-white hover:bg-teal-600 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap";
+            window.renderOrderCopyModalContent(orderId);
+            window.showToast("🔄 Đã đặt lại bước copy về mục đầu tiên (Họ tên)");
+        };
+
+        window.copyOrderFullAddress = () => {
+            if (!window._activeCopyOrderId) return;
+            const s = allStudentsData.find(item => item.id === window._activeCopyOrderId);
+            if (!s) return;
+            const si = s.shippingInfo || {};
+            const fullAddr = [si.detailAddress, si.ward, si.district, si.province].filter(x => x).join(', ') || si.address || '';
+            if (!fullAddr) {
+                window.showToast("Đơn hàng này chưa có địa chỉ giao hàng!", "error");
+                return;
+            }
+            window.copyToClipboard(fullAddr);
+            window.showToast(`🏠 Đã copy toàn bộ địa chỉ: <b>${fullAddr}</b>`);
+        };
+
+        window.copyOrderOneLineSummary = () => {
+            if (!window._activeCopyOrderId) return;
+            const s = allStudentsData.find(item => item.id === window._activeCopyOrderId);
+            if (!s) return;
+            const si = s.shippingInfo || {};
+            const name = si.name || s.name || '';
+            const phone = si.phone || '';
+            const fullAddr = [si.detailAddress, si.ward, si.district, si.province].filter(x => x).join(', ') || si.address || '';
+            const summary = [name, phone, fullAddr].filter(x => x).join(' - ');
+            if (!summary) {
+                window.showToast("Không có đủ thông tin đơn hàng để gộp!", "error");
+                return;
+            }
+            window.copyToClipboard(summary);
+            window.showToast(`⚡ Đã copy thông tin gộp: <b>${summary}</b>`);
         };
 
 
@@ -2504,8 +3020,9 @@ window.importCurriculum = (input) => {
 
             const ids = checked.map(c => c.dataset.id);
             try {
-                const { error: delErr } = await supabase.from('orders').delete().in('id', ids);
-                if (delErr) throw delErr;
+                const batch = writeBatch(db);
+                ids.forEach(id => batch.delete(doc(db, "orders", id)));
+                await batch.commit();
                 window.showToast(`Đã xóa ${ids.length} đơn hàng!`, "success");
                 window.openStudentManager(currentManageCourseId);
             } catch(e) {
@@ -2518,15 +3035,15 @@ window.importCurriculum = (input) => {
             if (!confirm("Hệ thống sẽ quét và dọn dẹp các đơn chờ thanh toán (pending hoặc cancelled) tạo đã quá 30 phút nhưng khách chưa chuyển tiền.\nBạn có muốn tiếp tục?")) return;
             try {
                 window.showToast("Đang quét dọn đơn quá hạn (>30 phút)...", "info");
-                const { data: orderList, error: orderErr } = await supabase.from('orders').select('*');
-                if (orderErr) throw orderErr;
+                const snap = await getDocs(collection(db, "orders"));
                 const now = Date.now();
                 const toDelete = [];
-                (orderList || []).forEach(data => {
+                snap.forEach(d => {
+                    const data = d.data();
                     if (data.status === 'pending' || data.status === 'cancelled' || data.status === 'abandoned') {
-                        const createdAtTime = data.created_at ? new Date(data.created_at).getTime() : 0;
+                        const createdAtTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
                         if (now - createdAtTime > 30 * 60 * 1000) {
-                            toDelete.push(data.id);
+                            toDelete.push(d.id);
                         }
                     }
                 });
@@ -2536,8 +3053,7 @@ window.importCurriculum = (input) => {
                     return;
                 }
 
-                const { error: delErr } = await supabase.from('orders').delete().in('id', toDelete);
-                if (delErr) throw delErr;
+                await Promise.allSettled(toDelete.map(id => deleteDoc(doc(db, "orders", id))));
                 window.showToast(`✅ Đã dọn dẹp thành công ${toDelete.length} đơn quá hạn (>30 phút)!`, "success");
                 if (currentManageCourseId) {
                     window.openStudentManager(currentManageCourseId);
@@ -2570,12 +3086,20 @@ window.importCurriculum = (input) => {
 
         window.removeStudentFromCourse = async (orderId) => {
             if(!confirm("Bạn có chắc chắn muốn xóa học viên này khỏi khóa học?\nHành động này sẽ xóa đơn hàng và thu hồi quyền truy cập.")) return;
+            
+             // Tìm nút xóa đang bấm để hiện loading (Optional UX)
+            // const btn = event.currentTarget; 
+            // btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
             try {
-                const { error: delErr } = await supabase.from('orders').delete().eq('id', orderId);
-                if (delErr) throw delErr;
+                // Xóa đơn hàng trong collection 'orders'
+                await deleteDoc(doc(db, "orders", orderId));
+                
                 window.showToast("Đã xóa đơn hàng thành công!", "success");
+                
+                // Tải lại danh sách (Gọi lại hàm mở modal để fetch lại data mới nhất)
                 window.openStudentManager(currentManageCourseId);
+                
             } catch(e) {
                 console.error(e);
                 window.showToast("Lỗi khi xóa: " + e.message, "error");
@@ -2583,10 +3107,13 @@ window.importCurriculum = (input) => {
         };
 
         window.approveOrder = async (orderId) => {
-            if (!confirm("Xác nhận đơn hàng này đã thanh toán?\nThao tác này sẽ đổi trạng thái sang 'paid'.")) return;
+            if (!confirm("Xác nhận đơn hàng này đã thanh toán?\nThao tác này sẽ đổi trạng thái sang 'paid' và cộng +1 vào lượt mua ảo của sản phẩm.")) return;
             try {
-                await updateDoc(doc(db, "orders", orderId), { status: 'paid' });
-                window.showToast("✅ Đã xác nhận thanh toán!", "success");
+                await updateDoc(doc(db, "orders", orderId), { status: 'paid', studentCountIncremented: true });
+                if (currentManageCourseId) {
+                    await updateDoc(doc(db, "public_courses", currentManageCourseId), { students: increment(1) });
+                }
+                window.showToast("✅ Đã xác nhận thanh toán & tăng số lượt mua!", "success");
                 window.openStudentManager(currentManageCourseId);
             } catch(e) {
                 window.showToast("Lỗi: " + e.message, "error");
@@ -3121,22 +3648,6 @@ window.importCurriculum = (input) => {
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Danh_Sach_Voucher");
             XLSX.writeFile(wb, "Danh_Sach_Voucher.xlsx");
-        };
-        // --- HÀM XÓA FILE TRÊN CLOUDFLARE R2 ---
-        // --- HÀM ĐÓNG MỞ MODAL CHUẨN ---
-        window.toggleModal = (id, show) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            // Nếu không truyền tham số show, tự động đảo ngược trạng thái hidden
-            const isHidden = (show === undefined) ? el.classList.contains('hidden') : !show;
-            
-            if (!isHidden) {
-                el.classList.remove('hidden');
-                document.body.classList.add('modal-active');
-            } else {
-                el.classList.add('hidden');
-                document.body.classList.remove('modal-active');
-            }
         };
     </script>
     

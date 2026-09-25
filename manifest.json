@@ -2,7 +2,7 @@
   "name": "Toán Thầy Choang",
   "short_name": "QMath",
   "description": "Nền tảng thi và làm bài tập toán trực tuyến",
-  "start_url": "/dashboard.html",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#f9fafb",
   "theme_color": "#ea580c",

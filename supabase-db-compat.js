@@ -200,6 +200,18 @@ export class GoogleAuthProvider {}
 export async function signInWithPopup(auth, provider) {
     return signInWithEmailAndPassword(auth, 'phamngockhanh.942002@gmail.com', '');
 }
+export async function sendPasswordResetEmail(auth, email) {
+    if (!email) throw new Error("Vui lòng nhập email!");
+    try {
+        if (supabase && supabase.auth && typeof supabase.auth.resetPasswordForEmail === 'function') {
+            await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
+        }
+    } catch (e) {
+        console.warn("Supabase resetPasswordForEmail:", e);
+    }
+    return true;
+}
+
 export class EmailAuthProvider {
     static credential(email, password) { return { email, password }; }
 }
@@ -345,6 +357,23 @@ function unwrapRecord(r) {
     if (r.max_usage !== undefined) { res.limit = r.max_usage; }
     if (r.course_id !== undefined && !res.courseIds) { res.courseIds = r.course_id ? [r.course_id] : []; }
 
+    // Unpack public_courses metadata from preview_link
+    if (r.preview_link && typeof r.preview_link === 'string' && r.preview_link.trim().startsWith('{')) {
+        try {
+            const meta = JSON.parse(r.preview_link);
+            if (meta && typeof meta === 'object') {
+                if (meta.status !== undefined) res.status = meta.status;
+                if (meta.antiScreenshot !== undefined) res.antiScreenshot = meta.antiScreenshot;
+                if (meta.isSoldOut !== undefined) res.isSoldOut = meta.isSoldOut;
+            }
+        } catch(e) {}
+    }
+
+    // Unpack site_settings value
+    if (r.key !== undefined && r.value !== undefined && typeof r.value === 'object' && !Array.isArray(r.value)) {
+        Object.assign(res, r.value);
+    }
+
     // Fallback migration values for seed vouchers
     if (r.code === 'HOCGIOI2026' && (!res.value || res.value === 0)) {
         res.value = 30000; res.discountValue = 30000; res.type = 'fixed'; res.discountType = 'fixed';
@@ -365,14 +394,15 @@ const TABLE_COLUMNS = {
     results: ['id', 'exam_id', 'student_id', 'student_name', 'class_id', 'score', 'correct_count', 'total_questions', 'submit_count', 'submitted_at', 'duration', 'is_passed', 'answers', 'brief_notes', 'cheat_count', 'pass_score_snapshot', 'teacher_feedback', 'raw_data'],
     exam_attempts: ['id', 'exam_id', 'student_id', 'answers', 'brief_notes', 'last_updated', 'raw_data'],
     practice_results: ['id', 'user_id', 'topic_id', 'score', 'total_questions', 'duration', 'completed_at', 'details', 'raw_data'],
-    configurations: ['id', 'key', 'value', 'description', 'updated_at', 'raw_data'],
+    configurations: ['id', 'keys', 'tree', 'metadata', 'url', 'key', 'value', 'description', 'updated_at', 'raw_data'],
     user_progress: ['id', 'user_id', 'course_id', 'completed_items', 'playback_positions', 'quiz_usage', 'last_updated', 'raw_data'],
     access_requests: ['id', 'exam_id', 'exam_title', 'student_id', 'student_name', 'requested_at', 'status', 'approved_at', 'raw_data'],
     zalo_uids: ['id', 'zalo_uid', 'phone', 'name', 'updated_at', 'raw_data'],
-    public_courses: ['id', 'title', 'description', 'price', 'thumbnail', 'curriculum', 'status', 'created_at', 'updated_at', 'raw_data'],
+    public_courses: ['id', 'title', 'type', 'price', 'original_price', 'tag', 'thumbnail', 'image', 'description', 'weight', 'shipping_fee', 'students', 'fake_students', 'preview_link', 'curriculum', 'created_at', 'updated_at'],
     orders: ['id', 'user_id', 'user_name', 'user_phone', 'course_id', 'document_id', 'course_title', 'quantity', 'unit_price', 'shipping_fee', 'amount', 'original_amount', 'voucher_code', 'voucher_discount', 'voucher_id', 'status', 'content', 'order_type', 'delivery_type', 'shipping_info', 'created_at', 'updated_at'],
     vouchers: ['id', 'code', 'discount_type', 'discount_value', 'min_order_value', 'max_discount', 'max_usage', 'used', 'used_by', 'start_date', 'end_date', 'status', 'course_id', 'created_at'],
-    site_settings: ['key', 'value', 'updated_at', 'raw_data']
+    site_settings: ['key', 'value', 'updated_at'],
+    admin_accounts: ['id', 'email', 'display_name', 'role', 'status', 'permissions', 'assigned_courses', 'note', 'created_at', 'updated_at', 'raw_data']
 };
 
 function toSupabasePayload(table, id, data) {
@@ -391,7 +421,25 @@ function toSupabasePayload(table, id, data) {
             converted.content = (converted.status === 'approved') ? `MANUAL_${id.slice(0, 8)}` : `ORDER_${id.slice(0, 8)}`;
         }
     }
-    const noRawDataTables = ['orders', 'vouchers', 'site_settings'];
+    if (table === 'public_courses') {
+        // Lưu metadata mở rộng (status, antiScreenshot, isSoldOut) an toàn vào preview_link
+        const meta = {};
+        if (data.status !== undefined) meta.status = data.status;
+        if (data.antiScreenshot !== undefined) meta.antiScreenshot = data.antiScreenshot;
+        if (data.isSoldOut !== undefined || data.status === 'sold_out') meta.isSoldOut = (data.status === 'sold_out' || data.isSoldOut === true);
+        if (Object.keys(meta).length > 0) {
+            converted.preview_link = JSON.stringify(meta);
+        }
+    }
+    if (table === 'site_settings') {
+        if (data.value !== undefined) {
+            converted.value = data.value;
+        } else {
+            const { key, updated_at, ...rest } = data;
+            converted.value = rest;
+        }
+    }
+    const noRawDataTables = ['orders', 'vouchers', 'site_settings', 'public_courses'];
     if (!noRawDataTables.includes(table)) {
         converted.raw_data = data;
     }
@@ -666,3 +714,19 @@ export function writeBatch(db) {
         }
     };
 }
+
+if (typeof window !== 'undefined') {
+    window.db = window.db || getFirestore();
+    window.auth = window.auth || authInstance;
+    window.supabase = supabase;
+    window.doc = window.doc || doc;
+    window.getDoc = window.getDoc || getDoc;
+    window.setDoc = window.setDoc || setDoc;
+    window.updateDoc = window.updateDoc || updateDoc;
+    window.deleteDoc = window.deleteDoc || deleteDoc;
+    window.collection = window.collection || collection;
+    window.query = window.query || query;
+    window.where = window.where || where;
+    window.getDocs = window.getDocs || getDocs;
+}
+

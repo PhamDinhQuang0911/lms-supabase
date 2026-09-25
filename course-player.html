@@ -295,6 +295,13 @@
                 const snap = await getDoc(doc(db, "public_courses", id));
                 if(snap.exists()){
                     courseData = snap.data();
+                    if (window.QMathSecurity) {
+                        window.QMathSecurity.setContext({
+                            courseId: id,
+                            antiScreenshot: courseData.antiScreenshot,
+                            zone: 'coursePlayer'
+                        });
+                    }
                     document.getElementById('courseTitle').innerText = courseData.title;
                     renderCurriculum(courseData.curriculum || []);
                     updateStats();
@@ -1019,5 +1026,6 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 }
 </script>
+<script src="/security-shield.js?v=4"></script>
 </body>
 </html>

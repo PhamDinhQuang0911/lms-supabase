@@ -23,15 +23,20 @@
           processEscapes: true,
           packages: {'[+]': ['noerrors', 'noundefined']},
           macros: {
-            heva: ["\left\{\begin{aligned}#1\end{aligned}\right.", 1],
-            hoac: ["\left[\begin{aligned}#1\end{aligned}\right.", 1],
-            tich: "\cdot",
-            deg: "^\circ",
-            R: "\mathbb{R}",
-            N: "\mathbb{N}",
-            Z: "\mathbb{Z}",
-            vectors: ["\overrightarrow{#1}", 1],
-            mtx: ["\left[\begin{matrix}#1\end{matrix}\right]", 1]
+            wideparen: ["\\overset{\\frown}{#1}", 1],
+            widearc: ["\\overset{\\frown}{#1}", 1],
+            cung: ["\\overset{\\frown}{#1}", 1],
+            heva: ["\\left\\{\\begin{aligned}#1\\end{aligned}\\right.", 1],
+            hoac: ["\\left[\\begin{aligned}#1\\end{aligned}\\right.", 1],
+            tich: "\\cdot",
+            deg: "^\\circ",
+            R: "\\mathbb{R}",
+            N: "\\mathbb{N}",
+            Z: "\\mathbb{Z}",
+            Q: "\\mathbb{Q}",
+            vectors: ["\\overrightarrow{#1}", 1],
+            vec: ["\\overrightarrow{#1}", 1],
+            mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1]
           }
         },
         options: { ignoreHtmlClass: 'tex2jax_ignore', processHtmlClass: 'tex2jax_process' },
@@ -41,7 +46,7 @@
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
     <script src="https://tikzjax.com/v1/tikzjax.js"></script>
-    
+    <script src="bank-service.js"></script>
     
       <style>
           .zen-mode { background-color: #0f172a !important; color: #cbd5e1 !important; transition: all 0.5s; }
@@ -51,6 +56,73 @@
           .zen-mode .option-label:hover { background-color: #475569 !important; }
           .zen-mode .math-content { color: #f8fafc !important; }
           .zen-mode #submitBtn { width: 100%; max-width: 800px; margin: 0 auto; display: block; }
+
+          /* Tối ưu tương phản hình ảnh & câu hỏi trong Dark Mode */
+          .dark .math-content img,
+          .dark #lookupModalBody img,
+          .dark .question-body img {
+              background-color: #ffffff !important;
+              padding: 10px 14px !important;
+              border-radius: 14px !important;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+              border: 1px solid rgba(255, 255, 255, 0.2) !important;
+              display: inline-block !important;
+              max-width: 100% !important;
+              margin: 8px auto !important;
+          }
+          .dark .math-content svg:not(.lucide):not(.fa-solid):not(.fa-regular):not([class*="fa-"]),
+          .dark #lookupModalBody svg:not(.lucide):not(.fa-solid):not(.fa-regular):not([class*="fa-"]) {
+              background-color: #ffffff !important;
+              padding: 10px 14px !important;
+              border-radius: 14px !important;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+              color: #111827 !important;
+          }
+          .dark #lookupQuestionContent,
+          .dark .math-content {
+              color: #f8fafc !important;
+          }
+          .dark mjx-container,
+          .dark mjx-container *,
+          .dark .mjx-chtml,
+          .dark .mjx-chtml * {
+              color: #f8fafc !important;
+              fill: #f8fafc !important;
+          }
+          .dark #lookupSolutionSection .bg-amber-50\/50,
+          .dark #lookupSolutionSection > div {
+              background-color: #131c2e !important;
+              border-color: rgba(245, 158, 11, 0.45) !important;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+          }
+          .dark #lookupSolutionSection h4 {
+              color: #fcd34d !important;
+          }
+          .dark #lookupSolutionSection .text-gray-800,
+          .dark #lookupSolutionSection .math-content {
+              color: #f1f5f9 !important;
+          }
+          .dark #lookupAnswerSection .border-gray-200,
+          .dark #lookupAnswerSection .bg-gray-50 {
+              border-color: #3b4d6b !important;
+              background-color: #1e293b !important;
+              color: #e2e8f0 !important;
+          }
+          .dark #lookupAnswerSection .bg-gray-200 {
+              background-color: #334155 !important;
+              color: #cbd5e1 !important;
+              border: 1px solid #475569 !important;
+          }
+          .dark #lookupAnswerSection .border-green-500 {
+              border-color: #10b981 !important;
+              background-color: rgba(16, 185, 129, 0.15) !important;
+              box-shadow: 0 0 15px rgba(16, 185, 129, 0.25) !important;
+          }
+          .dark #lookupAnswerSection .border-green-500 .text-green-950,
+          .dark #lookupAnswerSection .border-green-500 .text-green-900,
+          .dark #lookupAnswerSection .border-green-500 .text-gray-900 {
+              color: #ffffff !important;
+          }
 
         body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -344,62 +416,82 @@
             </div>
         </div>
     </div>
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="window.location.href='student.html'">
-                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+    <header class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm transition-colors">
+        <div class="max-w-7xl mx-auto px-2.5 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-2 overflow-hidden">
+            <!-- Logo & Brand -->
+            <div class="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0 min-w-0" onclick="window.location.href='student.html'">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-md text-sm sm:text-base shrink-0">
                     <i class="fa-solid fa-brain"></i>
                 </div>
-                <div>
-                    <h1 class="font-black text-gray-800 text-lg leading-tight">Phòng Luyện Tập</h1>
-                    <p class="text-xs text-gray-500 font-bold">Toán Học Tư Duy</p>
+                <div class="min-w-0">
+                    <h1 class="font-black text-gray-800 dark:text-white text-xs sm:text-base md:text-lg leading-tight truncate">Phòng Luyện Tập</h1>
+                    <p class="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 font-bold truncate hidden xs:block sm:block">Toán Học Tư Duy</p>
                 </div>
-                
             </div>
-           <div class="flex gap-2">
-                <div id="qpChip" class="hidden h-9 px-3 rounded-full bg-amber-50 border border-amber-200 flex items-center gap-1.5 text-amber-700 font-black text-sm" title="Qpoint - làm bài để kiếm thêm, dùng để mua Gợi ý AI / 50-50"><i class="fa-solid fa-coins"></i><span class="qp-balance">0</span></div><button onclick="openHistory()" class="w-9 h-9 rounded-full bg-primary-50 hover:bg-primary-100 flex items-center justify-center text-primary-600 border border-primary-200" title="Xem lịch sử"><i class="fa-solid fa-clock-rotate-left"></i></button>
-                
-                <button onclick="openTutorial()" class="w-9 h-9 rounded-full bg-yellow-50 hover:bg-yellow-100 flex items-center justify-center text-yellow-600 border border-yellow-200" title="Xem hướng dẫn"><i class="fa-solid fa-question"></i></button>
-                <button onclick="window.location.reload()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500"><i class="fa-solid fa-rotate"></i></button>
-                <button onclick="window.history.back()" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+
+            <!-- Actions Header -->
+            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                <div id="qpChip" class="hidden h-7 sm:h-9 px-2 sm:px-3 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center gap-1 text-amber-700 dark:text-amber-300 font-black text-xs sm:text-sm shrink-0" title="Qpoint - làm bài để kiếm thêm, dùng để mua Gợi ý AI / 50-50">
+                    <i class="fa-solid fa-coins text-[11px] sm:text-sm"></i>
+                    <span class="qp-balance text-xs sm:text-sm">0</span>
+                </div>
+                <button onclick="window.openQuestionLookupModal()" class="h-7 sm:h-9 px-2 sm:px-3.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 flex items-center gap-1 text-indigo-700 dark:text-indigo-300 font-bold text-xs border border-indigo-200 dark:border-indigo-800 transition-all shadow-xs shrink-0" title="Tra cứu câu hỏi & lời giải theo mã ID câu hỏi">
+                    <i class="fa-solid fa-magnifying-glass text-[11px] sm:text-xs"></i>
+                    <span class="hidden md:inline"> Tra cứu ID</span>
+                </button>
+                <button onclick="openHistory()" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-primary-50 dark:bg-slate-800 hover:bg-primary-100 flex items-center justify-center text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-slate-700 shrink-0 text-xs sm:text-sm" title="Xem lịch sử">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </button>
+                <button onclick="openTutorial()" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-yellow-50 dark:bg-slate-800 hover:bg-yellow-100 hidden sm:flex items-center justify-center text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-slate-700 shrink-0 text-xs sm:text-sm" title="Xem hướng dẫn">
+                    <i class="fa-solid fa-question"></i>
+                </button>
+                <button onclick="window.location.reload()" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 hidden md:flex items-center justify-center text-gray-500 dark:text-gray-400 shrink-0 text-xs sm:text-sm" title="Tải lại">
+                    <i class="fa-solid fa-rotate"></i>
+                </button>
+                <button onclick="window.history.back()" class="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 flex items-center justify-center text-gray-500 dark:text-gray-300 shrink-0 text-xs sm:text-sm" title="Đóng / Quay lại">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
         </div>
     </header>
-    <main class="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full relative">
+    <main class="flex-1 p-3 sm:p-4 md:p-6 max-w-7xl mx-auto w-full relative">
         
-        <div id="landingStep" class="flex flex-col items-center justify-center min-h-[80vh] animate-fade-in">
-            <div class="text-center mb-10">
-                <h2 class="text-3xl md:text-5xl font-black text-gray-800 mb-1">Bạn muốn luyện tập gì hôm nay?</h2>
-                <p class="text-gray-500 text-lg">Chọn một chế độ để bắt đầu hành trình chinh phục điểm 10.</p>
+        <div id="landingStep" class="flex flex-col items-center justify-center min-h-[75vh] animate-fade-in w-full">
+            <div class="text-center mb-5 sm:mb-8 px-2 max-w-2xl mx-auto">
+                <h2 class="text-2xl sm:text-3xl md:text-5xl font-black text-gray-800 dark:text-white mb-1 tracking-tight">Bạn muốn luyện tập gì hôm nay?</h2>
+                <p class="text-xs sm:text-base md:text-lg text-gray-500 dark:text-gray-400 font-medium">Chọn một chế độ để bắt đầu hành trình chinh phục điểm 10.</p>
             </div>
             
-            
             <!-- THANH TIẾN TRÌNH & AI INSIGHT -->
-            <div id="learningProgressCard" class="w-full max-w-4xl mx-auto mb-10 bg-white rounded-3xl p-6 md:p-8 border-2 border-indigo-50 shadow-[0_10px_40px_-10px_rgba(99,102,241,0.15)] relative overflow-hidden hidden">
-                <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-100/50 to-purple-50/50 rounded-bl-full -mr-20 -mt-20 z-0"></div>
-                <div class="relative z-10 flex flex-col md:flex-row gap-8 items-center">
+            <div id="learningProgressCard" class="w-full max-w-4xl mx-auto mb-5 sm:mb-8 bg-white dark:bg-slate-800/95 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border border-indigo-100 dark:border-slate-700 shadow-[0_10px_40px_-10px_rgba(99,102,241,0.12)] relative overflow-hidden hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-100/50 to-purple-50/50 dark:from-indigo-950/40 dark:to-purple-950/30 rounded-bl-full -mr-20 -mt-20 z-0 pointer-events-none"></div>
+                <div class="relative z-10 flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8 items-stretch md:items-center">
                     
-                    <div class="flex-1 w-full">
-                        <div class="flex justify-between items-end mb-1">
-                            <div>
-                                <h3 class="text-xl font-black text-gray-800 flex items-center gap-2"><i class="fa-solid fa-fire text-orange-500"></i> Bảng Vàng Cá Nhân</h3>
-                                <p class="text-sm text-gray-500 font-bold mt-1">Chuỗi học tập liên tiếp: <span id="streakDays" class="text-orange-500 text-lg">0</span> ngày</p>
+                    <div class="flex-1 w-full min-w-0">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <div class="min-w-0">
+                                <h3 class="text-base sm:text-xl font-black text-gray-800 dark:text-white flex items-center gap-1.5 sm:gap-2 truncate">
+                                    <i class="fa-solid fa-fire text-orange-500 shrink-0"></i> Bảng Vàng Cá Nhân
+                                </h3>
+                                <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-bold mt-0.5">
+                                    Chuỗi học tập liên tiếp: <span id="streakDays" class="text-orange-500 text-sm sm:text-lg font-black">0</span> ngày
+                                </p>
                             </div>
-                            <div class="text-right">
-                                <p class="text-3xl font-black text-indigo-600 leading-none" id="totalQuestionsSolved">0</p>
-                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Câu đã giải</p>
+                            <div class="text-right shrink-0 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-900/60">
+                                <p class="text-xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 leading-none" id="totalQuestionsSolved">0</p>
+                                <p class="text-[9px] sm:text-xs font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider mt-0.5">Câu đã giải</p>
                             </div>
                         </div>
                         
                         <!-- Thanh Level -->
-                        <div class="relative pt-2 mb-1">
-                            <div class="flex mb-1 items-center justify-between">
-                                <span id="userLevelName" class="text-xs font-bold inline-block py-1 px-3 uppercase rounded-full text-indigo-600 bg-indigo-100">
+                        <div class="relative pt-1 sm:pt-2 mb-1">
+                            <div class="flex mb-1 items-center justify-between gap-2 text-xs">
+                                <span id="userLevelName" class="text-[10px] sm:text-xs font-bold inline-block py-0.5 sm:py-1 px-2.5 sm:px-3 uppercase rounded-full text-indigo-600 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/60 truncate max-w-[170px] sm:max-w-none">
                                     Tân Binh Luyện Tập
                                 </span>
-                                <span class="text-xs font-bold text-gray-500"><span id="userXp">0</span> / <span id="nextLevelXp">100</span> XP</span>
+                                <span class="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 shrink-0"><span id="userXp">0</span> / <span id="nextLevelXp">100</span> XP</span>
                             </div>
-                            <div class="overflow-hidden h-3 mb-1 text-xs flex rounded-full bg-indigo-50 border border-indigo-100 shadow-inner">
+                            <div class="overflow-hidden h-2.5 sm:h-3 mb-1 text-xs flex rounded-full bg-indigo-50 dark:bg-slate-700 border border-indigo-100 dark:border-slate-600 shadow-inner">
                                 <div id="xpProgressBar" style="width: 0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000 relative">
                                     <div class="absolute top-0 right-0 bottom-0 left-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
                                 </div>
@@ -407,38 +499,71 @@
                         </div>
                     </div>
                     
-                    <div class="w-full md:w-1/3 bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100 relative group">
-                        <div class="absolute -top-3 -left-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm border border-indigo-100 text-indigo-500 text-lg group-hover:scale-110 transition-transform"><i class="fa-solid fa-robot"></i></div>
-                        <p class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1 ml-4">AI Nhận Xét</p>
-                        <p id="aiInsightText" class="text-sm text-gray-700 font-medium leading-relaxed italic">"Đang phân tích dữ liệu học tập của bạn..."</p>
+                    <div class="w-full md:w-1/3 bg-indigo-50/60 dark:bg-indigo-950/40 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-indigo-100 dark:border-indigo-900/50 shrink-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="w-6 h-6 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center text-indigo-500 dark:text-indigo-400 text-xs shadow-xs border border-indigo-100 dark:border-slate-600 shrink-0">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <p class="text-[10px] sm:text-xs font-bold text-indigo-500 dark:text-indigo-300 uppercase tracking-wider">AI Nhận Xét</p>
+                        </div>
+                        <p id="aiInsightText" class="text-xs sm:text-sm text-gray-700 dark:text-slate-300 font-medium leading-relaxed italic">"Đang phân tích dữ liệu học tập của bạn..."</p>
                     </div>
                 </div>
             </div>
 
-<div class="w-full max-w-4xl px-4 mb-3 flex flex-wrap items-center justify-center gap-2">
-                <span class="text-xs font-black text-gray-400 uppercase tracking-wider mr-1"><i class="fa-solid fa-bolt text-amber-500"></i> Luyện nhanh:</span>
-                <select id="quickGrade" class="px-3 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 shadow-sm outline-none">
-                    <option value="9" selected>Lớp 9</option><option value="10">Lớp 10</option><option value="11">Lớp 11</option><option value="12">Lớp 12</option>
-                </select>
-                <button onclick="quickStart(10)" class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 hover:border-teal-400 hover:text-teal-700 shadow-sm transition-all">10 câu ngẫu nhiên</button>
-                <button onclick="quickStart(20)" class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 hover:border-teal-400 hover:text-teal-700 shadow-sm transition-all">20 câu ngẫu nhiên</button>
-                <button onclick="quickStart(5, ['VD','VDC'])" class="px-4 py-2 bg-white border border-red-100 rounded-full text-sm font-bold text-red-500 hover:border-red-300 shadow-sm transition-all">🔥 5 câu Vận dụng</button>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl px-4">
-                <div onclick="selectMode('topic')" class="mode-card bg-white p-8 rounded-3xl border-2 border-gray-100 cursor-pointer transition-all duration-300 relative group overflow-hidden">
-                    <div class="absolute top-0 right-0 bg-primary-100 w-32 h-32 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
-                    <div class="relative z-10">
-                        <div class="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center text-3xl mb-3 shadow-sm group-hover:bg-primary-600 group-hover:text-white transition-colors"><i class="fa-solid fa-layer-group"></i></div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-1">Học Theo Lộ Trình</h3>
-                        <p class="text-gray-500 text-sm">Luyện tập các chuyên đề theo khối lớp, chương, bài, dạng do giáo viên xây dựng.</p>
+            <!-- BANNER TRA CỨU CÂU HỎI & LỜI GIẢI -->
+            <div class="w-full max-w-4xl px-1 sm:px-4 mb-4 sm:mb-5">
+                <div class="bg-gradient-to-r from-indigo-50 via-teal-50 to-blue-50 dark:from-slate-800 dark:via-indigo-950/40 dark:to-slate-800 border border-indigo-100 dark:border-slate-700 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+                    <div class="flex items-start sm:items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg sm:text-xl shadow-md shadow-indigo-200 shrink-0 mt-0.5 sm:mt-0">
+                            <i class="fa-solid fa-qrcode"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <h3 class="font-black text-gray-800 dark:text-white text-sm sm:text-base leading-tight">
+                                    Tra cứu Lời giải & Đáp án chi tiết
+                                </h3>
+                                <span class="text-[9px] sm:text-[10px] uppercase font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/60 px-2 py-0.5 rounded-full shrink-0">Sách & Ngân hàng</span>
+                            </div>
+                            <p class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5 leading-snug">Nhập mã ID câu hỏi in trong sách để xem hướng dẫn giải, đối chiếu đáp án.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto shrink-0 mt-1 md:mt-0">
+                        <div class="relative flex-1 md:w-52">
+                            <input type="text" id="landingLookupCccd" placeholder="Mã ID (VD: 10000001)..." class="w-full pl-7 sm:pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-xl font-mono font-bold text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-300 shadow-inner text-gray-800 dark:text-gray-100" onkeydown="if(event.key==='Enter') window.quickLookupFromLanding()">
+                            <i class="fa-solid fa-hashtag absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                        </div>
+                        <button onclick="window.quickLookupFromLanding()" class="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-200 dark:shadow-none transition-all shrink-0 flex items-center gap-1.5">
+                            <i class="fa-solid fa-magnifying-glass"></i> Tra cứu
+                        </button>
                     </div>
                 </div>
-                <div onclick="selectMode('random')" class="mode-card bg-white p-8 rounded-3xl border-2 border-gray-100 cursor-pointer transition-all duration-300 relative group overflow-hidden">
-                    <div class="absolute top-0 right-0 bg-purple-100 w-32 h-32 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+            </div>
+
+            <div class="w-full max-w-4xl px-1 sm:px-4 mb-3 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+                <span class="text-[11px] sm:text-xs font-black text-gray-400 uppercase tracking-wider mr-1"><i class="fa-solid fa-bolt text-amber-500"></i> Luyện nhanh:</span>
+                <select id="quickGrade" class="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200 shadow-xs outline-none">
+                    <option value="9" selected>Lớp 9</option><option value="10">Lớp 10</option><option value="11">Lớp 11</option><option value="12">Lớp 12</option>
+                </select>
+                <button onclick="quickStart(10)" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200 hover:border-teal-400 hover:text-teal-700 shadow-xs transition-all">10 câu ngẫu nhiên</button>
+                <button onclick="quickStart(20)" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200 hover:border-teal-400 hover:text-teal-700 shadow-xs transition-all">20 câu ngẫu nhiên</button>
+                <button onclick="quickStart(5, ['VD','VDC'])" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/60 rounded-full text-xs sm:text-sm font-bold text-red-500 hover:border-red-300 shadow-xs transition-all">🔥 5 câu Vận dụng</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full max-w-4xl px-1 sm:px-4">
+                <div onclick="selectMode('topic')" class="mode-card bg-white dark:bg-slate-800 p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-gray-100 dark:border-slate-700 cursor-pointer transition-all duration-300 relative group overflow-hidden shadow-xs hover:shadow-md">
+                    <div class="absolute top-0 right-0 bg-primary-100 dark:bg-primary-900/30 w-28 sm:w-32 h-28 sm:h-32 rounded-bl-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10 transition-transform group-hover:scale-110 pointer-events-none"></div>
                     <div class="relative z-10">
-                        <div class="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-3xl mb-3 shadow-sm group-hover:bg-purple-600 group-hover:text-white transition-colors"><i class="fa-solid fa-shuffle"></i></div>
-                        <h3 class="text-xl font-bold text-gray-800 mb-1">Tạo Đề Tự Chọn</h3>
-                        <p class="text-gray-500 text-sm">Học sinh tự chọn cấu hình môn, cấp độ để hệ thống tạo đề.</p>
+                        <div class="w-12 h-12 sm:w-16 sm:h-16 bg-primary-50 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-3 shadow-xs group-hover:bg-primary-600 group-hover:text-white transition-colors"><i class="fa-solid fa-layer-group"></i></div>
+                        <h3 class="text-base sm:text-xl font-bold text-gray-800 dark:text-white mb-1">Học Theo Lộ Trình</h3>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-relaxed">Luyện tập các chuyên đề theo khối lớp, chương, bài, dạng do giáo viên xây dựng.</p>
+                    </div>
+                </div>
+                <div onclick="selectMode('random')" class="mode-card bg-white dark:bg-slate-800 p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-gray-100 dark:border-slate-700 cursor-pointer transition-all duration-300 relative group overflow-hidden shadow-xs hover:shadow-md">
+                    <div class="absolute top-0 right-0 bg-purple-100 dark:bg-purple-900/30 w-28 sm:w-32 h-28 sm:h-32 rounded-bl-full -mr-8 -mt-8 sm:-mr-10 sm:-mt-10 transition-transform group-hover:scale-110 pointer-events-none"></div>
+                    <div class="relative z-10">
+                        <div class="w-12 h-12 sm:w-16 sm:h-16 bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-3 shadow-xs group-hover:bg-purple-600 group-hover:text-white transition-colors"><i class="fa-solid fa-shuffle"></i></div>
+                        <h3 class="text-base sm:text-xl font-bold text-gray-800 dark:text-white mb-1">Tạo Đề Tự Chọn</h3>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-relaxed">Học sinh tự chọn cấu hình môn, cấp độ để hệ thống tạo đề.</p>
                     </div>
                 </div>
             </div>
@@ -518,9 +643,9 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Luyện tập theo ID (Tùy chọn)</label>
-                            <input type="text" id="inputPracticeId" placeholder="Nhập mã CCCD (VD: 9D1H1-6_abcde)" class="w-full px-3 py-2 border border-gray-200 rounded-xl font-bold text-gray-700 outline-none focus:ring-2 focus:ring-primary-100 text-sm font-mono">
-                            <p class="text-[10px] text-gray-400 mt-1 italic">Nếu nhập ID, hệ thống sẽ bỏ qua bộ lọc và chỉ hiển thị câu hỏi này.</p>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Luyện tập theo ID câu hỏi (Tùy chọn)</label>
+                            <input type="text" id="inputPracticeId" placeholder="Nhập mã ID câu hỏi (VD: 10000001)..." class="w-full px-3 py-2 border border-gray-200 rounded-xl font-bold text-gray-700 outline-none focus:ring-2 focus:ring-primary-100 text-sm font-mono">
+                            <p class="text-[10px] text-gray-400 mt-1 italic">Nếu nhập mã ID, hệ thống sẽ mở trực tiếp câu hỏi tương ứng để luyện tập.</p>
                         </div>
                          
                          <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg border border-gray-100">
@@ -618,20 +743,15 @@
     <script type="module">
         import { 
             initializeApp, getAuth, onAuthStateChanged,
-            getFirestore, doc, getDoc, collection, getDocs, query, where, addDoc, orderBy, limit,
+            getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc,
             supabase
         } from "./supabase-db-compat.js";
-        import { formatContent, renderTikz, autoScaleTables } from "./utils.js"; 
-        import { readCache, writeCache } from "./perf-cache.js";
-        import { createQPoint, QP_COSTS, QP_REWARDS } from "./qpoint.js";
-        // Gán vào window
-        window.formatContent = formatContent;
-        window.renderTikz = renderTikz;
-        window.autoScaleTables = autoScaleTables;
-        
+        import { formatContent, autoScaleTables, renderTikz } from "./utils.js?v=7";
+
         const app = initializeApp({});
-        const db = getFirestore(app);
         const auth = getAuth(app);
+        const db = getFirestore(app);
+        
         let mapTree = [];
         let globalBankMetadata = [];
         let practiceQuestions = [];
@@ -1208,7 +1328,7 @@
                 const checkedCleanIds = checkedMapIds.map(id => getBaseIdForMatch(id));
                 // 4. KIỂM DUYỆT CÂU HỎI
                 let pool = globalBankMetadata.filter(q => {
-                    if (practiceId) return q.id === practiceId;
+                    if (practiceId) return String(q.id) === practiceId || String(q.cccd) === practiceId || String(q.bankId) === practiceId;
                     const actualMapId = String(q.mapId || q.id || "").trim(); 
                     const actualLevel = String(q.level || "").trim().toUpperCase();
                     if (!actualMapId) return false;
@@ -1369,7 +1489,7 @@
                 qDiv.innerHTML = `
                     <div class="flex justify-between items-center mb-3">
                         <span class="bg-primary-100 text-primary-700 font-bold px-2.5 py-1 rounded-lg text-xs shrink-0">Câu ${idx + 1}</span>
-                        ${q.id ? `<span class="text-[10px] text-gray-400 font-mono bg-gray-50 px-2 py-0.5 rounded border border-gray-100" title="CCCD (ID Duy nhất)"><i class="fa-solid fa-hashtag mr-1"></i>${q.id}</span>` : ''}
+                        ${q.id ? `<span class="text-[10px] text-gray-400 font-mono bg-gray-50 px-2 py-0.5 rounded border border-gray-100" title="Mã ID câu hỏi"><i class="fa-solid fa-hashtag mr-1"></i>${q.id}</span>` : ''}
                         <button onclick="window.openReportModal('${q.id || ''}')" class="ml-2 text-red-400 hover:text-red-600 text-xs flex items-center gap-1 transition-colors bg-red-50 px-2 py-1 rounded-lg border border-red-100"><i class="fa-solid fa-triangle-exclamation"></i> Báo lỗi</button>
                     </div>
                     <div class="flex items-start gap-3">
@@ -1641,12 +1761,292 @@
             }
         };
     
+        // --- TRA CỨU CÂU HỎI & LỜI GIẢI (DÀNH CHO HỌC SINH) ---
+        let currentLookupQuestion = null;
+
+        window.openQuestionLookupModal = (initialId = '') => {
+            if (window.QMathSecurity) window.QMathSecurity.setContext({ zone: 'lookup' });
+            const modal = document.getElementById('studentQuestionLookupModal');
+            if (!modal) return;
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.querySelector('.modal-content')?.classList.remove('scale-95');
+            
+            const input = document.getElementById('modalLookupInput');
+            if (input) {
+                if (initialId) input.value = initialId;
+                input.focus();
+            }
+
+            if (initialId) {
+                window.executeStudentLookup(initialId);
+            }
+        };
+
+        window.closeQuestionLookupModal = () => {
+            if (window.QMathSecurity) window.QMathSecurity.setContext({ zone: null });
+            const modal = document.getElementById('studentQuestionLookupModal');
+            if (!modal) return;
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.querySelector('.modal-content')?.classList.add('scale-95');
+        };
+
+        window.quickLookupFromLanding = () => {
+            const inp = document.getElementById('landingLookupCccd');
+            const val = inp ? inp.value.trim() : '';
+            if (!val) {
+                if (window.showNotification) window.showNotification("Vui lòng nhập mã ID câu hỏi!", "warning");
+                else alert("Vui lòng nhập mã ID câu hỏi!");
+                return;
+            }
+            window.openQuestionLookupModal(val);
+        };
+
+        window.openReportFromLookup = () => {
+            if (!currentLookupQuestion) return;
+            const qId = currentLookupQuestion.cccd || currentLookupQuestion.id;
+            window.openReportModal(qId);
+        };
+
+        window.executeStudentLookup = async (forcedId = null) => {
+            const input = document.getElementById('modalLookupInput');
+            const qId = String(forcedId || (input ? input.value : '')).trim();
+            if (!qId) return;
+
+            const initialEl = document.getElementById('lookupInitialState');
+            const loadingEl = document.getElementById('lookupLoadingState');
+            const notFoundEl = document.getElementById('lookupNotFoundState');
+            const resultEl = document.getElementById('lookupResultContent');
+
+            initialEl?.classList.add('hidden');
+            resultEl?.classList.add('hidden');
+            notFoundEl?.classList.add('hidden');
+            loadingEl?.classList.remove('hidden');
+
+            try {
+                let q = null;
+                if (window.BankService) {
+                    q = await window.BankService.getQuestionById(qId, false);
+                }
+                if (!q) {
+                    const res = await fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/bank?id=${encodeURIComponent(qId)}`);
+                    if (res.ok) q = await res.json();
+                }
+
+                if (!q || (!q.id && !q.content)) {
+                    loadingEl?.classList.add('hidden');
+                    notFoundEl?.classList.remove('hidden');
+                    const notFoundMsg = document.getElementById('lookupNotFoundMsg');
+                    if (notFoundMsg) notFoundMsg.innerText = `Không tìm thấy câu hỏi với mã "${qId}"`;
+                    return;
+                }
+
+                currentLookupQuestion = q;
+                loadingEl?.classList.add('hidden');
+                resultEl?.classList.remove('hidden');
+
+                // Render Badges
+                let levelColor = 'blue';
+                let lvText = q.level || 'Thông hiểu';
+                if (lvText.includes('Nhận biết') || lvText === 'NB') { levelColor = 'green'; lvText = 'Nhận biết'; }
+                else if (lvText.includes('Vận dụng cao') || lvText === 'VDC') { levelColor = 'red'; lvText = 'Vận dụng cao'; }
+                else if (lvText.includes('Vận dụng') || lvText === 'VD') { levelColor = 'orange'; lvText = 'Vận dụng'; }
+
+                const detectQType = (item) => {
+                    if (!item) return 'mc';
+                    if (Array.isArray(item.statements) && item.statements.length > 0) return 'tf';
+                    const t = String(item.type || '').toLowerCase().trim();
+                    if (t === 'tf' || t === 'dung_sai' || t === 'true_false' || t === 'dungsai') return 'tf';
+                    if (t === 'short' || t === 'dien_khuyet' || t === 'tra_loi_ngan' || t === 'shortans' || t === 'dienkhuyet') return 'short';
+                    if (t === 'mc' || t === 'trac_nghiem' || t === 'multiple_choice' || t === 'tracnghiem') return 'mc';
+                    if (t === 'essay' || t === 'tu_luan' || t === 'tuluan') return 'essay';
+                    if ((item.answer !== undefined && item.answer !== null && String(item.answer).trim() !== '') && (!item.options || item.options.length === 0)) return 'short';
+                    if (Array.isArray(item.options) && item.options.length > 0) return 'mc';
+                    return 'essay';
+                };
+
+                const qType = detectQType(q);
+                const typeLabel = qType === 'mc' ? 'Trắc nghiệm (4 lựa chọn)' : (qType === 'tf' ? 'Đúng / Sai' : (qType === 'short' ? 'Trả lời ngắn' : 'Tự luận'));
+
+                const badgesContainer = document.getElementById('lookupBadgesContainer');
+                if (badgesContainer) {
+                    badgesContainer.innerHTML = `
+                        <span class="text-xs font-mono font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200 shadow-2xs">
+                            <i class="fa-solid fa-hashtag text-[11px] mr-1.5"></i>ID: #${q.cccd || q.id}
+                        </span>
+                        ${q.mapId ? `<span class="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200"><i class="fa-solid fa-hashtag text-[11px] mr-1"></i>${q.mapId}</span>` : ''}
+                        <span class="text-xs font-bold text-${levelColor}-600 bg-${levelColor}-50 px-2.5 py-1 rounded-lg border border-${levelColor}-100">
+                            ${lvText}
+                        </span>
+                        <span class="text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-lg border border-gray-200">
+                            ${typeLabel}
+                        </span>
+                        <span class="text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-lg border border-gray-200">
+                            <i class="fa-solid fa-book text-gray-400 mr-1"></i>${q.subject || 'Toán'}
+                        </span>
+                        ${q.source ? `<span class="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200"><i class="fa-solid fa-bookmark text-purple-400 mr-1"></i>${q.source}</span>` : ''}
+                    `;
+                }
+
+                // Render Content
+                const contentEl = document.getElementById('lookupQuestionContent');
+                if (contentEl) contentEl.innerHTML = window.formatContent ? window.formatContent(q.content) : q.content;
+
+                // Render Answers
+                const answerEl = document.getElementById('lookupAnswerSection');
+                if (answerEl) {
+                    let ansHtml = '';
+                    if (qType === 'mc' && q.options && q.options.length > 0) {
+                        ansHtml = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">`;
+                        const correctIdx = typeof q.correct === 'number' ? q.correct : (q.correctAnswer ? ['A','B','C','D'].indexOf(q.correctAnswer) : -1);
+                        q.options.forEach((opt, idx) => {
+                            const isTrue = idx === correctIdx;
+                            const cardStyle = isTrue 
+                                ? 'border-green-500 bg-green-50/80 dark:bg-green-950/40 dark:border-green-500/80 ring-2 ring-green-300/60 dark:ring-green-900/50 shadow-xs'
+                                : 'border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-800/80';
+                            const badgeStyle = isTrue
+                                ? 'bg-green-600 text-white shadow-2xs font-black'
+                                : 'bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-500 dark:text-gray-300 font-bold';
+                            const textStyle = isTrue
+                                ? 'text-green-950 dark:text-green-200 font-semibold'
+                                : 'text-gray-800 dark:text-slate-200 font-normal';
+
+                            ansHtml += `
+                                <div class="p-3.5 md:p-4 rounded-2xl border flex items-center gap-3 transition-all ${cardStyle}">
+                                    <div class="w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 ${badgeStyle}">
+                                        ${String.fromCharCode(65 + idx)}
+                                    </div>
+                                    <div class="text-sm md:text-base math-content break-words flex-1 leading-relaxed ${textStyle}">
+                                        ${window.formatContent ? window.formatContent(opt) : opt}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        ansHtml += `</div>`;
+                    } else if (qType === 'tf') {
+                        const stmts = (Array.isArray(q.statements) && q.statements.length > 0) ? q.statements : (q.options || []).map((t, i) => {
+                            const ansArr = (q.correctAnswer || '').split(',');
+                            return { text: t, isTrue: ansArr[i] === 'D' || ansArr[i] === 'Đ' };
+                        });
+                        ansHtml = `
+                            <div class="mt-4 space-y-3">
+                                <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-list-check text-indigo-500"></i> Các mệnh đề khẳng định (Đúng / Sai):
+                                </div>
+                        `;
+                        stmts.forEach((stmt, sIdx) => {
+                            const isTrue = stmt.isTrue === true || stmt.correct === true || stmt.isCorrect === true || stmt.isTrue === 'true';
+                            const letter = String.fromCharCode(97 + sIdx); // a, b, c, d
+                            ansHtml += `
+                                <div class="p-3.5 md:p-4 rounded-2xl bg-white border ${isTrue ? 'border-green-200 ring-1 ring-green-100 bg-green-50/20' : 'border-gray-200'} shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div class="flex items-start gap-3 flex-1 min-w-0">
+                                        <span class="w-7 h-7 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                                            ${letter}
+                                        </span>
+                                        <div class="text-gray-800 text-sm md:text-base leading-relaxed math-content font-medium flex-1">
+                                            ${window.formatContent ? window.formatContent(stmt.text || '') : (stmt.text || '')}
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                        <span class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs ${isTrue ? 'bg-green-500 text-white shadow-green-200' : 'bg-gray-100 text-gray-400 opacity-60'}">
+                                            <i class="fa-solid fa-check text-[11px]"></i> Đúng
+                                        </span>
+                                        <span class="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xs ${!isTrue ? 'bg-red-500 text-white shadow-red-200' : 'bg-gray-100 text-gray-400 opacity-60'}">
+                                            <i class="fa-solid fa-xmark text-[11px]"></i> Sai
+                                        </span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        ansHtml += `</div>`;
+                    } else if (qType === 'short' || q.answer) {
+                        ansHtml = `
+                            <div class="mt-4 p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm shadow-sm">
+                                        <i class="fa-solid fa-key"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-black uppercase tracking-wider text-blue-700">Đáp án chính xác</div>
+                                        <div class="text-xs text-gray-500 font-medium">Câu hỏi trả lời ngắn / điền khuyết</div>
+                                    </div>
+                                </div>
+                                <div class="px-5 py-2 rounded-xl bg-white border border-blue-200 font-mono font-black text-lg text-blue-900 shadow-sm math-content self-start sm:self-center">
+                                    ${window.formatContent ? window.formatContent(String(q.answer || q.correctAnswer || '')) : (q.answer || q.correctAnswer || 'Chưa thiết lập')}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    answerEl.innerHTML = ansHtml;
+                }
+
+                // Render Solution
+                const solutionEl = document.getElementById('lookupSolutionSection');
+                if (solutionEl) {
+                    if (q.solution) {
+                        solutionEl.innerHTML = `
+                            <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 shadow-sm">
+                                <div class="flex items-center gap-2 mb-3 pb-2 border-b border-amber-100">
+                                    <span class="bg-amber-500 text-white w-6 h-6 rounded-lg flex items-center justify-center text-xs shadow-sm"><i class="fa-solid fa-lightbulb"></i></span>
+                                    <h4 class="font-black text-amber-900 text-sm uppercase tracking-wide">Lời giải chi tiết</h4>
+                                </div>
+                                <div class="text-gray-800 text-sm md:text-base leading-relaxed math-content font-medium text-justify">
+                                    ${window.formatContent ? window.formatContent(q.solution) : q.solution}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        solutionEl.innerHTML = `
+                            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-center text-gray-400 text-xs italic">
+                                Chưa có lời giải chi tiết cho câu hỏi này.
+                            </div>
+                        `;
+                    }
+                }
+
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    MathJax.typesetPromise([resultEl]).then(() => {
+                        if (window.renderTikz) window.renderTikz();
+                        if (window.autoScaleTables) window.autoScaleTables();
+                    }).catch(() => {});
+                } else {
+                    if (window.renderTikz) window.renderTikz();
+                    if (window.autoScaleTables) window.autoScaleTables();
+                }
+            } catch(err) {
+                console.error("Lỗi tra cứu:", err);
+                loadingEl?.classList.add('hidden');
+                notFoundEl?.classList.remove('hidden');
+                const notFoundMsg = document.getElementById('lookupNotFoundMsg');
+                if (notFoundMsg) notFoundMsg.innerText = `Lỗi tra cứu: ${err.message}`;
+            }
+        };
+
+        // Tự động kiểm tra URL Parameters khi tải trang
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const lookupParam = urlParams.get('lookup') || urlParams.get('cccd') || urlParams.get('id');
+            const actionParam = urlParams.get('action');
+            if (lookupParam) {
+                setTimeout(() => {
+                    window.openQuestionLookupModal(lookupParam);
+                }, 400);
+            } else if (actionParam === 'lookup') {
+                setTimeout(() => {
+                    window.openQuestionLookupModal();
+                }, 400);
+            }
+        });
+
         // --- REPORT QUESTION ---
         let currentReportId = null;
         window.openReportModal = (id) => {
             currentReportId = id;
             const el = document.getElementById('reportQuestionId');
             if (el) el.innerText = 'ID: ' + id;
+            const displayEl = document.getElementById('reportQIdDisplay');
+            if (displayEl) displayEl.innerText = id;
+            const qIdInp = document.getElementById('reportQId');
+            if (qIdInp) qIdInp.value = id;
             const descEl = document.getElementById('reportDescription');
             if (descEl) descEl.value = '';
             
@@ -1708,7 +2108,7 @@
                 if (window.showNotification) window.showNotification("Cảm ơn bạn đã báo cáo. Chúng tôi sẽ kiểm tra lại câu hỏi này.", "success");
                 else alert("Đã gửi báo cáo thành công!");
                 window.closeReportModal();
-                        } catch (err) {
+            } catch (err) {
                 console.error("Lỗi gửi báo cáo:", err);
                 if (window.showNotification) window.showNotification("Có lỗi xảy ra: " + err.message, "error");
                 else alert("Có lỗi xảy ra: " + err.message);
@@ -1761,6 +2161,99 @@
             </div>
         </div>
     </div>
+    <!-- MODAL TRA CỨU CÂU HỎI & LỜI GIẢI (DÀNH CHO HỌC SINH) -->
+    <div id="studentQuestionLookupModal" class="fixed inset-0 z-[100] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onclick="window.closeQuestionLookupModal()"></div>
+        <div class="modal-content relative bg-white w-[95%] md:w-[750px] max-h-[90vh] rounded-3xl shadow-2xl scale-95 transition-transform duration-300 overflow-hidden flex flex-col">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 p-4 md:p-5 text-white flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-book-open-reader"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-lg md:text-xl leading-tight">Tra cứu Câu hỏi & Lời giải</h3>
+                        <p class="text-xs text-indigo-100 font-medium">Hệ thống tra cứu lời giải số hóa Sách & Ngân hàng đề thi</p>
+                    </div>
+                </div>
+                <button onclick="window.closeQuestionLookupModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Search Bar in Modal -->
+            <div class="p-4 bg-gray-50 border-b border-gray-200 flex gap-2 shrink-0">
+                <div class="relative flex-1">
+                    <input type="text" id="modalLookupInput" placeholder="Nhập mã ID câu hỏi (VD: 10000001) hoặc MapID..." class="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-300 rounded-xl font-mono font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500" onkeydown="if(event.key==='Enter') window.executeStudentLookup()">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-gray-400 text-sm"></i>
+                </div>
+                <button id="btnExecuteLookup" onclick="window.executeStudentLookup()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 shrink-0">
+                    <i class="fa-solid fa-search"></i> Tra cứu
+                </button>
+            </div>
+
+            <!-- Result Body -->
+            <div id="lookupModalBody" class="p-5 md:p-6 overflow-y-auto flex-1 custom-scrollbar">
+                <!-- Initial / Empty State -->
+                <div id="lookupInitialState" class="text-center py-12 text-gray-400">
+                    <div class="w-16 h-16 rounded-full bg-indigo-50 text-indigo-400 flex items-center justify-center mx-auto mb-3 text-2xl">
+                        <i class="fa-solid fa-barcode"></i>
+                    </div>
+                    <p class="font-bold text-gray-600 text-base">Nhập mã ID câu hỏi để tra cứu lời giải</p>
+                    <p class="text-xs text-gray-400 mt-1 max-w-sm mx-auto">Mỗi câu hỏi trong sách hoặc đề thi có một mã ID gồm 8 chữ số (ví dụ: 10000001).</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="lookupLoadingState" class="hidden text-center py-16 text-indigo-600">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-3"></i>
+                    <p class="font-bold text-gray-700 text-sm">Đang tải câu hỏi và lời giải chi tiết...</p>
+                </div>
+
+                <!-- Not Found State -->
+                <div id="lookupNotFoundState" class="hidden text-center py-12 text-gray-500">
+                    <div class="w-16 h-16 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto mb-3 text-2xl">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <p class="font-bold text-gray-800 text-base" id="lookupNotFoundMsg">Không tìm thấy câu hỏi</p>
+                    <p class="text-xs text-gray-400 mt-1">Vui lòng kiểm tra lại chính xác mã ID câu hỏi hoặc liên hệ giáo viên.</p>
+                </div>
+
+                <!-- Question Details Content -->
+                <div id="lookupResultContent" class="hidden flex flex-col gap-4">
+                    <!-- Badges Header -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2 flex-wrap" id="lookupBadgesContainer">
+                            <!-- Badges injected via JS -->
+                        </div>
+                        <button id="btnReportFromLookup" onclick="window.openReportFromLookup()" class="px-3.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Báo lỗi câu hỏi
+                        </button>
+                    </div>
+
+                    <!-- Question Content -->
+                    <div class="text-gray-900 text-base leading-relaxed math-content font-medium text-justify" id="lookupQuestionContent">
+                    </div>
+
+                    <!-- Question Answer / Options Section -->
+                    <div id="lookupAnswerSection">
+                    </div>
+
+                    <!-- Detailed Solution Section -->
+                    <div id="lookupSolutionSection" class="mt-4">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center shrink-0">
+                <span class="text-xs text-gray-400 italic"><i class="fa-solid fa-circle-check text-green-500 mr-1"></i>Học sinh có thể xem đáp án và tự ôn luyện</span>
+                <button onclick="window.closeQuestionLookupModal()" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-xl transition-colors">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Báo cáo lỗi Modal -->
     <div id="reportModal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onclick="window.closeReportModal()"></div>
@@ -1783,10 +2276,8 @@
             </div>
         </div>
     </div>
-<script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
-}
-</script>
+<script src="/sw-register.js?v=18"></script>
+<script src="/app-installer.js?v=1"></script>
+<script src="/security-shield.js?v=4"></script>
 </body>
 </html>

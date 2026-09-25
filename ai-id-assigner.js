@@ -164,230 +164,289 @@
     const BACKUP_API_KEY = 'AIzaSyCf2cIsR8FKxg0__c_Jp5hydsreGcczAFY';
 
     /**
-     * Lớp điều phối gọi Gemini API đa luồng với cơ chế chống lỗi & xoay vòng key
+     * Lớp điều phối gọi Gemini API đa luồng theo kiến trúc: 1 LUỒNG = 1 KEY RIÊNG BIỆT
+     * - Mỗi luồng sở hữu độc quyền 1 API Key riêng biệt, không tranh chấp, không dẫm chân nhau.
+     * - Khởi động so le 1s: Mỗi luồng xuất phát cách nhau 1 giây, triệt tiêu hoàn toàn lỗi spam tại giây thứ 0.
+     * - Độ trễ 1s giữa các câu: Mỗi luồng sau khi xong 1 câu sẽ nghỉ 1s nhịp thở, giữ an toàn dưới ngưỡng 20 RPM của Google.
+     * - Tự động bàn giao câu hỏi: Nếu 1 key bị chết (401/403), câu hỏi được trả lại hàng đợi để các luồng khác làm hộ.
      */
     class AIBatchRunner {
         constructor(tasks, keys, modelCode, callbacks = {}) {
             this.tasks = tasks;
-            // Làm sạch và lọc key
+            // Làm sạch và lọc key hợp lệ, không trùng lặp
             const rawKeys = (Array.isArray(keys) ? keys : [keys])
                 .map(k => (typeof k === 'string' ? k.trim() : ''))
                 .filter(Boolean);
 
             this.keys = [...new Set(rawKeys)];
-            if (!this.keys.length) {
-                this.keys = [BACKUP_API_KEY];
-            }
-
-            this.modelCode = modelCode || 'gemini-2.5-flash';
-            this.callbacks = callbacks; // { onProgress: fn, onFinished: fn }
+            // Mặc định gemini-3.6-flash chuẩn và ổn định nhất
+            this.modelCode = modelCode || 'gemini-3.6-flash';
+            this.callbacks = callbacks;
             this.isCancelled = false;
-
-            // Bộ nhớ thời gian dùng key và danh sách key chết
-            this.keyLastUsed = new Map();
-            this.deadKeys = new Set();
-            this.keys.forEach(k => this.keyLastUsed.set(k, 0));
-
-            // Số luồng xử lý song song (tối thiểu 4, tối đa 8)
-            this.maxWorkers = Math.min(8, Math.max(4, this.keys.length));
         }
 
         cancel() {
             this.isCancelled = true;
         }
 
-        getAvailableKey() {
-            const now = Date.now();
-            const liveKeys = this.keys.filter(k => !this.deadKeys.has(k));
-            if (!liveKeys.length) return { key: null, waitTime: 0 };
-
-            // Sắp xếp key ít được dùng gần nhất lên đầu
-            liveKeys.sort((a, b) => (this.keyLastUsed.get(a) || 0) - (this.keyLastUsed.get(b) || 0));
-            const bestKey = liveKeys[0];
-
-            const lastUsed = this.keyLastUsed.get(bestKey) || 0;
-            const delayNeeded = 600 + Math.random() * 800; // Jitter nhẹ
-            let waitTime = 0;
-            if (now - lastUsed < delayNeeded) {
-                waitTime = delayNeeded - (now - lastUsed);
-            }
-
-            this.keyLastUsed.set(bestKey, now + waitTime);
-            return { key: bestKey, waitTime };
-        }
-
-        markKeyDead(key) {
-            this.deadKeys.add(key);
-            console.warn(`[AI Assigner] Key bị loại bỏ khỏi pool: ${key.substring(0, 10)}...`);
-        }
-
-        punishKey(key, penaltySeconds) {
-            if (!this.deadKeys.has(key)) {
-                const current = Math.max(this.keyLastUsed.get(key) || 0, Date.now());
-                this.keyLastUsed.set(key, current + penaltySeconds * 1000);
-            }
-        }
-
-        async processTask(task) {
-            if (this.isCancelled) return { row: task.row, newId: '', err: 'Đã hủy' };
-
-            const maxRetries = Math.max(8, this.keys.length * 3);
-            let lastErr = 'Thất bại sau nhiều lần thử';
-
-            for (let attempt = 0; attempt < maxRetries; attempt++) {
-                if (this.isCancelled) return { row: task.row, newId: '', err: 'Đã hủy' };
-
-                const { key, waitTime } = this.getAvailableKey();
-                if (!key) {
-                    return {
-                        row: task.row,
-                        newId: '',
-                        err: `Tất cả ${this.keys.length} API Key đều bị từ chối hoặc hết hạn. Vui lòng nạp key mới!`
-                    };
-                }
-
-                if (waitTime > 0) {
-                    await new Promise(r => setTimeout(r, waitTime));
-                }
-
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelCode}:generateContent?key=${key}`;
-                const payload = {
-                    contents: [{ parts: [{ text: task.prompt }] }],
-                    generationConfig: {
-                        responseMimeType: 'application/json',
-                        responseSchema: {
-                            type: 'OBJECT',
-                            properties: {
-                                lop: { type: 'STRING' },
-                                phanmon: { type: 'STRING' },
-                                chuong: { type: 'STRING' },
-                                mucdo: { type: 'STRING' },
-                                bai: { type: 'STRING' },
-                                dang: { type: 'STRING' }
-                            },
-                            required: ['lop', 'phanmon', 'chuong', 'mucdo', 'bai', 'dang']
-                        }
-                    }
-                };
-
-                try {
-                    const res = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (res.ok) {
-                        const data = await res.json();
-                        let text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                        text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-
-                        try {
-                            const aiResult = JSON.parse(text);
-                            const lop = (aiResult.lop || '').trim();
-                            const phanmon = (aiResult.phanmon || '').trim().toUpperCase();
-                            const chuong = (aiResult.chuong || '').trim();
-                            const mucdo = (aiResult.mucdo || '').trim().toUpperCase();
-                            const bai = (aiResult.bai || '').trim();
-                            const dang = (aiResult.dang || '').trim();
-
-                            const newId = `[${lop}${phanmon}${chuong}${mucdo}${bai}-${dang}]`;
-                            return { row: task.row, newId, err: '', parsed: { lop, phanmon, chuong, mucdo, bai, dang } };
-                        } catch (parseErr) {
-                            this.punishKey(key, 2);
-                            lastErr = `Lỗi phân tích JSON: ${text.substring(0, 80)}`;
-                            continue;
-                        }
-                    }
-
-                    // Xử lý mã lỗi HTTP
-                    const status = res.status;
-                    let errorBody = {};
-                    try { errorBody = await res.json(); } catch (_) {}
-                    const errMsg = errorBody?.error?.message || '';
-
-                    if (status === 401 || status === 403 || errMsg.includes('API_KEY_INVALID') || errMsg.includes('CONSUMER_SUSPENDED')) {
-                        // Key hỏng vĩnh viễn trong phiên
-                        this.markKeyDead(key);
-                        lastErr = `Key bị từ chối (${status}): ${key.substring(0, 10)}...`;
-                        continue;
-                    } else if (status === 429 || status === 503) {
-                        // Quá tải / Rate limit tạm thời
-                        this.punishKey(key, 15);
-                        lastErr = `HTTP ${status} (Quá tải, tạm nghỉ 15s)`;
-                        await new Promise(r => setTimeout(r, 1500));
-                        continue;
-                    } else if (status === 404) {
-                        // Model không hỗ trợ trên endpoint này, thử fallback sang gemini-2.5-flash
-                        if (this.modelCode !== 'gemini-2.5-flash') {
-                            this.modelCode = 'gemini-2.5-flash';
-                            console.warn('[AI Assigner] Model 404, tự động chuyển về gemini-2.5-flash');
-                            continue;
-                        }
-                        lastErr = `HTTP 404: Mô hình ${this.modelCode} không tồn tại`;
-                        this.punishKey(key, 5);
-                        continue;
-                    } else {
-                        this.punishKey(key, 3);
-                        lastErr = `HTTP ${status}: ${errMsg || 'Lỗi gọi API'}`;
-                        await new Promise(r => setTimeout(r, 1000));
-                        continue;
-                    }
-                } catch (netErr) {
-                    this.punishKey(key, 3);
-                    lastErr = netErr.message || 'Lỗi kết nối mạng';
-                    await new Promise(r => setTimeout(r, 1500));
-                    continue;
-                }
-            }
-
-            return { row: task.row, newId: '', err: lastErr };
-        }
-
         async run() {
+            const total = this.tasks.length;
+            if (total === 0) return { success: 0, fail: 0 };
+
+            if (!this.keys.length) {
+                alert('Chưa có API Key nào được cấu hình! Vui lòng nạp API Key.');
+                return { success: 0, fail: total };
+            }
+
+            // Số luồng tối đa là 8, tương ứng với số key hiện có (mỗi luồng 1 key riêng)
+            const workerCount = Math.min(8, this.keys.length);
+            // Bể chứa key dự phòng: Các key từ vị trí workerCount trở đi
+            const spareKeyPool = this.keys.slice(workerCount);
+            const deadKeys = new Set();
+
+            console.log(`[AI Assigner] Khởi động ${workerCount} luồng độc lập (mỗi luồng 1 key riêng, bể dự phòng: ${spareKeyPool.length} key, giãn cách 1s)...`);
+
+            // Hàng đợi công việc dùng chung
+            const taskQueue = [...this.tasks];
             let success = 0;
             let fail = 0;
-            const total = this.tasks.length;
-            let activeWorkers = 0;
-            let currentIndex = 0;
+            let activeWorkers = workerCount;
 
             return new Promise((resolve) => {
-                const next = () => {
-                    if (this.isCancelled || currentIndex >= total) {
-                        if (activeWorkers === 0) {
-                            if (this.callbacks.onFinished) this.callbacks.onFinished(success, fail);
-                            resolve({ success, fail });
+                const onFinished = () => {
+                    // Nếu vẫn còn câu hỏi tồn đọng trong hàng đợi do toàn bộ key đều hết quota/bị lỗi
+                    while (taskQueue.length > 0) {
+                        const remainingTask = taskQueue.shift();
+                        fail++;
+                        if (this.callbacks.onProgress) {
+                            this.callbacks.onProgress(
+                                remainingTask.row,
+                                '',
+                                'Đã hết toàn bộ API Key khả dụng (tất cả các key đều hết quota hoặc bị từ chối).',
+                                null
+                            );
                         }
+                    }
+                    if (this.callbacks.onFinished) this.callbacks.onFinished(success, fail);
+                    resolve({ success, fail });
+                };
+
+                // Hàm thực thi cho từng Worker độc lập với Key riêng
+                const runWorker = async (workerId, initialKey) => {
+                    let dedicatedKey = initialKey;
+
+                    // 1. Khởi động so le: Luồng 0 xuất phát ở 0s, Luồng 1 ở 1s, Luồng 2 ở 2s...
+                    await new Promise(r => setTimeout(r, workerId * 1000));
+                    if (this.isCancelled) {
+                        activeWorkers--;
+                        if (activeWorkers === 0) onFinished();
                         return;
                     }
 
-                    const task = this.tasks[currentIndex++];
-                    activeWorkers++;
+                    console.log(`[Luồng #${workerId + 1}] Bắt đầu chạy với Key riêng: ${dedicatedKey.substring(0, 10)}...`);
 
-                    this.processTask(task).then(res => {
-                        activeWorkers--;
-                        if (res.newId) success++;
+                    while (!this.isCancelled && taskQueue.length > 0) {
+                        const task = taskQueue.shift();
+                        if (!task) break;
+
+                        let taskSuccess = false;
+                        let lastErr = '';
+                        let newId = '';
+                        let parsedData = null;
+
+                        // Mỗi task thử tối đa 3 lần trên key này nếu gặp lỗi mạng tạm thời
+                        for (let attempt = 0; attempt < 3; attempt++) {
+                            if (this.isCancelled) break;
+
+                            const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelCode}:generateContent?key=${dedicatedKey}`;
+                            const payload = {
+                                contents: [{ parts: [{ text: task.prompt }] }],
+                                generationConfig: {
+                                    responseMimeType: 'application/json',
+                                    responseSchema: {
+                                        type: 'OBJECT',
+                                        properties: {
+                                            lop: { type: 'STRING' },
+                                            phanmon: { type: 'STRING' },
+                                            chuong: { type: 'STRING' },
+                                            mucdo: { type: 'STRING' },
+                                            bai: { type: 'STRING' },
+                                            dang: { type: 'STRING' }
+                                        },
+                                        required: ['lop', 'phanmon', 'chuong', 'mucdo', 'bai', 'dang']
+                                    }
+                                }
+                            };
+
+                            try {
+                                const controller = new AbortController();
+                                const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+                                const res = await fetch(url, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(payload),
+                                    signal: controller.signal
+                                });
+                                clearTimeout(timeoutId);
+
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    let text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                    text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+                                    try {
+                                        const aiResult = JSON.parse(text);
+                                        const lop = (aiResult.lop || '').trim();
+                                        const phanmon = (aiResult.phanmon || '').trim().toUpperCase();
+                                        const chuong = (aiResult.chuong || '').trim();
+                                        const mucdo = (aiResult.mucdo || '').trim().toUpperCase();
+                                        const bai = (aiResult.bai || '').trim();
+                                        const dang = (aiResult.dang || '').trim();
+
+                                        newId = `[${lop}${phanmon}${chuong}${mucdo}${bai}-${dang}]`;
+                                        parsedData = { lop, phanmon, chuong, mucdo, bai, dang };
+                                        taskSuccess = true;
+                                        break; // Thành công -> thoát vòng lặp thử lại
+                                    } catch (pErr) {
+                                        lastErr = `Lỗi cú pháp JSON: ${text.substring(0, 60)}`;
+                                        await new Promise(r => setTimeout(r, 1000));
+                                        continue;
+                                    }
+                                }
+
+                                const status = res.status;
+                                let errorBody = {};
+                                try { errorBody = await res.json(); } catch (_) {}
+                                const errMsg = errorBody?.error?.message || '';
+
+                                // Fallback mô hình nếu gặp 404 (mô hình cũ không còn khả dụng)
+                                if (status === 404 && this.modelCode !== 'gemini-3.6-flash') {
+                                    this.modelCode = 'gemini-3.6-flash';
+                                    continue;
+                                }
+
+                                // Kiểm tra các dấu hiệu hết quota ngày (RPD) hoặc giới hạn vĩnh viễn trong 429
+                                let isDailyQuotaExhausted = false;
+                                let retrySec = 15;
+                                if (Array.isArray(errorBody?.details)) {
+                                    for (const d of errorBody.details) {
+                                        if (d?.retryDelay) {
+                                            const m = String(d.retryDelay).match(/([0-9.]+)/);
+                                            if (m) retrySec = Math.max(retrySec, Math.ceil(parseFloat(m[1])) + 2);
+                                        }
+                                        const metric = String(d?.metadata?.quota_metric || '');
+                                        if (metric.includes('PerDay') || metric.includes('per_day')) {
+                                            isDailyQuotaExhausted = true;
+                                        }
+                                    }
+                                }
+                                if (errMsg.includes('PerDay') || errMsg.includes('GenerateRequestsPerDay') || errMsg.includes('Daily quota') || retrySec > 120) {
+                                    isDailyQuotaExhausted = true;
+                                }
+
+                                // 402: Payment required / Hết quota tài khoản thanh toán
+                                // 401 / 403: Key không hợp lệ, bị xóa hoặc bị khóa project
+                                // 429 nhưng là hết quota ngày (RPD) vĩnh viễn:
+                                const isDeadKey = (status === 402) ||
+                                                  (status === 401) ||
+                                                  (status === 403) ||
+                                                  isDailyQuotaExhausted ||
+                                                  errMsg.includes('API_KEY_INVALID') ||
+                                                  errMsg.includes('CONSUMER_SUSPENDED') ||
+                                                  errMsg.includes('BILLING_DISABLED') ||
+                                                  errMsg.includes('PERMISSION_DENIED') ||
+                                                  errMsg.includes('deleted');
+
+                                if (isDeadKey) {
+                                    deadKeys.add(dedicatedKey);
+                                    const oldKeyMask = dedicatedKey.substring(0, 8) + '...';
+                                    const reason = status === 402 ? 'Hết hạn mức/quota thanh toán (HTTP 402)' :
+                                                   isDailyQuotaExhausted ? 'Hết hạn mức ngày RPD (HTTP 429)' :
+                                                   `Lỗi quyền hoặc Key không hợp lệ (HTTP ${status})`;
+
+                                    // Nếu CÒN KEY DỰ PHÒNG trong danh sách -> TỰ ĐỘNG THAY THẾ NGAY VÀ LUÔN!
+                                    if (spareKeyPool.length > 0) {
+                                        const newKey = spareKeyPool.shift();
+                                        const newKeyMask = newKey.substring(0, 8) + '...';
+                                        console.warn(`[Luồng #${workerId + 1}] ⚠️ Key ${oldKeyMask} ${reason}. ĐÃ TỰ ĐỘNG THAY THẾ BẰNG KEY DỰ PHÒNG: ${newKeyMask}! (Còn ${spareKeyPool.length} key trong bể)`);
+                                        dedicatedKey = newKey;
+                                        if (this.callbacks.onKeySwapped) {
+                                            this.callbacks.onKeySwapped(workerId + 1, oldKeyMask, newKeyMask, spareKeyPool.length);
+                                        }
+                                        attempt--; // Không tính lần lỗi này vào task, gửi lại câu hỏi ngay bằng key mới!
+                                        await new Promise(r => setTimeout(r, 500));
+                                        continue;
+                                    } else {
+                                        // ĐÃ HẾT KEY DỰ PHÒNG
+                                        console.warn(`[Luồng #${workerId + 1}] ⛔ Key ${oldKeyMask} ${reason} và ĐÃ HẾT KEY DỰ PHÒNG! Luồng dừng lại, câu hỏi được trả lại hàng đợi để các luồng khác làm nốt.`);
+                                        taskQueue.unshift(task); // Trả lại câu hỏi cho các luồng còn sống khác
+                                        activeWorkers--;
+                                        if (activeWorkers === 0) onFinished();
+                                        return; // Dừng hẳn luồng này
+                                    }
+                                }
+
+                                // 429 tạm thời (chạm ngưỡng RPM - Requests Per Minute)
+                                if (status === 429) {
+                                    // Mẹo tăng tốc: Nếu trong bể còn key dự phòng dồi dào, đổi luôn key mới để chạy mượt không cần chờ!
+                                    if (spareKeyPool.length > 0) {
+                                        const oldKeyMask = dedicatedKey.substring(0, 8) + '...';
+                                        const newKey = spareKeyPool.shift();
+                                        const newKeyMask = newKey.substring(0, 8) + '...';
+                                        console.warn(`[Luồng #${workerId + 1}] ⚡ Key ${oldKeyMask} chạm hạn mức RPM (429). ĐÃ ĐỔI NGAY SANG KEY DỰ PHÒNG: ${newKeyMask} để tiếp tục chạy tốc độ cao không cần chờ! (Còn ${spareKeyPool.length} key dự phòng)`);
+                                        dedicatedKey = newKey;
+                                        if (this.callbacks.onKeySwapped) {
+                                            this.callbacks.onKeySwapped(workerId + 1, oldKeyMask, newKeyMask, spareKeyPool.length);
+                                        }
+                                        attempt--;
+                                        await new Promise(r => setTimeout(r, 500));
+                                        continue;
+                                    }
+
+                                    // Nếu không còn key dự phòng thì luồng tạm nghỉ retrySec rồi thử lại
+                                    console.warn(`[Luồng #${workerId + 1}] Key chạm hạn mức 429 (hết key dự phòng). Luồng tạm nghỉ ${retrySec}s rồi thử lại... (Các luồng khác vẫn chạy bình thường)`);
+                                    lastErr = `HTTP 429 (Tạm nghỉ ${retrySec}s)`;
+                                    await new Promise(r => setTimeout(r, retrySec * 1000));
+                                    continue;
+                                }
+
+                                // 503: Máy chủ Google bận
+                                if (status === 503) {
+                                    lastErr = 'HTTP 503 (Máy chủ AI bận)';
+                                    await new Promise(r => setTimeout(r, 2000));
+                                    continue;
+                                }
+
+                                lastErr = `HTTP ${status}: ${errMsg.substring(0, 60)}`;
+                                await new Promise(r => setTimeout(r, 1000));
+                            } catch (err) {
+                                lastErr = err.name === 'AbortError' ? 'Quá thời gian chờ (30s)' : (err.message || 'Lỗi mạng');
+                                await new Promise(r => setTimeout(r, 1000));
+                            }
+                        }
+
+                        if (taskSuccess) success++;
                         else fail++;
 
                         if (this.callbacks.onProgress) {
-                            this.callbacks.onProgress(res.row, res.newId, res.err, res.parsed);
+                            this.callbacks.onProgress(task.row, newId, lastErr, parsedData);
                         }
 
-                        next();
-                    }).catch(err => {
-                        activeWorkers--;
-                        fail++;
-                        if (this.callbacks.onProgress) {
-                            this.callbacks.onProgress(task.row, '', err.message);
+                        // 2. Độ trễ an toàn 1s giữa 2 câu trên CÙNG 1 LUỒNG (Key)
+                        // Giúp key này luôn duy trì dưới ngưỡng 20 requests/phút của Google
+                        if (!this.isCancelled && taskQueue.length > 0) {
+                            await new Promise(r => setTimeout(r, 1000));
                         }
-                        next();
-                    });
+                    }
+
+                    activeWorkers--;
+                    if (activeWorkers === 0) onFinished();
                 };
 
-                // Bắt đầu các luồng ban đầu
-                const poolLimit = Math.min(this.maxWorkers, total);
-                for (let i = 0; i < poolLimit; i++) {
-                    next();
+                // Kích hoạt các luồng độc lập, mỗi luồng 1 key riêng
+                for (let i = 0; i < workerCount; i++) {
+                    runWorker(i, this.keys[i]);
                 }
             });
         }
@@ -404,13 +463,15 @@
      * - Mô hình AI
      * - Chế độ gán (Chỉ câu thiếu ID / Ghi đè tất cả)
      */
-    function showConfigModal(normTree, missingCount, totalCount, defaultGrade = '9') {
+    function showConfigModal(normTree, missingCount, totalCount, defaultGrade = '9', initialKeys = []) {
         return new Promise((resolve, reject) => {
             const availableClasses = getAvailableClasses(normTree);
             let selectedClassKey = defaultGrade;
             if (!availableClasses.some(c => c.key === selectedClassKey) && availableClasses.length) {
                 selectedClassKey = availableClasses[0].key;
             }
+
+            let poolKeys = [...(Array.isArray(initialKeys) ? initialKeys : [])].filter(Boolean);
 
             const modalOverlay = document.createElement('div');
             modalOverlay.id = 'aiConfigModalOverlay';
@@ -428,7 +489,7 @@
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <span style="font-size: 20px; background: #5c6bc0; color: white; padding: 6px 10px; border-radius: 8px; display: inline-block;">✨</span>
                             <div>
-                                <h2 style="font-size: 18px; font-weight: bold; color: #2c3e50; margin: 0;">Gán ID bằng AI — Cấu hình</h2>
+                                <h2 style="font-size: 18px; font-weight: bold; color: #2c3e50; margin: 0;">Gán ID bằng AI — Cấu hình đa luồng</h2>
                                 <div style="font-size: 13px; color: #7f8c8d; margin-top: 2px;">
                                     Phát hiện <b style="color: #e74c3c;">${missingCount}</b> / ${totalCount} câu hỏi chưa có ID hợp lệ.
                                 </div>
@@ -513,10 +574,9 @@
                                 <div>
                                     <label style="font-size: 12px; font-weight: bold; color: #2c3e50; display: block; margin-bottom: 4px;">Mô hình AI:</label>
                                     <select id="selAiModel" style="width: 100%; padding: 6px 8px; border: 1px solid #bdc3c7; border-radius: 4px; background: white; color: #2c3e50; font-size: 13px;">
-                                        <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (Khuyên dùng)</option>
+                                        <option value="gemini-3.6-flash" selected>Gemini 3.6 Flash (Khuyên dùng - Chuẩn Tex-AI)</option>
                                         <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (Siêu nhanh)</option>
-                                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (Độ chính xác cao)</option>
-                                        <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+                                        <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
                                         <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
                                     </select>
                                 </div>
@@ -524,12 +584,22 @@
                         </div>
 
                         <!-- KHỐI QUẢN LÝ / NHẬP KEY NHANH -->
-                        <div style="font-size: 12px; color: #7f8c8d; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="font-size: 12px; color: #7f8c8d; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                             <span id="aiKeyStatusHint">🔑 Đang kiểm tra API Key khả dụng...</span>
-                            <button id="btnToggleKeyInput" type="button" style="background: none; border: none; color: #2980b9; font-weight: bold; cursor: pointer; text-decoration: underline; font-size: 12px;">+ Thêm / Nạp Key</button>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <label style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 4px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 4px;" title="Nạp nhanh các key từ file text (.txt)">
+                                    📁 Nạp File (.txt)
+                                    <input type="file" id="fileAiKeyUpload" accept=".txt" style="display: none;">
+                                </label>
+                                <button id="btnToggleKeyInput" type="button" style="background: none; border: none; color: #2980b9; font-weight: bold; cursor: pointer; text-decoration: underline; font-size: 12px;">+ Dán Key thủ công</button>
+                            </div>
                         </div>
-                        <div id="quickKeyInputBox" style="display: none; background: white; border: 1px solid #bdc3c7; border-radius: 6px; padding: 10px;">
-                            <textarea id="txtQuickKeys" rows="2" placeholder="Dán Gemini API Key (mỗi dòng 1 key AIza...)" style="width: 100%; font-family: monospace; font-size: 12px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px;"></textarea>
+                        <div id="quickKeyInputBox" style="display: none; background: white; border: 1px solid #bdc3c7; border-radius: 6px; padding: 10px; margin-top: 6px;">
+                            <textarea id="txtQuickKeys" rows="3" placeholder="Dán các Gemini API Key tại đây (mỗi dòng 1 key, hỗ trợ định dạng AIza... hoặc AQ.Ab8...)" style="width: 100%; font-family: monospace; font-size: 12px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px;"></textarea>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                                <div style="font-size: 11px; color: #888;">💡 Kiến trúc 1 Luồng = 1 Key riêng. Nếu có trên 8 key, các key còn lại làm dự phòng tự động thay thế khi hết quota 402/429!</div>
+                                <button id="btnSaveQuickKeys" type="button" style="background: #4338ca; color: white; border: none; border-radius: 4px; padding: 5px 14px; font-size: 12px; font-weight: bold; cursor: pointer;">💾 Thêm Key</button>
+                            </div>
                         </div>
                     </div>
 
@@ -562,11 +632,83 @@
                 });
             });
 
+            // Cập nhật nhãn số lượng key
+            const updateKeyBadge = () => {
+                const hint = modalOverlay.querySelector('#aiKeyStatusHint');
+                if (hint) {
+                    const kCount = poolKeys.length;
+                    const wCount = Math.min(8, kCount);
+                    const sCount = Math.max(0, kCount - wCount);
+                    if (kCount > 0) {
+                        hint.innerHTML = `🔑 Đang có <b style="color: #27ae60;">${kCount} API Key</b> (Chạy <b>${wCount} luồng</b> | <b>${sCount} key dự phòng</b> tự động đổi khi hết quota 402/429)`;
+                    } else {
+                        hint.innerHTML = `⚠️ <b style="color: #e74c3c;">Chưa có API Key</b>. Hãy nạp file hoặc dán key!`;
+                    }
+                }
+            };
+            updateKeyBadge();
+
             // Toggle key box
             modalOverlay.querySelector('#btnToggleKeyInput').onclick = () => {
                 const box = modalOverlay.querySelector('#quickKeyInputBox');
                 box.style.display = box.style.display === 'none' ? 'block' : 'none';
             };
+
+            // Nút Lưu Key dán nhanh
+            const btnSaveQuickKeys = modalOverlay.querySelector('#btnSaveQuickKeys');
+            if (btnSaveQuickKeys) {
+                btnSaveQuickKeys.onclick = async () => {
+                    const txt = modalOverlay.querySelector('#txtQuickKeys')?.value || '';
+                    const lines = txt.split(/[\r\n]+/).map(k => k.trim()).filter(k => k && !k.startsWith('#'));
+                    if (!lines.length) {
+                        alert('Vui lòng dán ít nhất 1 API Key vào khung!');
+                        return;
+                    }
+                    poolKeys = [...new Set([...poolKeys, ...lines])];
+                    window.aiKeys = poolKeys;
+                    try { localStorage.setItem('gemini_api_keys', JSON.stringify(poolKeys)); } catch (_) {}
+                    if (sharedDb) {
+                        try {
+                            const { setDoc, doc } = await import('./supabase-db-compat.js');
+                            await setDoc(doc(sharedDb, 'configurations', 'ai_keys'), { keys: poolKeys }, { merge: true });
+                        } catch (_) {}
+                    }
+                    updateKeyBadge();
+                    modalOverlay.querySelector('#txtQuickKeys').value = '';
+                    modalOverlay.querySelector('#quickKeyInputBox').style.display = 'none';
+                    if (window.showToast) window.showToast(`Đã thêm ${lines.length} key thành công! Hiện có ${poolKeys.length} key.`, 'success');
+                    else if (window.showNotification) window.showNotification(`Đã thêm ${lines.length} key thành công!`, 'success');
+                };
+            }
+
+            // Nạp key từ file .txt
+            const fileKeyInput = modalOverlay.querySelector('#fileAiKeyUpload');
+            if (fileKeyInput) {
+                fileKeyInput.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    try {
+                        const content = await file.text();
+                        const lines = content.split(/[\r\n]+/).map(k => k.trim()).filter(k => k && !k.startsWith('#'));
+                        if (lines.length > 0) {
+                            poolKeys = [...new Set([...poolKeys, ...lines])];
+                            window.aiKeys = poolKeys;
+                            try { localStorage.setItem('gemini_api_keys', JSON.stringify(poolKeys)); } catch (_) {}
+                            if (sharedDb) {
+                                try {
+                                    const { setDoc, doc } = await import('./supabase-db-compat.js');
+                                    await setDoc(doc(sharedDb, 'configurations', 'ai_keys'), { keys: poolKeys }, { merge: true });
+                                } catch (_) {}
+                            }
+                            updateKeyBadge();
+                            if (window.showToast) window.showToast(`Đã nạp ${lines.length} key từ file thành công!`, 'success');
+                            else if (window.showNotification) window.showNotification(`Đã nạp ${lines.length} key từ file thành công!`, 'success');
+                        }
+                    } catch (err) {
+                        alert('Lỗi đọc file .txt: ' + err.message);
+                    }
+                });
+            }
 
             // ── CASCADING DROPDOWNS LOGIC (Tái hiện 100% update_cap1/2/3/4) ──
             function populateCap1() {
@@ -685,9 +827,19 @@
                 const mucdo = selMucdo.value;
                 const model = selModel.value;
 
-                // Kiểm tra xem người dùng có nhập thêm key không
+                // Kiểm tra xem người dùng có nhập thêm key thủ công chưa bấm nút Lưu không
                 const customKeyText = modalOverlay.querySelector('#txtQuickKeys')?.value || '';
-                const extraKeys = customKeyText.split('\n').map(k => k.trim()).filter(Boolean);
+                const extraKeys = customKeyText.split(/[\r\n]+/).map(k => k.trim()).filter(Boolean);
+                if (extraKeys.length) {
+                    poolKeys = [...new Set([...poolKeys, ...extraKeys])];
+                    window.aiKeys = poolKeys;
+                    try { localStorage.setItem('gemini_api_keys', JSON.stringify(poolKeys)); } catch (_) {}
+                }
+
+                if (poolKeys.length === 0) {
+                    alert('Vui lòng nạp hoặc dán ít nhất 1 API Key Gemini để bắt đầu!');
+                    return;
+                }
 
                 modalOverlay.remove();
                 resolve({
@@ -700,7 +852,7 @@
                     cap4,
                     mucdo,
                     model,
-                    extraKeys
+                    keys: poolKeys
                 });
             };
         });
@@ -892,15 +1044,15 @@
                 const m = text.match(/(?:Lớp|khối)\s*([6-9]|1[0-2])/i);
                 if (m) { detectedClass = m[1]; break; }
             }
-            config = await showConfigModal(normTree, missingCount, questions.length, detectedClass);
+            config = await showConfigModal(normTree, missingCount, questions.length, detectedClass, apiKeys);
         } catch (e) {
             console.log('[ai-id-assigner] Người dùng đã đóng modal cấu hình.');
             return questions;
         }
 
-        // Bổ sung key nhập thêm nếu có
-        if (config.extraKeys && config.extraKeys.length) {
-            apiKeys = [...new Set([...config.extraKeys, ...apiKeys])];
+        // Cập nhật lại pool keys từ cấu hình modal (đã gồm key nạp thêm)
+        if (config.keys && config.keys.length) {
+            apiKeys = config.keys;
         }
 
         // Lọc danh sách câu cần xử lý theo chế độ
@@ -1012,18 +1164,24 @@ ${qText}`;
             let processed = 0;
             const total = tasks.length;
 
-            progressDialog.lblStatus.textContent = `Đang gọi AI... Xử lý: 0/${total} câu`;
+            const workerCount = Math.min(8, apiKeys.length);
+            const spareCount = Math.max(0, apiKeys.length - workerCount);
+            const spareText = spareCount > 0 ? ` | ${spareCount} key dự phòng` : '';
+            progressDialog.lblStatus.textContent = `Đang gọi AI (${workerCount} luồng${spareText})... Xử lý: 0/${total} câu`;
             progressDialog.barProgress.style.width = '0%';
             progressDialog.btnRetry.style.display = 'none';
             progressDialog.btnCancel.textContent = 'Hủy tiến trình';
             progressDialog.btnCancel.style.backgroundColor = '#c0392b';
 
             const runner = new AIBatchRunner(tasks, apiKeys, config.model, {
+                onKeySwapped: (workerNum, oldKey, newKey, remaining) => {
+                    progressDialog.lblStatus.textContent = `🔄 [Luồng ${workerNum}] Đã tự đổi Key (${oldKey} ➜ ${newKey}) do hết quota! Còn ${remaining} key dự phòng.`;
+                },
                 onProgress: (row, newId, err, parsed) => {
                     processed++;
                     const pct = Math.round((processed / total) * 100);
                     progressDialog.barProgress.style.width = `${pct}%`;
-                    progressDialog.lblStatus.textContent = `Đang gọi AI... Xử lý: ${processed}/${total} câu`;
+                    progressDialog.lblStatus.textContent = `Đang gọi AI (${workerCount} luồng${spareCount > 0 ? ` | ${spareCount} key dự phòng` : ''})... Xử lý: ${processed}/${total} câu`;
                     progressDialog.badge.textContent = `${processed}/${total}`;
 
                     let status = '';

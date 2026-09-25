@@ -476,20 +476,46 @@ document.getElementById('btnImportTopic').addEventListener('click', () => {
                     return;
                 }
                 
-                showToast(`Đã bóc tách ${parsedTopic.questions.length} câu. Đang tải lên...`, "info");
+                showToast(`Đã bóc tách ${parsedTopic.questions.length} câu. Đang cấp mã CCCD & tải lên...`, "info");
+                
+                let batch = null;
+                if (window.BankService) {
+                    batch = await window.BankService.allocateCccdBatch(parsedTopic.questions.length);
+                }
+
+                const questionsToUpload = [];
                 for (let i = 0; i < parsedTopic.questions.length; i++) {
                     const q = parsedTopic.questions[i];
-                    const qId = `${window.currentTopicId}_${Date.now()}_${i}`;
-                    q.id = qId;
+                    const qCccd = batch ? batch.list[i] : String(Date.now() + i);
                     q.mapId = window.currentTopicId;
                     
-                    const blob = new Blob([JSON.stringify(q)], { type: 'application/json' });
-                    const formData = new FormData();
-                    formData.append('file', blob, `bank/${qId}.json`);
-                    await fetch("https://upload-helper.phamngockhanh-942001.workers.dev/", { method: 'PUT', body: formData });
+                    let bankQ;
+                    if (window.BankService) {
+                        bankQ = window.BankService.createBankQuestion({
+                            ...q,
+                            topicId: window.currentTopicId,
+                            mapId: window.currentTopicId
+                        }, qCccd);
+                    } else {
+                        q.id = qCccd;
+                        q.cccd = qCccd;
+                        bankQ = q;
+                    }
+                    questionsToUpload.push(bankQ);
+                }
+
+                if (window.BankService) {
+                    await window.BankService.uploadQuestionsToBank(questionsToUpload, { concurrency: 5 });
+                } else {
+                    for (const q of questionsToUpload) {
+                        const blob = new Blob([JSON.stringify(q)], { type: 'application/json' });
+                        const formData = new FormData();
+                        formData.append('file', blob, `bank/${q.id}.json`);
+                        await fetch("https://upload-helper.phamngockhanh-942001.workers.dev/", { method: 'PUT', body: formData });
+                    }
                 }
                 
-                showToast("Nhập file thành công!", "success");
+                showToast(`Nhập thành công ${questionsToUpload.length} câu với mã CCCD số duy nhất!`, "success");
                 window.loadTopicContent(window.currentTopicId); // Reload
             } catch (err) {
                 console.error(err);
@@ -540,7 +566,13 @@ window.renderBankModalList = () => {
             <label class="bg-white p-3 rounded-xl border border-gray-200 flex gap-3 cursor-pointer hover:bg-blue-50 transition-colors mb-2">
                 <input type="checkbox" value="${q.id}" class="bank-item-checkbox w-5 h-5 mt-1 text-blue-600 rounded">
                 <div class="flex-1 overflow-hidden">
-                    <div class="text-xs text-gray-500 mb-1 flex justify-between"><span>ID: ${q.id}</span><span class="bg-gray-100 px-2 py-0.5 rounded">${q.level || 'Chưa phân loại'}</span></div>
+                    <div class="text-xs text-gray-500 mb-1 flex justify-between items-center">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-gray-800 font-mono"><i class="fa-solid fa-hashtag text-primary-500 mr-0.5"></i>${q.mapId || (q.id && q.id.includes('_') ? q.id.split('_')[0] : q.id)}</span>
+                            <span class="bg-teal-50 text-teal-700 font-mono font-bold text-[10px] px-1.5 py-0.2 rounded border border-teal-200">CCCD: #${q.cccd || q.id}</span>
+                        </div>
+                        <span class="bg-gray-100 px-2 py-0.5 rounded text-[11px] font-semibold">${q.level || 'Chưa phân loại'}</span>
+                    </div>
                     <div class="text-sm text-gray-800 math-content max-h-16 overflow-hidden">${q.content}</div>
                 </div>
             </label>

@@ -1,6 +1,62 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+    <script>
+        (function() {
+            try {
+                const savedTheme = localStorage.getItem('qmath_theme');
+                if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch(e) {}
+        })();
+
+        window.goBack = function() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const courseId = urlParams.get('courseId');
+                if (courseId) {
+                    window.location.href = `course-player.html?id=${encodeURIComponent(courseId)}`;
+                    return;
+                }
+                // 1. Kiểm tra document.referrer từ cùng domain (không phải chính exam.html)
+                if (document.referrer && !document.referrer.includes('exam.html')) {
+                    try {
+                        const refUrl = new URL(document.referrer);
+                        if (refUrl.origin === window.location.origin) {
+                            window.location.href = document.referrer;
+                            return;
+                        }
+                    } catch(e) {}
+                }
+                // 2. Thử history.back() kèm fallback timeout nếu mở từ tab mới
+                if (window.history.length > 1) {
+                    window.history.back();
+                    setTimeout(() => {
+                        window.location.href = 'student.html';
+                    }, 350);
+                    return;
+                }
+            } catch(err) {
+                console.warn('goBack error:', err);
+            }
+            window.location.href = 'student.html';
+        };
+
+        window.handleExamHeaderBack = async function() {
+            if (typeof isExamActive !== 'undefined' && isExamActive) {
+                if (typeof window.customConfirm === 'function') {
+                    const ok = await window.customConfirm('Bạn có chắc muốn rời khỏi bài thi không? Tiến trình làm bài đã được tự động lưu nháp.');
+                    if (!ok) return;
+                } else if (!confirm('Bạn có chắc muốn rời khỏi bài thi không? Tiến trình làm bài đã được tự động lưu nháp.')) {
+                    return;
+                }
+            }
+            window.goBack();
+        };
+    </script>
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -145,7 +201,7 @@
             padding: 0 !important;
         }
         
-        /* 4. Công thức Toán: Sát vào dòng chữ */
+        /* 4. Công thức Toán: Sát vào dòng chữ và ÉP ĐẬM NÉT, ĐEN TUYỀN CHỐNG MỜ */
         mjx-container:not([display="true"]) { margin: 0 !important; }
         
         mjx-container[display="true"] { 
@@ -157,23 +213,278 @@
             overflow-y: hidden !important; 
         }
 
-        /* 5. Mobile: Thu nhỏ công thức để vừa màn hình */
+        /* [FIX 1] ÉP MÀU ĐEN ĐẬM SẮC NÉT CHO TOÀN BỘ CÔNG THỨC TOÁN MATHJAX */
+        mjx-container,
+        mjx-container *,
+        .mjx-chtml,
+        .mjx-chtml *,
+        .MathJax,
+        .MathJax * {
+            color: #0f172a !important; /* Đen Slate-900 siêu đậm nét, chống mờ nhạt */
+            fill: #0f172a !important;
+            opacity: 1 !important;
+        }
+
+        /* Tăng cường độ nét của font MathJax (khắc phục hoàn toàn lỗi nét mảnh hairline trên mobile) */
+        mjx-c {
+            -webkit-text-stroke: 0.35px #0f172a !important;
+            text-shadow: 0 0 0.15px rgba(15, 23, 42, 0.45);
+        }
+
+        /* Đảm bảo toàn bộ chữ nội dung câu hỏi, bảng biểu, công thức luôn tương phản cao rõ nét */
+        #questionContent,
+        #questionContent p,
+        #questionContent span:not([class*="text-"]),
+        #questionContent div:not([class*="text-"]),
+        #answerOptions .flex-1,
+        .solution-box,
+        .solution-box p,
+        .solution-content,
+        .solution-content p,
+        .js-scale-table,
+        .js-scale-table td,
+        .js-scale-table th,
+        #solutionList p {
+            color: #0f172a !important;
+        }
+        .custom-radio:checked + div .check-circle {
+            color: #ffffff !important;
+            background-color: #FF6A00 !important;
+            border-color: #FF6A00 !important;
+        }
+
+        /* 5. Mobile: Căn chỉnh vừa vặn, không thu quá nhỏ làm mất nét */
         @media (max-width: 640px) {
             mjx-container {
-                font-size: 85% !important;
+                font-size: 94% !important; /* Tăng từ 85% lên 94% để nét công thức to rõ */
             }
             mjx-container[display="true"] {
                 max-width: 100vw !important;
-                font-size: 80% !important;
+                font-size: 90% !important;
             }
             #questionContent {
                 padding: 0 !important;
             }
         }
         mjx-assistive-mml { display: none !important; }
+
+        /* [FIX 3] BẢO VỆ CHỐNG SAO CHÉP & IN ẤN CHO GIAO DIỆN LỜI GIẢI */
+        #solutionView, #solutionContentArea {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+        }
+        @media print {
+            #solutionView, #examMain, #questionArea {
+                display: none !important;
+            }
+        }
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Con lăn đẹp và rõ ràng cho Bảng xếp hạng */
+        .custom-lb-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #f59e0b #f1f5f9;
+        }
+        .custom-lb-scrollbar::-webkit-scrollbar {
+            width: 7px;
+        }
+        .custom-lb-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 9999px;
+        }
+        .custom-lb-scrollbar::-webkit-scrollbar-thumb {
+            background: #f59e0b;
+            border-radius: 9999px;
+        }
+        .custom-lb-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #d97706;
+        }
+
+        /* ============================================================
+           BẢNG XẾP HẠNG - ĐẢM BẢO TƯƠNG PHẢN TUYỆT ĐỐI CẢ SÁNG VÀ TỐI
+           ============================================================ */
+        .lb-header-theme {
+            background: linear-gradient(135deg, #b45309 0%, #ea580c 50%, #d97706 100%) !important;
+            color: #ffffff !important;
+        }
+        .lb-header-theme .lb-title {
+            color: #ffffff !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }
+        .lb-header-theme .lb-subtext {
+            color: #fef08a !important;
+            font-weight: 700 !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .lb-header-theme .lb-pill-bg {
+            background-color: rgba(0, 0, 0, 0.35) !important;
+            border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+        }
+        .lb-box-theme {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+        }
+        .lb-item-normal-theme {
+            background-color: #ffffff !important;
+            border: 2px solid #cbd5e1 !important;
+            color: #0f172a !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        }
+        .lb-item-normal-theme:hover {
+            border-color: #94a3b8 !important;
+            background-color: #f8fafc !important;
+        }
+        .lb-item-me-theme {
+            background-color: #fffbeb !important;
+            border: 2px solid #f59e0b !important;
+            color: #78350f !important;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25) !important;
+        }
+        .lb-text-name {
+            color: #0f172a !important;
+            font-weight: 800 !important;
+        }
+        .lb-text-sub {
+            color: #334155 !important;
+            font-weight: 600 !important;
+        }
+        .lb-podium-card {
+            background: linear-gradient(180deg, #fffbeb 0%, #fff7ed 50%, #ffffff 100%) !important;
+            border: 2px solid #fcd34d !important;
+            box-shadow: 0 4px 10px -2px rgba(245, 158, 11, 0.15) !important;
+        }
+        .lb-rank-badge {
+            background-color: #f1f5f9 !important;
+            border: 1.5px solid #cbd5e1 !important;
+            color: #334155 !important;
+            font-weight: 800 !important;
+        }
+        .lb-tab-filter-container {
+            background-color: #e2e8f0 !important;
+            border: 1.5px solid #cbd5e1 !important;
+        }
+        .lb-tab-btn-active {
+            background-color: #ea580c !important;
+            color: #ffffff !important;
+            box-shadow: 0 1px 3px rgba(234, 88, 12, 0.3) !important;
+            font-weight: 800 !important;
+        }
+        .lb-tab-btn-inactive {
+            color: #334155 !important;
+            font-weight: 700 !important;
+        }
+        .lb-tab-btn-inactive:hover {
+            color: #0f172a !important;
+        }
+
+        /* DARK MODE CHO BẢNG XẾP HẠNG */
+        html.dark .lb-box-theme,
+        body.dark .lb-box-theme {
+            background-color: #0b1120 !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+        html.dark .lb-item-normal-theme,
+        body.dark .lb-item-normal-theme {
+            background-color: #1e293b !important;
+            border: 2px solid #334155 !important;
+            color: #f8fafc !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+        }
+        html.dark .lb-item-normal-theme:hover,
+        body.dark .lb-item-normal-theme:hover {
+            background-color: #273549 !important;
+            border-color: #64748b !important;
+        }
+        html.dark .lb-item-me-theme,
+        body.dark .lb-item-me-theme {
+            background-color: #381804 !important;
+            border: 2px solid #f59e0b !important;
+            color: #fef3c7 !important;
+            box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35) !important;
+        }
+        html.dark .lb-text-name,
+        body.dark .lb-text-name {
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        }
+        html.dark .lb-text-sub,
+        body.dark .lb-text-sub {
+            color: #cbd5e1 !important;
+            font-weight: 600 !important;
+        }
+        html.dark .lb-tab-bg,
+        body.dark .lb-tab-bg {
+            background-color: #0f172a !important;
+            border-color: #334155 !important;
+        }
+        html.dark .lb-tab-filter-container,
+        body.dark .lb-tab-filter-container {
+            background-color: #0b1120 !important;
+            border: 1.5px solid #334155 !important;
+        }
+        html.dark .lb-tab-btn-active,
+        body.dark .lb-tab-btn-active {
+            background-color: #ea580c !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+        }
+        html.dark .lb-tab-btn-inactive,
+        body.dark .lb-tab-btn-inactive {
+            color: #94a3b8 !important;
+        }
+        html.dark .lb-tab-btn-inactive:hover,
+        body.dark .lb-tab-btn-inactive:hover {
+            color: #ffffff !important;
+        }
+        html.dark .lb-podium-card,
+        body.dark .lb-podium-card {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+            border: 2px solid #334155 !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+        }
+        html.dark .lb-rank-badge {
+            background-color: #334155 !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+        }
+        html.dark #lbLoading p {
+            color: #cbd5e1 !important;
+        }
+        html.dark #lbEmpty h4 {
+            color: #f8fafc !important;
+        }
+        html.dark #lbEmpty p {
+            color: #94a3b8 !important;
+        }
+        html.dark .custom-lb-scrollbar::-webkit-scrollbar-track,
+        body.dark .custom-lb-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b !important;
+        }
+        html.dark .custom-lb-scrollbar::-webkit-scrollbar-thumb,
+        body.dark .custom-lb-scrollbar::-webkit-scrollbar-thumb {
+            background: #f59e0b !important;
+        }
+        /* CSS CHO BẢNG XẾP HẠNG VẮN TẮT KHI XEM LẠI BÀI TẬP */
+        .lb-hw-card {
+            background-color: #ffffff !important;
+            border: 2px solid #cbd5e1 !important;
+            box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.08) !important;
+        }
+        html.dark .lb-hw-card,
+        body.dark .lb-hw-card {
+            background-color: #0f172a !important;
+            border: 2px solid #334155 !important;
+            color: #f8fafc !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45) !important;
+        }
+
         .custom-radio:checked + div { border-color: #FF6A00; background-color: #FFF7ED; color: #C2410C; font-weight: bold; }
         .custom-radio:checked + div .check-circle { background-color: #FF6A00; border-color: #FF6A00; color: white; }
         
@@ -233,7 +544,8 @@
                 <img id="lobbyLogoImg" src="" class="hidden absolute inset-0 w-full h-full object-contain bg-white rounded-2xl p-2">
             </div>
             
-            <h1 id="lobbyTitle" class="text-3xl font-black text-slate-800 mb-3 tracking-tight relative z-10">Đang tải...</h1>
+            <h1 id="lobbyTitle" class="text-3xl font-black text-slate-800 mb-2 tracking-tight relative z-10">Đang tải...</h1>
+            <div id="lobbyBookOrderBadge" class="hidden relative z-10 inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-xs font-bold mb-3 shadow-xs"><i class="fa-solid fa-book-open text-amber-600"></i> Đề thi theo thứ tự sách in (Không đảo câu & đáp án)</div>
             <div id="accessDeniedMsg" class="hidden relative z-10 bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 mb-4 text-sm font-bold animate-pulse text-left"><i class="fa-solid fa-ban mr-2"></i> Bạn không thuộc lớp được giao đề này!</div>
             
             <div class="relative z-10 bg-gradient-to-br from-blue-50 to-indigo-50/50 p-5 rounded-2xl text-left text-sm text-primary-900 mb-6 space-y-3 border border-primary-100/50 shadow-inner">
@@ -267,19 +579,27 @@
             <button id="btnStartExam" onclick="requestStart()" disabled class="relative z-10 group w-full py-4 bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 cursor-not-allowed overflow-hidden">
                 <span class="relative z-10 flex items-center gap-2"><i class="fa-solid fa-play group-hover:scale-110 transition-transform"></i> Bắt đầu làm bài</span>
             </button>
-            <button onclick="window.location.href='dashboard.html'" class="relative z-10 mt-6 text-slate-400 hover:text-slate-600 text-sm font-bold underline decoration-slate-300 underline-offset-4 transition-colors">Quay lại Dashboard</button>
+            <button id="btnLobbyLeaderboard" onclick="window.openExamLeaderboard()" class="hidden relative z-10 w-full mt-3 py-3.5 bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 text-amber-800 border border-amber-200 font-bold rounded-2xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm transform active:scale-95">
+                <i class="fa-solid fa-trophy text-amber-500"></i> Xem Bảng Xếp Hạng Đề Thi
+            </button>
+            <button onclick="window.goBack()" class="relative z-10 mt-6 text-slate-400 hover:text-slate-600 text-sm font-bold underline decoration-slate-300 underline-offset-4 transition-colors flex items-center justify-center gap-1.5 mx-auto"><i class="fa-solid fa-arrow-left"></i> Quay lại trang trước</button>
         </div>
     </div>
 
     <header id="examHeader" class="bg-white shadow-sm z-20 shrink-0 h-16 flex items-center justify-between px-4 lg:px-8 hidden">
         <div class="flex items-center gap-4">
-            <button onclick="window.history.back()" class="md:hidden text-gray-400"><i class="fa-solid fa-arrow-left"></i></button>
+            <button type="button" onclick="window.handleExamHeaderBack()" class="w-9 h-9 -ml-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full flex items-center justify-center text-base cursor-pointer active:scale-90 transition shrink-0" title="Quay lại">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
             <div id="headerLogoContainer" class="w-10 h-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center font-bold overflow-hidden shrink-0">
                 <i class="fa-solid fa-pen-nib"></i>
             </div>
             <div>
                 <h1 id="examTitle" class="text-sm md:text-lg font-bold text-gray-800 leading-tight truncate max-w-[150px] md:max-w-xs">Bài thi</h1>
-                <p class="text-[10px] md:text-xs text-gray-500">Mã đề: <span id="examIdDisplay">---</span></p>
+                <p class="text-[10px] md:text-xs text-gray-500 flex items-center gap-1.5">
+                    <span>Mã đề: <span id="examIdDisplay">---</span></span>
+                    <span id="headerBookOrderBadge" class="hidden bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0.5 rounded font-bold border border-amber-200"><i class="fa-solid fa-book-open mr-0.5"></i> Sách in</span>
+                </p>
             </div>
         </div>
         <div class="flex items-center gap-3 md:gap-6">
@@ -394,6 +714,8 @@
                         </div>
                         <div id="hwDescDisplay" class="text-gray-700 bg-primary-50 p-4 rounded-xl border border-primary-100 whitespace-pre-wrap font-medium leading-relaxed text-sm"></div>
                     </div>
+                    <!-- BẢNG XẾP HẠNG VẮN TẮT (Chế độ xem lại bài tập) -->
+                    <div id="hwReviewLeaderboardCard" class="hidden lb-hw-card rounded-2xl shadow-xl border border-amber-200/80 mb-6 relative overflow-hidden transition-all"></div>
                     <!-- Bài chấm giáo viên (inject) -->
                     <div id="hwGradedArea"></div>
                     <!-- Iframe file đề (nếu có) -->
@@ -467,7 +789,16 @@
             <div class="p-5 border-b border-gray-200 bg-white flex justify-between items-center shadow-sm">
                 <h3 class="font-bold text-gray-700">Kết quả chi tiết</h3>
                 <button onclick="closeAllSidebars()" class="md:hidden text-gray-400 hover:text-red-500 text-xl px-2"><i class="fa-solid fa-xmark"></i></button>
-                <button onclick="window.location.href='dashboard.html'" class="hidden md:block text-xs font-bold text-gray-500 hover:text-primary-600">Thoát</button>
+                <button onclick="window.goBack()" class="hidden md:block text-xs font-bold text-gray-500 hover:text-primary-600">Thoát</button>
+            </div>
+            <div class="p-3 border-b border-gray-200 bg-gradient-to-r from-amber-50/70 to-orange-50/70">
+                <button onclick="window.openExamLeaderboard()" class="w-full py-2.5 px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-xs flex items-center justify-between text-xs transition-all transform active:scale-95">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-yellow-200 text-sm"></i>
+                        <span>Bảng Xếp Hạng Đề Thi</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-[10px] opacity-80"></i>
+                </button>
             </div>
             <div class="p-4 border-b border-gray-200 bg-white">
                  <h4 class="text-xs font-bold text-primary-600 uppercase mb-2 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử làm bài</h4>
@@ -489,13 +820,30 @@
         <div class="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth bg-gray-100 w-full pb-mobile-nav" id="solutionContentArea">
             <div class="md:hidden mb-4 flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
                  <h3 class="font-bold text-gray-800">Kết quả chi tiết</h3>
-                 <button onclick="window.location.href='dashboard.html'" class="px-3 py-1.5 bg-gray-100 rounded text-xs font-bold">Thoát</button>
+                 <div class="flex items-center gap-2">
+                     <button onclick="window.openExamLeaderboard()" class="px-2.5 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded text-xs font-bold flex items-center gap-1"><i class="fa-solid fa-trophy text-amber-500"></i> BXH</button>
+                     <button onclick="window.goBack()" class="px-3 py-1.5 bg-gray-100 rounded text-xs font-bold">Thoát</button>
+                 </div>
+            </div>
+            <div class="max-w-4xl mx-auto mb-4 hidden md:flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-lg">
+                        <i class="fa-solid fa-trophy"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm">Xem lại bài thi & Bảng xếp hạng</h4>
+                        <p class="text-xs text-gray-400">So sánh điểm số và thứ hạng của bạn với các học sinh khác</p>
+                    </div>
+                </div>
+                <button onclick="window.openExamLeaderboard()" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-xs text-xs flex items-center gap-1.5 transition-all transform active:scale-95">
+                    <i class="fa-solid fa-trophy text-yellow-200"></i> Bảng Xếp Hạng
+                </button>
             </div>
             <div class="max-w-4xl mx-auto space-y-6 pb-20" id="solutionList"></div>
         </div>
 
         <div class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-2 grid grid-cols-3 gap-2 z-30 md:hidden shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] safe-area-bottom">
-            <button onclick="window.location.href='dashboard.html'" class="py-2.5 bg-gray-100 rounded-lg text-gray-600 font-bold text-sm">Thoát</button>
+            <button onclick="window.goBack()" class="py-2.5 bg-gray-100 rounded-lg text-gray-600 font-bold text-sm">Thoát</button>
             <button onclick="toggleMobilePalette('solutionSidebar')" class="py-2.5 bg-primary-50 text-primary-600 rounded-lg font-bold border border-primary-100"><i class="fa-solid fa-list-ol"></i> DS</button>
             <button onclick="document.getElementById('solutionContentArea').scrollTo({top:0, behavior:'smooth'})" class="py-2.5 bg-gray-100 rounded-lg text-gray-600 font-bold"><i class="fa-solid fa-arrow-up"></i> Lên</button>
         </div>
@@ -537,10 +885,122 @@
                 <div class="text-6xl font-black text-orange-custom" id="scoreDisplay">--</div>
                 <div class="text-sm text-gray-500 mt-2 font-medium">Đúng: <span id="correctCount">--</span>/<span id="totalCount">--</span></div>
             </div>
+            <!-- Vị trí xếp hạng tóm tắt sau khi nộp -->
+            <div id="resultRankSnippet" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-xs flex items-center justify-between shadow-xs">
+                <span class="text-amber-800 font-bold flex items-center gap-1.5"><i class="fa-solid fa-trophy text-amber-500"></i> Xếp hạng của bạn:</span>
+                <span id="resultRankBadge" class="font-black text-amber-700 bg-amber-200/80 px-2 py-0.5 rounded-full">--</span>
+            </div>
             <div class="space-y-3">
+                <button id="btnOpenLeaderboardFromResult" onclick="window.openExamLeaderboard()" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-bold shadow-md shadow-amber-200 transition-all flex items-center justify-center gap-2 text-sm transform active:scale-95"><i class="fa-solid fa-trophy text-yellow-100"></i> Xem Bảng Xếp Hạng</button>
                 <button id="btnViewSolution" onclick="viewDetailSolutions()" class="w-full py-3 rounded-xl bg-orange-100 text-orange-600 font-bold hover:bg-orange-200 transition-colors hidden"><i class="fa-solid fa-eye mr-2"></i> Xem lời giải chi tiết</button>
                 <button onclick="returnToContext()" id="btnBackContext" class="w-full py-3 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700 shadow-lg shadow-primary-200 transition-colors">Về trang chủ</button>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL BẢNG XẾP HẠNG HỌC SINH -->
+    <div id="examLeaderboardModal" class="fixed inset-0 z-[80] flex items-center justify-center bg-gray-900 bg-opacity-75 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300 p-2 sm:p-4 overflow-hidden">
+        <div class="lb-box-theme rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-xl md:max-w-2xl h-[86vh] max-h-[660px] flex flex-col overflow-hidden transform scale-95 transition-transform duration-300 border border-gray-200/60 relative" id="examLeaderboardBox">
+            
+            <!-- Header Bảng Xếp Hạng Gọn Gàng (Tương phản cao 100%) -->
+            <div class="lb-header-theme relative px-4 py-3 md:px-5 md:py-3.5 text-white shrink-0 overflow-hidden shadow-sm">
+                <div class="absolute -right-8 -top-8 w-28 h-28 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+                <div class="absolute -left-8 -bottom-8 w-28 h-28 bg-yellow-300/20 rounded-full blur-xl pointer-events-none"></div>
+
+                <div class="flex items-center justify-between relative z-10">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-inner border border-white/30 text-yellow-200 shrink-0">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <h3 class="text-base md:text-lg font-black tracking-tight text-white leading-tight">BẢNG XẾP HẠNG</h3>
+                                <span class="bg-yellow-300 text-yellow-950 text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full shadow-xs shrink-0">Top Thí Sinh</span>
+                            </div>
+                            <p class="lb-subtext text-[11px] md:text-xs truncate mt-0.5 font-medium max-w-[240px] md:max-w-[400px]" id="lbExamTitle">Đang tải tên bài thi...</p>
+                        </div>
+                    </div>
+                    <button onclick="window.closeExamLeaderboard()" class="w-7 h-7 rounded-full bg-black/25 hover:bg-black/45 flex items-center justify-center text-white text-xs transition-colors shrink-0" title="Đóng">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Thống kê nhanh (Pills) gọn -->
+                <div class="grid grid-cols-3 gap-2 mt-2.5 pt-2 border-t border-white/20 text-center text-xs relative z-10">
+                    <div class="lb-pill-bg backdrop-blur-sm rounded-lg py-1 px-1.5">
+                        <span class="lb-subtext text-[9px] uppercase font-bold block">Thí sinh</span>
+                        <span id="lbTotalStudents" class="font-black text-xs md:text-sm text-white">--</span>
+                    </div>
+                    <div class="lb-pill-bg backdrop-blur-sm rounded-lg py-1 px-1.5">
+                        <span class="lb-subtext text-[9px] uppercase font-bold block">Điểm cao nhất</span>
+                        <span id="lbTopScore" class="font-black text-xs md:text-sm text-yellow-200">--</span>
+                    </div>
+                    <div class="lb-pill-bg backdrop-blur-sm rounded-lg py-1 px-1.5">
+                        <span class="lb-subtext text-[9px] uppercase font-bold block">Điểm trung bình</span>
+                        <span id="lbAvgScore" class="font-black text-xs md:text-sm text-white">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab bộ lọc -->
+            <div class="lb-tab-bg px-3.5 py-1.5 md:py-2 bg-white border-b border-gray-100 flex items-center justify-between gap-2 shrink-0 flex-wrap">
+                <div class="lb-tab-filter-container flex items-center gap-1 p-0.5 rounded-lg text-xs font-bold">
+                    <button id="lbFilterBtn_best" onclick="window.setLeaderboardFilter('best')" class="lb-tab-btn-active px-2.5 py-1 rounded-md transition-all font-bold text-[11px] md:text-xs">
+                        <i class="fa-solid fa-star text-yellow-300 mr-1"></i>Điểm cao nhất
+                    </button>
+                    <button id="lbFilterBtn_first" onclick="window.setLeaderboardFilter('first')" class="lb-tab-btn-inactive px-2.5 py-1 rounded-md transition-all font-bold text-[11px] md:text-xs">
+                        <i class="fa-solid fa-flag mr-1"></i>Lần đầu
+                    </button>
+                    <button id="lbFilterBtn_all" onclick="window.setLeaderboardFilter('all')" class="lb-tab-btn-inactive px-2.5 py-1 rounded-md transition-all font-bold text-[11px] md:text-xs">
+                        <i class="fa-solid fa-list mr-1"></i>Tất cả
+                    </button>
+                </div>
+                <div class="text-[11px] text-gray-500 dark:text-gray-400 font-bold flex items-center gap-1 cursor-pointer hover:text-amber-600 dark:hover:text-amber-400 transition" onclick="window.openExamLeaderboard(true)" title="Tải lại dữ liệu">
+                    <i class="fa-solid fa-rotate"></i><span class="hidden sm:inline">Làm mới</span>
+                </div>
+            </div>
+
+            <!-- Nội dung cuộn: Bục Top 3 & Danh sách có con lăn rõ ràng -->
+            <div class="flex-1 min-h-0 overflow-y-auto px-3 py-2.5 md:px-4 md:py-3 space-y-2.5 custom-lb-scrollbar" id="lbScrollContainer">
+                
+                <!-- Khu vực Top 3 Podium (Bục Vinh Quang gọn gàng, Top 1 cao vượt trội) -->
+                <div id="lbPodiumArea" class="hidden">
+                    <div class="lb-podium-card rounded-2xl p-2.5 sm:p-3 md:p-4 pt-3.5 sm:pt-4 shadow-sm">
+                        <div class="grid grid-cols-3 gap-1.5 sm:gap-2 items-end max-w-md mx-auto">
+                            <div id="podium2" class="flex flex-col items-center text-center"></div>
+                            <div id="podium1" class="flex flex-col items-center text-center"></div>
+                            <div id="podium3" class="flex flex-col items-center text-center"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danh sách xếp hạng -->
+                <div>
+                    <div class="text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5 flex items-center justify-between px-1">
+                        <span>Danh Sách Thí Sinh</span>
+                        <span id="lbShowingCount" class="text-[11px] font-normal text-gray-400"></span>
+                    </div>
+                    <div id="lbListContainer" class="space-y-1.5"></div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="lbLoading" class="text-center py-8 text-gray-400 space-y-2">
+                    <i class="fa-solid fa-circle-notch fa-spin text-2xl text-amber-500"></i>
+                    <p class="text-xs font-bold text-gray-500">Đang tải bảng xếp hạng...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="lbEmpty" class="hidden text-center py-8 px-4 space-y-2">
+                    <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-700 text-xs md:text-sm">Chưa có ai nộp bài</h4>
+                    <p class="text-[11px] text-gray-400 max-w-xs mx-auto">Hãy hoàn thành bài để là người đầu tiên ghi danh lên bảng vàng nhé!</p>
+                </div>
+            </div>
+
+            <!-- Footer: Thanh ghim Vị trí của tôi (Sticky My Rank) -->
+            <div id="lbMyRankFooter" class="hidden px-3.5 py-2 md:py-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shrink-0 shadow-md"></div>
         </div>
     </div>
 
@@ -572,6 +1032,29 @@
         const app = initializeApp({}); 
         const auth = getAuth(app); 
         const db = getFirestore(app);
+        
+        const isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+            (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
+        const isStandaloneApp = (navigator.standalone === true) || 
+            (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+            (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches);
+        const isIosInstalledApp = isAppleDevice && isStandaloneApp;
+        if (!isIosInstalledApp && !isStandaloneApp) enableMultiTabIndexedDbPersistence(db).catch(() => {});
+        
+        // Nếu URL có tham số view=leaderboard, mở modal BXH ngay lập tức để không bị lộ màn hình sảnh (Lobby)
+        if (new URLSearchParams(window.location.search).get('view') === 'leaderboard') {
+            const lbMod = document.getElementById('examLeaderboardModal');
+            if (lbMod) {
+                lbMod.classList.remove('hidden');
+                lbMod.classList.remove('opacity-0');
+                const lbB = document.getElementById('examLeaderboardBox');
+                if (lbB) {
+                    lbB.classList.remove('scale-95');
+                    lbB.classList.add('scale-100');
+                }
+            }
+        }
 
         let currentUser, examData, examId;
         let currentQuestions = [], userAnswers = {}, flaggedQuestions = {};
@@ -649,6 +1132,11 @@
             if (user) {
                 currentUser = user; 
                 if(typeof loadSiteLogo === 'function') loadSiteLogo(); 
+                if (urlParams.get('view') === 'leaderboard') {
+                    if (typeof window.openExamLeaderboard === 'function') {
+                        window.openExamLeaderboard();
+                    }
+                }
                 if (examId) loadLobbyData(examId); else { window.customAlert("Không tìm thấy ID đề thi!", "error"); window.location.href = "student.html"; }
             } else {
                 if (examId) sessionStorage.setItem('pendingExamUrl', window.location.href);
@@ -666,6 +1154,16 @@
                 const docSnap = await getDoc(doc(db, "exams", id));
                 if (!docSnap.exists()) { document.getElementById('lobbyTitle').innerText = "Đề thi không tồn tại!"; return; }
                 examData = { id: docSnap.id, ...docSnap.data() }; 
+                if (window.QMathSecurity) {
+                    window.QMathSecurity.setContext({
+                        examId: id,
+                        antiScreenshot: examData.antiScreenshot,
+                        zone: 'examRoom'
+                    });
+                }
+                if (examData.keepOriginalOrder === true || examData.keepOriginalOrder === 'true') {
+                    examData.shuffle = false;
+                } 
                 
                 const urlParamsCheck = new URLSearchParams(window.location.search);
                 const courseIdOverride = urlParamsCheck.get('courseId');
@@ -675,6 +1173,12 @@
                         const cSnap = await getDoc(doc(db, "public_courses", courseIdOverride));
                         if (cSnap.exists()) {
                             const cData = cSnap.data();
+                            if (window.QMathSecurity && cData.antiScreenshot !== undefined) {
+                                window.QMathSecurity.setContext({
+                                    courseId: courseIdOverride,
+                                    antiScreenshot: (examData.antiScreenshot === false || cData.antiScreenshot === false) ? false : true
+                                });
+                            }
                             let foundItem = null;
                             if (cData.curriculum && Array.isArray(cData.curriculum)) {
                                 for (const chap of cData.curriculum) {
@@ -801,6 +1305,12 @@
                 }
 
                 document.getElementById('lobbyTitle').innerText = examData.title || "Bài thi";
+                const isKeepOrderExam = examData.keepOriginalOrder === true || examData.keepOriginalOrder === 'true';
+                const lobbyBadge = document.getElementById('lobbyBookOrderBadge');
+                if (lobbyBadge) {
+                    if (isKeepOrderExam) lobbyBadge.classList.remove('hidden');
+                    else lobbyBadge.classList.add('hidden');
+                }
                 if(document.getElementById('lobbyDuration')) document.getElementById('lobbyDuration').innerText = examData.duration || '--';
                 if(document.getElementById('lobbyAttempts')) document.getElementById('lobbyAttempts').innerText = att;
                 if(document.getElementById('lobbyMaxAttempts')) document.getElementById('lobbyMaxAttempts').innerText = examData.attempts || '∞';
@@ -849,6 +1359,23 @@
                         btnStart.disabled = true;
                         btnStart.classList.add('bg-gray-300', 'cursor-not-allowed', 'text-gray-500');
                         btnStart.innerHTML = `<i class="fa-solid fa-ban"></i> ${msg}`;
+                    }
+                }
+
+                // Hiển thị nút Bảng Xếp Hạng tại sảnh Lobby nếu học sinh đã từng làm đề
+                const btnLobbyLb = document.getElementById('btnLobbyLeaderboard');
+                if (btnLobbyLb) {
+                    if (att > 0) {
+                        btnLobbyLb.classList.remove('hidden');
+                    } else {
+                        btnLobbyLb.classList.add('hidden');
+                    }
+                }
+
+                // Tự động mở Bảng Xếp Hạng nếu trên URL có tham số view=leaderboard
+                if (urlParams.get('view') === 'leaderboard') {
+                    if (typeof window.openExamLeaderboard === 'function') {
+                        window.openExamLeaderboard();
                     }
                 }
             } catch (error) { console.error("Lỗi tải đề:", error); document.getElementById('lobbyTitle').innerText = "Lỗi tải dữ liệu!"; }
@@ -927,7 +1454,7 @@
                     userAnswers = {};
                     localStorage.removeItem(`ans_${currentUser.uid}_${examId}`);
                     localStorage.removeItem(`examConfig_${currentUser.uid}_${examId}`);
-                    setTimeout(() => { window.location.href = "dashboard.html"; }, 2500);
+                    setTimeout(() => { window.goBack(); }, 2500);
                     return;
                 }
             }
@@ -955,6 +1482,16 @@
 
             dom.lobby.classList.add('hidden'); dom.header.classList.remove('hidden'); dom.main.classList.remove('hidden');
             
+            const isKeepOrderExam = examData.keepOriginalOrder === true || examData.keepOriginalOrder === 'true';
+            if (isKeepOrderExam) {
+                examData.shuffle = false;
+            }
+            const headerBookBadge = document.getElementById('headerBookOrderBadge');
+            if (headerBookBadge) {
+                if (isKeepOrderExam) headerBookBadge.classList.remove('hidden');
+                else headerBookBadge.classList.add('hidden');
+            }
+
             let rawQuestions = JSON.parse(JSON.stringify(examData.questions || []));
             const shuffleConfigKey = `examConfig_${currentUser.uid}_${examId}`;
             // Lượt làm mới phải tạo một cấu hình mới, nhưng không được xóa nó sau
@@ -1156,7 +1693,9 @@
                 if (q.dangTitle) {
                     subtitle = `<div class="text-[11px] font-normal text-purple-600 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded mt-1.5 shadow-sm inline-block"><i class="fa-solid fa-layer-group mr-1.5 text-purple-500"></i>Dạng ${q.dangIndex}: ${q.dangTitle}</div>`;
                 }
-                qNumHeader.innerHTML = `Câu số <span id="currentQNum">${idx + 1}</span> <br> ${subtitle}`;
+                const cccdCode = q.cccd || (q.bankId && /^\d+$/.test(q.bankId) ? q.bankId : (/^\d+$/.test(q.id) ? q.id : ''));
+                const cccdBadge = cccdCode ? `<span class="inline-block text-xs font-mono text-gray-500 font-semibold bg-gray-100 border border-gray-200 px-2 py-0.5 rounded ml-2 select-all" title="Mã CCCD câu hỏi (Dùng để tra cứu lời giải hoặc báo lỗi)">#${cccdCode}</span>` : '';
+                qNumHeader.innerHTML = `Câu số <span id="currentQNum">${idx + 1}</span> ${cccdBadge} <br> ${subtitle}`;
                 dom.badge.textContent = q.type==='mc'?'TRẮC NGHIỆM':(q.type==='tf'?'ĐÚNG/SAI':(q.type==='short'?'TRẢ LỜI NGẮN':'TỰ LUẬN'));
                 dom.badge.className = "inline-block px-3 py-1 bg-primary-50 text-primary-600 rounded-lg text-xs font-bold uppercase tracking-wider mb-1";
             }
@@ -1757,6 +2296,7 @@ const shortMatch = (a, b) => {
                 classId: detectedClassId, // <--- Đã thêm trường này
                 studentId: currentUser.uid, 
                 studentName: currentUser.displayName || currentUser.email, 
+                studentPhotoURL: currentUser.photoURL || null, 
                 score, 
                 answers: userAnswers, 
                 shuffleConfig: savedConfig, 
@@ -1858,7 +2398,13 @@ const shortMatch = (a, b) => {
                 }
                 
                 document.getElementById('resultModal').classList.remove('hidden');
-                setTimeout(() => { document.getElementById('resultModal').classList.remove('opacity-0'); document.getElementById('resultModalContent').classList.add('scale-100'); }, 50);
+                setTimeout(() => { 
+                    document.getElementById('resultModal').classList.remove('opacity-0'); 
+                    document.getElementById('resultModalContent').classList.add('scale-100'); 
+                    if (typeof window.refreshMyRankSnippet === 'function') {
+                        window.refreshMyRankSnippet();
+                    }
+                }, 50);
             } catch(e) { window.customAlert("Lỗi lưu bài: "+e.message, "error"); }
         }
 
@@ -1971,6 +2517,14 @@ const shortMatch = (a, b) => {
                 }
             } else {
                 console.error("LỖI: Không tìm thấy bảng lịch sử (id='historyTableBody')");
+            }
+
+            // Mở Bảng Xếp Hạng nếu trên URL có tham số view=leaderboard
+            const urlParamsSol = new URLSearchParams(window.location.search);
+            if (urlParamsSol.get('view') === 'leaderboard') {
+                if (typeof window.openExamLeaderboard === 'function') {
+                    window.openExamLeaderboard();
+                }
             }
         };
 
@@ -2156,7 +2710,7 @@ const shortMatch = (a, b) => {
             if(window.MathJax) { MathJax.typesetPromise([list]).then(() => { if(window.renderTikz) window.renderTikz(); if(window.autoScaleTables) window.autoScaleTables(); }).catch(()=>{}); }
         };
 
-        window.returnToContext = () => { const urlParams = new URLSearchParams(window.location.search); const courseId = urlParams.get('courseId'); const modes = urlParams.getAll('mode'); const isCourseContext = modes.includes('course') || modes.includes('practice') || !!courseId; if (isCourseContext && courseId) { window.location.href = `course-player.html?id=${courseId}`; } else { window.location.href = 'dashboard.html'; } };
+        window.returnToContext = () => { const urlParams = new URLSearchParams(window.location.search); const courseId = urlParams.get('courseId'); const modes = urlParams.getAll('mode'); const isCourseContext = modes.includes('course') || modes.includes('practice') || !!courseId; if (isCourseContext && courseId) { window.location.href = `course-player.html?id=${encodeURIComponent(courseId)}`; } else { window.goBack(); } };
         const urlParamsTest = new URLSearchParams(window.location.search); if (urlParamsTest.get('courseId') && document.getElementById('btnBackContext')) { document.getElementById('btnBackContext').innerText = "Quay lại bài học"; }
 
         document.getElementById('prevBtn').onclick = () => { if(currentIndex > 0) renderQuestion(currentIndex - 1); };
@@ -2513,13 +3067,14 @@ const shortMatch = (a, b) => {
             if (!window.isReviewMode) return;
             
             const reviewButtonsHtml = `
-                <button onclick="window.location.href='dashboard.html'" class="flex-1 py-2.5 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-2 shadow-md transition-all"><i class="fa-solid fa-arrow-left"></i> Quay lại</button>
-                <button onclick="window.requestResubmit()" class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-2 shadow-md transition-all"><i class="fa-solid fa-rotate-right"></i> Xin làm lại</button>
+                <button onclick="window.goBack()" class="flex-1 py-2.5 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-1.5 shadow-md transition-all text-xs"><i class="fa-solid fa-arrow-left"></i> Quay lại</button>
+                <button onclick="window.openExamLeaderboard()" class="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-1.5 shadow-md transition-all text-xs"><i class="fa-solid fa-trophy text-yellow-200"></i> BXH</button>
+                <button onclick="window.requestResubmit()" class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-1.5 shadow-md transition-all text-xs"><i class="fa-solid fa-rotate-right"></i> Xin làm lại</button>
             `;
             
             // 1. Header Submit (Standard Mode)
             const headerSubmit = document.querySelector('header button[onclick="checkFinish()"]');
-            if (headerSubmit) headerSubmit.outerHTML = reviewButtonsHtml.replace(/flex-1/g, 'px-4').replace(/py-2.5/g, 'py-2');
+            if (headerSubmit) headerSubmit.outerHTML = reviewButtonsHtml.replace(/flex-1/g, 'px-3').replace(/py-2.5/g, 'py-2');
             
             // 2. Sidebar Submit (Standard Mode)
             const sidebarSubmit = document.querySelector('aside button[onclick="checkFinish()"]');
@@ -2537,7 +3092,7 @@ const shortMatch = (a, b) => {
             // 4. Mobile Footer (Homework Mode)
             const hwMobileArea = document.getElementById('hwMobileActionArea');
             if (hwMobileArea) {
-                hwMobileArea.className = "w-full flex gap-2";
+                hwMobileArea.className = "w-full flex gap-1.5";
                 hwMobileArea.innerHTML = reviewButtonsHtml;
             }
             
@@ -2548,10 +3103,15 @@ const shortMatch = (a, b) => {
                 let statusHtml2 = '';
                 if (!r.gradedAt) statusHtml2 = `<div class="bg-gray-100 border border-gray-300 text-gray-700 p-4 rounded-xl mb-4 font-bold flex items-center gap-3"><i class="fa-solid fa-clock text-2xl text-orange-500"></i> Chờ giáo viên chấm bài...</div>`;
                 
-                hwFinalSubmit.innerHTML = statusHtml2 + `<div class="flex gap-4">
-                    <button onclick="window.location.href='dashboard.html'" class="flex-1 py-4 bg-gray-600 hover:bg-gray-700 text-white rounded-2xl font-black text-lg shadow-xl transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-left"></i> QUAY LẠI</button>
-                    <button onclick="window.requestResubmit()" class="flex-1 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-lg shadow-xl transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-rotate-right"></i> XIN LÀM LẠI</button>
+                hwFinalSubmit.innerHTML = statusHtml2 + `<div class="flex flex-wrap gap-3">
+                    <button onclick="window.goBack()" class="flex-1 min-w-[140px] py-3.5 bg-gray-600 hover:bg-gray-700 text-white rounded-2xl font-black text-sm md:text-base shadow-xl transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-left"></i> QUAY LẠI</button>
+                    <button onclick="window.openExamLeaderboard()" class="flex-1 min-w-[140px] py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-2xl font-black text-sm md:text-base shadow-xl transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-trophy text-yellow-200"></i> BẢNG XẾP HẠNG</button>
+                    <button onclick="window.requestResubmit()" class="flex-1 min-w-[140px] py-3.5 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-sm md:text-base shadow-xl transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-rotate-right"></i> XIN LÀM LẠI</button>
                 </div>`;
+            }
+
+            if (typeof window.renderHomeworkLeaderboardSnippet === 'function') {
+                window.renderHomeworkLeaderboardSnippet();
             }
         };
 
@@ -2660,9 +3220,10 @@ const shortMatch = (a, b) => {
             if (actionArea) {
                 if (window.isReviewMode) {
                     actionArea.innerHTML = `
-                        <button onclick="window.location.href='dashboard.html'" class="w-full py-2.5 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-2 shadow-md transition-all"><i class="fa-solid fa-arrow-left"></i> Quay lại</button>
-                        <button onclick="window.requestResubmit()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-2 shadow-md transition-all mt-2"><i class="fa-solid fa-rotate-right"></i> Xin làm lại</button>
-                        <button id="toggleHwPdfViewBtn" onclick="window.toggleHwPdfView()" class="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-2 shadow-md transition-all mt-2"><i class="fa-solid fa-file-pdf"></i> Đổi giao diện làm bài</button>
+                        <button onclick="window.goBack()" class="w-full py-2.5 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-2 shadow-md transition-all text-xs"><i class="fa-solid fa-arrow-left"></i> Quay lại</button>
+                        <button onclick="window.openExamLeaderboard()" class="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-2 shadow-md transition-all mt-2 text-xs"><i class="fa-solid fa-trophy text-yellow-200"></i> Bảng xếp hạng</button>
+                        <button onclick="window.requestResubmit()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-2 shadow-md transition-all mt-2 text-xs"><i class="fa-solid fa-rotate-right"></i> Xin làm lại</button>
+                        <button id="toggleHwPdfViewBtn" onclick="window.toggleHwPdfView()" class="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg uppercase flex items-center justify-center gap-2 shadow-md transition-all mt-2 text-xs"><i class="fa-solid fa-file-pdf"></i> Đổi giao diện làm bài</button>
                     `;
                 } else {
                     actionArea.innerHTML = `
@@ -2927,6 +3488,7 @@ const shortMatch = (a, b) => {
             if (window.updateHomeworkPalette) window.updateHomeworkPalette();
 
             if (window.updateActionButtonsUI) window.updateActionButtonsUI();
+            if (typeof window.renderHomeworkLeaderboardSnippet === 'function') window.renderHomeworkLeaderboardSnippet();
             if (window.MathJax) setTimeout(() => {
                 try { MathJax.typesetPromise([document.getElementById('homeworkMain')]); } catch(e) {}
             }, 150);
@@ -3112,6 +3674,7 @@ window.requestResubmit = async () => {
 
                 const resultData = { 
                     examId, classId: detectedClassId, studentId: currentUser.uid, studentName: currentUser.displayName || currentUser.email,
+                    studentPhotoURL: currentUser.photoURL || null,
                     email: currentUser.email || "", 
                     score: score, mcScore: score, answers: resultAnswers, briefNotes: window.briefNotes || {},
                     cheatCount: 0, correctCount: correctCount, totalQuestions: totalQuestions, 
@@ -3311,7 +3874,13 @@ window.requestResubmit = async () => {
                 document.getElementById('btnViewSolution').classList.add('hidden'); 
                 
                 document.getElementById('resultModal').classList.remove('hidden');
-                setTimeout(() => { document.getElementById('resultModal').classList.remove('opacity-0'); document.getElementById('resultModalContent').classList.add('scale-100'); }, 50);
+                setTimeout(() => { 
+                    document.getElementById('resultModal').classList.remove('opacity-0'); 
+                    document.getElementById('resultModalContent').classList.add('scale-100'); 
+                    if (typeof window.refreshMyRankSnippet === 'function') {
+                        window.refreshMyRankSnippet();
+                    }
+                }, 50);
 
             } catch(e) {
                 window.customAlert("Lỗi nộp bài: " + e.message, "error");
@@ -3820,6 +4389,787 @@ window.requestResubmit = async () => {
                 }, 250);
             }
         };
+
+        // ============================================================
+        // --- BẢNG XẾP HẠNG HỌC SINH (EXAM LEADERBOARD) ---
+        // ============================================================
+        window.cachedExamResults = null;
+        window.cachedExamResultsExamId = null;
+        window.currentLbFilter = 'best';
+        window.studentAvatarCache = window.studentAvatarCache || {};
+
+        function formatLeaderboardDuration(sec) {
+            if (!sec || isNaN(sec)) return '--';
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            if (m === 0) return `${s}s`;
+            return `${m}p ${s < 10 ? '0' : ''}${s}s`;
+        }
+
+        function formatLeaderboardDate(iso) {
+            if (!iso) return '';
+            try {
+                const d = new Date(iso);
+                return `${d.getDate()}/${d.getMonth() + 1} ${d.getHours()}:${d.getMinutes() < 10 ? '0' : ''}${d.getMinutes()}`;
+            } catch (_) { return ''; }
+        }
+
+        function getStudentInitials(name) {
+            if (!name) return 'HS';
+            const parts = name.trim().split(/\s+/);
+            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+
+        const lbColors = [
+            'bg-blue-500', 'bg-indigo-500', 'bg-purple-500', 'bg-pink-500',
+            'bg-teal-500', 'bg-emerald-500', 'bg-amber-600', 'bg-cyan-600'
+        ];
+        function getAvatarBg(name) {
+            let hash = 0;
+            for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            return lbColors[Math.abs(hash) % lbColors.length];
+        }
+
+        // Tải trước avatar của học sinh từ Firestore users/{uid}
+        async function prefetchStudentAvatars(results) {
+            if (!results || !results.length) return;
+            const uidsToFetch = [];
+            
+            results.forEach(r => {
+                const uid = r.studentId;
+                if (!uid) return;
+                if (r.studentPhotoURL) {
+                    window.studentAvatarCache[uid] = r.studentPhotoURL;
+                    return;
+                }
+                if (typeof currentUser !== 'undefined' && currentUser?.uid === uid && currentUser?.photoURL) {
+                    window.studentAvatarCache[uid] = currentUser.photoURL;
+                    return;
+                }
+                if (window.studentAvatarCache[uid] === undefined) {
+                    uidsToFetch.push(uid);
+                }
+            });
+
+            const uniqueUids = Array.from(new Set(uidsToFetch)).slice(0, 25);
+            if (uniqueUids.length === 0) return;
+
+            try {
+                await Promise.all(uniqueUids.map(async (uid) => {
+                    try {
+                        const uSnap = await getDoc(doc(db, "users", uid));
+                        if (uSnap.exists()) {
+                            const uData = uSnap.data();
+                            window.studentAvatarCache[uid] = uData.photoURL || null;
+                        } else {
+                            window.studentAvatarCache[uid] = null;
+                        }
+                    } catch (_) {
+                        window.studentAvatarCache[uid] = null;
+                    }
+                }));
+            } catch (_) {}
+        }
+
+        // Render Avatar thông minh: ưu tiên ảnh đại diện thật (photoURL), tự động fallback sang chữ cái nếu không có ảnh
+        function renderStudentAvatar(name, studentId, sizeClass = 'w-9 h-9', ringClass = '', medal = '') {
+            const initials = getStudentInitials(name);
+            const avatarBg = getAvatarBg(name);
+            const avatarUrl = (studentId && window.studentAvatarCache[studentId]) || 
+                              (typeof currentUser !== 'undefined' && currentUser?.uid === studentId && currentUser?.photoURL ? currentUser.photoURL : null);
+            
+            let imgOrInitials = '';
+            if (avatarUrl) {
+                imgOrInitials = `
+                    <img src="${avatarUrl}" alt="${name}" 
+                         class="w-full h-full object-cover rounded-xl" 
+                         onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" />
+                    <div class="w-full h-full rounded-xl ${avatarBg} text-white font-black flex items-center justify-center text-xs md:text-sm" style="display:none;">
+                        ${initials}
+                    </div>
+                `;
+            } else {
+                imgOrInitials = `
+                    <div class="w-full h-full rounded-xl ${avatarBg} text-white font-black flex items-center justify-center text-xs md:text-sm">
+                        ${initials}
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="relative shrink-0">
+                    <div class="${sizeClass} rounded-xl overflow-hidden shadow-md flex items-center justify-center ${ringClass} bg-slate-100 dark:bg-slate-800">
+                        ${imgOrInitials}
+                    </div>
+                    ${medal ? `<span class="absolute -bottom-1 -right-1 text-sm md:text-base leading-none drop-shadow-md select-none">${medal}</span>` : ''}
+                </div>
+            `;
+        }
+
+        function computeLeaderboard(results, currentUserId, filter = 'best') {
+            if (!results || results.length === 0) {
+                return { list: [], top3: [], stats: { total: 0, max: '--', avg: '--' }, myRank: null };
+            }
+
+            const myUid = currentUserId || (typeof currentUser !== 'undefined' ? currentUser?.uid : null);
+            const myEmail = (typeof currentUser !== 'undefined' ? currentUser?.email?.toLowerCase() : null);
+            const checkIsMe = (r) => {
+                if (myUid && r.studentId === myUid) return true;
+                if (myEmail && r.email && r.email.toLowerCase() === myEmail) return true;
+                return false;
+            };
+
+            const sanitizeName = (r) => {
+                if (r.studentName && String(r.studentName).trim()) return String(r.studentName).trim();
+                if (r.email) return r.email.split('@')[0];
+                return 'Học sinh';
+            };
+
+            let items = [];
+
+            if (filter === 'all') {
+                items = results.map(r => ({
+                    ...r,
+                    studentName: sanitizeName(r),
+                    score: parseFloat(r.score) || 0,
+                    duration: parseInt(r.duration) || 0,
+                    isCurrentUser: checkIsMe(r)
+                }));
+            } else if (filter === 'first') {
+                const studentFirstMap = {};
+                const sortedAsc = [...results].sort((a, b) => new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0));
+                sortedAsc.forEach(r => {
+                    const key = r.studentId || r.studentName || r.id;
+                    if (!studentFirstMap[key]) {
+                        studentFirstMap[key] = {
+                            ...r,
+                            studentName: sanitizeName(r),
+                            score: parseFloat(r.score) || 0,
+                            duration: parseInt(r.duration) || 0,
+                            isCurrentUser: checkIsMe(r)
+                        };
+                    }
+                });
+                items = Object.values(studentFirstMap);
+            } else { // 'best'
+                const studentBestMap = {};
+                results.forEach(r => {
+                    const key = r.studentId || r.studentName || r.id;
+                    const score = parseFloat(r.score) || 0;
+                    const duration = parseInt(r.duration) || 0;
+                    const isMe = checkIsMe(r);
+                    const item = {
+                        ...r,
+                        studentName: sanitizeName(r),
+                        score,
+                        duration,
+                        isCurrentUser: isMe
+                    };
+
+                    if (!studentBestMap[key]) {
+                        studentBestMap[key] = { ...item, attemptsCount: 1 };
+                    } else {
+                        studentBestMap[key].attemptsCount = (studentBestMap[key].attemptsCount || 1) + 1;
+                        const prev = studentBestMap[key];
+                        let isBetter = false;
+                        if (score > prev.score) isBetter = true;
+                        else if (score === prev.score) {
+                            if (duration > 0 && prev.duration > 0 && duration < prev.duration) isBetter = true;
+                            else if (duration === prev.duration && new Date(r.submittedAt || 0) < new Date(prev.submittedAt || 0)) isBetter = true;
+                        }
+                        if (isBetter) {
+                            studentBestMap[key] = { ...item, attemptsCount: studentBestMap[key].attemptsCount };
+                        }
+                    }
+                });
+                items = Object.values(studentBestMap);
+            }
+
+            // Sắp xếp: Điểm cao -> Thời gian làm ít -> Nộp sớm hơn
+            items.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                if (a.duration && b.duration && a.duration !== b.duration) return a.duration - b.duration;
+                return new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0);
+            });
+
+            // Gán số thứ tự hạng (Rank)
+            items.forEach((item, index) => {
+                item.rank = index + 1;
+            });
+
+            const scores = items.map(i => i.score);
+            const max = scores.length ? Math.max(...scores) : 0;
+            const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 0;
+
+            const myRankItem = items.find(i => i.isCurrentUser);
+
+            return {
+                list: items,
+                top3: items.slice(0, 3),
+                stats: { total: items.length, max, avg },
+                myRank: myRankItem ? { ...myRankItem } : null
+            };
+        }
+
+        // --- KHU VỰC HIỂN THỊ BẢNG XẾP HẠNG VẮN TẮT KHI XEM LẠI BÀI TẬP (IMAGE 4) ---
+        window.renderHomeworkLeaderboardSnippet = async () => {
+            const card = document.getElementById('hwReviewLeaderboardCard');
+            if (!card) return;
+            if (!window.isReviewMode) {
+                card.classList.add('hidden');
+                return;
+            }
+            card.classList.remove('hidden');
+
+            const targetExamId = examId || window.currentExamId || new URLSearchParams(window.location.search).get('id');
+            if (!targetExamId) return;
+
+            // Hiển thị khung chờ khi chưa có cache
+            if (!window.cachedExamResults || window.cachedExamResultsExamId !== targetExamId) {
+                card.innerHTML = `
+                    <div class="p-3.5 md:p-4 flex items-center justify-between border-b-2 border-slate-200 dark:border-slate-700 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                                <i class="fa-solid fa-trophy text-yellow-200"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-black text-xs md:text-sm lb-text-name uppercase tracking-wide">Bảng Xếp Hạng Đề Thi</h4>
+                                <p class="text-[10px] lb-text-sub">Đang đồng bộ kết quả thí sinh...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6 text-center text-xs lb-text-sub flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-circle-notch fa-spin text-amber-500 text-base"></i>
+                        <span>Đang tải bảng xếp hạng...</span>
+                    </div>
+                `;
+
+                try {
+                    const qRes = query(collection(db, "results"), where("examId", "==", targetExamId));
+                    const snap = await getDocs(qRes);
+                    window.cachedExamResults = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    window.cachedExamResultsExamId = targetExamId;
+                } catch(err) {
+                    console.warn("Lỗi tải xếp hạng snippet:", err);
+                    window.cachedExamResults = [];
+                }
+            }
+
+            const results = window.cachedExamResults || [];
+
+            // Prefetch avatar cho Top 10 học sinh
+            if (results.length > 0) {
+                prefetchStudentAvatars(results.slice(0, 10)).then(() => {
+                    // Cập nhật lại snippet mượt mà khi đã có ảnh đại diện
+                    const snippetBox = document.getElementById('hwSnippetTop3List');
+                    if (snippetBox) {
+                        const freshLb = computeLeaderboard(results, currentUser?.uid, 'best');
+                        if (freshLb.top3 && freshLb.top3.length > 0) {
+                            snippetBox.innerHTML = `
+                                <div class="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 px-2 mb-0.5 flex justify-between">
+                                    <span>Top 3 Dẫn Đầu</span>
+                                    <span>Điểm</span>
+                                </div>
+                                ${freshLb.top3.map((item, idx) => {
+                                    const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉');
+                                    const isMe = item.isCurrentUser;
+                                    const smAvatar = renderStudentAvatar(item.studentName, item.studentId, 'w-6 h-6', 'ring-1 ring-black/5 dark:ring-white/10');
+                                    return `
+                                        <div class="flex items-center justify-between py-1 px-2 rounded-lg ${isMe ? 'bg-amber-100/90 dark:bg-amber-900/50 font-bold border border-amber-300 dark:border-amber-700' : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'} text-xs">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <span class="text-sm shrink-0 select-none">${medal}</span>
+                                                ${smAvatar}
+                                                <span class="font-bold truncate max-w-[120px] md:max-w-[150px] lb-text-name" title="${item.studentName}">${item.studentName}${isMe ? ' (Bạn)' : ''}</span>
+                                            </div>
+                                            <span class="font-black text-amber-700 dark:text-amber-300 shrink-0 ml-2">${item.score}đ</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            `;
+                        }
+                    }
+                });
+            }
+
+            const lb = computeLeaderboard(results, currentUser?.uid, 'best');
+
+            // 1. Khối thứ hạng của bạn
+            let myRankHtml = '';
+            if (lb.myRank) {
+                const myAvatarHtml = renderStudentAvatar(lb.myRank.studentName, lb.myRank.studentId, 'w-10 h-10', 'ring-2 ring-amber-400');
+                myRankHtml = `
+                    <div class="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border-2 border-amber-400/50 dark:border-amber-500/40">
+                        ${myAvatarHtml}
+                        <div class="min-w-0">
+                            <div class="text-xs font-black lb-text-name flex items-center gap-1.5 flex-wrap">
+                                <span>Thứ hạng của bạn: <b class="text-amber-700 dark:text-amber-300 font-black">#${lb.myRank.rank} / ${lb.stats.total}</b></span>
+                            </div>
+                            <div class="text-[11px] lb-text-sub mt-0.5">
+                                Điểm số: <b class="text-amber-700 dark:text-amber-300 font-black">${lb.myRank.score} điểm</b> • Làm trong ${formatLeaderboardDuration(lb.myRank.duration)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const r0 = window.currentResultData || {};
+                const isGraded = r0.gradedAt || r0.score !== undefined;
+                myRankHtml = `
+                    <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700">
+                        <div class="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center font-bold text-sm shrink-0">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-bold lb-text-name">
+                                ${isGraded ? 'Đã nộp bài • Đang xếp hạng' : 'Đã nộp bài • Chờ giáo viên chấm điểm'}
+                            </div>
+                            <div class="text-[10px] lb-text-sub mt-0.5">
+                                ${isGraded ? 'Bấm nút "Xem Đầy Đủ" để tra cứu vị trí' : 'Thứ hạng sẽ tự động cập nhật ngay khi giáo viên chấm bài'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 2. Khối Top 3 dẫn đầu
+            let top3Html = '';
+            if (lb.top3 && lb.top3.length > 0) {
+                top3Html = lb.top3.map((item, idx) => {
+                    const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉');
+                    const isMe = item.isCurrentUser;
+                    const smAvatar = renderStudentAvatar(item.studentName, item.studentId, 'w-6 h-6', 'ring-1 ring-black/5 dark:ring-white/10');
+                    return `
+                        <div class="flex items-center justify-between py-1 px-2 rounded-lg ${isMe ? 'bg-amber-100/90 dark:bg-amber-900/50 font-bold border border-amber-300 dark:border-amber-700' : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'} text-xs">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="text-sm shrink-0 select-none">${medal}</span>
+                                ${smAvatar}
+                                <span class="font-bold truncate max-w-[120px] md:max-w-[150px] lb-text-name" title="${item.studentName}">${item.studentName}${isMe ? ' (Bạn)' : ''}</span>
+                            </div>
+                            <span class="font-black text-amber-700 dark:text-amber-300 shrink-0 ml-2">${item.score}đ</span>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                top3Html = `<div class="text-center py-2 text-xs lb-text-sub">Chưa có bạn nào ghi danh trên đề này</div>`;
+            }
+
+            card.innerHTML = `
+                <div class="p-3 md:p-3.5 flex items-center justify-between border-b-2 border-slate-200 dark:border-slate-700 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                            <i class="fa-solid fa-trophy text-yellow-200"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-black text-xs md:text-sm lb-text-name uppercase tracking-wide flex items-center gap-1.5">
+                                Bảng Xếp Hạng Đề Thi
+                                <span class="bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase border border-amber-200 dark:border-amber-700">Top ${lb.stats.total} thí sinh</span>
+                            </h4>
+                            <p class="text-[10px] lb-text-sub">So sánh thành tích và điểm số với các bạn cùng lớp</p>
+                        </div>
+                    </div>
+                    <button onclick="window.openExamLeaderboard()" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition-all transform active:scale-95 shrink-0">
+                        <i class="fa-solid fa-trophy text-yellow-200 text-[11px]"></i>
+                        <span>Xem Đầy Đủ</span>
+                        <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                    </button>
+                </div>
+                <div class="p-3 md:p-3.5 grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+                    <div>${myRankHtml}</div>
+                    <div id="hwSnippetTop3List" class="space-y-1 bg-white dark:bg-slate-800/90 p-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700">
+                        <div class="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 px-2 mb-0.5 flex justify-between">
+                            <span>Top 3 Dẫn Đầu</span>
+                            <span>Điểm</span>
+                        </div>
+                        ${top3Html}
+                    </div>
+                </div>
+            `;
+        };
+
+        window.openExamLeaderboard = async (forceRefresh = false) => {
+            const modal = document.getElementById('examLeaderboardModal');
+            if (!modal) return;
+
+            const targetExamId = examId || window.currentExamId || new URLSearchParams(window.location.search).get('id');
+            const examTitle = examData?.title || (document.getElementById('examTitle')?.textContent) || 'Đề thi';
+            const titleEl = document.getElementById('lbExamTitle');
+            if (titleEl) {
+                titleEl.textContent = examTitle;
+                if ((!examTitle || examTitle === 'Đề thi') && targetExamId) {
+                    getDoc(doc(db, "exams", targetExamId)).then(s => {
+                        if (s.exists() && s.data().title) {
+                            titleEl.textContent = s.data().title;
+                        }
+                    }).catch(() => {});
+                }
+            }
+
+            // Mở modal với hiệu ứng animation
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                const box = document.getElementById('examLeaderboardBox');
+                if (box) {
+                    box.classList.remove('scale-95');
+                    box.classList.add('scale-100');
+                }
+            }, 10);
+
+            // Tải dữ liệu nếu chưa có cache hoặc bị ép tải lại
+            if (!window.cachedExamResults || forceRefresh || window.cachedExamResultsExamId !== targetExamId) {
+                const loadingEl = document.getElementById('lbLoading');
+                const emptyEl = document.getElementById('lbEmpty');
+                const podiumEl = document.getElementById('lbPodiumArea');
+                const listEl = document.getElementById('lbListContainer');
+
+                if (loadingEl) loadingEl.classList.remove('hidden');
+                if (emptyEl) emptyEl.classList.add('hidden');
+                if (podiumEl) podiumEl.classList.add('hidden');
+                if (listEl) listEl.innerHTML = '';
+
+                try {
+                    const qRes = query(collection(db, "results"), where("examId", "==", targetExamId));
+                    const snap = await getDocs(qRes);
+                    window.cachedExamResults = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    window.cachedExamResultsExamId = targetExamId;
+                } catch (err) {
+                    console.error("Lỗi tải bảng xếp hạng:", err);
+                    window.cachedExamResults = [];
+                }
+            }
+
+            // Render ngay lần 1 (0ms chờ)
+            window.renderLeaderboardView();
+
+            // Prefetch ảnh đại diện cho học sinh và re-render khi hoàn thành (non-blocking)
+            if (window.cachedExamResults && window.cachedExamResults.length > 0) {
+                prefetchStudentAvatars(window.cachedExamResults).then(() => {
+                    window.renderLeaderboardView();
+                });
+            }
+        };
+
+        window.closeExamLeaderboard = () => {
+            const modal = document.getElementById('examLeaderboardModal');
+            if (!modal) return;
+            modal.classList.add('opacity-0');
+            const box = document.getElementById('examLeaderboardBox');
+            if (box) {
+                box.classList.remove('scale-100');
+                box.classList.add('scale-95');
+            }
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        window.setLeaderboardFilter = (filter) => {
+            window.currentLbFilter = filter;
+            ['best', 'first', 'all'].forEach(f => {
+                const btn = document.getElementById(`lbFilterBtn_${f}`);
+                if (btn) {
+                    if (f === filter) {
+                        btn.className = "lb-tab-btn-active px-2.5 py-1 rounded-md transition-all font-bold text-[11px] md:text-xs";
+                    } else {
+                        btn.className = "lb-tab-btn-inactive px-2.5 py-1 rounded-md transition-all font-bold text-[11px] md:text-xs";
+                    }
+                }
+            });
+            window.renderLeaderboardView();
+        };
+
+        window.renderLeaderboardView = () => {
+            const loadingEl = document.getElementById('lbLoading');
+            const emptyEl = document.getElementById('lbEmpty');
+            const podiumEl = document.getElementById('lbPodiumArea');
+            const listEl = document.getElementById('lbListContainer');
+            const totalEl = document.getElementById('lbTotalStudents');
+            const topEl = document.getElementById('lbTopScore');
+            const avgEl = document.getElementById('lbAvgScore');
+            const countEl = document.getElementById('lbShowingCount');
+            const myRankFooter = document.getElementById('lbMyRankFooter');
+
+            if (loadingEl) loadingEl.classList.add('hidden');
+
+            const results = window.cachedExamResults || [];
+            if (results.length === 0) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                if (podiumEl) podiumEl.classList.add('hidden');
+                if (listEl) listEl.innerHTML = '';
+                if (totalEl) totalEl.textContent = '0';
+                if (topEl) topEl.textContent = '--';
+                if (avgEl) avgEl.textContent = '--';
+                if (countEl) countEl.textContent = '0 kết quả';
+                if (myRankFooter) myRankFooter.classList.add('hidden');
+                return;
+            }
+
+            if (emptyEl) emptyEl.classList.add('hidden');
+
+            const lb = computeLeaderboard(results, currentUser?.uid, window.currentLbFilter || 'best');
+
+            if (totalEl) totalEl.textContent = lb.stats.total;
+            if (topEl) topEl.textContent = lb.stats.max;
+            if (avgEl) avgEl.textContent = lb.stats.avg;
+            if (countEl) countEl.textContent = `${lb.list.length} thí sinh`;
+
+            // 1. RENDER BỤC TOP 3 (PODIUM OLYMPIC - TOP 1 CAO VƯỢT TRỘI)
+            if (lb.top3 && lb.top3.length > 0) {
+                if (podiumEl) podiumEl.classList.remove('hidden');
+
+                const renderPodiumCol = (item, rankNum) => {
+                    if (!item) return `<div class="opacity-0 pointer-events-none"></div>`;
+                    const isMe = item.isCurrentUser;
+                    const durationStr = formatLeaderboardDuration(item.duration);
+
+                    if (rankNum === 1) {
+                        // QUÁN QUÂN - VÀNG (BỤC CAO VƯỢT TRỘI, AVATAR LỚN, VƯƠNG MIỆN RỰC RỠ)
+                        const avatarHtml = renderStudentAvatar(
+                            item.studentName,
+                            item.studentId,
+                            'w-16 h-16 md:w-20 md:h-20',
+                            'ring-4 ring-amber-400 shadow-xl',
+                            '🥇'
+                        );
+
+                        return `
+                            <div class="flex flex-col items-center w-full z-10 px-0.5">
+                                <!-- Vương miện vàng lớn nhấp nhô -->
+                                <div class="relative -mb-1 animate-bounce">
+                                    <i class="fa-solid fa-crown text-amber-500 text-lg md:text-xl drop-shadow-md"></i>
+                                </div>
+
+                                <!-- Avatar thí sinh Top 1 -->
+                                ${avatarHtml}
+
+                                <!-- Tên thí sinh nổi bật -->
+                                <p class="font-black text-xs md:text-sm lb-text-name truncate max-w-[95px] md:max-w-[130px] mt-1.5 leading-tight text-center" title="${item.studentName}">
+                                    ${item.studentName}
+                                </p>
+                                ${isMe ? `<span class="bg-amber-500 text-white text-[8px] font-black uppercase px-1.5 py-0.2 rounded-full mt-0.5 shadow-2xs">Bạn</span>` : ''}
+
+                                <!-- Điểm số rực rỡ -->
+                                <div class="mt-1 px-3 py-0.5 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white font-black text-xs md:text-sm rounded-full shadow-md border border-yellow-200/60 flex items-center gap-1">
+                                    <span>${item.score}đ</span>
+                                    <span class="text-[10px] font-normal opacity-90">• ${durationStr}</span>
+                                </div>
+
+                                <!-- Bục đứng Top 1: Cao vượt trội (h-28 md:h-32) -->
+                                <div class="w-full h-28 md:h-32 bg-gradient-to-b from-amber-400 via-yellow-400 to-amber-500 rounded-t-2xl mt-2 flex flex-col items-center justify-start pt-2.5 border-t-2 border-amber-200 shadow-lg relative overflow-hidden">
+                                    <div class="text-2xl md:text-3xl font-black text-amber-950 leading-none drop-shadow-xs">#1</div>
+                                    <div class="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-amber-950/90 mt-0.5">QUÁN QUÂN</div>
+                                    <div class="absolute bottom-1 text-[9px] font-bold text-amber-950/70 hidden sm:block">Xuất sắc nhất</div>
+                                </div>
+                            </div>
+                        `;
+                    } else if (rankNum === 2) {
+                        // Á QUÂN - BẠC (BỤC CHIỀU CAO VỪA)
+                        const avatarHtml = renderStudentAvatar(
+                            item.studentName,
+                            item.studentId,
+                            'w-12 h-12 md:w-14 md:h-14',
+                            'ring-2 ring-slate-300 dark:ring-slate-500 shadow-md',
+                            '🥈'
+                        );
+
+                        return `
+                            <div class="flex flex-col items-center w-full px-0.5">
+                                <!-- Avatar thí sinh Top 2 -->
+                                ${avatarHtml}
+
+                                <!-- Tên thí sinh -->
+                                <p class="font-bold text-xs lb-text-name truncate max-w-[80px] md:max-w-[105px] mt-1.5 leading-tight text-center" title="${item.studentName}">
+                                    ${item.studentName}
+                                </p>
+                                ${isMe ? `<span class="bg-amber-500 text-white text-[8px] font-black uppercase px-1 py-0.2 rounded-full mt-0.5 shadow-2xs">Bạn</span>` : ''}
+
+                                <!-- Điểm số -->
+                                <div class="mt-1 px-2.5 py-0.5 bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-900 font-black text-xs rounded-full shadow-xs flex items-center gap-1">
+                                    <span>${item.score}đ</span>
+                                    <span class="text-[9px] font-normal opacity-80">• ${durationStr}</span>
+                                </div>
+
+                                <!-- Bục đứng Top 2: Chiều cao vừa (h-16 md:h-18) -->
+                                <div class="w-full h-16 md:h-18 bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 dark:from-slate-600 dark:via-slate-700 dark:to-slate-800 rounded-t-xl mt-2 flex flex-col items-center justify-start pt-2 border-t-2 border-white/80 dark:border-slate-500 shadow-md">
+                                    <div class="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 leading-none">#2</div>
+                                    <div class="text-[8px] md:text-[9px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mt-0.5">Á QUÂN</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // QUÝ QUÂN - ĐỒNG (BỤC CHIỀU CAO THẤP NHẤT)
+                        const avatarHtml = renderStudentAvatar(
+                            item.studentName,
+                            item.studentId,
+                            'w-11 h-11 md:w-12 md:h-12',
+                            'ring-2 ring-amber-700/40 dark:ring-amber-600/40 shadow-xs',
+                            '🥉'
+                        );
+
+                        return `
+                            <div class="flex flex-col items-center w-full px-0.5">
+                                <!-- Avatar thí sinh Top 3 -->
+                                ${avatarHtml}
+
+                                <!-- Tên thí sinh -->
+                                <p class="font-bold text-xs lb-text-name truncate max-w-[80px] md:max-w-[105px] mt-1.5 leading-tight text-center" title="${item.studentName}">
+                                    ${item.studentName}
+                                </p>
+                                ${isMe ? `<span class="bg-amber-500 text-white text-[8px] font-black uppercase px-1 py-0.2 rounded-full mt-0.5 shadow-2xs">Bạn</span>` : ''}
+
+                                <!-- Điểm số -->
+                                <div class="mt-1 px-2.5 py-0.5 bg-amber-800 dark:bg-amber-700 text-white font-black text-xs rounded-full shadow-xs flex items-center gap-1">
+                                    <span>${item.score}đ</span>
+                                    <span class="text-[9px] font-normal opacity-80">• ${durationStr}</span>
+                                </div>
+
+                                <!-- Bục đứng Top 3: Chiều cao thấp nhất (h-10 md:h-12) -->
+                                <div class="w-full h-10 md:h-12 bg-gradient-to-b from-amber-200 via-amber-300 to-amber-400 dark:from-amber-800 dark:via-amber-900 dark:to-stone-900 rounded-t-xl mt-2 flex flex-col items-center justify-start pt-1.5 border-t-2 border-amber-100/80 dark:border-amber-700 shadow-xs">
+                                    <div class="text-base md:text-lg font-black text-amber-950 dark:text-amber-100 leading-none">#3</div>
+                                    <div class="text-[8px] md:text-[9px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 mt-0.5">QUÝ QUÂN</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                };
+
+                const p1 = document.getElementById('podium1');
+                const p2 = document.getElementById('podium2');
+                const p3 = document.getElementById('podium3');
+                if (p1) p1.innerHTML = renderPodiumCol(lb.top3[0], 1);
+                if (p2) p2.innerHTML = renderPodiumCol(lb.top3[1], 2);
+                if (p3) p3.innerHTML = renderPodiumCol(lb.top3[2], 3);
+            } else {
+                if (podiumEl) podiumEl.classList.add('hidden');
+            }
+
+            // 2. RENDER DANH SÁCH CHI TIẾT
+            if (listEl) {
+                let html = '';
+                lb.list.forEach(item => {
+                    const isMe = item.isCurrentUser;
+                    const durationStr = formatLeaderboardDuration(item.duration);
+                    const dateStr = formatLeaderboardDate(item.submittedAt);
+                    const avatarHtml = renderStudentAvatar(item.studentName, item.studentId, 'w-8 h-8 md:w-9 md:h-9', 'ring-1 ring-black/5 dark:ring-white/10');
+
+                    let rankIconHtml = '';
+                    if (item.rank === 1) {
+                        rankIconHtml = `<span class="text-base md:text-lg select-none">🥇</span>`;
+                    } else if (item.rank === 2) {
+                        rankIconHtml = `<span class="text-base md:text-lg select-none">🥈</span>`;
+                    } else if (item.rank === 3) {
+                        rankIconHtml = `<span class="text-base md:text-lg select-none">🥉</span>`;
+                    } else {
+                        rankIconHtml = `<span class="text-xs font-black lb-rank-badge px-1.5 py-0.5 rounded-md">#${item.rank}</span>`;
+                    }
+
+                    let scoreBadgeClass = '';
+                    if (item.score >= 8) {
+                        scoreBadgeClass = 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300';
+                    } else if (item.score >= 5) {
+                        scoreBadgeClass = 'bg-sky-50 dark:bg-sky-950/70 border-sky-300 dark:border-sky-600 text-sky-700 dark:text-sky-300';
+                    } else {
+                        scoreBadgeClass = 'bg-rose-50 dark:bg-rose-950/70 border-rose-300 dark:border-rose-600 text-rose-700 dark:text-rose-300';
+                    }
+
+                    html += `
+                        <div id="leaderboard-item-${item.rank}" class="p-2 md:p-2.5 px-3 rounded-xl flex items-center justify-between gap-2.5 transition-all ${isMe ? 'lb-item-me-theme shadow-xs' : 'lb-item-normal-theme hover:shadow-2xs'}">
+                            <!-- Left: Rank + Avatar + Name -->
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-7 h-7 flex items-center justify-center shrink-0">
+                                    ${rankIconHtml}
+                                </div>
+                                ${avatarHtml}
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="font-extrabold lb-text-name text-xs md:text-sm truncate max-w-[130px] sm:max-w-[180px] md:max-w-[260px]" title="${item.studentName}">${item.studentName}</span>
+                                        ${isMe ? `<span class="bg-amber-500 text-white text-[8px] font-black uppercase px-1.5 py-0.2 rounded-full shadow-2xs shrink-0">Bạn</span>` : ''}
+                                        ${item.attemptsCount && item.attemptsCount > 1 ? `<span class="text-[10px] lb-text-sub font-semibold">(${item.attemptsCount} lần)</span>` : ''}
+                                    </div>
+                                    <div class="text-[10px] md:text-[11px] lb-text-sub flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                        ${item.correctCount !== undefined ? `<span><i class="fa-solid fa-check text-green-500 mr-0.5"></i>${item.correctCount}/${item.totalQuestions || '--'} câu</span><span>•</span>` : ''}
+                                        <span><i class="fa-regular fa-clock mr-0.5"></i>${durationStr}</span>
+                                        ${dateStr ? `<span>•</span><span>${dateStr}</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Right: Score with crisp border pill -->
+                            <div class="shrink-0 text-right">
+                                <div class="px-2.5 py-1 rounded-xl border ${scoreBadgeClass} font-black text-sm md:text-base leading-tight shadow-2xs">
+                                    ${item.score}<span class="text-[10px] font-bold ml-0.5">đ</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                listEl.innerHTML = html;
+            }
+
+            // 3. STICKY MY RANK FOOTER
+            if (myRankFooter) {
+                if (lb.myRank) {
+                    const myFooterAvatar = renderStudentAvatar(lb.myRank.studentName, lb.myRank.studentId, 'w-7 h-7', 'ring-1 ring-white/30');
+                    myRankFooter.className = "px-3.5 py-2 md:py-2.5 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white shrink-0 shadow-md border-t border-amber-400/40";
+                    myRankFooter.innerHTML = `
+                        <div class="flex items-center justify-between gap-2.5">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="w-7 h-7 rounded-lg bg-black/20 backdrop-blur-md flex items-center justify-center font-black text-xs text-yellow-300 border border-white/30 shrink-0">
+                                    #${lb.myRank.rank}
+                                </div>
+                                ${myFooterAvatar}
+                                <div class="min-w-0">
+                                    <div class="text-xs font-black flex items-center gap-1.5">
+                                        <span class="truncate">${lb.myRank.studentName} (Vị trí của bạn)</span>
+                                        <span class="text-[9px] bg-white/20 px-1.5 py-0.2 rounded-full font-bold">Hạng ${lb.myRank.rank}/${lb.stats.total}</span>
+                                    </div>
+                                    <div class="text-[10px] text-yellow-100 mt-0.5">
+                                        Điểm: <b class="text-white text-xs">${lb.myRank.score}đ</b> • Làm trong ${formatLeaderboardDuration(lb.myRank.duration)}
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="window.scrollToMyRank(${lb.myRank.rank})" class="px-2.5 py-1 bg-white text-amber-900 rounded-lg text-xs font-black hover:bg-yellow-50 transition shadow-xs flex items-center gap-1 shrink-0 active:scale-95 border border-amber-200">
+                                <i class="fa-solid fa-location-crosshairs text-amber-600"></i> Xem vị trí
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    myRankFooter.className = "hidden";
+                    myRankFooter.innerHTML = '';
+                }
+            }
+        };
+
+        window.scrollToMyRank = (rank) => {
+            const el = document.getElementById(`leaderboard-item-${rank}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ring-4', 'ring-amber-400');
+                setTimeout(() => el.classList.remove('ring-4', 'ring-amber-400'), 2500);
+            }
+        };
+
+        window.refreshMyRankSnippet = async () => {
+            try {
+                const targetExamId = examId || window.currentExamId || new URLSearchParams(window.location.search).get('id');
+                if (!targetExamId) return;
+                const qRes = query(collection(db, "results"), where("examId", "==", targetExamId));
+                const snap = await getDocs(qRes);
+                window.cachedExamResults = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                window.cachedExamResultsExamId = targetExamId;
+
+                const lb = computeLeaderboard(window.cachedExamResults, currentUser?.uid, 'best');
+                const snippet = document.getElementById('resultRankSnippet');
+                const badge = document.getElementById('resultRankBadge');
+                if (snippet && badge && lb.myRank) {
+                    snippet.classList.remove('hidden');
+                    let medal = '🏆';
+                    if (lb.myRank.rank === 1) medal = '🥇';
+                    else if (lb.myRank.rank === 2) medal = '🥈';
+                    else if (lb.myRank.rank === 3) medal = '🥉';
+                    badge.innerHTML = `${medal} Hạng #${lb.myRank.rank} / ${lb.stats.total} bạn`;
+                }
+            } catch (e) {
+                console.warn("Không tải được thứ hạng nhanh:", e);
+            }
+        };
     </script>
     <div id="cheatModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-red-900/95 hidden backdrop-blur-sm transition-opacity duration-300 opacity-0">
         <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl transform scale-90 transition-transform duration-300 border-4 border-red-500 relative">
@@ -3840,6 +5190,7 @@ window.requestResubmit = async () => {
             </button>
         </div>
     </div>
-<script src="/sw-register.js?v=10"></script>
+<script src="/sw-register.js?v=18"></script>
+<script src="/security-shield.js?v=4"></script>
 </body>
 </html>
