@@ -1104,6 +1104,7 @@
             getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, where, orderBy, onSnapshot, limit, addDoc, enableMultiTabIndexedDbPersistence, deleteDoc, increment,
             supabase
         } from "./supabase-db-compat.js?v=21";
+        import { readCache, writeCache } from "./perf-cache.js";
 
         // CẤU HÌNH SUPABASE
         const app = initializeApp({});

@@ -54,6 +54,53 @@
     <script src="ai-grader.js"></script>
     <script src="ai-id-assigner.js?v=20260924-hotswap"></script>
     <script src="bank-service.js"></script>
+    <script>
+        // Sẵn sàng ngay các hàm điều hướng giao diện trước khi tải dữ liệu
+        function toggleSidebar() {
+            const sidebar = document.getElementById('mainSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (!sidebar) return;
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                if (overlay) overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                if (overlay) overlay.classList.add('hidden');
+            }
+        }
+        window.toggleSidebar = toggleSidebar;
+
+        function switchView(viewId) { 
+            const s = document.getElementById('view-settings'); if (s) s.classList.add('hidden'); 
+            const e = document.getElementById('view-editor'); if (e) { e.classList.add('hidden'); e.classList.remove('flex'); } 
+            const st = document.getElementById('view-stats'); if (st) st.classList.add('hidden'); 
+            const g = document.getElementById('view-grading'); if (g) g.classList.add('hidden');
+            
+            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active')); 
+            
+            if (viewId === 'settings') { 
+                if (s) s.classList.remove('hidden'); 
+                const m = document.getElementById('menu-settings'); if (m) m.classList.add('active'); 
+            } 
+            else if (viewId === 'editor') { 
+                if (e) { e.classList.remove('hidden'); e.classList.add('flex'); } 
+                const m = document.getElementById('menu-editor'); if (m) m.classList.add('active'); 
+                if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise().catch(()=>{}); 
+                if (typeof window.renderPreviewList === 'function') window.renderPreviewList();
+            } 
+            else if (viewId === 'stats') { 
+                if (st) st.classList.remove('hidden'); 
+                const m = document.getElementById('menu-stats'); if (m) m.classList.add('active'); 
+                if (typeof window.loadStats === 'function') window.loadStats(); 
+            } 
+            else if (viewId === 'grading') { 
+                if (g) g.classList.remove('hidden'); 
+                const m = document.getElementById('menu-grading'); if (m) m.classList.add('active'); 
+                if (typeof window.loadStats === 'function') window.loadStats(); 
+            } 
+        }
+        window.switchView = switchView;
+    </script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #F8F9FA; }
         .font-handwriting { font-family: 'Pacifico', cursive; }
@@ -1226,6 +1273,16 @@
             getStorage, ref, uploadBytes, getDownloadURL,
             supabase
         } from "./supabase-db-compat.js?v=21";
+
+        // --- IMPORT TỪ UTILS.JS VÀ PERF-CACHE ---
+        import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, renderTikz } from "./utils.js";
+        import { readCache, writeCache } from "./perf-cache.js";
+
+        // Gán vào window
+        window.formatContent = formatContent;
+        window.autoScaleTables = autoScaleTables;
+        window.convertArrayToMatrix = convertArrayToMatrix; 
+        window.renderTikz = renderTikz;
 
         // CẤU HÌNH SUPABASE
         const app = initializeApp({});

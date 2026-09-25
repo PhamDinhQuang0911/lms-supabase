@@ -746,6 +746,8 @@
             getFirestore, doc, getDoc, setDoc, collection, query, where, orderBy, limit, addDoc, getDocs, updateDoc,
             supabase
         } from "./supabase-db-compat.js?v=21";
+        import { readCache, writeCache } from "./perf-cache.js";
+        import { createQPoint, QP_COSTS, QP_REWARDS } from "./qpoint.js";
         import { formatContent, autoScaleTables, renderTikz } from "./utils.js?v=7";
 
         const app = initializeApp({});
