@@ -412,6 +412,12 @@ function unwrapRecord(r) {
     if (r.course_id !== undefined && !res.courseIds) { res.courseIds = r.course_id ? [r.course_id] : []; }
     if (r.status !== undefined) res.status = r.status;
     if (r.anti_screenshot !== undefined) res.antiScreenshot = r.anti_screenshot;
+    if (r.folder_id !== undefined) res.folderId = r.folder_id;
+    if (r.teacher_id !== undefined) res.teacherId = r.teacher_id;
+    if (r.question_count !== undefined) res.questionCount = r.question_count;
+    if (r.pass_score !== undefined) res.passScore = r.pass_score;
+    if (r.access_type !== undefined) res.accessType = r.access_type;
+    if (r.allowed_class_ids !== undefined) res.allowedClassIds = r.allowed_class_ids;
 
     // Unpack public_courses metadata from preview_link (fallback)
     if (r.preview_link && typeof r.preview_link === 'string' && r.preview_link.trim().startsWith('{')) {
@@ -539,7 +545,11 @@ export async function getDocs(queryOrColRef) {
             return { docs: [], forEach: () => {}, size: 0, empty: true };
         }
 
-        let queryBuilder = supabase.from(table).select('*');
+        let selectCols = '*';
+        if (table === 'exams' && !queryOrColRef.includeQuestions) {
+            selectCols = 'id,title,folder_id,teacher_id,duration,pass_score,status,access_type,allowed_class_ids,purpose,subject,grade,question_count,password,proctoring,attempts,start_time,end_time,n8n_webhooks,created_at,updated_at';
+        }
+        let queryBuilder = supabase.from(table).select(selectCols);
 
         const constraints = queryOrColRef.constraints || [];
         for (const c of constraints) {

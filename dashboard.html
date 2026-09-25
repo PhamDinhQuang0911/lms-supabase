@@ -1991,7 +1991,7 @@
 
         // 2. BIẾN TOÀN CỤC
         let currentUser = null;
-        let currentUserUid = null;
+        let currentUserUid = localStorage.getItem('last_active_uid') || null;
         let currentRole = 'admin'; 
         let currentViewingClassId = null;
         let currentClassStudents = [];
@@ -2171,6 +2171,14 @@
                 history.replaceState({ view: 'class_detail', id: urlParams.get('id'), name: urlParams.get('name') }, '', window.location.href);
             } else {
                 history.replaceState({ view: view }, '', window.location.href);
+            }
+        });
+
+        window.addEventListener('pageshow', (e) => {
+            if (e.persisted) {
+                // Trang được khôi phục từ bfcache trình duyệt, kích hoạt làm mới ngầm êm ái
+                if (typeof loadFileManager === 'function') loadFileManager(true);
+                if (typeof loadClasses === 'function') loadClasses(true);
             }
         });
 
@@ -2461,37 +2469,35 @@
                     isRoot: true
                 };
 
-                // Tự động đồng bộ lên configurations/admin_roles
-                try {
-                    const cfgRef = doc(db, "configurations", "admin_roles");
-                    const cfgSnap = await getDoc(cfgRef);
-                    let accounts = cfgSnap.exists() ? (cfgSnap.data().accounts || []) : [];
-                    const idx = accounts.findIndex(a => (a.email || '').toLowerCase() === userEmail);
-                    const accData = {
-                        id: user.uid,
-                        email: userEmail,
-                        displayName: window.currentAdminProfile.displayName,
-                        role: 'super_admin',
-                        status: 'active',
-                        permissions: [...ALL_PERMISSIONS],
-                        note: 'Root Super Admin tối cao',
-                        isRoot: true,
-                        lastLoginAt: new Date().toISOString()
-                    };
-                    if (idx >= 0) accounts[idx] = { ...accounts[idx], ...accData };
-                    else accounts.push(accData);
-                    await setDoc(cfgRef, { accounts, updatedAt: new Date().toISOString() }, { merge: true });
-                } catch (e) {}
-
-                // Đồng bộ role admin vào users/{uid} để thỏa mãn Firestore Rules isTeacher()
-                try {
-                    await setDoc(doc(db, "users", user.uid), {
-                        role: 'admin',
-                        email: userEmail,
-                        displayName: window.currentAdminProfile.displayName,
-                        updatedAt: new Date().toISOString()
-                    }, { merge: true });
-                } catch (eU) {}
+                // Tự động đồng bộ nền lên configurations/admin_roles (không chặn UI)
+                (async () => {
+                    try {
+                        const cfgRef = doc(db, "configurations", "admin_roles");
+                        const cfgSnap = await getDoc(cfgRef);
+                        let accounts = cfgSnap.exists() ? (cfgSnap.data().accounts || []) : [];
+                        const idx = accounts.findIndex(a => (a.email || '').toLowerCase() === userEmail);
+                        const accData = {
+                            id: user.uid,
+                            email: userEmail,
+                            displayName: window.currentAdminProfile.displayName,
+                            role: 'super_admin',
+                            status: 'active',
+                            permissions: [...ALL_PERMISSIONS],
+                            note: 'Root Super Admin tối cao',
+                            isRoot: true,
+                            lastLoginAt: new Date().toISOString()
+                        };
+                        if (idx >= 0) accounts[idx] = { ...accounts[idx], ...accData };
+                        else accounts.push(accData);
+                        await setDoc(cfgRef, { accounts, updatedAt: new Date().toISOString() }, { merge: true });
+                        await setDoc(doc(db, "users", user.uid), {
+                            role: 'admin',
+                            email: userEmail,
+                            displayName: window.currentAdminProfile.displayName,
+                            updatedAt: new Date().toISOString()
+                        }, { merge: true });
+                    } catch (e) {}
+                })();
                 return true;
             }
 
@@ -3287,6 +3293,7 @@
                 }
                 currentUser = user;
                 currentUserUid = user.uid;
+                try { localStorage.setItem('last_active_uid', user.uid); } catch(e) {}
 
                 const isSuper = window.currentAdminProfile?.role === 'super_admin';
                 document.getElementById('sidebarName').textContent = window.currentAdminProfile?.displayName || user.displayName || user.email.split('@')[0];
@@ -3453,29 +3460,33 @@
             const container = document.getElementById('classList'); 
             if(!container) return;
 
+            const effectiveUid = currentUserUid || localStorage.getItem('last_active_uid') || auth.currentUser?.uid || '';
+            if (!currentUserUid && effectiveUid) currentUserUid = effectiveUid;
+
             const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
             const filterTeacher = window.selectedSuperAdminClassTeacher || 'all';
 
-            const cacheKey = `lms_cached_classes_${currentUserUid}_${isSuper ? filterTeacher : 'mine'}`;
-            const cached = !forceReload ? localStorage.getItem(cacheKey) : null;
+            const cacheKey = `lms_cached_classes_${effectiveUid}_${isSuper ? filterTeacher : 'mine'}`;
+            const cached = localStorage.getItem(cacheKey);
             const savedView = localStorage.getItem('classViewMode') || 'grid';
             
+            // LUÔN HIỂN THỊ TỨC THÌ 0MS TỪ CACHE
             if (cached) {
                 try {
                     window.allClassesData = JSON.parse(cached);
                     renderClasses(savedView);
                 } catch(e) {}
-            } else if (forceReload || !window.allClassesData || window.allClassesData.length === 0) {
+            } else if (!window.allClassesData || window.allClassesData.length === 0) {
                 container.innerHTML = `<div class="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">${'<div class="h-40 bg-gray-200 rounded-2xl"></div>'.repeat(3)}</div>`;
             }
 
             try {
                 let q;
                 if (!isSuper) {
-                    q = query(collection(db, "classes"), where("teacherId", "==", currentUserUid), limit(150));
+                    q = query(collection(db, "classes"), where("teacherId", "==", effectiveUid), limit(150));
                 } else {
                     if (filterTeacher === 'me') {
-                        q = query(collection(db, "classes"), where("teacherId", "==", currentUserUid), limit(150));
+                        q = query(collection(db, "classes"), where("teacherId", "==", effectiveUid), limit(150));
                     } else if (filterTeacher !== 'all') {
                         q = query(collection(db, "classes"), where("teacherId", "==", filterTeacher), limit(150));
                     } else {
@@ -4945,12 +4956,13 @@ let _bankLoadingPromise = null;
 
 function saveBankCache() {
     try {
+        const effectiveUid = currentUserUid || localStorage.getItem('last_active_uid') || auth.currentUser?.uid || '';
         const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
         const canUseShared = isSuper || window.hasPermission('bank.use_shared');
         const bankFilter = window.selectedSuperAdminBankTeacher || (document.getElementById('superAdminBankTeacherSelect')?.value) || 'all';
-        const cacheKeyF = `bank_folders_${currentUserUid}_${isSuper ? bankFilter : (canUseShared ? 'shared' : 'own')}`;
-        const cacheKeyE = `bank_exams_${currentUserUid}_${isSuper ? bankFilter : (canUseShared ? 'shared' : 'own')}`;
-        const cacheKeyT = `bank_tags_${currentUserUid}`;
+        const cacheKeyF = `bank_folders_${effectiveUid}_${isSuper ? bankFilter : (canUseShared ? 'shared' : 'own')}`;
+        const cacheKeyE = `bank_exams_${effectiveUid}_${isSuper ? bankFilter : (canUseShared ? 'shared' : 'own')}`;
+        const cacheKeyT = `bank_tags_${effectiveUid}`;
         localStorage.setItem(cacheKeyF, JSON.stringify(folderData));
         localStorage.setItem(cacheKeyE, JSON.stringify(examData));
         localStorage.setItem(cacheKeyT, JSON.stringify(tagData));
@@ -4959,30 +4971,34 @@ function saveBankCache() {
     }
 }
 
-// Cập nhật lại hàm với cờ forceRefresh & Tối ưu Cache-First
+// Cập nhật lại hàm với cờ forceRefresh & Tối ưu Cache-First (SWR)
 async function loadFileManager(forceRefresh = false) { 
     const container = document.getElementById('explorerGrid');
 
-    // Tự động làm mới dữ liệu nếu vừa quay lại từ trang biên soạn đề
+    // Tự động làm mới dữ liệu trong nền nếu vừa quay lại từ trang biên soạn đề
     if (document.referrer && document.referrer.includes('exam-editor.html')) {
         forceRefresh = true;
     }
 
-    // 1. KIỂM TRA BỘ NHỚ ĐỆM (CACHE)
+    // Đảm bảo UID luôn có ngay lập tức từ bộ nhớ đệm
+    const effectiveUid = currentUserUid || localStorage.getItem('last_active_uid') || auth.currentUser?.uid || '';
+    if (!currentUserUid && effectiveUid) currentUserUid = effectiveUid;
+
+    // 1. KIỂM TRA BỘ NHỚ ĐỆM (CACHE) - LUÔN HIỂN THỊ TỨC THÌ 0MS KỂ CẢ KHI FORCE REFRESH
     const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
     const canUseShared = isSuper || window.hasPermission('bank.use_shared');
     const bankFilter = window.selectedSuperAdminBankTeacher || (document.getElementById('superAdminBankTeacherSelect')?.value) || 'all';
 
-    const cacheKeyF = `bank_folders_${currentUserUid}_${isSuper ? bankFilter : (canUseShared ? 'shared' : 'own')}`;
-    const cacheKeyE = `bank_exams_${currentUserUid}_${isSuper ? bankFilter : (canUseShared ? 'shared' : 'own')}`;
-    const cacheKeyT = `bank_tags_${currentUserUid}`;
+    const cacheKeyF = `bank_folders_${effectiveUid}_${isSuper ? bankFilter : (canUseShared ? 'shared' : 'own')}`;
+    const cacheKeyE = `bank_exams_${effectiveUid}_${isSuper ? bankFilter : (canUseShared ? 'shared' : 'own')}`;
+    const cacheKeyT = `bank_tags_${effectiveUid}`;
 
     let hasValidCache = false;
     const cachedF = localStorage.getItem(cacheKeyF);
     const cachedE = localStorage.getItem(cacheKeyE);
     const cachedT = localStorage.getItem(cacheKeyT);
 
-    if (cachedF && cachedE && !forceRefresh) {
+    if (cachedF && cachedE) {
         try {
             folderData = JSON.parse(cachedF) || [];
             examData = JSON.parse(cachedE) || [];
@@ -4994,13 +5010,14 @@ async function loadFileManager(forceRefresh = false) {
             }
             if (container) {
                 renderTagFilterUI();
-                renderExplorer(); // Hiển thị tức thì trong 0s từ Cache!
+                renderExplorer(); // Hiển thị tức thì trong 0s từ Cache! Tuyệt đối không xóa màn hình
             }
         } catch(e) {
             console.warn("Lỗi đọc cache ngân hàng:", e);
         }
     }
 
+    // CHỈ hiển thị skeleton khi HOÀN TOÀN CHƯA CÓ DỮ LIỆU nào trong cache
     if (!hasValidCache && container && container.innerHTML === '') {
         container.innerHTML = `<div class="col-span-full grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 animate-pulse">${'<div class="bg-gray-200 rounded-xl aspect-square"></div>'.repeat(6)}</div>`;
     }
@@ -5009,19 +5026,19 @@ async function loadFileManager(forceRefresh = false) {
 
     if (_bankLoadingPromise && !forceRefresh) return _bankLoadingPromise;
 
-    // 2. TẢI TỪ FIREBASE BẰNG PROMISE.ALL SONG SONG
+    // 2. TẢI TỪ DATABASE BẰNG PROMISE.ALL SONG SONG
     _bankLoadingPromise = (async () => {
         try { 
             let qFolders, qExams, qTags;
-            qTags = query(collection(db, "tags"), where("teacherId", "==", currentUserUid), limit(100));
+            qTags = query(collection(db, "tags"), where("teacherId", "==", effectiveUid), limit(100));
 
             if (!isSuper) {
-                qFolders = query(collection(db, "folders"), where("teacherId", "==", currentUserUid), limit(200));
-                qExams = query(collection(db, "exams"), where("teacherId", "==", currentUserUid), limit(200));
+                qFolders = query(collection(db, "folders"), where("teacherId", "==", effectiveUid), limit(200));
+                qExams = query(collection(db, "exams"), where("teacherId", "==", effectiveUid), limit(200));
             } else {
                 if (bankFilter === 'me') {
-                    qFolders = query(collection(db, "folders"), where("teacherId", "==", currentUserUid), limit(200));
-                    qExams = query(collection(db, "exams"), where("teacherId", "==", currentUserUid), limit(200));
+                    qFolders = query(collection(db, "folders"), where("teacherId", "==", effectiveUid), limit(200));
+                    qExams = query(collection(db, "exams"), where("teacherId", "==", effectiveUid), limit(200));
                 } else if (bankFilter === 'system') {
                     qFolders = query(collection(db, "folders"), where("isSystem", "==", true), limit(200));
                     qExams = query(collection(db, "exams"), where("isSystem", "==", true), limit(200));

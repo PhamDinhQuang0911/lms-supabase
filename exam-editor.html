@@ -5574,6 +5574,15 @@
                 targetUrl = `dashboard.html?view=class_detail&id=${assignToClassId}&tab=exams`;
             }
 
+            const navigateBackSmartly = (url) => {
+                if (window.history.length > 1 && document.referrer && document.referrer.includes('dashboard.html')) {
+                    window.history.back();
+                    setTimeout(() => { window.location.href = url; }, 350);
+                } else {
+                    window.location.href = url;
+                }
+            };
+
             // 2. Kiểm tra dữ liệu chưa lưu
             if (hasUnsavedChanges || hasPendingImages) {
                 const confirmLeave = await window.customConfirm(
@@ -5592,10 +5601,10 @@
                             sessionUploadedFiles = []; 
                         } catch(e) { console.log("Lỗi dọn dẹp:", e); }
                     }
-                    window.location.href = targetUrl; // <--- Dùng biến targetUrl động
+                    navigateBackSmartly(targetUrl);
                 }
             } else {
-                window.location.href = targetUrl; // <--- Dùng biến targetUrl động
+                navigateBackSmartly(targetUrl);
             }
         };
         
