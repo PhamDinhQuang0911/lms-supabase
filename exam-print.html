@@ -297,7 +297,8 @@
         document.getElementById('loadSub').textContent = s || '';
     }
 
-    import { formatContent, autoScaleTables, renderTikz, stripBrAroundBlocks } from "./utils.js?v=8";
+    import { formatContent, autoScaleTables, renderTikz, stripBrAroundBlocks, reorderTfSolution } from "./utils.js?v=8";
+    window.reorderTfSolution = reorderTfSolution;
     window.formatContent = (t) => stripBrAroundBlocks(formatContent(t));
 
     // ===== LOAD =====
@@ -383,6 +384,9 @@
                     // học sinh nhìn thấy. Không áp dụng shuffleMap thêm lần nữa.
                     if (newQ.shuffleMapTF && newQ.statements) {
                         newQ.statements = newQ.shuffleMapTF.map(idx => q.statements[idx]);
+                        if (newQ.solution && window.reorderTfSolution) {
+                            newQ.solution = window.reorderTfSolution(newQ.solution, newQ.shuffleMapTF);
+                        }
                     }
                     return newQ;
                 });
@@ -410,6 +414,9 @@
                                 const mapTF = savedConfig.tfMaps[originalIndex];
                                 if (newQ.statements) {
                                     newQ.statements = mapTF.map(idx => originalQ.statements[idx]);
+                                    if (newQ.solution && window.reorderTfSolution) {
+                                        newQ.solution = window.reorderTfSolution(newQ.solution, mapTF);
+                                    }
                                 }
                             }
                             return newQ;

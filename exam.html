@@ -1011,7 +1011,7 @@
             supabase
         } from "./supabase-db-compat.js?v=21";
         
-        import { formatContent, autoScaleTables, renderTikz, compressImage, watermarkImage } from "./utils.js?v=7";
+        import { formatContent, autoScaleTables, renderTikz, compressImage, watermarkImage, reorderTfSolution } from "./utils.js?v=8";
 
         const getEmbeddableUrl = (url) => {
             if (!url) return '';
@@ -1028,6 +1028,7 @@
         window.formatContent = formatContent;
         window.autoScaleTables = autoScaleTables;
         window.renderTikz = renderTikz;
+        window.reorderTfSolution = reorderTfSolution;
 
         const app = initializeApp({}); 
         const auth = getAuth(app); 
@@ -2643,10 +2644,21 @@ const shortMatch = (a, b) => {
                 }
                 else if (q.type==='short') { isCorrect = (q.answer && u && shortMatch(u, q.answer)); ansHtml = `<div>Bạn điền: <b class="${isCorrect?'text-green-600':'text-red-500'}">${u||'Trống'}</b> | Đáp án: <b class="text-green-600">${q.answer}</b></div>`; }
                 else if (q.type==='tf') { 
-                    let matches=0; ansHtml='<ul class="text-sm mt-2">'; 
-                    let displayIndices = q.statements.map((_,k)=>k); 
+                    let matches=0; ansHtml='<ul class="text-sm mt-2 space-y-1">'; 
+                    let displayIndices = (examData.shuffle && q.shuffleMapTF) ? q.shuffleMapTF : (q.statements||[]).map((_,k)=>k); 
                     
-                    q.statements.forEach((s,i)=>{ const uc = (u&&u[i]!==undefined)?(u[i]?'Đ':'S'):'_'; const tc = s.isTrue?'Đ':'S'; const m = (u&&u[i]===s.isTrue); if(m) matches++; ansHtml+=`<li>- ${window.formatContent(s.text)}: <b class="${m?'text-green-600':'text-red-500'}">${uc}</b> (Đúng: ${tc})</li>`; }); ansHtml+='</ul>'; isCorrect = (matches === q.statements.length); 
+                    displayIndices.forEach((realIdx, displayOrder) => {
+                        const s = q.statements[realIdx];
+                        if (!s) return;
+                        const charLabel = String.fromCharCode(97 + displayOrder);
+                        const uc = (u && u[realIdx] !== undefined) ? (u[realIdx] ? 'Đ' : 'S') : '_';
+                        const tc = s.isTrue ? 'Đ' : 'S';
+                        const m = (u && u[realIdx] === s.isTrue);
+                        if (m) matches++;
+                        ansHtml += `<li><b>${charLabel})</b> ${window.formatContent(s.text)}: <b class="${m?'text-green-600':'text-red-500'}">${uc}</b> (Đúng: ${tc})</li>`;
+                    });
+                    ansHtml += '</ul>';
+                    isCorrect = (matches === (q.statements ? q.statements.length : 0)); 
                 }
                 else { ansHtml = `<div class="text-gray-500 italic">Câu hỏi tự luận (Cần giáo viên chấm)</div>${u ? `<div class="mt-2 text-xs bg-gray-50 p-2 border">Đã nộp bài</div>` : ''}`; }
 
@@ -2702,8 +2714,12 @@ const shortMatch = (a, b) => {
                     headerHtml = `Câu ${idx+1} <span class="text-[11px] font-normal text-purple-600 bg-purple-50 border border-purple-200 px-2 py-1 rounded-lg ml-2 inline-block"><i class="fa-solid fa-layer-group mr-1.5 text-purple-500"></i>Dạng ${q.dangIndex}: ${q.dangTitle}</span>`;
                 }
 
+                let finalSol = q.solution;
+                if (q.type === 'tf' && examData.shuffle && q.shuffleMapTF && finalSol && window.reorderTfSolution) {
+                    finalSol = window.reorderTfSolution(finalSol, q.shuffleMapTF);
+                }
                 const item = document.createElement('div'); item.id = `sol-q-${idx}`; item.className = "bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6";
-                item.innerHTML = `<div class="font-bold text-gray-500 text-sm mb-3 flex items-center">${headerHtml}</div><div class="mb-4 text-gray-800 text-lg">${window.formatContent(q.content)}</div>${ansHtml ? `<div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">${ansHtml}</div>` : ''}${q.solution ? `<div class="solution-box"><div class="font-bold text-green-700 mb-1">Lời giải:</div><div class="text-gray-700">${window.formatContent(q.solution)}</div></div>` : ''}`;
+                item.innerHTML = `<div class="font-bold text-gray-500 text-sm mb-3 flex items-center">${headerHtml}</div><div class="mb-4 text-gray-800 text-lg">${window.formatContent(q.content)}</div>${ansHtml ? `<div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-3">${ansHtml}</div>` : ''}${finalSol ? `<div class="solution-box"><div class="font-bold text-green-700 mb-1">Lời giải:</div><div class="text-gray-700">${window.formatContent(finalSol)}</div></div>` : ''}`;
                 list.appendChild(item);
             });
 
@@ -3422,8 +3438,15 @@ const shortMatch = (a, b) => {
                             let ansText = ''; let solHtml = '';
                             if (q.type==='mc') { let di=q.shuffleMap?q.shuffleMap.indexOf(Number(q.correct)):Number(q.correct); ansText='Phương án '+String.fromCharCode(65+di); }
                             else if (q.type==='short') ansText=String(q.answer||'');
-                            else if (q.type==='tf') ansText=(q.statements||[]).map((s,k)=>`Ý ${k+1}: ${s.isTrue?'Đúng':'Sai'}`).join(' • ');
-                            if (q.solution && String(q.solution).trim()) solHtml=`<div class="latex-container text-gray-700 mt-2 pt-2 border-t border-green-200 text-sm">${window.formatContent?window.formatContent(q.solution):q.solution}</div>`;
+                            else if (q.type==='tf') {
+                                const idxs = (examData.shuffle && q.shuffleMapTF) ? q.shuffleMapTF : (q.statements||[]).map((_,k)=>k);
+                                ansText = idxs.map((ri, k) => `Ý ${String.fromCharCode(97+k)}: ${q.statements[ri]?.isTrue?'Đúng':'Sai'}`).join(' • ');
+                            }
+                            let mixedSol = q.solution;
+                            if (q.type === 'tf' && examData.shuffle && q.shuffleMapTF && mixedSol && window.reorderTfSolution) {
+                                mixedSol = window.reorderTfSolution(mixedSol, q.shuffleMapTF);
+                            }
+                            if (mixedSol && String(mixedSol).trim()) solHtml=`<div class="latex-container text-gray-700 mt-2 pt-2 border-t border-green-200 text-sm">${window.formatContent?window.formatContent(mixedSol):mixedSol}</div>`;
                             if (ansText||solHtml) ansReveal=`<div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-xl text-sm"><div class="text-[11px] font-black text-green-700 uppercase"><i class="fa-solid fa-circle-check"></i> Đáp án đúng${ansText?': ':''}<span class="normal-case">${ansText}</span></div>${solHtml}</div>`;
                         }
                         mcqHtml += `<div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 mb-4 hover:border-purple-200 transition-all" id="mixed-mcq-${qIdx}">

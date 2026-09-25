@@ -567,6 +567,8 @@
                         <button onclick="document.getElementById('texInput').click()" class="px-2.5 py-1.5 bg-green-100 text-green-700 rounded text-xs font-bold hover:bg-green-200" title="Nhập đề từ file LaTeX (.tex)"><i class="fa-solid fa-file-import mr-1"></i> Nhập TeX</button>
                         <input type="file" id="texInput" accept=".tex,.txt" class="hidden" onchange="handleTexUpload(this)">
                         <button onclick="window.openExportLatexModal()" class="px-2.5 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 shadow-xs flex items-center gap-1.5 transition" title="Xuất lại file .tex chuẩn kèm mã CCCD / ID để biên dịch sách in"><i class="fa-solid fa-file-export"></i> Xuất TeX</button>
+                        <button onclick="window.triggerOverwriteFromTex()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold shadow-xs flex items-center gap-1.5 transition" title="Cập nhật đè toàn bộ câu hỏi từ file TeX theo đúng vị trí tương ứng, BẢO LƯU tuyệt đối mã CCCD hiện có"><i class="fa-solid fa-arrows-rotate"></i> Cập nhật đè TeX</button>
+                        <input type="file" id="overwriteTexInput" accept=".tex,.txt" class="hidden" onchange="window.handleOverwriteTexFile(this)">
                         <div class="inline-flex rounded-lg shadow-2xs overflow-hidden border border-blue-200">
                             <button onclick="document.getElementById('wordInput').click()" class="px-2.5 py-1.5 bg-blue-100 text-blue-700 text-xs font-bold hover:bg-blue-200 transition flex items-center gap-1" title="Nhập đề từ file Word (.docx)"><i class="fa-solid fa-file-word"></i> Word</button>
                             <button onclick="window.openWordGuideModal()" class="px-2 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 border-l border-blue-200 transition" title="Xem hướng dẫn cấu trúc file Word (.docx) chuẩn để nạp"><i class="fa-solid fa-circle-question"></i></button>
@@ -961,6 +963,93 @@
             <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50 rounded-b-xl">
                 <button onclick="closeScoringModal()" class="px-4 py-2 bg-white border rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100">Hủy</button>
                 <button onclick="applyScoring()" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 shadow-md">Áp dụng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CẬP NHẬT ĐÈ TỪ TEX (BẢO LƯU CCCD) -->
+    <div id="overwriteLatexModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[160] flex items-center justify-center bg-gray-900 bg-opacity-60 px-4 transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh] overflow-hidden">
+            <!-- Header -->
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-amber-50 to-orange-50">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold shadow-sm text-base">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-800 text-base">Cập Nhật Đè Câu Hỏi Từ TeX (Bảo Lưu CCCD)</h3>
+                        <p class="text-xs text-gray-500">Thay thế nội dung, lời giải &amp; phân dạng theo đúng thứ tự vị trí, <b class="text-amber-700">bảo lưu 100% mã CCCD hiện có</b>.</p>
+                    </div>
+                </div>
+                <button onclick="window.closeOverwriteLatexModal()" class="text-gray-400 hover:text-red-500 transition-colors p-1"><i class="fa-solid fa-times text-lg"></i></button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 overflow-y-auto space-y-4 flex-1">
+                <!-- Thống kê câu hỏi -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="bg-blue-50 border border-blue-200 p-3 rounded-xl flex items-center justify-between">
+                        <span class="text-xs font-bold text-blue-700">Đề hiện tại:</span>
+                        <span id="overwriteCurrentCount" class="text-base font-black text-blue-800">0 câu</span>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-center justify-between">
+                        <span class="text-xs font-bold text-amber-700">File TeX mới tải lên:</span>
+                        <span id="overwriteNewCount" class="text-base font-black text-amber-800">0 câu</span>
+                    </div>
+                    <div class="bg-teal-50 border border-teal-200 p-3 rounded-xl flex items-center justify-between">
+                        <span class="text-xs font-bold text-teal-700">Mã CCCD sẽ bảo lưu:</span>
+                        <span id="overwritePreservedCccdCount" class="text-base font-black text-teal-800">0 mã</span>
+                    </div>
+                </div>
+
+                <!-- Cảnh báo nếu số lượng lệch -->
+                <div id="overwriteWarningDiff" class="hidden p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 text-sm shrink-0"></i>
+                    <span id="overwriteWarningDiffText"></span>
+                </div>
+
+                <!-- Bảng so sánh đối chiếu câu hỏi -->
+                <div>
+                    <label class="block text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Bảng đối chiếu câu hỏi theo vị trí tương ứng:</label>
+                    <div class="border border-gray-200 rounded-xl overflow-hidden max-h-64 overflow-y-auto bg-gray-50/50">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead class="bg-gray-100 sticky top-0 border-b border-gray-200 text-gray-600 font-bold z-10">
+                                <tr>
+                                    <th class="p-2.5 w-14 text-center">STT</th>
+                                    <th class="p-2.5 w-32">Mã CCCD Bảo Lưu</th>
+                                    <th class="p-2.5">Nội dung Hiện tại &rarr; Nội dung TeX Mới</th>
+                                    <th class="p-2.5 w-36">MapID &amp; Mức độ Mới</th>
+                                </tr>
+                            </thead>
+                            <tbody id="overwriteComparisonTableBody" class="divide-y divide-gray-200 bg-white">
+                                <!-- Rendered dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tùy chọn -->
+                <div class="space-y-2 bg-gray-50 p-3.5 rounded-xl border border-gray-200 text-xs">
+                    <label class="flex items-center gap-2 cursor-pointer font-bold text-gray-700 select-none">
+                        <input type="checkbox" id="overwriteSyncR2Bank" class="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 accent-teal-600" checked>
+                        <span><i class="fa-solid fa-cloud-arrow-up text-teal-600 mr-1"></i> Đồng bộ ghi đè ngay lên Ngân hàng câu hỏi R2 (Cloudflare) cho các mã CCCD tương ứng</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer font-bold text-gray-700 select-none">
+                        <input type="checkbox" id="overwriteAutoSaveExam" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 accent-amber-600" checked>
+                        <span><i class="fa-solid fa-floppy-disk text-amber-600 mr-1"></i> Tự động lưu đề thi sau khi hoàn tất cập nhật đè</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50 rounded-b-2xl">
+                <span class="text-xs text-gray-500 italic"><i class="fa-solid fa-shield-halved text-teal-600 mr-1"></i> Bảo lưu 100% mã CCCD đã cấp, không làm ảnh hưởng ID sách.</span>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.closeOverwriteLatexModal()" class="px-4 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors">Hủy bỏ</button>
+                    <button id="btnConfirmOverwriteLatex" onclick="window.executeOverwriteFromTex()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-check-double"></i> Xác nhận ghi đè
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -2927,6 +3016,278 @@
                     }
 
                     if (questionID) {
+                        tags = (typeof parseQuestionID === 'function') 
+                            ? parseQuestionID(questionID) 
+                            : (typeof window !== 'undefined' && typeof window.parseQuestionID === 'function' ? window.parseQuestionID(questionID) : tags);
+                    }
+
+                    // Làm sạch header ở đầu nội dung câu hỏi
+                    if (firstNewline !== -1 && (bracketMatches.length > 0 || firstLine.trim().startsWith('%'))) {
+                        fullBody = fullBody.substring(firstNewline + 1);
+                    } else {
+                        fullBody = fullBody.replace(/^\s*\[.*?\](?:%\[.*?\])*/, '');
+                    }
+                    fullBody = fullBody.replace(/(?:%%|%)\s*\[[a-zA-Z0-9\-_.]+\]/g, '');
+                    fullBody = fullBody.replace(/(?<!\\)%.*/g, '');
+                    fullBody = fullBody.replace(/^\s*\[.*?\]/, '');
+                    
+                    let qType = 'essay';
+                    // Thêm mapId vào qData
+                    let qData = { 
+                        content: '', solution: '', options: [], statements: [], answer: '', point: 0,
+                        mapId: questionID, subject: tags.subject, level: tags.level, levelColor: tags.levelColor 
+                    };
+                    
+                    // --- TÁCH LỜI GIẢI (Giữ nguyên logic cũ) ---
+                    let mainContent = fullBody;
+                    const loigiaiIndex = fullBody.lastIndexOf('\\loigiai');
+                    if (loigiaiIndex !== -1) {
+                        mainContent = fullBody.substring(0, loigiaiIndex);
+                        const solPart = fullBody.substring(loigiaiIndex);
+                        const solMatch = solPart.match(/\\loigiai\s*\{([\s\S]*)\}/);
+                        if (solMatch) {
+                             let depth = 0, start = solPart.indexOf('{'), end = -1;
+                             for(let i=start; i<solPart.length; i++){
+                                 if(solPart[i]=='{') depth++; else if(solPart[i]=='}') depth--;
+                                 if(depth===0 && start!==-1) { end=i; break; }
+                             }
+                             if(end !== -1) {
+                                 const solContent = solPart.substring(start+1, end);
+                                 qData.solution = processLatexImagesWithDetection(cleanTikzCode(solContent), count).replace(/(?<!\\)%.*/g, '');
+                             }
+                        }
+                    }
+                    
+                    let procBody = processLatexImagesWithDetection(cleanTikzCode(mainContent), count);
+                    
+                    // --- NHẬN DIỆN LOẠI CÂU HỎI (Giữ nguyên logic cũ) ---
+                    if (procBody.includes('\\choiceTF')) {
+                        qType = 'tf';
+                        const parts = procBody.split('\\choiceTF');
+                        qData.content = parts[0].trim();
+                        const stmtsRaw = parts[1];
+                        // ... (Logic tách True/False giữ nguyên)
+                        let tempStmts = [], cursor = 0;
+                        const getNextArg = (str) => {
+                            const s = str.indexOf('{', cursor); if(s===-1) return null;
+                            let d=1, e=-1; for(let i=s+1; i<str.length; i++){ if(str[i]=='{') d++; else if(str[i]=='}') d--; if(d===0){ e=i; break; } }
+                            if(e!==-1) { cursor=e+1; return str.substring(s+1, e); } return null;
+                        };
+                        cursor = 0; 
+                        while(cursor < stmtsRaw.length){
+                            let txt = getNextArg(stmtsRaw); if(txt===null) break;
+                            tempStmts.push({text: txt.replace(/\\(True|False)/g,'').trim(), isTrue: txt.includes('\\True')});
+                        }
+                        qData.statements = tempStmts;
+                        if (cursor < stmtsRaw.length) {
+                            const leftover = stmtsRaw.substring(cursor).trim();
+                            if (leftover) qData.content += '\n\n' + leftover;
+                        }
+
+                    } else if (procBody.includes('\\choice')) {
+                        qType = 'mc';
+                        const parts = procBody.split('\\choice');
+                        qData.content = parts[0].trim();
+                        let cursor = 0, optsRaw = parts[1], optCount = 0;
+                        const getNextArg = (str) => { 
+                            const s = str.indexOf('{', cursor); if(s===-1) return null;
+                            let d=1, e=-1; for(let i=s+1; i<str.length; i++){ if(str[i]=='{') d++; else if(str[i]=='}') d--; if(d===0){ e=i; break; } }
+                            if(e!==-1) { cursor=e+1; return str.substring(s+1, e); } return null;
+                        };
+                        while(optCount < 4) {
+                            let txt = getNextArg(optsRaw); if(txt===null) break;
+                            if(txt.includes('\\True')) qData.correct = optCount;
+                            qData.options.push(txt.replace('\\True','').trim());
+                            optCount++;
+                        }
+                        if (cursor < optsRaw.length) {
+                            const leftover = optsRaw.substring(cursor).trim();
+                            if (leftover) qData.content += '\n\n' + leftover;
+                        }
+                    } else if (procBody.includes('\\shortans')) {
+                        qType = 'short';
+                        const parts = procBody.split('\\shortans');
+                        qData.content = parts[0].trim();
+                        // ... (Logic tách Short Ans giữ nguyên)
+                        let start = procBody.indexOf('\\shortans') + 9, depth = 0, end = -1;
+                        if(procBody[start] !== '{') start = procBody.indexOf('{', start);
+                        for(let i=start; i<procBody.length; i++){ if(procBody[i]=='{') depth++; else if(procBody[i]=='}') depth--; if(depth===0 && depth!==-1) { end=i; break; } }
+                        if(end!==-1) {
+                            qData.answer = procBody.substring(start+1, end).trim();
+                            const leftover = procBody.substring(end+1).trim();
+                            if (leftover) qData.content += '\n\n' + leftover;
+                        }
+                    } else {
+                        qType = 'essay';
+                        qData.content = procBody;
+                    }
+                    
+                    // --- TẠO OBJECT CÂU HỎI CUỐI CÙNG ---
+                    const finalQuestion = { 
+                        type: qType,
+                        env: currentEnv,
+                        cccd: assignedCccd,
+                        bankId: assignedCccd,
+                        source: source,
+                        ...qData, 
+                        mapId: questionID,      // Lưu ID gốc (VD: 9D1H1-6)
+                        subject: tags.subject,  // Lưu môn (Đại/Hình)
+                        level: tags.level       // Lưu mức độ
+                    };
+                    
+                    const typeSetting = (typeof document !== 'undefined' && document.getElementById('settingType')) ? document.getElementById('settingType').value : (typeof window !== 'undefined' && window.examData ? window.examData.type : '');
+                    const isMixed = typeSetting === 'mixed' || (typeof window !== 'undefined' && window.examData && window.examData.type === 'mixed');
+
+                    if (isMixed && qType === 'essay') {
+                        if (!window.mixedTlQuestions) window.mixedTlQuestions = [];
+                        window.mixedTlQuestions.push(finalQuestion);
+                    } else {
+                        window.questions.push(finalQuestion);
+                    }
+                    count++;
+                }
+
+                // Hàm tiếp tục xử lý TikZ
+                const continueProcessTikZ = () => {
+                    const tikzCount = pendingImageUploads.filter(i => i.type === 'tikz').length;
+                    if (tikzCount > 0) {
+                        document.getElementById('detectTikzCount').innerText = tikzCount;
+                        const m = document.getElementById('importModeModal');
+                        
+                        // Load VPS config
+                        const vpsMode = localStorage.getItem('tikzVpsMode') || 'personal';
+                        const vpsUrl = localStorage.getItem('tikzVpsUrl') || 'https://api.qmath.io.vn';
+                        document.getElementById('vpsModeSelector').value = vpsMode;
+                        document.getElementById('vpsCustomUrl').value = vpsUrl;
+                        document.getElementById('vpsUrlContainer').classList.toggle('hidden', vpsMode === 'free');
+
+                        m.classList.remove('opacity-0', 'pointer-events-none');
+                        m.querySelector('div').classList.add('scale-100');
+                    } else {
+                        window.finishImportProcess();
+                    }
+                };
+
+                // [AI ID ASSIGNER] Gọi gán ID bằng AI trước khi xử lý TikZ / kết thúc
+                const allParsedQs = [...(window.questions || []), ...(window.mixedTlQuestions || [])];
+                if (typeof window.checkAndAssignMissingIds === 'function' && (window.globalIdTree || []).length > 0) {
+                    const missingCount = allParsedQs.filter(q => !q.mapId || !q.mapId.trim()).length;
+                    if (missingCount > 0) {
+                        window.checkAndAssignMissingIds(allParsedQs, { db: window._examDb })
+                            .then(() => continueProcessTikZ())
+                            .catch(e => {
+                                console.warn('[AI ID Assigner] Bỏ qua gán ID:', e.message);
+                                if (window.showToast) window.showToast('⚠️ AI gán ID: ' + e.message, 'warning');
+                                else if (window.showNotification) window.showNotification('⚠️ AI gán ID: ' + e.message, 'warning');
+                                continueProcessTikZ();
+                            });
+                        return; // Dừng hàm lại để chờ promise hoàn thành
+                    }
+                }
+
+                // Xử lý TikZ và kết thúc (Giữ nguyên)
+                continueProcessTikZ();
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // ============================================================
+        // --- CHỨC NĂNG CẬP NHẬT ĐÈ CÂU HỎI TỪ TEX (BẢO LƯU CCCD) ---
+        // ============================================================
+        window.triggerOverwriteFromTex = () => {
+            if (!window.questions || window.questions.length === 0) {
+                if (window.customAlert) window.customAlert("Đề hiện tại chưa có câu hỏi nào để cập nhật đè! Vui lòng sử dụng tính năng 'Nhập TeX' để thêm đề mới.", "warning");
+                else alert("Đề hiện tại chưa có câu hỏi nào để cập nhật đè!");
+                return;
+            }
+            const inp = document.getElementById('overwriteTexInput');
+            if (inp) {
+                inp.value = '';
+                inp.click();
+            }
+        };
+
+        window.closeOverwriteLatexModal = () => {
+            const m = document.getElementById('overwriteLatexModal');
+            if (m) {
+                m.classList.add('opacity-0', 'pointer-events-none');
+                m.querySelector('div')?.classList.remove('scale-100');
+                m.querySelector('div')?.classList.add('scale-95');
+            }
+            window._pendingOverwriteQuestions = null;
+        };
+
+        window.parseLatexExamString = function(rawFileContent) {
+                let content = rawFileContent;
+
+               // 1. Làm sạch LaTeX (Clean junk)
+                content = content.replace(/\\begin\{multicols\}\{.*?\}/g, "").replace(/\\end\{multicols\}/g, "");
+                content = content.replace(/\\begin\{align\*\}([\s\S]*?)\\end\{align\*\}/g, (m, p1) => `$$ \\begin{aligned}${p1}\\end{aligned} $$`);
+                
+                // [FIX QUAN TRỌNG] KHÔNG xóa dòng chứa ID (bắt đầu bằng %) ngay lập tức
+                // Chỉ xóa các dòng % mà KHÔNG chứa ngoặc vuông [...]
+                content = content.replace(/^[ \t]*(?<!\\)%.*\r?\n?/gm, (match) => {
+                    if (match.includes('[') && match.includes(']')) return match; // Giữ lại dòng có ID
+                    return ''; // Xóa dòng comment rác
+                });
+
+                content = content.replace(/\\begin\{array\}\s*\{[^{}]*?\}/g, '\\begin{matrix}').replace(/\\begin\{array\}/g, '\\begin{matrix}').replace(/\\end\{array\}/g, '\\end{matrix}');
+
+                const parsedList = [];
+                const blockRegex = /\\begin\{(ex|bt|vd|vidu)\}([\s\S]*?)\\end\{\1\}/g;
+                let match, count = 0;
+                
+                while ((match = blockRegex.exec(content)) !== null) {
+                    const currentEnv = match[1];
+                    let fullBody = match[2];
+
+                    // --- BÓC TÁCH HEADER: [CCCD]%[Nguồn]%[MapID] ---
+                    let questionID = "";
+                    let assignedCccd = "";
+                    let source = "";
+                    let tags = { subject: 'Chưa phân loại', level: '', levelColor: 'gray' };
+
+                    const firstNewline = fullBody.indexOf('\n');
+                    const firstLine = firstNewline !== -1 ? fullBody.substring(0, firstNewline) : fullBody;
+                    const bracketMatches = Array.from(firstLine.matchAll(/\[(.*?)\]/g)).map(m => m[1].trim());
+
+                    if (bracketMatches.length >= 3) {
+                        assignedCccd = bracketMatches[0];
+                        source = bracketMatches[1];
+                        questionID = bracketMatches[2];
+                    } else if (bracketMatches.length === 2) {
+                        if (/^\d{5,10}$/.test(bracketMatches[0])) {
+                            assignedCccd = bracketMatches[0];
+                            if (/^[0-2]?[0-9][A-Z][0-9]/i.test(bracketMatches[1])) {
+                                questionID = bracketMatches[1];
+                            } else {
+                                source = bracketMatches[1];
+                            }
+                        } else {
+                            source = bracketMatches[0];
+                            questionID = bracketMatches[1];
+                        }
+                    } else if (bracketMatches.length === 1) {
+                        const val = bracketMatches[0];
+                        if (/^\d{5,10}$/.test(val)) {
+                            assignedCccd = val;
+                        } else if (/^[0-2]?[0-9][A-Z][0-9]/i.test(val)) {
+                            questionID = val;
+                        } else {
+                            source = val;
+                        }
+                    }
+
+                    // Nếu chưa tìm thấy MapID, tìm dạng %[ID] trong toàn body
+                    if (!questionID) {
+                        const idMatch = fullBody.match(/(?:%%|%)\s*\[([a-zA-Z0-9\-_.]+)\]/);
+                        if (idMatch) {
+                            questionID = idMatch[1];
+                        }
+                    }
+
+                    if (questionID) {
                         tags = parseQuestionID(questionID);
                     }
 
@@ -3048,58 +3409,234 @@
                     const isMixed = typeSetting === 'mixed' || (window.examData && window.examData.type === 'mixed');
 
                     if (isMixed && qType === 'essay') {
-                        if (!window.mixedTlQuestions) window.mixedTlQuestions = [];
-                        window.mixedTlQuestions.push(finalQuestion);
+                        
+                        parsedList.push(finalQuestion);
                     } else {
-                        window.questions.push(finalQuestion);
+                        parsedList.push(finalQuestion);
                     }
                     count++;
                 }
 
-                // Hàm tiếp tục xử lý TikZ
-                const continueProcessTikZ = () => {
-                    const tikzCount = pendingImageUploads.filter(i => i.type === 'tikz').length;
-                    if (tikzCount > 0) {
-                        document.getElementById('detectTikzCount').innerText = tikzCount;
-                        const m = document.getElementById('importModeModal');
-                        
-                        // Load VPS config
-                        const vpsMode = localStorage.getItem('tikzVpsMode') || 'personal';
-                        const vpsUrl = localStorage.getItem('tikzVpsUrl') || 'https://api.qmath.io.vn';
-                        document.getElementById('vpsModeSelector').value = vpsMode;
-                        document.getElementById('vpsCustomUrl').value = vpsUrl;
-                        document.getElementById('vpsUrlContainer').classList.toggle('hidden', vpsMode === 'free');
+            return parsedList;
+        };
 
-                        m.classList.remove('opacity-0', 'pointer-events-none');
-                        m.querySelector('div').classList.add('scale-100');
+        window.handleOverwriteTexFile = async (input) => {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (window.currentQIndex !== -1 && typeof saveCurrentQuestionToMemory === 'function') {
+                saveCurrentQuestionToMemory();
+            }
+
+            if (window.showToast) window.showToast("Đang đọc và phân tích file TeX mới...", "info");
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const rawText = e.target.result;
+                const parsedList = window.parseLatexExamString(rawText);
+
+                if (!parsedList || parsedList.length === 0) {
+                    if (window.customAlert) window.customAlert("Không tìm thấy câu hỏi định dạng \\begin{ex}...\\end{ex} nào trong file TeX tải lên!", "error");
+                    else alert("Không tìm thấy câu hỏi nào trong file TeX!");
+                    return;
+                }
+
+                window._pendingOverwriteQuestions = parsedList;
+
+                // Chuẩn bị dữ liệu hiển thị modal đối soát
+                const curCount = (window.questions || []).length;
+                const newCount = parsedList.length;
+                let preservedCccdCount = 0;
+                (window.questions || []).forEach(q => {
+                    if (q.cccd || q.bankId) preservedCccdCount++;
+                });
+
+                document.getElementById('overwriteCurrentCount').innerText = `${curCount} câu`;
+                document.getElementById('overwriteNewCount').innerText = `${newCount} câu`;
+                document.getElementById('overwritePreservedCccdCount').innerText = `${preservedCccdCount} mã`;
+
+                const warningBox = document.getElementById('overwriteWarningDiff');
+                const warningText = document.getElementById('overwriteWarningDiffText');
+                if (curCount !== newCount) {
+                    warningBox.classList.remove('hidden');
+                    if (newCount < curCount) {
+                        warningText.innerHTML = `Đề hiện tại có <b>${curCount}</b> câu nhưng file TeX mới chỉ có <b>${newCount}</b> câu. Hệ thống sẽ ghi đè <b>${newCount}</b> câu đầu tiên, các câu từ <b>${newCount + 1}</b> đến <b>${curCount}</b> sẽ được giữ nguyên.`;
                     } else {
-                        window.finishImportProcess();
+                        warningText.innerHTML = `File TeX mới có <b>${newCount}</b> câu, nhiều hơn đề hiện tại (<b>${curCount}</b> câu). Hệ thống sẽ ghi đè <b>${curCount}</b> câu đầu tiên và <b>thêm mới ${newCount - curCount} câu</b> vào cuối đề.`;
                     }
-                };
+                } else {
+                    warningBox.classList.add('hidden');
+                }
 
-                // [AI ID ASSIGNER] Gọi gán ID bằng AI trước khi xử lý TikZ / kết thúc
-                const allParsedQs = [...(window.questions || []), ...(window.mixedTlQuestions || [])];
-                if (typeof window.checkAndAssignMissingIds === 'function' && (window.globalIdTree || []).length > 0) {
-                    const missingCount = allParsedQs.filter(q => !q.mapId || !q.mapId.trim()).length;
-                    if (missingCount > 0) {
-                        window.checkAndAssignMissingIds(allParsedQs, { db: window._examDb })
-                            .then(() => continueProcessTikZ())
-                            .catch(e => {
-                                console.warn('[AI ID Assigner] Bỏ qua gán ID:', e.message);
-                                if (window.showToast) window.showToast('⚠️ AI gán ID: ' + e.message, 'warning');
-                                else if (window.showNotification) window.showNotification('⚠️ AI gán ID: ' + e.message, 'warning');
-                                continueProcessTikZ();
-                            });
-                        return; // Dừng hàm lại để chờ promise hoàn thành
+                // Render bảng so sánh
+                const tbody = document.getElementById('overwriteComparisonTableBody');
+                tbody.innerHTML = '';
+                const maxRows = Math.max(curCount, newCount);
+
+                for (let i = 0; i < maxRows; i++) {
+                    const oldQ = window.questions[i];
+                    const newQ = parsedList[i];
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-amber-50/40 transition-colors";
+
+                    const cccdVal = oldQ ? (oldQ.cccd || oldQ.bankId || '') : '';
+                    const cccdBadge = cccdVal
+                        ? `<span class="px-2 py-0.5 bg-teal-50 border border-teal-200 text-teal-700 rounded font-mono font-bold text-[11px] flex items-center gap-1 w-fit" title="Bảo lưu 100% không đổi"><i class="fa-solid fa-shield-halved text-[9px]"></i>#${cccdVal}</span>`
+                        : `<span class="text-[11px] text-gray-400 italic">Chưa cấp</span>`;
+
+                    const cleanSnippet = (txt) => {
+                        if (!txt) return '';
+                        return String(txt).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 45) + '...';
+                    };
+
+                    const oldSnip = oldQ ? cleanSnippet(oldQ.content) : '<span class="text-gray-400 italic">(Chưa có)</span>';
+                    const newSnip = newQ ? cleanSnippet(newQ.content) : '<span class="text-gray-400 italic">(Không có trong TeX)</span>';
+
+                    const oldMap = oldQ ? (oldQ.mapId || 'No-ID') : '-';
+                    const newMap = newQ ? (newQ.mapId || 'No-ID') : '-';
+                    const newLvl = newQ ? (newQ.level || '') : '';
+
+                    tr.innerHTML = `
+                        <td class="p-2.5 text-center font-bold text-gray-600">${i + 1}</td>
+                        <td class="p-2.5">${cccdBadge}</td>
+                        <td class="p-2.5">
+                            <div class="text-gray-400 line-through text-[11px]">${oldSnip}</div>
+                            <div class="text-gray-800 font-medium">${newSnip}</div>
+                        </td>
+                        <td class="p-2.5">
+                            <div class="font-mono font-bold text-primary-700">${newMap}</div>
+                            <div class="text-[10px] text-gray-500">${newLvl ? `<span class="px-1.5 py-0.2 bg-gray-100 rounded text-gray-600">${newLvl}</span>` : ''}</div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+
+                // Mở modal
+                const modal = document.getElementById('overwriteLatexModal');
+                if (modal) {
+                    modal.classList.remove('opacity-0', 'pointer-events-none');
+                    modal.querySelector('div')?.classList.remove('scale-95');
+                    modal.querySelector('div')?.classList.add('scale-100');
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        window.executeOverwriteFromTex = async () => {
+            const parsedList = window._pendingOverwriteQuestions;
+            if (!parsedList || parsedList.length === 0) return;
+
+            const btn = document.getElementById('btnConfirmOverwriteLatex');
+            const oldBtnHtml = btn ? btn.innerHTML : 'Xác nhận';
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang ghi đè...';
+                btn.disabled = true;
+            }
+
+            try {
+                const curLen = (window.questions || []).length;
+                const newLen = parsedList.length;
+                const overwriteCount = Math.min(curLen, newLen);
+
+                // 1. Thực hiện ghi đè từng câu theo vị trí tương ứng
+                for (let i = 0; i < overwriteCount; i++) {
+                    const targetQ = window.questions[i];
+                    const srcQ = parsedList[i];
+
+                    // BẢO LƯU TUYỆT ĐỐI MÃ CCCD ĐANG CÓ
+                    const preservedCccd = targetQ.cccd || targetQ.bankId;
+                    if (preservedCccd) {
+                        srcQ.cccd = preservedCccd;
+                        srcQ.bankId = preservedCccd;
+                    }
+                    if (targetQ.point && (!srcQ.point || srcQ.point === 0)) {
+                        srcQ.point = targetQ.point;
+                    }
+
+                    // Ghi đè toàn bộ nội dung & metadata
+                    targetQ.content = srcQ.content;
+                    targetQ.solution = srcQ.solution;
+                    targetQ.type = srcQ.type;
+                    targetQ.options = srcQ.options || [];
+                    targetQ.correct = srcQ.correct;
+                    targetQ.statements = srcQ.statements || [];
+                    targetQ.answer = srcQ.answer || '';
+                    targetQ.mapId = srcQ.mapId || '';
+                    targetQ.subject = srcQ.subject || '';
+                    targetQ.level = srcQ.level || '';
+                    targetQ.levelColor = srcQ.levelColor || 'gray';
+                    targetQ.env = srcQ.env || targetQ.env;
+                    targetQ.source = srcQ.source || targetQ.source;
+                    if (preservedCccd) {
+                        targetQ.cccd = preservedCccd;
+                        targetQ.bankId = preservedCccd;
                     }
                 }
 
-                // Xử lý TikZ và kết thúc (Giữ nguyên)
-                continueProcessTikZ();
-            };
-            
-            reader.readAsText(file);
-        }
+                // Nếu file TeX có thêm các câu mới dư ra
+                if (newLen > curLen) {
+                    const surplus = parsedList.slice(curLen);
+                    window.questions.push(...surplus);
+                }
+
+                // 2. Kiểm tra tùy chọn đồng bộ ghi đè lên Ngân hàng R2
+                const syncR2 = document.getElementById('overwriteSyncR2Bank')?.checked;
+                let r2Result = null;
+                if (syncR2 && window.BankService) {
+                    const validBankQuestions = window.questions.filter(q => window.BankService.isNumericCccd(q.cccd || q.bankId));
+                    if (validBankQuestions.length > 0) {
+                        const examId = window.currentExamId || "";
+                        const payloads = validBankQuestions.map(q => {
+                            q.examId = examId;
+                            return window.BankService.createBankQuestion(q, q.cccd || q.bankId);
+                        });
+                        r2Result = await window.BankService.uploadQuestionsToBank(payloads, { concurrency: 5 });
+                    }
+                }
+
+                // 3. Render lại toàn bộ giao diện soạn thảo
+                if (typeof renderPreviewList === 'function') renderPreviewList();
+                if (typeof renderPalette === 'function') renderPalette();
+                if (window.currentQIndex !== -1 && typeof loadQuestionToEditor === 'function') {
+                    loadQuestionToEditor(window.currentQIndex, window.currentQListType);
+                }
+                if (window.MathJax) {
+                    MathJax.typesetPromise().catch(() => {});
+                }
+                setTimeout(() => {
+                    if (window.renderTikz) window.renderTikz();
+                    if (window.autoScaleTables) window.autoScaleTables();
+                }, 500);
+
+                // 4. Tự động lưu đề thi nếu được chọn
+                const autoSave = document.getElementById('overwriteAutoSaveExam')?.checked;
+                if (autoSave && typeof window.saveExam === 'function') {
+                    const currentStatus = (window.examData && window.examData.status) ? window.examData.status : 'draft';
+                    await window.saveExam(currentStatus);
+                }
+
+                // Đóng modal
+                window.closeOverwriteLatexModal();
+
+                // Hiển thị thông báo thành công
+                let msg = `✅ Đã cập nhật đè thành công ${overwriteCount} câu hỏi (Bảo lưu 100% mã CCCD)!`;
+                if (r2Result) {
+                    msg += ` Đã đồng bộ ${r2Result.successCount} câu lên Ngân hàng câu hỏi R2.`;
+                }
+                if (window.showToast) window.showToast(msg, "success");
+                else alert(msg);
+
+            } catch (err) {
+                console.error("Lỗi cập nhật đè TeX:", err);
+                if (window.customAlert) window.customAlert("Lỗi cập nhật đè: " + err.message, "error");
+                else alert("Lỗi: " + err.message);
+            } finally {
+                if (btn) {
+                    btn.innerHTML = oldBtnHtml;
+                    btn.disabled = false;
+                }
+            }
+        };
 
         // --- IMPORT WORD (.DOCX) ---
         // --- IMPORT WORD (.DOCX) ---

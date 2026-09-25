@@ -750,9 +750,81 @@ export const watermarkImage = (file, text) => {
     });
 };
 
+/**
+ * TỰ ĐỘNG ĐẢO LỜI GIẢI CÂU ĐÚNG / SAI KHI TRỘN MỆNH ĐỀ
+ * @param {string} solution - Lời giải gốc (thường gồm lời dẫn + các ý a, b, c, d)
+ * @param {number[]} shuffleMap - Mảng ánh xạ chỉ số đảo, ví dụ [2, 0, 3, 1] nghĩa là ý 0 mới là ý 2 cũ
+ * @returns {string} Lời giải sau khi đã sắp xếp lại các ý theo đúng thứ tự hiển thị
+ */
+export const reorderTfSolution = (solution, shuffleMap) => {
+    if (!solution || typeof solution !== 'string' || !Array.isArray(shuffleMap) || shuffleMap.length < 2) {
+        return solution;
+    }
+
+    const n = shuffleMap.length;
+    const expectedLetters = ['a', 'b', 'c', 'd'].slice(0, n);
+
+    const markerPatterns = [
+        /(?:^|\n)\s*(?:[\+\-\*(?:\•)]\s*)?(?:(?:Ý|ý|Mệnh\s+đề|mệnh\s+đề)\s*)?\(?([a-dA-D])\)?(?:\s*[:.]|\s+)/g,
+        /(?:^|\n)\s*(?:[\+\-\*(?:\•)]\s*)?(?:(?:Ý|ý|Mệnh\s+đề|mệnh\s+đề)\s*)?([a-dA-D])[\.:](?:\s+|$)/g,
+        /(?:^|\n)\s*(?:[\+\-\*(?:\•)]\s*)?(?:Ý|ý|Mệnh\s+đề|mệnh\s+đề)\s+([a-dA-D])(?:\s*[:.]|\s+)/g
+    ];
+
+    for (const pattern of markerPatterns) {
+        pattern.lastIndex = 0;
+        const matches = [];
+        let match;
+        while ((match = pattern.exec(solution)) !== null) {
+            const letter = match[1].toLowerCase();
+            if (matches.length < n && letter === expectedLetters[matches.length]) {
+                matches.push({
+                    start: match.index,
+                    end: pattern.lastIndex,
+                    letter: letter
+                });
+            }
+        }
+
+        if (matches.length === n) {
+            const preamble = solution.substring(0, matches[0].start).trim();
+            const parts = [];
+            for (let i = 0; i < n; i++) {
+                const start = matches[i].start;
+                const end = (i < n - 1) ? matches[i + 1].start : solution.length;
+                let partText = solution.substring(start, end).trim();
+                
+                // Lược bỏ nhãn đầu dòng dạng a), Ý a:, + Mệnh đề a:
+                partText = partText.replace(/^(?:[\+\-\*(?:\•)]\s*)?(?:(?:Ý|ý|Mệnh\s+đề|mệnh\s+đề)\s*)?\(?[a-dA-D]\)?[\.:]?\s*/i, '').trim();
+                // Lược bỏ nhãn lặp dư thừa như: "Mệnh đề a đúng vì...", "Ý a là sai vì..."
+                partText = partText.replace(/^(?:Mệnh\s+đề|mệnh\s+đề|Ý|ý)\s+[a-dA-D](?:\s*là\s*(?:mệnh\s+đề\s*)?)?[\.:\s-]*/i, '').trim();
+                
+                if (partText.length > 0) {
+                    partText = partText.charAt(0).toUpperCase() + partText.slice(1);
+                }
+                parts.push(partText);
+            }
+
+            const reorderedParts = [];
+            for (let newPos = 0; newPos < n; newPos++) {
+                const oldIdx = shuffleMap[newPos];
+                const body = (oldIdx !== undefined && parts[oldIdx] !== undefined) ? parts[oldIdx] : (parts[newPos] || '');
+                reorderedParts.push(expectedLetters[newPos] + ') ' + body);
+            }
+
+            let res = '';
+            if (preamble) res = preamble + '\n\n';
+            res += reorderedParts.join('\n\n');
+            return res;
+        }
+    }
+
+    return solution;
+};
+
 if (typeof window !== 'undefined') {
     window.formatContent = formatContent;
     window.autoScaleTables = autoScaleTables;
     window.renderTikz = renderTikz;
+    window.reorderTfSolution = reorderTfSolution;
 }
 
