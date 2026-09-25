@@ -17,12 +17,12 @@
     
     <script>
         window.MathJax = {
-            loader: { load: ['[tex]/noerrors', '[tex]/noundefined'] },
+            loader: { load: ['[tex]/noerrors'] },
             tex: {
                 inlineMath: [['$', '$'], ['\\(', '\\)']],
                 displayMath: [['$$', '$$'], ['\\[', '\\]']],
                 processEscapes: true,
-                packages: {'[+]': ['noerrors', 'noundefined']},
+                packages: {'[+]': ['noerrors']},
                 macros: {
                     heva: ["\\left\\{\\begin{aligned}#1\\end{aligned}\\right.", 1],
                     hoac: ["\\left[\\begin{aligned}#1\\end{aligned}\\right.", 1],

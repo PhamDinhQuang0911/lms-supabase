@@ -20,12 +20,12 @@
     
     <script>
     window.MathJax = {
-      loader: { load: ['[tex]/noerrors', '[tex]/noundefined'] },
+      loader: { load: ['[tex]/noerrors'] },
       tex: {
         inlineMath: [['$', '$'], ['\\(', '\\)']],
         displayMath: [['$$', '$$'], ['\\[', '\\]']],
         processEscapes: true,
-        packages: {'[+]': ['noerrors', 'noundefined']},
+        packages: {'[+]': ['noerrors']},
         macros: {
           heva: ["\\left\\{\\begin{aligned}#1\\end{aligned}\\right.", 1],
           hoac: ["\\left[\\begin{aligned}#1\\end{aligned}\\right.", 1],
@@ -117,6 +117,25 @@
             setTimeout(() => clearInterval(timer), 15000);
         }
         window.handleWordUpload = handleWordUpload;
+
+        function openScoringModal() {
+            if (typeof window._openScoringModalImpl === 'function') {
+                return window._openScoringModalImpl();
+            }
+            const modal = document.getElementById('scoringModal');
+            if (modal) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modal.querySelector('div')?.classList.add('scale-100');
+            }
+            window._pendingOpenScoringModal = true;
+        }
+        window.openScoringModal = openScoringModal;
+
+        function closeScoringModal() {
+            const modal = document.getElementById('scoringModal');
+            if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+        window.closeScoringModal = closeScoringModal;
     </script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #F8F9FA; }
@@ -934,35 +953,121 @@
         </div>
     </div>
 
-    <div id="scoringModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[100] flex items-center justify-center bg-gray-900 bg-opacity-60 px-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]">
-            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-yellow-50 rounded-t-xl">
-                <h3 class="font-bold text-yellow-800"><i class="fa-solid fa-calculator mr-2"></i>Cấu hình điểm số</h3>
-                <button onclick="closeScoringModal()" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-times"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto space-y-6">
-                <div class="grid grid-cols-2 gap-4 bg-primary-50 p-4 rounded-lg border border-primary-100">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Trắc nghiệm + Điền từ</label>
-                        <div class="flex items-center justify-between text-sm text-gray-500 mb-1"><span>Số lượng: <b id="countMcShort">0</b></span></div>
-                        <input type="number" id="scoreTotalMcShort" class="form-input text-right font-bold text-primary-600" placeholder="Tổng điểm">
+    <div id="scoringModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[100] flex items-center justify-center bg-gray-900 bg-opacity-60 px-4 transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh] overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-yellow-50 to-amber-50">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-yellow-500 text-white flex items-center justify-center font-bold shadow-xs">
+                        <i class="fa-solid fa-calculator text-sm"></i>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Đúng / Sai</label>
-                        <div class="flex items-center justify-between text-sm text-gray-500 mb-1"><span>Số lượng: <b id="countTF">0</b></span></div>
-                        <input type="number" id="scoreTotalTF" class="form-input text-right font-bold text-orange-600" placeholder="Tổng điểm">
+                        <h3 class="font-bold text-gray-800 text-base leading-tight">Cấu hình chia điểm đề thi</h3>
+                        <p class="text-[11px] text-gray-500">Tự động tính và chia điểm đều cho từng phần câu hỏi</p>
                     </div>
                 </div>
-                <div>
-                    <h4 class="text-sm font-bold text-gray-700 mb-2 border-b pb-1">Chi tiết Tự luận (<span id="countEssay">0</span> câu)</h4>
-                    <div id="essayScoreList" class="space-y-2 max-h-40 overflow-y-auto">
-                        <p class="text-xs text-gray-400 italic">Không có câu tự luận nào.</p>
+                <button onclick="closeScoringModal()" class="text-gray-400 hover:text-red-500 p-1"><i class="fa-solid fa-times text-base"></i></button>
+            </div>
+            
+            <div class="p-5 overflow-y-auto space-y-4 flex-1">
+                <!-- Nút chọn nhanh cấu hình chuẩn -->
+                <div class="flex items-center justify-between bg-amber-50/60 p-2.5 rounded-xl border border-amber-200">
+                    <span class="text-xs font-bold text-amber-800"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Mẫu chia điểm:</span>
+                    <div class="flex gap-1.5 flex-wrap">
+                        <button type="button" onclick="window.applyPresetScoring('thpt')" class="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold transition shadow-2xs" title="Cấu hình chuẩn Đề thi tốt nghiệp THPT: 6.5đ - 2.0đ - 1.5đ">Chuẩn THPT (6.5 - 2 - 1.5)</button>
+                        <button type="button" onclick="window.applyPresetScoring('equal10')" class="px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-xs font-semibold transition" title="Chia đều trên thang điểm 10">Thang 10</button>
+                        <button type="button" onclick="window.applyPresetScoring('equal100')" class="px-2 py-1 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-xs font-semibold transition" title="Chia đều trên thang điểm 100">Thang 100</button>
+                    </div>
+                </div>
+
+                <!-- 3 phần trắc nghiệm chính -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <!-- Phần I: Trắc nghiệm 4 phương án -->
+                    <div class="bg-blue-50/80 p-3 rounded-xl border border-blue-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-black text-blue-800 uppercase tracking-wider">Phần I: TN 4 PA</span>
+                                <span class="px-1.5 py-0.5 bg-blue-200/70 text-blue-800 rounded font-bold text-[10px]"><span id="countMC">0</span> câu</span>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mb-2">Trắc nghiệm nhiều lựa chọn</p>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 mb-0.5">Tổng điểm:</label>
+                            <input type="number" id="scoreTotalMC" step="0.05" oninput="window.updateScoringSummary()" class="form-input text-right font-bold text-blue-700 text-sm bg-white" placeholder="0">
+                            <div class="text-[10px] text-blue-600 font-semibold mt-1 text-right" id="perScoreMC">0đ / câu</div>
+                        </div>
+                    </div>
+
+                    <!-- Phần II: Đúng / Sai -->
+                    <div class="bg-orange-50/80 p-3 rounded-xl border border-orange-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-black text-orange-800 uppercase tracking-wider">Phần II: Đúng/Sai</span>
+                                <span class="px-1.5 py-0.5 bg-orange-200/70 text-orange-800 rounded font-bold text-[10px]"><span id="countTF">0</span> câu</span>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mb-2">Câu hỏi 4 mệnh đề đúng/sai</p>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 mb-0.5">Tổng điểm:</label>
+                            <input type="number" id="scoreTotalTF" step="0.05" oninput="window.updateScoringSummary()" class="form-input text-right font-bold text-orange-700 text-sm bg-white" placeholder="0">
+                            <div class="text-[10px] text-orange-600 font-semibold mt-1 text-right" id="perScoreTF">0đ / câu</div>
+                        </div>
+                    </div>
+
+                    <!-- Phần III: Trả lời ngắn -->
+                    <div class="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-black text-emerald-800 uppercase tracking-wider">Phần III: TL Ngắn</span>
+                                <span class="px-1.5 py-0.5 bg-emerald-200/70 text-emerald-800 rounded font-bold text-[10px]"><span id="countShort">0</span> câu</span>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mb-2">Điền đáp án ngắn</p>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 mb-0.5">Tổng điểm:</label>
+                            <input type="number" id="scoreTotalShort" step="0.05" oninput="window.updateScoringSummary()" class="form-input text-right font-bold text-emerald-700 text-sm bg-white" placeholder="0">
+                            <div class="text-[10px] text-emerald-600 font-semibold mt-1 text-right" id="perScoreShort">0đ / câu</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phần IV: Tự luận (nếu có) -->
+                <div id="scoringEssaySection" class="bg-purple-50/80 p-3.5 rounded-xl border border-purple-200 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black text-purple-800 uppercase tracking-wider">Phần Tự Luận</span>
+                            <span class="px-2 py-0.5 bg-purple-200/70 text-purple-800 rounded font-bold text-[10px]"><span id="countEssay">0</span> câu</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs text-gray-600 font-bold">Tổng điểm tự luận:</label>
+                            <input type="number" id="scoreTotalEssay" step="0.1" oninput="window.handleEssayTotalChange(this.value)" class="form-input text-right font-bold text-purple-700 text-sm bg-white w-24" placeholder="0">
+                        </div>
+                    </div>
+                    <div id="essayScoreListContainer">
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1.5">Chi tiết điểm từng câu tự luận:</label>
+                        <div id="essayScoreList" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-32 overflow-y-auto bg-white p-2.5 rounded-lg border border-purple-100">
+                            <p class="text-xs text-gray-400 italic col-span-3">Không có câu tự luận nào trong đề.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tổng kết điểm -->
+                <div class="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-xl border border-gray-200">
+                    <div>
+                        <span class="text-xs font-black text-gray-600 uppercase tracking-wider">Tổng điểm toàn đề:</span>
+                        <div class="text-[11px] text-gray-400" id="scoringBreakdown">TN: 0đ • Đ/S: 0đ • Ngắn: 0đ</div>
+                    </div>
+                    <div class="text-right">
+                        <span id="scoringGrandTotal" class="text-xl font-black text-primary-700">10.0</span>
+                        <span class="text-xs font-bold text-gray-500"> điểm</span>
                     </div>
                 </div>
             </div>
-            <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50 rounded-b-xl">
-                <button onclick="closeScoringModal()" class="px-4 py-2 bg-white border rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100">Hủy</button>
-                <button onclick="applyScoring()" class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 shadow-md">Áp dụng</button>
+
+            <div class="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50 rounded-b-2xl">
+                <button onclick="closeScoringModal()" class="px-4 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors">Hủy</button>
+                <button onclick="applyScoring()" class="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i> Áp dụng chia điểm
+                </button>
             </div>
         </div>
     </div>
@@ -4968,61 +5073,247 @@
         };
 
         window.toggleSidebar = () => { const s = document.getElementById('mainSidebar'); const o = document.getElementById('sidebarOverlay'); if (s.classList.contains('-translate-x-full')) { s.classList.remove('-translate-x-full'); o.classList.remove('hidden'); } else { s.classList.add('-translate-x-full'); o.classList.add('hidden'); } };
-        window.openScoringModal = () => { 
-            document.getElementById('scoringModal').classList.remove('opacity-0', 'pointer-events-none'); 
-            document.getElementById('scoringModal').querySelector('div').classList.add('scale-100'); 
-            let cM=0, cTF=0, cE=0; 
-            let h=''; 
-            
-            // Set defaults to 100 for MC if empty or zero
-            const mcScoreInp = document.getElementById('scoreTotalMcShort');
-            if (mcScoreInp && (!mcScoreInp.value || parseFloat(mcScoreInp.value) === 0)) {
-                mcScoreInp.value = 100;
+        window._openScoringModalImpl = () => {
+            const m = document.getElementById('scoringModal');
+            if (!m) return;
+            m.classList.remove('opacity-0', 'pointer-events-none');
+            m.querySelector('div')?.classList.add('scale-100');
+
+            const typeSetting = document.getElementById('settingType') ? document.getElementById('settingType').value : (window.examData ? window.examData.type : '');
+            const isHomework = (typeSetting === 'homework' || (window.examData && window.examData.type === 'homework'));
+            const isMixed = (typeSetting === 'mixed' || (window.examData && window.examData.type === 'mixed'));
+
+            let cMC = 0, cTF = 0, cShort = 0, cEssay = 0;
+            let currentPtMC = 0, currentPtTF = 0, currentPtShort = 0, currentPtEssay = 0;
+            let essayInputsHtml = '';
+
+            (window.questions || []).forEach((q, i) => {
+                if (q.type === 'mc') {
+                    cMC++;
+                    currentPtMC += (parseFloat(q.point) || 0);
+                } else if (q.type === 'tf') {
+                    cTF++;
+                    currentPtTF += (parseFloat(q.point) || 0);
+                } else if (q.type === 'short') {
+                    cShort++;
+                    currentPtShort += (parseFloat(q.point) || 0);
+                } else if (q.type === 'essay') {
+                    cEssay++;
+                    const pt = parseFloat(q.point) || 0;
+                    currentPtEssay += pt;
+                    essayInputsHtml += `<div class="flex items-center justify-between p-1.5 bg-gray-50 rounded border text-xs">
+                        <span class="font-bold text-gray-700">Câu ${i + 1} (TL)</span>
+                        <input type="number" id="essay-score-${i}" data-essay-type="normal" data-essay-idx="${i}" oninput="window.handleIndividualEssayChange()" class="form-input h-7 text-right w-16 text-xs font-bold text-purple-700 bg-white" value="${pt}" step="0.1" min="0">
+                    </div>`;
+                }
+            });
+
+            if (isMixed && window.mixedTlQuestions && window.mixedTlQuestions.length > 0) {
+                window.mixedTlQuestions.forEach((q, i) => {
+                    cEssay++;
+                    const pt = parseFloat(q.point) || 0;
+                    currentPtEssay += pt;
+                    essayInputsHtml += `<div class="flex items-center justify-between p-1.5 bg-gray-50 rounded border text-xs">
+                        <span class="font-bold text-gray-700">Bài TL ${i + 1}</span>
+                        <input type="number" id="mixed-essay-score-${i}" data-essay-type="mixed" data-essay-idx="${i}" oninput="window.handleIndividualEssayChange()" class="form-input h-7 text-right w-16 text-xs font-bold text-purple-700 bg-white" value="${pt}" step="0.1" min="0">
+                    </div>`;
+                });
             }
 
-            window.questions.forEach((q,i)=>{ 
-                if(q.type==='essay'){ 
-                    cE++; 
-                    h+=`<div class="flex items-center gap-2 text-sm"><span class="w-16 font-bold">Câu ${i+1}</span><input type="number" id="essay-score-${i}" class="form-input h-8 text-right w-20" value="${q.point||0}" step="0.1"></div>`; 
-                } 
-                else if(q.type==='tf') cTF++; 
-                else cM++; 
-            }); 
-            
-            document.getElementById('countMcShort').textContent=cM; 
-            document.getElementById('countTF').textContent=cTF; 
-            document.getElementById('countEssay').textContent=cE; 
-            document.getElementById('essayScoreList').innerHTML = cE>0 ? h : '<p class="text-xs text-gray-400 italic">Không có câu tự luận.</p>'; 
+            document.getElementById('countMC').textContent = cMC;
+            document.getElementById('countTF').textContent = cTF;
+            document.getElementById('countShort').textContent = cShort;
+            document.getElementById('countEssay').textContent = cEssay;
+
+            const essaySection = document.getElementById('scoringEssaySection');
+            if (essaySection) {
+                if (cEssay > 0) {
+                    essaySection.classList.remove('hidden');
+                    document.getElementById('essayScoreList').innerHTML = essayInputsHtml;
+                } else {
+                    essaySection.classList.add('hidden');
+                }
+            }
+
+            const mcInp = document.getElementById('scoreTotalMC');
+            const tfInp = document.getElementById('scoreTotalTF');
+            const shortInp = document.getElementById('scoreTotalShort');
+            const essayInp = document.getElementById('scoreTotalEssay');
+
+            if (isHomework) {
+                mcInp.value = currentPtMC > 0 ? parseFloat(currentPtMC.toFixed(2)) : (cMC > 0 ? 10 : 0);
+                tfInp.value = currentPtTF > 0 ? parseFloat(currentPtTF.toFixed(2)) : 0;
+                shortInp.value = currentPtShort > 0 ? parseFloat(currentPtShort.toFixed(2)) : 0;
+                if (essayInp) essayInp.value = currentPtEssay > 0 ? parseFloat(currentPtEssay.toFixed(2)) : 0;
+            } else {
+                // Đề trắc nghiệm chuẩn: Mặc định chuẩn Bộ GD: MC=6.5, TF=2.0, Short=1.5
+                const hasExistingPoints = (currentPtMC > 0 || currentPtTF > 0 || currentPtShort > 0 || currentPtEssay > 0);
+                if (hasExistingPoints) {
+                    mcInp.value = parseFloat(currentPtMC.toFixed(2));
+                    tfInp.value = parseFloat(currentPtTF.toFixed(2));
+                    shortInp.value = parseFloat(currentPtShort.toFixed(2));
+                    if (essayInp) essayInp.value = parseFloat(currentPtEssay.toFixed(2));
+                } else {
+                    mcInp.value = cMC > 0 ? 6.5 : 0;
+                    tfInp.value = cTF > 0 ? 2.0 : 0;
+                    shortInp.value = cShort > 0 ? 1.5 : 0;
+                    if (essayInp) essayInp.value = currentPtEssay;
+                }
+            }
+
+            window.updateScoringSummary();
         };
 
-        window.closeScoringModal = () => { document.getElementById('scoringModal').classList.add('opacity-0', 'pointer-events-none'); };
-        
-        window.applyScoring = () => { 
-            const tM = parseFloat(document.getElementById('scoreTotalMcShort').value) || 100; 
-            const tTF = parseFloat(document.getElementById('scoreTotalTF').value) || 100; 
-            let cM=0, cTF=0; 
-            window.questions.forEach(q=>{if(q.type==='mc'||q.type==='short')cM++; else if(q.type==='tf')cTF++;}); 
-            const pM=cM>0?(tM/cM):0; 
-            const pTF=cTF>0?(tTF/cTF):0; 
-            
-            window.questions.forEach((q,i)=>{ 
-                if(q.type==='mc'||q.type==='short') q.point=parseFloat(pM.toFixed(2)); 
-                else if(q.type==='tf') q.point=parseFloat(pTF.toFixed(2)); 
-                else if(q.type==='essay'){ 
-                    const inp=document.getElementById(`essay-score-${i}`); 
-                    if(inp) q.point=parseFloat(inp.value)||0; 
-                } 
-            }); 
-            
-            if (window.currentQIndex !== -1 && window.questions[window.currentQIndex]) {
+        window.applyPresetScoring = (preset) => {
+            const cMC = parseInt(document.getElementById('countMC').textContent) || 0;
+            const cTF = parseInt(document.getElementById('countTF').textContent) || 0;
+            const cShort = parseInt(document.getElementById('countShort').textContent) || 0;
+            const cEssay = parseInt(document.getElementById('countEssay').textContent) || 0;
+
+            const mcInp = document.getElementById('scoreTotalMC');
+            const tfInp = document.getElementById('scoreTotalTF');
+            const shortInp = document.getElementById('scoreTotalShort');
+            const essayInp = document.getElementById('scoreTotalEssay');
+
+            if (preset === 'thpt') {
+                mcInp.value = cMC > 0 ? 6.5 : 0;
+                tfInp.value = cTF > 0 ? 2.0 : 0;
+                shortInp.value = cShort > 0 ? 1.5 : 0;
+                if (essayInp && cEssay > 0) {
+                    essayInp.value = 0;
+                    window.handleEssayTotalChange(0);
+                }
+            } else if (preset === 'equal10') {
+                const totalQ = cMC + cTF + cShort + cEssay;
+                if (totalQ > 0) {
+                    const each = 10 / totalQ;
+                    mcInp.value = parseFloat((each * cMC).toFixed(2));
+                    tfInp.value = parseFloat((each * cTF).toFixed(2));
+                    shortInp.value = parseFloat((each * cShort).toFixed(2));
+                    if (essayInp) {
+                        essayInp.value = parseFloat((each * cEssay).toFixed(2));
+                        window.handleEssayTotalChange(essayInp.value);
+                    }
+                }
+            } else if (preset === 'equal100') {
+                const totalQ = cMC + cTF + cShort + cEssay;
+                if (totalQ > 0) {
+                    const each = 100 / totalQ;
+                    mcInp.value = parseFloat((each * cMC).toFixed(2));
+                    tfInp.value = parseFloat((each * cTF).toFixed(2));
+                    shortInp.value = parseFloat((each * cShort).toFixed(2));
+                    if (essayInp) {
+                        essayInp.value = parseFloat((each * cEssay).toFixed(2));
+                        window.handleEssayTotalChange(essayInp.value);
+                    }
+                }
+            }
+            window.updateScoringSummary();
+        };
+
+        window.updateScoringSummary = () => {
+            const cMC = parseInt(document.getElementById('countMC').textContent) || 0;
+            const cTF = parseInt(document.getElementById('countTF').textContent) || 0;
+            const cShort = parseInt(document.getElementById('countShort').textContent) || 0;
+            const cEssay = parseInt(document.getElementById('countEssay').textContent) || 0;
+
+            const tMC = parseFloat(document.getElementById('scoreTotalMC').value) || 0;
+            const tTF = parseFloat(document.getElementById('scoreTotalTF').value) || 0;
+            const tShort = parseFloat(document.getElementById('scoreTotalShort').value) || 0;
+            const tEssay = parseFloat(document.getElementById('scoreTotalEssay')?.value) || 0;
+
+            const perMC = cMC > 0 ? (tMC / cMC) : 0;
+            const perTF = cTF > 0 ? (tTF / cTF) : 0;
+            const perShort = cShort > 0 ? (tShort / cShort) : 0;
+
+            document.getElementById('perScoreMC').textContent = `${perMC.toFixed(2)}đ / câu`;
+            document.getElementById('perScoreTF').textContent = `${perTF.toFixed(2)}đ / câu`;
+            document.getElementById('perScoreShort').textContent = `${perShort.toFixed(2)}đ / câu`;
+
+            const grandTotal = tMC + tTF + tShort + tEssay;
+            document.getElementById('scoringGrandTotal').textContent = grandTotal.toFixed(1);
+
+            let breakdownParts = [];
+            if (cMC > 0) breakdownParts.push(`TN: ${tMC}đ (${cMC} câu)`);
+            if (cTF > 0) breakdownParts.push(`Đ/S: ${tTF}đ (${cTF} câu)`);
+            if (cShort > 0) breakdownParts.push(`Ngắn: ${tShort}đ (${cShort} câu)`);
+            if (cEssay > 0) breakdownParts.push(`Tự luận: ${tEssay}đ (${cEssay} câu)`);
+            document.getElementById('scoringBreakdown').textContent = breakdownParts.join(' • ');
+        };
+
+        window.handleEssayTotalChange = (val) => {
+            const total = parseFloat(val) || 0;
+            const essayInputs = document.querySelectorAll('#essayScoreList input');
+            if (essayInputs.length > 0) {
+                const each = parseFloat((total / essayInputs.length).toFixed(2));
+                essayInputs.forEach(inp => { inp.value = each; });
+            }
+            window.updateScoringSummary();
+        };
+
+        window.handleIndividualEssayChange = () => {
+            const essayInputs = document.querySelectorAll('#essayScoreList input');
+            let sum = 0;
+            essayInputs.forEach(inp => { sum += (parseFloat(inp.value) || 0); });
+            const essayInp = document.getElementById('scoreTotalEssay');
+            if (essayInp) essayInp.value = parseFloat(sum.toFixed(2));
+            window.updateScoringSummary();
+        };
+
+        window.closeScoringModal = () => {
+            document.getElementById('scoringModal').classList.add('opacity-0', 'pointer-events-none');
+        };
+
+        window.applyScoring = () => {
+            const cMC = parseInt(document.getElementById('countMC').textContent) || 0;
+            const cTF = parseInt(document.getElementById('countTF').textContent) || 0;
+            const cShort = parseInt(document.getElementById('countShort').textContent) || 0;
+
+            const tMC = parseFloat(document.getElementById('scoreTotalMC').value) || 0;
+            const tTF = parseFloat(document.getElementById('scoreTotalTF').value) || 0;
+            const tShort = parseFloat(document.getElementById('scoreTotalShort').value) || 0;
+
+            const pMC = cMC > 0 ? (tMC / cMC) : 0;
+            const pTF = cTF > 0 ? (tTF / cTF) : 0;
+            const pShort = cShort > 0 ? (tShort / cShort) : 0;
+
+            (window.questions || []).forEach((q, i) => {
+                if (q.type === 'mc') {
+                    q.point = parseFloat(pMC.toFixed(2));
+                } else if (q.type === 'tf') {
+                    q.point = parseFloat(pTF.toFixed(2));
+                } else if (q.type === 'short') {
+                    q.point = parseFloat(pShort.toFixed(2));
+                } else if (q.type === 'essay') {
+                    const inp = document.getElementById(`essay-score-${i}`);
+                    if (inp) q.point = parseFloat(inp.value) || 0;
+                }
+            });
+
+            if (window.mixedTlQuestions && window.mixedTlQuestions.length > 0) {
+                window.mixedTlQuestions.forEach((q, i) => {
+                    const inp = document.getElementById(`mixed-essay-score-${i}`);
+                    if (inp) q.point = parseFloat(inp.value) || 0;
+                });
+                if (typeof window.renderMixedTlList === 'function') window.renderMixedTlList();
+            }
+
+            if (window.currentQIndex !== -1 && window.questions && window.questions[window.currentQIndex]) {
                 const pInput = document.getElementById('editPoint');
-                if(pInput) pInput.value = window.questions[window.currentQIndex].point;
+                if (pInput) pInput.value = window.questions[window.currentQIndex].point;
             }
 
-            closeScoringModal(); 
-            renderPreviewList(); 
-            if(window.showToast) window.showToast("Đã chia điểm!"); 
+            closeScoringModal();
+            renderPreviewList();
+            if (typeof renderPalette === 'function') renderPalette();
+            if (window.showToast) window.showToast("Đã chia điểm đề thi thành công!", "success");
         };
+
+        window.openScoringModal = window._openScoringModalImpl;
+        if (window._pendingOpenScoringModal) {
+            delete window._pendingOpenScoringModal;
+            window.openScoringModal();
+        }
 
         // --- XỬ LÝ CHỌN ĐỀ TRẮC NGHIỆM CÓ SẴN CHO BÀI HỖN HỢP ---
         window.openExistingMcExamModal = async () => {

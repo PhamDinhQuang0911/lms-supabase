@@ -16,12 +16,12 @@
     
     <script>
             window.MathJax = {
-        loader: { load: ['[tex]/noerrors', '[tex]/noundefined'] },
+        loader: { load: ['[tex]/noerrors'] },
         tex: {
           inlineMath: [['$', '$'], ['\\(', '\\)']],
           displayMath: [['$$', '$$'], ['\\[', '\\]']],
           processEscapes: true,
-          packages: {'[+]': ['noerrors', 'noundefined']},
+          packages: {'[+]': ['noerrors']},
           macros: {
             wideparen: ["\\overset{\\frown}{#1}", 1],
             widearc: ["\\overset{\\frown}{#1}", 1],

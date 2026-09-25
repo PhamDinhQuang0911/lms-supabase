@@ -52,16 +52,31 @@
         }
     }
     </script>
+    <script>
+    function switchView(viewName, pushHistory) {
+        if (window._moduleSwitchView) {
+            return window._moduleSwitchView(viewName, pushHistory);
+        }
+        document.querySelectorAll('.view-section').forEach(function(el) { el.classList.add('hidden'); });
+        var target = document.getElementById('view-' + viewName);
+        if (target) target.classList.remove('hidden');
+        document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+        var activeNav = document.getElementById('nav-' + viewName);
+        if (activeNav) activeNav.classList.add('active');
+        window._pendingViewName = viewName;
+    }
+    window.switchView = switchView;
+    </script>
     <script src="bank-service.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
     window.MathJax = {
-        loader: { load: ['[tex]/noerrors', '[tex]/noundefined'] },
+        loader: { load: ['[tex]/noerrors'] },
         tex: {
           inlineMath: [['$', '$'], ['\\(', '\\)']],
           displayMath: [['$$', '$$'], ['\\[', '\\]']],
           processEscapes: true,
-          packages: {'[+]': ['noerrors', 'noundefined']},
+          packages: {'[+]': ['noerrors']},
           macros: {
             wideparen: ["\\overset{\\frown}{#1}", 1],
             widearc: ["\\overset{\\frown}{#1}", 1],
@@ -84,7 +99,6 @@
     };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script src="bank-service.js"></script>
     
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
@@ -2080,7 +2094,7 @@
             return cleanPhone;
         };
 
-        window.switchView = (viewName, pushHistory = true) => {
+        window._moduleSwitchView = (viewName, pushHistory = true) => {
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             const target = document.getElementById(`view-${viewName}`);
             if(target) target.classList.remove('hidden');
@@ -2124,6 +2138,12 @@
                     setTimeout(() => window.loadAllGlobalStudents(), 300);
                 }
             }
+        };
+        window.switchView = window._moduleSwitchView;
+        if (window._pendingViewName) {
+            const pending = window._pendingViewName;
+            delete window._pendingViewName;
+            window._moduleSwitchView(pending, false);
         }
 
         window.addEventListener('popstate', (e) => {
