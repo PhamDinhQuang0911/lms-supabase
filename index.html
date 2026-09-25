@@ -786,7 +786,7 @@
         import { 
             supabase, initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile, onAuthStateChanged, sendPasswordResetEmail,
             getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, onSnapshot, increment
-        } from "./supabase-db-compat.js";
+        } from "./supabase-db-compat.js?v=20";
 
         // Khởi tạo Supabase
         let app = initializeApp({});
@@ -794,6 +794,10 @@
         let db = getFirestore(app);
 
         const googleProvider = new GoogleAuthProvider();
+        
+        // KÍCH HOẠT NẠP BANNER VÀ KHÓA HỌC NGAY LẬP TỨC (SWR CACHE 0MS)
+        loadHeroSettings();
+        renderCoursesFromDB();
 
         onAuthStateChanged(auth, async (user) => { // Thêm từ khóa async
             if (user) {
@@ -1039,29 +1043,138 @@
             } catch (e) { console.warn("Lỗi tải Banner:", e); }
         }
 
-        // 2. RENDER COURSES (CÓ GIẢM GIÁ)
+        // 2. RENDER COURSES (CÓ GIẢM GIÁ & SWR CACHE)
+        window.renderMainItems = () => {
+            if (!window.allPublicItems || !Array.isArray(window.allPublicItems)) return;
+            const courses = window.allPublicItems.filter(c => c.type !== 'document_hard' && c.type !== 'book');
+            const books = window.allPublicItems.filter(c => c.type === 'document_hard' || c.type === 'book');
+            
+            const bookContainer = document.getElementById('bookListContainer');
+            const courseContainer = document.getElementById('courseListContainer');
+            
+            const renderGrid = (items, targetContainer, emptyMsg) => {
+                if (!targetContainer) return;
+                if (items.length === 0) {
+                    targetContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">' + emptyMsg + '</div>';
+                    return;
+                }
+                
+                let html = '';
+                items.forEach((c) => {
+                    const price = parseInt(c.price) || 0;
+                    const originalPrice = parseInt(c.originalPrice) || 0;
+                    let priceHtml = '', discountBadge = '';
+                    
+                    if (originalPrice > price && price > 0) {
+                        const percent = Math.round(((originalPrice - price) / originalPrice) * 100);
+                        discountBadge = `<span class="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-20 animate-pulse">-${percent}%</span>`;
+                        priceHtml = `<div class="flex flex-col items-end"><span class="text-xs text-gray-400 line-through decoration-gray-400">${originalPrice.toLocaleString('vi-VN')}đ</span><span class="text-base font-bold text-accent">${price.toLocaleString('vi-VN')}đ</span></div>`;
+                    } else {
+                        if (c.tag) discountBadge = `<span class="absolute top-3 left-3 bg-accent text-white text-xs font-bold px-3 py-1 rounded-full shadow-md uppercase z-20">${c.tag}</span>`;
+                        priceHtml = `<span class="text-base font-bold text-brand">${price > 0 ? price.toLocaleString('vi-VN') + 'đ' : 'Miễn phí'}</span>`;
+                    }
+
+                    const imgSrc = c.image || c.thumbnail || 'https://placehold.co/400x200?text=No+Image';
+                    const iconHtml = (c.type === 'document_hard' || c.type === 'book') ? '<i class="fa-solid fa-book text-amber-500"></i>' : '<i class="fa-solid fa-users text-teal-500"></i>';
+                    const isBookType = (c.type === 'document_hard' || c.type === 'book');
+                    const isSoldOut = (c.status === 'sold_out' || c.isSoldOut === true);
+                    const soldOutBadge = isSoldOut ? `
+                        <div class="absolute top-3 left-3 bg-red-600/95 text-white font-black text-xs px-2.5 py-1 rounded-lg uppercase tracking-wider shadow-md z-20 flex items-center gap-1.5">
+                            <i class="fa-solid fa-ban"></i> Bán hết
+                        </div>
+                    ` : '';
+
+                    const imageContainerHtml = isBookType ? `
+                        <div class="relative h-48 overflow-hidden rounded-t-2xl flex items-center justify-center p-2.5 bg-slate-900 select-none border-b border-gray-100">
+                            ${soldOutBadge}
+                            <!-- Nền mờ nghệ thuật chuẩn theo tỉ lệ cài đặt khóa học (Ảnh 2) -->
+                            <div class="absolute inset-0 overflow-hidden pointer-events-none select-none">
+                                <img src="${imgSrc}" alt="" aria-hidden="true" class="w-full h-full object-cover pointer-events-none select-none" style="filter: blur(8px) brightness(0.85); transform: scale(1.15);">
+                            </div>
+                            <!-- Ảnh bìa sách chính hiển thị trọn vẹn 100%, sắc nét, đổ bóng 3D -->
+                            <img src="${imgSrc}" alt="${c.title}" loading="lazy" decoding="async" class="relative max-h-full max-w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 z-10" style="filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));">
+                            ${discountBadge}
+                        </div>
+                    ` : `
+                        <div class="relative h-48 overflow-hidden bg-slate-900 flex items-center justify-center">
+                            ${soldOutBadge}
+                            <img src="${imgSrc}" alt="${c.title}" loading="lazy" decoding="async" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                            ${discountBadge}
+                            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                        </div>
+                    `;
+
+                    html += `
+                    <div class="course-card bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm flex flex-col h-full group hover:shadow-xl transition-all duration-300">
+                        ${imageContainerHtml}
+                        <div class="p-6 flex-1 flex flex-col">
+                            <h3 class="text-xl font-extrabold text-gray-800 mb-2 line-clamp-2 hover:text-brand transition-colors cursor-pointer" onclick="${isSoldOut ? `window.showNotification('Sản phẩm đã bán hết!', 'warning')` : 'toggleRegisterModal(true)'}">${c.title}</h3>
+                            <p class="text-gray-500 text-sm mb-4 line-clamp-2 flex-1">${c.desc || c.shortDesc || 'Chưa có mô tả.'}</p>
+                            
+                            <div class="border-t border-gray-100 pt-4 flex items-center justify-between mt-auto">
+                                <div class="flex items-center gap-2 text-sm text-gray-500 font-bold">
+                                    ${iconHtml} ${c.fakeStudents || c.students || 0}
+                                </div>
+                                ${priceHtml}
+                            </div>
+                            <div class="mt-4 flex gap-2">
+                                ${c.previewLink ? `<button onclick="openPreviewModal('${c.previewLink}')" class="btn-preview flex-1 py-2 font-bold rounded-lg text-sm flex justify-center items-center gap-2 shadow-sm" title="Đọc thử"><i class="fa-solid fa-book-open"></i> Đọc thử</button>` : ''}
+                                ${isSoldOut ? `
+                                    <button disabled class="flex-1 py-2 bg-gray-200 text-gray-500 font-bold rounded-lg text-sm cursor-not-allowed flex justify-center items-center gap-2 shadow-none" title="Sản phẩm hiện đã bán hết">
+                                        Bán hết <i class="fa-solid fa-ban"></i>
+                                    </button>
+                                ` : `
+                                    <button onclick="openPaymentModal('${c.id}')" class="btn-buy flex-1 py-2 bg-orange-50 text-accent font-bold rounded-lg text-sm hover:bg-accent hover:text-white flex justify-center items-center gap-2 shadow-sm">
+                                        Mua ngay <i class="fa-solid fa-cart-shopping"></i>
+                                    </button>
+                                `}
+                                <button onclick="copyProductLink('${c.id}')" class="px-4 py-2 bg-teal-50 text-teal-600 font-bold rounded-lg text-sm hover:bg-teal-600 hover:text-white transition-colors shadow-sm" title="Copy link chia sẻ">
+                                    <i class="fa-solid fa-share-nodes"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                targetContainer.innerHTML = html;
+            };
+            
+            renderGrid(courses, courseContainer, "Chưa có khóa học nào được đăng.");
+            renderGrid(books, bookContainer, "Chưa có sách nào được đăng.");
+        };
+
         async function renderCoursesFromDB() {
             const container = document.getElementById('courseListContainer');
             if (!container) return;
 
-            // 1. HIỆN SKELETON (Giao diện giả lập trong lúc chờ)
-            // Giúp bố cục trang hiện ra ngay lập tức
-            const skeletonCard = `
-                <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm h-full animate-pulse">
-                    <div class="h-48 bg-gray-200"></div>
-                    <div class="p-6 space-y-3">
-                        <div class="h-6 bg-gray-200 rounded w-3/4"></div>
-                        <div class="h-4 bg-gray-200 rounded w-full"></div>
-                        <div class="h-4 bg-gray-200 rounded w-1/2"></div>
-                        <div class="h-10 bg-gray-200 rounded w-full mt-4"></div>
-                    </div>
-                </div>`;
-            
-            // Render 3 cái skeleton
-            container.innerHTML = skeletonCard + skeletonCard + skeletonCard;
+            // 1. SWR Cache: nạp ngay từ bộ nhớ đệm
+            try {
+                const cached = localStorage.getItem('qm_cached_public_courses');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        window.allPublicItems = parsed;
+                        window.renderMainItems();
+                    }
+                }
+            } catch(e) {}
+
+            // Nếu chưa có cache thì hiện Skeleton
+            if (!window.allPublicItems || window.allPublicItems.length === 0) {
+                const skeletonCard = `
+                    <div class="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm h-full animate-pulse">
+                        <div class="h-48 bg-gray-200"></div>
+                        <div class="p-6 space-y-3">
+                            <div class="h-6 bg-gray-200 rounded w-3/4"></div>
+                            <div class="h-4 bg-gray-200 rounded w-full"></div>
+                            <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                            <div class="h-10 bg-gray-200 rounded w-full mt-4"></div>
+                        </div>
+                    </div>`;
+                container.innerHTML = skeletonCard + skeletonCard + skeletonCard;
+            }
 
             try {
-                // 2. Tải dữ liệu
+                // 2. Tải dữ liệu từ Supabase
                 const q = query(collection(db, "public_courses"), orderBy("createdAt", "desc"));
                 const querySnapshot = await getDocs(q);
                 
@@ -1072,107 +1185,13 @@
                     window.allPublicItems.push(c);
                 });
                 
-                window.renderMainItems = () => {
-                    const courses = window.allPublicItems.filter(c => c.type !== 'document_hard' && c.type !== 'book');
-                    const books = window.allPublicItems.filter(c => c.type === 'document_hard' || c.type === 'book');
-                    
-                    const bookContainer = document.getElementById('bookListContainer');
-                    const courseContainer = document.getElementById('courseListContainer');
-                    
-                    const renderGrid = (items, targetContainer, emptyMsg) => {
-                        if (!targetContainer) return;
-                        if (items.length === 0) {
-                            targetContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">' + emptyMsg + '</div>';
-                            return;
-                        }
-                        
-                        let html = '';
-                        items.forEach((c) => {
-                            const price = parseInt(c.price) || 0;
-                            const originalPrice = parseInt(c.originalPrice) || 0;
-                            let priceHtml = '', discountBadge = '';
-                            
-                            if (originalPrice > price && price > 0) {
-                                const percent = Math.round(((originalPrice - price) / originalPrice) * 100);
-                                discountBadge = `<span class="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-20 animate-pulse">-${percent}%</span>`;
-                                priceHtml = `<div class="flex flex-col items-end"><span class="text-xs text-gray-400 line-through decoration-gray-400">${originalPrice.toLocaleString('vi-VN')}đ</span><span class="text-base font-bold text-accent">${price.toLocaleString('vi-VN')}đ</span></div>`;
-                            } else {
-                                if (c.tag) discountBadge = `<span class="absolute top-3 left-3 bg-accent text-white text-xs font-bold px-3 py-1 rounded-full shadow-md uppercase z-20">${c.tag}</span>`;
-                                priceHtml = `<span class="text-base font-bold text-brand">${price > 0 ? price.toLocaleString('vi-VN') + 'đ' : 'Miễn phí'}</span>`;
-                            }
-
-                            const imgSrc = c.image || c.thumbnail || 'https://placehold.co/400x200?text=No+Image';
-                            const iconHtml = (c.type === 'document_hard' || c.type === 'book') ? '<i class="fa-solid fa-book text-amber-500"></i>' : '<i class="fa-solid fa-users text-teal-500"></i>';
-                            const isBookType = (c.type === 'document_hard' || c.type === 'book');
-                            const isSoldOut = (c.status === 'sold_out' || c.isSoldOut === true);
-                            const soldOutBadge = isSoldOut ? `
-                                <div class="absolute top-3 left-3 bg-red-600/95 text-white font-black text-xs px-2.5 py-1 rounded-lg uppercase tracking-wider shadow-md z-20 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-ban"></i> Bán hết
-                                </div>
-                            ` : '';
-
-                            const imageContainerHtml = isBookType ? `
-                                <div class="relative h-48 overflow-hidden rounded-t-2xl flex items-center justify-center p-2.5 bg-slate-900 select-none border-b border-gray-100">
-                                    ${soldOutBadge}
-                                    <!-- Nền mờ nghệ thuật chuẩn theo tỉ lệ cài đặt khóa học (Ảnh 2) -->
-                                    <div class="absolute inset-0 overflow-hidden pointer-events-none select-none">
-                                        <img src="${imgSrc}" alt="" aria-hidden="true" class="w-full h-full object-cover pointer-events-none select-none" style="filter: blur(8px) brightness(0.85); transform: scale(1.15);">
-                                    </div>
-                                    <!-- Ảnh bìa sách chính hiển thị trọn vẹn 100%, sắc nét, đổ bóng 3D -->
-                                    <img src="${imgSrc}" alt="${c.title}" loading="lazy" decoding="async" class="relative max-h-full max-w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 z-10" style="filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));">
-                                    ${discountBadge}
-                                </div>
-                            ` : `
-                                <div class="relative h-48 overflow-hidden bg-slate-900 flex items-center justify-center">
-                                    ${soldOutBadge}
-                                    <img src="${imgSrc}" alt="${c.title}" loading="lazy" decoding="async" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
-                                    ${discountBadge}
-                                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-                                </div>
-                            `;
-
-                            html += `
-                            <div class="course-card bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm flex flex-col h-full group hover:shadow-xl transition-all duration-300">
-                                ${imageContainerHtml}
-                                <div class="p-6 flex-1 flex flex-col">
-                                    <h3 class="text-xl font-extrabold text-gray-800 mb-2 line-clamp-2 hover:text-brand transition-colors cursor-pointer" onclick="${isSoldOut ? `window.showNotification('Sản phẩm đã bán hết!', 'warning')` : 'toggleRegisterModal(true)'}">${c.title}</h3>
-                                    <p class="text-gray-500 text-sm mb-4 line-clamp-2 flex-1">${c.desc || c.shortDesc || 'Chưa có mô tả.'}</p>
-                                    
-                                    <div class="border-t border-gray-100 pt-4 flex items-center justify-between mt-auto">
-                                        <div class="flex items-center gap-2 text-sm text-gray-500 font-bold">
-                                            ${iconHtml} ${c.fakeStudents || c.students || 0}
-                                        </div>
-                                        ${priceHtml}
-                                    </div>
-                                    <div class="mt-4 flex gap-2">
-                                        ${c.previewLink ? `<button onclick="openPreviewModal('${c.previewLink}')" class="btn-preview flex-1 py-2 font-bold rounded-lg text-sm flex justify-center items-center gap-2 shadow-sm" title="Đọc thử"><i class="fa-solid fa-book-open"></i> Đọc thử</button>` : ''}
-                                        ${isSoldOut ? `
-                                            <button disabled class="flex-1 py-2 bg-gray-200 text-gray-500 font-bold rounded-lg text-sm cursor-not-allowed flex justify-center items-center gap-2 shadow-none" title="Sản phẩm hiện đã bán hết">
-                                                Bán hết <i class="fa-solid fa-ban"></i>
-                                            </button>
-                                        ` : `
-                                            <button onclick="openPaymentModal('${c.id}')" class="btn-buy flex-1 py-2 bg-orange-50 text-accent font-bold rounded-lg text-sm hover:bg-accent hover:text-white flex justify-center items-center gap-2 shadow-sm">
-                                                Mua ngay <i class="fa-solid fa-cart-shopping"></i>
-                                            </button>
-                                        `}
-                                        <button onclick="copyProductLink('${c.id}')" class="px-4 py-2 bg-teal-50 text-teal-600 font-bold rounded-lg text-sm hover:bg-teal-600 hover:text-white transition-colors shadow-sm" title="Copy link chia sẻ">
-                                            <i class="fa-solid fa-share-nodes"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>`;
-                        });
-                        targetContainer.innerHTML = html;
-                    };
-                    
-                    renderGrid(courses, courseContainer, "Chưa có khóa học nào được đăng.");
-                    renderGrid(books, bookContainer, "Chưa có sách nào được đăng.");
-                };
+                try {
+                    localStorage.setItem('qm_cached_public_courses', JSON.stringify(window.allPublicItems));
+                } catch(e) {}
 
                 window.renderMainItems();
             } catch (error) {
                 console.error("Lỗi tải khóa học:", error);
-                // Fallback nếu chưa tạo index hoặc lỗi mạng
                 try {
                      const snap = await getDocs(collection(db, "public_courses"));
                      window.allPublicItems = [];
@@ -1180,10 +1199,16 @@
                          const c = doc.data(); c.id = doc.id;
                          window.allPublicItems.push(c);
                      });
-                     if (window.allPublicItems.length > 0) window.renderMainItems();
-                     else document.getElementById('courseListContainer').innerHTML = '<div class="col-span-full text-center text-red-400">Vui lòng kiểm tra kết nối mạng.</div>';
+                     if (window.allPublicItems.length > 0) {
+                         try { localStorage.setItem('qm_cached_public_courses', JSON.stringify(window.allPublicItems)); } catch(e) {}
+                         window.renderMainItems();
+                     } else if (!container.innerHTML.includes('course-card')) {
+                         document.getElementById('courseListContainer').innerHTML = '<div class="col-span-full text-center text-red-400">Vui lòng kiểm tra kết nối mạng.</div>';
+                     }
                 } catch(e) {
-                     document.getElementById('courseListContainer').innerHTML = '<div class="col-span-full text-center text-red-400">Vui lòng kiểm tra kết nối mạng.</div>';
+                     if (!container.innerHTML.includes('course-card')) {
+                         document.getElementById('courseListContainer').innerHTML = '<div class="col-span-full text-center text-red-400">Vui lòng kiểm tra kết nối mạng.</div>';
+                     }
                 }
             }
         }
@@ -2947,7 +2972,7 @@
         })();
 
     </script>
-<script src="/sw-register.js?v=16"></script>
+<script src="/sw-register.js?v=20"></script>
 <script src="/app-installer.js?v=1"></script>
 </body>
 </html>
