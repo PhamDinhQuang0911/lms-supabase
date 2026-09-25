@@ -565,10 +565,10 @@ export const formatContent = (text) => {
     processed = replaceCustomMathCmd(processed, 'heva*', '\\left\\{', '\\right.');
     processed = replaceCustomMathCmd(processed, 'hoac*', '\\left[', '\\right.');
     // Sửa lỗi hệ phương trình bị phân rã từ MathType Word:
-    const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right\s*([\s\S]*?)\s*(?:\\\{|\\\.|(?=\$))/g;
+    const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right(?:\\\.|\.|\{|\})?\s*([\s\S]*?)\s*(?:\\\{|\\\}|\\\.|(?=\$))/g;
     processed = processed.replace(regexMangledSystem, (match, eq1, eq2) => {
-        const clean1 = (eq1 || '').trim();
-        const clean2 = (eq2 || '').trim();
+        const clean1 = (eq1 || '').trim().replace(/^\\left\s*/, '');
+        const clean2 = (eq2 || '').trim().replace(/^[.\\]+/, '').trim();
         return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
     });
     processed = processed.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, '');

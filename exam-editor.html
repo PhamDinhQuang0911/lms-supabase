@@ -100,6 +100,23 @@
             } 
         }
         window.switchView = switchView;
+
+        function handleWordUpload(input) {
+            if (typeof window._handleWordUploadImpl === 'function') {
+                return window._handleWordUploadImpl(input);
+            }
+            if (typeof window.showToast === 'function') {
+                window.showToast("Đang khởi tạo trình xử lý file Word...", "info");
+            }
+            const timer = setInterval(() => {
+                if (typeof window._handleWordUploadImpl === 'function') {
+                    clearInterval(timer);
+                    window._handleWordUploadImpl(input);
+                }
+            }, 100);
+            setTimeout(() => clearInterval(timer), 15000);
+        }
+        window.handleWordUpload = handleWordUpload;
     </script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #F8F9FA; }
@@ -1277,8 +1294,6 @@
         // --- IMPORT TỪ UTILS.JS VÀ PERF-CACHE ---
         import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, renderTikz } from "./utils.js?v=9";
         import { readCache, writeCache } from "./perf-cache.js";
-        import { convertMetafileToDataUrl } from "./emf-converter.js";
-        window.convertMetafileToDataUrl = convertMetafileToDataUrl;
 
         // Gán vào window
         window.formatContent = formatContent;
@@ -3091,10 +3106,10 @@
         // ta nhận diện các nhãn Câu/A/B/C/D/Lời giải và chuyển thành question object chuẩn.
                 function cleanWordMathLatex(str) {
             if (!str || typeof str !== 'string') return str;
-            const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right\s*([\s\S]*?)\s*(?:\\\{|\\\.|(?=\$))/g;
+            const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right(?:\\\.|\.|\{|\})?\s*([\s\S]*?)\s*(?:\\\{|\\\}|\\\.|(?=\$))/g;
             str = str.replace(regexMangledSystem, (match, eq1, eq2) => {
-                const clean1 = (eq1 || '').trim();
-                const clean2 = (eq2 || '').trim();
+                const clean1 = (eq1 || '').trim().replace(/^\\left\s*/, '');
+                const clean2 = (eq2 || '').trim().replace(/^[.\\]+/, '').trim();
                 return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
             });
             str = str.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, '');
@@ -3230,7 +3245,7 @@
             }
         }
 
-        window.handleWordUpload = async (input) => {
+        window._handleWordUploadImpl = async (input) => {
             const file = input.files && input.files[0];
             input.value = '';
             if (!file) return;
@@ -3241,6 +3256,16 @@
             if (!window.mammoth) {
                 window.customAlert('Không tải được thư viện đọc Word. Vui lòng kiểm tra kết nối Internet rồi tải lại trang.', 'error');
                 return;
+            }
+
+            // Nạp thư viện giải mã ảnh vector EMF/WMF theo nhu cầu
+            if (typeof window.convertMetafileToDataUrl !== 'function') {
+                try {
+                    const emfMod = await import('./emf-converter.js?v=20260925');
+                    window.convertMetafileToDataUrl = emfMod.convertMetafileToDataUrl;
+                } catch (emfErr) {
+                    console.warn('[Word import] Không thể nạp mô-đun emf-converter:', emfErr);
+                }
             }
 
             window.showToast('Đang đọc file Word...', 'info');
@@ -3324,6 +3349,7 @@
                 window.customAlert(`Không thể nạp file Word: ${error.message}\n\n👉 Bạn có thể bấm vào biểu tượng dấu hỏi (?) cạnh nút Word để xem hướng dẫn cấu trúc file Word chuẩn nhé.`, 'error');
             }
         };
+        window.handleWordUpload = window._handleWordUploadImpl;
 
         function getAllImageUrls(dataObj) {
             const str = JSON.stringify(dataObj);
