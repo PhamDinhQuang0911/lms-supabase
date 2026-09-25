@@ -1222,7 +1222,7 @@
 <script type="module">
         import { 
             initializeApp, getAuth, onAuthStateChanged,
-            getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, addDoc, updateDoc,
+            getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, addDoc, updateDoc, enableMultiTabIndexedDbPersistence,
             getStorage, ref, uploadBytes, getDownloadURL,
             supabase
         } from "./supabase-db-compat.js?v=21";
@@ -1242,7 +1242,7 @@
         const isIosInstalledApp = isAppleDevice && isStandaloneApp;
         // iOS/iPadOS standalone dễ giữ IndexedDB/SW cũ rất lâu; dùng memory cache để dữ liệu
         // luôn đi mạng ngay. Safari/Chrome mở dạng web vẫn giữ cache đa-tab như trước.
-        if (!isIosInstalledApp && !isStandaloneApp) {
+        if (!isIosInstalledApp && !isStandaloneApp && typeof enableMultiTabIndexedDbPersistence === 'function') {
             enableMultiTabIndexedDbPersistence(db).catch((err) => {
                 if (err.code == 'failed-precondition') console.warn('Đang mở nhiều tab (Multi-tab mode active).');
             });
