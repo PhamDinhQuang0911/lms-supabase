@@ -1168,7 +1168,7 @@
         // --- AUTH & LOAD DATA (NON-BLOCKING - KHÔNG CHẶN GIAO DIỆN) ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                if (ADMIN_EMAILS.includes(user.email)) { window.location.href = "dashboard.html"; return; }
+                if (ADMIN_EMAILS.map(e => e.toLowerCase()).includes((user.email || '').toLowerCase()) || ['admin', 'teacher', 'super_admin'].includes(user.role)) { window.location.href = "dashboard.html"; return; }
                 
                 // 1. Tải thông tin người dùng (Nhanh)
                 loadSiteLogo();

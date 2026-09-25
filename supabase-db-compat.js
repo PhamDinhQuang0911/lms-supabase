@@ -147,8 +147,31 @@ export async function signInWithEmailAndPassword(auth, email, password) {
                     email: a.email,
                     display_name: a.display_name,
                     role: a.role || 'admin',
-                    password: null
+                    password: a.password || (a.raw_data && a.raw_data.password) || null
                 };
+            }
+        } catch(e) {}
+    }
+
+    // 3.5. Kiểm tra trong configurations/admin_roles nếu vẫn chưa thấy
+    if (!userRow && cleanEmail) {
+        try {
+            const { data: cfgDoc } = await supabase
+                .from('configurations')
+                .select('raw_data')
+                .eq('id', 'admin_roles')
+                .maybeSingle();
+            if (cfgDoc && cfgDoc.raw_data && Array.isArray(cfgDoc.raw_data.accounts)) {
+                const foundAdmin = cfgDoc.raw_data.accounts.find(a => (a.email || '').toLowerCase() === cleanEmail || (a.id || '').toLowerCase() === cleanEmail);
+                if (foundAdmin) {
+                    userRow = {
+                        id: foundAdmin.id || ('admin_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')),
+                        email: foundAdmin.email || cleanEmail,
+                        display_name: foundAdmin.displayName || cleanEmail.split('@')[0],
+                        role: foundAdmin.role === 'super_admin' ? 'admin' : 'teacher',
+                        password: foundAdmin.password || null
+                    };
+                }
             }
         } catch(e) {}
     }
@@ -170,8 +193,13 @@ export async function signInWithEmailAndPassword(auth, email, password) {
     }
 
     // 5. Kiểm tra mật khẩu (nếu tài khoản có mật khẩu bảo vệ)
-    if (userRow.password && cleanPass && userRow.password !== cleanPass) {
-        throw new Error("Mật khẩu không chính xác!");
+    if (userRow.password) {
+        if (!cleanPass) {
+            throw new Error("Vui lòng nhập mật khẩu!");
+        }
+        if (userRow.password !== cleanPass) {
+            throw new Error("Mật khẩu không chính xác!");
+        }
     }
 
     const userObj = {

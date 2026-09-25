@@ -813,7 +813,36 @@
                 }
 
                 // Điều hướng theo vai trò
-                if (ADMIN_EMAILS.includes(user.email)) {
+                // Điều hướng theo vai trò (Bao gồm Super Admin và các Giáo viên / Quản trị viên được phân quyền)
+                let isStaffUser = ADMIN_EMAILS.map(e => e.toLowerCase()).includes((user.email || '').toLowerCase()) ||
+                    ['admin', 'teacher', 'super_admin'].includes(user.role);
+
+                if (!isStaffUser && user.email) {
+                    try {
+                        const cfgSnap = await getDoc(doc(db, "configurations", "admin_roles"));
+                        if (cfgSnap.exists()) {
+                            const accs = cfgSnap.data().accounts || [];
+                            const myAcc = accs.find(a => (a.email || '').toLowerCase() === (user.email || '').toLowerCase());
+                            if (myAcc && myAcc.status !== 'locked') {
+                                isStaffUser = true;
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                if (!isStaffUser && user.uid) {
+                    try {
+                        const uSnap = await getDoc(doc(db, "users", user.uid));
+                        if (uSnap.exists()) {
+                            const r = uSnap.data().role;
+                            if (['admin', 'teacher', 'super_admin'].includes(r)) {
+                                isStaffUser = true;
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                if (isStaffUser) {
                     window.location.href = "dashboard.html"; 
                 } else {
                     window.location.href = "student.html";   

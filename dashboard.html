@@ -1624,32 +1624,61 @@
             <div class="p-3 sm:p-4 overflow-y-auto custom-scrollbar space-y-2.5 flex-1">
                 <input type="hidden" id="adminEditDocId" value="">
 
-                <!-- 1. HÀNG THÔNG TIN CƠ BẢN & VAI TRÒ SIÊU GỌN (1 HÀNG 4 CỘT) -->
-                <div class="p-2.5 bg-gray-50/80 dark:bg-[#242033] border border-gray-200 dark:border-[#38344D] rounded-xl grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
-                    <div class="sm:col-span-4">
-                        <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Email Quản Trị (*)</label>
-                        <input type="email" id="adminEditEmail" placeholder="trogiang@gmail.com" class="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 font-mono bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
+                <!-- 1. HÀNG THÔNG TIN CƠ BẢN, TÀI KHOẢN & VAI TRÒ (GỌN GÀNG, KÈM MẬT KHẨU) -->
+                <div class="p-3 bg-gray-50/80 dark:bg-[#242033] border border-gray-200 dark:border-[#38344D] rounded-xl space-y-2.5">
+                    <!-- Hàng 1: Email/Tài khoản + Tên hiển thị + Cấp độ vai trò -->
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                        <div class="sm:col-span-5">
+                            <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Email / Tài Khoản Đăng Nhập (*)</label>
+                            <input type="text" id="adminEditEmail" placeholder="trogiang@gmail.com hoặc cothuha" class="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 font-mono bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
+                        </div>
+                        <div class="sm:col-span-4">
+                            <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Tên Hiển Thị (Họ & Tên)</label>
+                            <input type="text" id="adminEditDisplayName" placeholder="Vd: Cô Thu Hà (GV Toán)" class="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
+                        </div>
+                        <!-- Vai trò: Segmented Switch -->
+                        <div class="sm:col-span-3">
+                            <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Cấp Độ Vai Trò (*)</label>
+                            <div class="flex items-center p-0.5 bg-gray-200 dark:bg-gray-800 rounded-lg text-xs font-bold border border-gray-300 dark:border-gray-700">
+                                <label id="lblRoleAdmin" class="flex-1 text-center py-1 px-1 rounded-md cursor-pointer transition-all bg-purple-600 text-white select-none">
+                                    <input type="radio" name="adminRoleChoice" value="admin" checked onchange="window.handleRoleChoiceChange(this.value)" class="sr-only">
+                                    <span>🛡️ Admin</span>
+                                </label>
+                                <label id="lblRoleSuper" class="flex-1 text-center py-1 px-1 rounded-md cursor-pointer transition-all text-gray-700 dark:text-gray-300 select-none">
+                                    <input type="radio" name="adminRoleChoice" value="super_admin" onchange="window.handleRoleChoiceChange(this.value)" class="sr-only">
+                                    <span>👑 Super</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="sm:col-span-3">
-                        <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Tên Hiển Thị</label>
-                        <input type="text" id="adminEditDisplayName" placeholder="Cô Thu Hà" class="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
-                    </div>
-                    <div class="sm:col-span-3">
-                        <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Ghi Chú Phân Công</label>
-                        <input type="text" id="adminEditNote" placeholder="Vd: Quản lý lớp 9A1..." class="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
-                    </div>
-                    <!-- Vai trò: Segmented Switch 1 dòng siêu gọn -->
-                    <div class="sm:col-span-2">
-                        <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Cấp Độ Vai Trò (*)</label>
-                        <div class="flex items-center p-0.5 bg-gray-200 dark:bg-gray-800 rounded-lg text-xs font-bold border border-gray-300 dark:border-gray-700">
-                            <label id="lblRoleAdmin" class="flex-1 text-center py-1 px-1 rounded-md cursor-pointer transition-all bg-purple-600 text-white select-none">
-                                <input type="radio" name="adminRoleChoice" value="admin" checked onchange="window.handleRoleChoiceChange(this.value)" class="sr-only">
-                                <span>🛡️ Admin</span>
-                            </label>
-                            <label id="lblRoleSuper" class="flex-1 text-center py-1 px-1 rounded-md cursor-pointer transition-all text-gray-700 dark:text-gray-300 select-none">
-                                <input type="radio" name="adminRoleChoice" value="super_admin" onchange="window.handleRoleChoiceChange(this.value)" class="sr-only">
-                                <span>👑 Super</span>
-                            </label>
+
+                    <!-- Hàng 2: Mật khẩu đăng nhập + Ghi chú phân công -->
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end pt-1.5 border-t border-gray-200/70 dark:border-gray-700/50">
+                        <div class="sm:col-span-5">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                                    <span id="lblAdminPassText">Mật Khẩu Đăng Nhập</span> <span id="adminPassRequiredStar" class="text-red-500 font-bold">(*)</span>
+                                </label>
+                                <button type="button" onclick="window.generateRandomAdminPassword()" class="text-[10px] text-purple-600 dark:text-purple-400 hover:underline font-bold flex items-center gap-1 cursor-pointer">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Tạo mật khẩu
+                                </button>
+                            </div>
+                            <div class="relative">
+                                <input type="password" id="adminEditPassword" placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)..." class="w-full pl-2.5 pr-14 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 font-mono bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
+                                <div class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                                    <button type="button" onclick="window.toggleAdminPasswordVisibility()" title="Hiện/ẩn mật khẩu" class="w-6 h-6 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex items-center justify-center rounded cursor-pointer">
+                                        <i id="adminPassEyeIcon" class="fa-solid fa-eye text-xs"></i>
+                                    </button>
+                                    <button type="button" onclick="window.copyAdminPassword()" title="Sao chép mật khẩu" class="w-6 h-6 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 flex items-center justify-center rounded cursor-pointer">
+                                        <i class="fa-solid fa-copy text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="adminPassHint" class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Cấp mật khẩu để giáo viên đăng nhập trực tiếp tại trang chủ.</div>
+                        </div>
+                        <div class="sm:col-span-7">
+                            <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Ghi Chú Phân Công / Chuyên Môn</label>
+                            <input type="text" id="adminEditNote" placeholder="Vd: Quản lý lớp 9A1, chuyên đề Hình học..." class="w-full px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs outline-none focus:border-purple-600 bg-white dark:bg-[#181622] text-gray-900 dark:text-white">
                         </div>
                     </div>
                 </div>
@@ -2824,6 +2853,16 @@
                                         ${isRoot ? '<span class="text-[9px] bg-amber-500 text-white font-black px-1.5 py-0.2 rounded">ROOT</span>' : ''}
                                     </div>
                                     <div class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate max-w-[220px]">${acc.email}</div>
+                                    ${acc.password ? `
+                                        <div class="flex items-center gap-1.5 mt-0.5 text-[10px]">
+                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-mono font-bold border border-purple-200 dark:border-purple-800">
+                                                <i class="fa-solid fa-key text-[9px] text-purple-500"></i> ${acc.password}
+                                            </span>
+                                            <button onclick="window.copyAdminPassword('${acc.password}')" title="Sao chép mật khẩu" class="text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer">
+                                                <i class="fa-solid fa-copy text-[10px]"></i>
+                                            </button>
+                                        </div>
+                                    ` : ''}
                                     ${acc.note ? `<div class="text-[10px] text-gray-400 italic truncate max-w-[220px] mt-0.5"><i class="fa-solid fa-info-circle mr-1 text-[9px]"></i>${acc.note}</div>` : ''}
                                 </div>
                             </div>
@@ -2994,11 +3033,83 @@
             return allowed.includes(courseId);
         };
 
+        // Các hàm tiện ích hỗ trợ quản lý Mật khẩu tài khoản Quản trị / Giáo viên
+        window.toggleAdminPasswordVisibility = () => {
+            const passInput = document.getElementById('adminEditPassword');
+            const icon = document.getElementById('adminPassEyeIcon');
+            if (!passInput) return;
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+            } else {
+                passInput.type = 'password';
+                if (icon) {
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        };
+
+        window.generateRandomAdminPassword = () => {
+            const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz';
+            let rand = '';
+            for (let i = 0; i < 4; i++) {
+                rand += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            const num = Math.floor(100 + Math.random() * 900);
+            const newPass = `Qm@${num}${rand.slice(0, 2)}`;
+            const passInput = document.getElementById('adminEditPassword');
+            if (passInput) {
+                passInput.type = 'text';
+                passInput.value = newPass;
+                const icon = document.getElementById('adminPassEyeIcon');
+                if (icon) {
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                }
+                window.copyAdminPassword(newPass);
+            }
+        };
+
+        window.copyAdminPassword = (val) => {
+            const passInput = document.getElementById('adminEditPassword');
+            const pass = val || (passInput ? passInput.value.trim() : '');
+            if (!pass) {
+                window.showNotification('Chưa có mật khẩu nào để sao chép!', 'warning');
+                return;
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(pass).then(() => {
+                    window.showNotification(`Đã sao chép mật khẩu (${pass}) vào khay nhớ tạm!`, 'success');
+                }).catch(() => {
+                    window.fallbackCopyText(pass);
+                });
+            } else {
+                window.fallbackCopyText(pass);
+            }
+        };
+
+        window.fallbackCopyText = (text) => {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            window.showNotification(`Đã sao chép: ${text}`, 'success');
+        };
+
         window.openAdminEditModal = async (adminIdOrEmail) => {
             const docIdInput = document.getElementById('adminEditDocId');
             const emailInput = document.getElementById('adminEditEmail');
             const nameInput = document.getElementById('adminEditDisplayName');
             const noteInput = document.getElementById('adminEditNote');
+            const passInput = document.getElementById('adminEditPassword');
+            const passStar = document.getElementById('adminPassRequiredStar');
+            const passHint = document.getElementById('adminPassHint');
             const titleEl = document.getElementById('adminEditModalTitle');
 
             if (!docIdInput || !emailInput || !nameInput || !noteInput) return;
@@ -3009,6 +3120,17 @@
             window.switchAdminModalSubTab('perms');
             const courseSearchInput = document.getElementById('adminModalCourseSearch');
             if (courseSearchInput) courseSearchInput.value = '';
+
+            // Reset trạng thái ô mật khẩu về type password
+            if (passInput) {
+                passInput.type = 'password';
+                passInput.value = '';
+                const eyeIcon = document.getElementById('adminPassEyeIcon');
+                if (eyeIcon) {
+                    eyeIcon.classList.remove('fa-eye-slash');
+                    eyeIcon.classList.add('fa-eye');
+                }
+            }
 
             // Nạp danh sách khóa học cho modal
             await window.loadAllCoursesForAdminModal();
@@ -3034,6 +3156,17 @@
 
                 if (titleEl) titleEl.textContent = `Chỉnh Sửa Quyền Quản Trị: ${acc.email}`;
 
+                // Cấu hình ô mật khẩu khi sửa: Tùy chọn (không bắt buộc đổi)
+                if (passStar) passStar.style.display = 'none';
+                if (passInput) passInput.placeholder = 'Để trống nếu giữ nguyên mật khẩu cũ';
+                if (passHint) {
+                    if (acc.password) {
+                        passHint.innerHTML = `Mật khẩu hiện tại: <span class="font-mono font-bold text-purple-600 dark:text-purple-400">${acc.password}</span> <button type="button" onclick="window.copyAdminPassword('${acc.password}')" class="ml-1 text-[10px] underline text-gray-500 hover:text-purple-600 cursor-pointer font-bold">(Sao chép)</button>`;
+                    } else {
+                        passHint.textContent = 'Để trống nếu không đổi. Nhập nếu muốn cấp lại mật khẩu mới.';
+                    }
+                }
+
                 const roleRadio = document.querySelector(`input[name="adminRoleChoice"][value="${acc.role || 'admin'}"]`);
                 if (roleRadio) roleRadio.checked = true;
                 window.handleRoleChoiceChange(acc.role || 'admin');
@@ -3054,6 +3187,11 @@
                 noteInput.value = '';
 
                 if (titleEl) titleEl.textContent = 'Thêm Quản Trị Viên Mới';
+
+                // Cấu hình ô mật khẩu khi tạo mới: Bắt buộc
+                if (passStar) passStar.style.display = 'inline';
+                if (passInput) passInput.placeholder = 'Nhập mật khẩu (tối thiểu 6 ký tự)...';
+                if (passHint) passHint.textContent = 'Cấp mật khẩu ban đầu để giáo viên đăng nhập trực tiếp tại trang chủ.';
 
                 const roleRadio = document.querySelector(`input[name="adminRoleChoice"][value="admin"]`);
                 if (roleRadio) roleRadio.checked = true;
@@ -3100,23 +3238,42 @@
 
         window.saveAdminAccount = async () => {
             const docId = document.getElementById('adminEditDocId')?.value;
-            const email = (document.getElementById('adminEditEmail')?.value || '').toLowerCase().trim();
+            let rawEmail = (document.getElementById('adminEditEmail')?.value || '').trim();
             const displayName = (document.getElementById('adminEditDisplayName')?.value || '').trim();
             const note = (document.getElementById('adminEditNote')?.value || '').trim();
+            const password = (document.getElementById('adminEditPassword')?.value || '').trim();
             const roleRadio = document.querySelector('input[name="adminRoleChoice"]:checked');
             const role = roleRadio ? roleRadio.value : 'admin';
 
-            if (!email) {
-                window.showNotification('Vui lòng nhập email quản trị viên!', 'error');
+            if (!rawEmail) {
+                window.showNotification('Vui lòng nhập email hoặc tài khoản quản trị!', 'error');
                 return;
             }
+
+            // Tự động thêm đuôi nếu người dùng chỉ nhập tên tài khoản không có @
+            let email = rawEmail.toLowerCase();
+            if (!email.includes('@')) {
+                email = `${email}@qmath.io.vn`;
+            }
+
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                window.showNotification('Định dạng email không hợp lệ!', 'error');
+                window.showNotification('Định dạng email / tài khoản không hợp lệ!', 'error');
                 return;
             }
 
             if (ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(email) && role !== 'super_admin') {
                 window.showNotification('Không thể hạ quyền của Root Super Admin!', 'error');
+                return;
+            }
+
+            // Kiểm tra mật khẩu: Bắt buộc khi tạo tài khoản mới
+            const isNewAccount = !docId;
+            if (isNewAccount && !password) {
+                window.showNotification('Vui lòng nhập hoặc bấm "Tạo mật khẩu" cho tài khoản mới!', 'error');
+                return;
+            }
+            if (password && password.length < 6) {
+                window.showNotification('Mật khẩu phải có tối thiểu 6 ký tự!', 'error');
                 return;
             }
 
@@ -3142,7 +3299,7 @@
             }
 
             try {
-                // 1. Lưu vào configurations/admin_roles (Bảo đảm 100% quyền truy cập Firebase)
+                // 1. Lưu vào configurations/admin_roles
                 const cfgRef = doc(db, "configurations", "admin_roles");
                 let accounts = [];
                 try {
@@ -3150,20 +3307,24 @@
                     if (snap.exists()) accounts = snap.data().accounts || [];
                 } catch(e) {}
 
+                const existingIdx = accounts.findIndex(a => (a.email || '').toLowerCase() === email || a.id === docId);
+                const existingAcc = existingIdx >= 0 ? accounts[existingIdx] : null;
+                const finalPassword = password || existingAcc?.password || '';
+
                 const accRecord = {
                     id: docId || ('admin_' + Date.now()),
                     email,
+                    password: finalPassword,
                     displayName: displayName || email.split('@')[0],
                     note,
                     role,
-                    status: 'active',
+                    status: existingAcc?.status || 'active',
                     permissions,
                     assignedCourseIds,
                     updatedAt: new Date().toISOString(),
                     updatedBy: window.currentAdminProfile?.email || 'system'
                 };
 
-                const existingIdx = accounts.findIndex(a => (a.email || '').toLowerCase() === email || a.id === docId);
                 if (existingIdx >= 0) {
                     accounts[existingIdx] = { ...accounts[existingIdx], ...accRecord };
                 } else {
@@ -3172,11 +3333,40 @@
 
                 await setDoc(cfgRef, { accounts, updatedAt: new Date().toISOString() }, { merge: true });
 
-                // 2. Thử lưu thêm vào collection admin_accounts
+                // 2. Lưu vào collection admin_accounts
                 try {
                     const cleanDocId = email.replace(/[@.]/g, '_');
                     await setDoc(doc(db, "admin_accounts", cleanDocId), accRecord, { merge: true });
                 } catch (e) {}
+
+                // 3. Đồng bộ vào bảng users trên Supabase để đăng nhập trực tiếp
+                try {
+                    const { data: existingUsers } = await supabase
+                        .from('users')
+                        .select('id, email, password')
+                        .or(`email.ilike.${email},id.eq.${email}`)
+                        .limit(1);
+
+                    const userPayload = {
+                        email: email,
+                        display_name: displayName || email.split('@')[0],
+                        role: role === 'super_admin' ? 'admin' : 'teacher',
+                        updated_at: new Date().toISOString()
+                    };
+                    if (finalPassword) {
+                        userPayload.password = finalPassword;
+                    }
+
+                    if (existingUsers && existingUsers.length > 0) {
+                        await supabase.from('users').update(userPayload).eq('id', existingUsers[0].id);
+                    } else {
+                        userPayload.id = accRecord.id;
+                        userPayload.created_at = new Date().toISOString();
+                        await supabase.from('users').insert(userPayload);
+                    }
+                } catch (userErr) {
+                    console.warn("Lỗi đồng bộ bảng users:", userErr);
+                }
 
                 window.showNotification(`Đã lưu tài khoản ${email} thành công!`, 'success');
                 window.closeAdminEditModal();
