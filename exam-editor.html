@@ -2350,7 +2350,7 @@
                         });
                         html += `</div>`;
                     } else if (q.type === 'short') {
-                        html += `<div class="text-xs text-green-600 mt-2"><b>Đ/A:</b> ${q.answer}</div>`;
+                        html += `<div class="text-xs text-green-600 mt-2 math-content"><b>Đ/A:</b> ${window.formatContent ? window.formatContent(q.answer) : q.answer}</div>`;
                     }
 
                     // 6. Lời giải
@@ -3102,16 +3102,20 @@
         }
 
         // --- IMPORT WORD (.DOCX) ---
+        // --- IMPORT WORD (.DOCX) ---
         // Word thường không chứa cấu trúc \begin{ex}; vì vậy sau khi Mammoth đọc file,
         // ta nhận diện các nhãn Câu/A/B/C/D/Lời giải và chuyển thành question object chuẩn.
-                function cleanWordMathLatex(str) {
+        function cleanWordMathLatex(str) {
             if (!str || typeof str !== 'string') return str;
+            // 1. Chuẩn hóa hệ phương trình MathType bị vỡ cấu trúc array
             const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right(?:\\\.|\.|\{|\})?\s*([\s\S]*?)\s*(?:\\\{|\\\}|\\\.|(?=\$))/g;
             str = str.replace(regexMangledSystem, (match, eq1, eq2) => {
                 const clean1 = (eq1 || '').trim().replace(/^\\left\s*/, '');
-                const clean2 = (eq2 || '').trim().replace(/^[.\\]+/, '').trim();
+                let clean2 = (eq2 || '').trim().replace(/^[.\s]+/, '').replace(/^\\\./, '').replace(/\\\{$/, '').trim();
                 return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
             });
+            // 2. Chuyển \left\{ \begin{array}{l} ... \end{array} \right. sang \begin{cases} ... \end{cases}
+            str = str.replace(/\\left\\\{\s*\\begin\{array\}\s*\{[^{}]*\}([\s\S]*?)\\end\{array\}\s*\\right\.?/g, '\\begin{cases}$1\\end{cases}');
             str = str.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, '');
             str = str.replace(/\\left([a-zA-Z0-9])/g, '$1');
             str = str.replace(/\\right([a-zA-Z0-9])/g, '$1');
@@ -3132,14 +3136,37 @@
                 }
             });
 
+            // Kiểm tra xem văn bản Word đã có sẵn các nhãn "Câu 1.", "Câu 2." được gõ tay hay chưa
+            const rawBodyText = source.body.textContent || '';
+            const explicitMatches = rawBodyText.match(/(?:^|\n|\s)(?:Câu|Bài)\s*\d+\s*[\.:]/gi) || [];
+            const hasExplicitQuestions = explicitMatches.length >= 2;
+
             // Mammoth biểu diễn đánh số tự động của Word bằng <ol><li>, không đưa số vào textContent.
-            // Khôi phục nhãn "Câu n." để parser phía dưới có thể tách từng câu.
+            // Khôi phục nhãn "Câu n." liên tục từ 1 đến N để parser phía dưới có thể tách từng câu chính xác.
+            let questionNumber = 1;
             source.querySelectorAll('ol').forEach(ol => {
-                const start = Number.parseInt(ol.getAttribute('start') || '1', 10) || 1;
-                [...ol.children].filter(child => child.tagName === 'LI').forEach((item, itemIndex) => {
+                if (ol.closest('table')) return;
+
+                [...ol.children].filter(child => child.tagName === 'LI').forEach((item) => {
                     const itemText = (item.textContent || '').trim();
-                    if (!/^\s*(?:Câu|Bài)\s*\d+\s*[\.:]/i.test(itemText)) {
-                        item.insertBefore(document.createTextNode(`Câu ${start + itemIndex}. `), item.firstChild);
+                    if (/^\s*(?:Câu|Bài)\s*\d+\s*[\.:]/i.test(itemText)) {
+                        const m = itemText.match(/^\s*(?:Câu|Bài)\s*(\d+)/i);
+                        if (m) questionNumber = Math.max(questionNumber, parseInt(m[1], 10) + 1);
+                        return;
+                    }
+
+                    if (hasExplicitQuestions) return;
+
+                    // Không thêm "Câu n." vào các dòng là bước giải, phương án hoặc mệnh đề con
+                    const isNotQuestion = /^\s*(?:Lời\s*giải|Hướng\s*dẫn|HDG|Mệnh\s*đề|Khẳng\s*định|TH\s*\d|Trường\s*hợp|Bước\s*\d|Cách\s*\d)\b/i.test(itemText)
+                        || /^\s*(?:[A-Da-d]\s*[\.\)]|\([A-Da-d]\))\s*/i.test(itemText)
+                        || /^\s*(?:Đáp\s*án|Đáp\s*số)\s*[:=]/i.test(itemText)
+                        || /^\s*[+\-*•–—>]\s*/i.test(itemText)
+                        || /^\s*(?:Đúng|Sai)\s*$/i.test(itemText);
+
+                    if (!isNotQuestion) {
+                        item.insertBefore(document.createTextNode(`Câu ${questionNumber}. `), item.firstChild);
+                        questionNumber++;
                     }
                 });
             });
@@ -3173,15 +3200,35 @@
         }
 
         function parseWordQuestions(text) {
+            // Cắt bỏ phần sau từ khóa "Hết" (hoặc "--- HẾT ---") ở cuối đề thi
+            const hetMatch = /(?:^|\n)\s*[-–—_*\s#]*\b(?:HẾT|Hết)\b[-–—_*\s#.]*\s*(?:\n|$)/i.exec(text);
+            if (hetMatch) {
+                text = text.slice(0, hetMatch.index).trim();
+            }
+
             const questionStarts = [...text.matchAll(/(?:^|\n)\s*(?:Câu|Bài)\s*(\d+)\s*[\.:]/gi)];
             if (!questionStarts.length) return [];
 
+            function stripTrailingSectionHeaders(str) {
+                if (!str) return '';
+                return str
+                    .replace(/(?:^|\n)\s*(?:PHẦN\s*[I|V|X\d]+|Phần\s*tự\s*luận)[\s\S]*$/i, '')
+                    .replace(/(?:^|\n)\s*(?:Trả\s*lời|Thí\s*sinh)[^\n]*(?:từ\s*câu|đến\s*câu)[\s\S]*$/i, '')
+                    .trim();
+            }
+
             return questionStarts.map((match, index) => {
+                const qNum = match[1];
                 const start = match.index + match[0].length;
                 const end = index + 1 < questionStarts.length ? questionStarts[index + 1].index : text.length;
                 let body = text.slice(start, end).trim();
+
+                // Bỏ tiêu đề phần lạc vào đầu câu hỏi
+                body = body.replace(/^(?:PHẦN\s*[I|V|X\d]+|Phần\s*tự\s*luận)[^\n]*\n+/i, '').trim();
+
                 const underlinedLabels = [...body.matchAll(/\[\[WORD_UNDERLINE_([A-D])\]\]/g)].map(match => match[1]);
                 body = body.replace(/\[\[WORD_UNDERLINE_[A-D]\]\]/g, '');
+
                 let solution = '';
                 const solutionMatch = /(?:^|\n)\s*(?:Lời\s*giải|Hướng\s*dẫn\s*giải)\s*[:.]?/im.exec(body);
                 if (solutionMatch) {
@@ -3189,55 +3236,119 @@
                     body = body.slice(0, solutionMatch.index).trim();
                 }
 
-                // Chỉ coi là Đúng/Sai khi giáo viên đặt nhãn rõ ràng [ĐS] hoặc (Đúng/Sai).
-                // Điều này tránh nhầm câu tự luận có các dòng a), b), c), d) thành dạng Đúng/Sai.
-                const isTrueFalse = /(?:\[\s*(?:ĐS|Đ\/S|Đúng\s*\/\s*Sai)\s*\]|\(\s*Đúng\s*[-/]\s*Sai\s*\))/i.test(body);
-                const tfMatches = isTrueFalse ? [...body.matchAll(/(?:^|\n)\s*([a-d])\s*[\.\)]\s*/gi)] : [];
-                // Nhãn đáp án Word có thể nằm cùng một dòng hoặc trên các đoạn riêng.
+                // Làm sạch các tiêu đề phân đoạn lạc vào cuối lời giải hoặc đề bài
+                if (solution) {
+                    solution = stripTrailingSectionHeaders(solution);
+                } else {
+                    body = stripTrailingSectionHeaders(body);
+                }
+
+                // Trích xuất mức độ nhận thức nếu có [NB], [TH], [VD], [VDC]
+                const levelMatch = /^\s*\[(NB|TH|VD|VDC)\]/i.exec(body);
+                let level = '';
+                if (levelMatch) {
+                    const lvl = levelMatch[1].toUpperCase();
+                    if (lvl === 'NB') level = 'Nhận biết';
+                    else if (lvl === 'TH') level = 'Thông hiểu';
+                    else if (lvl === 'VD') level = 'Vận dụng';
+                    else if (lvl === 'VDC') level = 'Vận dụng cao';
+                }
+
+                // 1. Lựa chọn trắc nghiệm A, B, C, D
                 const optionMatches = [...body.matchAll(/(?:^|\n|\s)([ABCD])\s*[\.\)\:]\s*/g)];
+
+                // 2. Mệnh đề Đúng/Sai a), b), c), d)
+                const tfMatches = [...body.matchAll(/(?:^|\n)\s*([a-d])\s*[\.\)]\s*/gi)];
+                const isTrueFalse = tfMatches.length >= 4 && (
+                    optionMatches.length < 4 ||
+                    /(?:\[\s*(?:ĐS|Đ\/S|Đúng\s*[\/,-]?\s*Sai)\s*\]|\(\s*Đúng\s*[\/,-]?\s*Sai\s*\)|tính\s*đúng[\s,/-]*sai|khẳng\s*định\s*sau)/i.test(body)
+                );
+
+                // 3. Trả lời ngắn: tìm "Đáp án:" hoặc "Đáp số:" trong lời giải hoặc đề bài
+                const shortAnsRegex = /(?:^|\n|\b)(?:Đáp\s*án|Đáp\s*số)\s*[:=]\s*([^\n\r]+)/i;
+                const shortInSolution = shortAnsRegex.exec(solution);
+                const shortInBody = shortAnsRegex.exec(body);
+                const shortMatch = shortInSolution || shortInBody;
+
                 const question = {
-                    type: 'essay', content: body, solution, options: [], statements: [],
-                    answer: '', point: 0, correct: -1, mapId: '', source: 'word'
+                    type: 'essay',
+                    level: level,
+                    content: cleanWordMathLatex(body),
+                    solution: cleanWordMathLatex(solution),
+                    options: [],
+                    statements: [],
+                    answer: '',
+                    point: 0,
+                    correct: -1,
+                    mapId: '',
+                    source: 'word'
                 };
-                if (tfMatches.length >= 4) {
+
+                if (isTrueFalse) {
                     question.type = 'tf';
-                    question.content = body.slice(0, tfMatches[0].index)
-                        .replace(/\[\s*(?:ĐS|Đ\/S|Đúng\s*\/\s*Sai)\s*\]|\(\s*Đúng\s*[-/]\s*Sai\s*\)/ig, '')
-                        .trim();
+                    question.content = cleanWordMathLatex(body.slice(0, tfMatches[0].index)
+                        .replace(/\[\s*(?:ĐS|Đ\/S|Đúng\s*[\/,-]?\s*Sai)\s*\]|\(\s*Đúng\s*[\/,-]?\s*Sai\s*\)/ig, '')
+                        .trim());
                     question.statements = tfMatches.slice(0, 4).map((statement, statementIndex) => {
                         const statementStart = statement.index + statement[0].length;
                         const statementEnd = statementIndex < 3 ? tfMatches[statementIndex + 1].index : body.length;
-                        const rawText = body.slice(statementStart, statementEnd).trim();
-                        const answerMatch = /(?:\[\s*(Đúng|Sai)\s*\]|\(\s*(Đúng|Sai)\s*\)|[-–—]\s*(Đúng|Sai))\s*$/i.exec(rawText);
+                        let rawText = body.slice(statementStart, statementEnd).trim();
+                        rawText = stripTrailingSectionHeaders(rawText);
+                        const answerMatch = /(?:\[\s*(Đúng|Sai)\s*\]|\(\s*(Đúng|Sai)\s*\)|[-–—:]\s*(Đúng|Sai))\s*$/i.exec(rawText);
                         const statementLabel = statement[1].toUpperCase();
+                        let isTrue = underlinedLabels.includes(statementLabel) || Boolean(answerMatch && (answerMatch[1] || answerMatch[2] || answerMatch[3]).toLowerCase() === 'đúng');
+
+                        if (!isTrue && solution) {
+                            const solMatch = new RegExp('(?:^|\\n|\\b)(?:mệnh\\s*đề\\s*|khẳng\\s*định\\s*)?' + statementLabel.toLowerCase() + '\\s*[:.)-–—]?\\s*(?:là\\s*)?(đúng|sai)\\b', 'i').exec(solution);
+                            if (solMatch && solMatch[1].toLowerCase() === 'đúng') isTrue = true;
+                        }
+
                         return {
-                            text: rawText.replace(/(?:\[\s*(?:Đúng|Sai)\s*\]|\(\s*(?:Đúng|Sai)\s*\)|[-–—]\s*(?:Đúng|Sai))\s*$/i, '').trim(),
-                            isTrue: underlinedLabels.includes(statementLabel) || Boolean(answerMatch && (answerMatch[1] || answerMatch[2] || answerMatch[3]).toLowerCase() === 'đúng')
+                            text: cleanWordMathLatex(rawText.replace(/(?:\[\s*(?:Đúng|Sai)\s*\]|\(\s*(?:Đúng|Sai)\s*\)|[-–—:]\s*(?:Đúng|Sai))\s*$/i, '').trim()),
+                            isTrue
                         };
                     });
                 } else if (optionMatches.length >= 4) {
-                    const options = optionMatches.slice(0, 4).map((option, optionIndex) => {
+                    question.type = 'mc';
+                    question.content = cleanWordMathLatex(body.slice(0, optionMatches[0].index).trim());
+                    question.options = optionMatches.slice(0, 4).map((option, optionIndex) => {
                         const optionStart = option.index + option[0].length;
                         const optionEnd = optionIndex < 3 ? optionMatches[optionIndex + 1].index : body.length;
-                        return body.slice(optionStart, optionEnd).trim();
+                        return cleanWordMathLatex(body.slice(optionStart, optionEnd).trim());
                     });
-                    question.type = 'mc';
-                    question.content = body.slice(0, optionMatches[0].index).trim();
-                    question.options = options;
+                    const correctMatch = /(?:chọn|đáp\s*án)\s*[:\-]?\s*([ABCD])\b/i.exec(solution);
+                    if (underlinedLabels.length) {
+                        question.correct = underlinedLabels[0].charCodeAt(0) - 65;
+                    } else if (correctMatch) {
+                        question.correct = correctMatch[1].toUpperCase().charCodeAt(0) - 65;
+                    }
+                } else if (shortMatch) {
+                    question.type = 'short';
+                    let rawAns = shortMatch[1].trim();
+                    rawAns = rawAns.replace(/^\$+|\$+$/g, '').trim();
+                    rawAns = rawAns.replace(/\.$/, '').trim();
+                    question.answer = cleanWordMathLatex(rawAns);
+
+                    if (shortInBody) {
+                        question.content = cleanWordMathLatex(body.replace(/(?:^|\n)\s*(?:Đáp\s*án|Đáp\s*số)\s*[:=]\s*[^\n\r]+/i, '').trim());
+                    }
+                } else {
+                    question.type = 'essay';
                 }
-                const correctMatch = /(?:chọn|đáp\s*án)\s*[:\-]?\s*([ABCD])\b/i.exec(solution);
-                if (question.type === 'mc' && underlinedLabels.length) {
-                    question.correct = underlinedLabels[0].charCodeAt(0) - 65;
-                } else if (correctMatch && question.type === 'mc') {
-                    question.correct = correctMatch[1].toUpperCase().charCodeAt(0) - 65;
-                }
+
                 return question;
-            }).filter(q => q.content || q.options.some(Boolean));
+            }).filter(q => q.content || q.options.some(Boolean) || q.statements.length);
         }
+        window.wordHtmlToImportText = wordHtmlToImportText;
+        window.parseWordQuestions = parseWordQuestions;
 
         async function getMathTypeApiUrl() {
             try {
-                const snap = await getDoc(doc(db, 'configurations', 'mathtype_api'));
+                if (typeof db === 'undefined' || !db) return '';
+                const snap = await Promise.race([
+                    getDoc(doc(db, 'configurations', 'mathtype_api')),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout đọc cấu hình')), 3000))
+                ]);
                 return snap.exists() ? String(snap.data().url || '').trim() : '';
             } catch (error) {
                 console.warn('[Word import] Không đọc được cấu hình MathType:', error);
@@ -3370,10 +3481,11 @@
                 }
                 if (window.currentQIndex !== -1) saveCurrentQuestionToMemory();
                 pendingImageUploads = [];
+                if (!Array.isArray(window.questions)) window.questions = [];
+                if (!Array.isArray(window.mixedTlQuestions)) window.mixedTlQuestions = [];
                 const isMixed = document.getElementById('settingType')?.value === 'mixed';
                 parsedQuestions.forEach(question => {
                     if (isMixed && question.type === 'essay') {
-                        if (!window.mixedTlQuestions) window.mixedTlQuestions = [];
                         window.mixedTlQuestions.push(question);
                     } else {
                         window.questions.push(question);
