@@ -1452,85 +1452,94 @@
             </div>
 
             <!-- Body -->
-            <div class="p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-4 sm:space-y-6 flex-1 bg-slate-50/50">
-                <!-- Thống kê nhanh -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div class="admin-stat-card admin-stat-super p-4 rounded-xl flex items-center justify-between shadow-2xs">
-                        <div>
-                            <div class="stat-title text-xs font-bold uppercase tracking-wider">Super Admin</div>
-                            <div id="statSuperAdminCount" class="stat-val text-2xl font-black mt-0.5">0</div>
-                            <div class="stat-sub text-[11px]">Toàn quyền kiểm soát 100%</div>
-                        </div>
-                        <div class="stat-icon w-10 h-10 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-crown"></i></div>
+            <div class="p-4 sm:p-5 overflow-y-auto custom-scrollbar space-y-3.5 flex-1 bg-slate-50/50 dark:bg-[#151221]">
+                <!-- Thống kê nhanh dạng thanh tinh gọn -->
+                <div class="flex items-center justify-between flex-wrap gap-2 text-xs bg-purple-50/60 dark:bg-purple-950/20 p-2.5 px-3.5 rounded-xl border border-purple-100 dark:border-purple-900/30">
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <span class="inline-flex items-center gap-1.5 font-bold text-gray-700 dark:text-gray-200">
+                            <i class="fa-solid fa-users text-purple-600"></i> Tổng nhân sự: <b id="statTotalCount" class="text-purple-700 dark:text-purple-300 font-black">0</b>
+                        </span>
+                        <span class="text-gray-300 dark:text-gray-600">|</span>
+                        <span class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
+                            <i class="fa-solid fa-chalkboard-user text-teal-600"></i> Giáo viên / Admin: <b id="statAdminCount" class="text-teal-700 dark:text-teal-300 font-bold">0</b>
+                        </span>
+                        <span class="text-gray-300 dark:text-gray-600">|</span>
+                        <span class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
+                            <i class="fa-solid fa-crown text-amber-500"></i> Root Super Admin: <b id="statSuperAdminCount" class="text-amber-700 dark:text-amber-300 font-bold">3</b>
+                        </span>
+                        <span class="text-gray-300 dark:text-gray-600">|</span>
+                        <span class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
+                            <i class="fa-solid fa-user-lock text-red-500"></i> Tạm khóa: <b id="statLockedCount" class="text-red-600 dark:text-red-400 font-bold">0</b>
+                        </span>
                     </div>
-
-                    <div class="admin-stat-card admin-stat-admin p-4 rounded-xl flex items-center justify-between shadow-2xs">
-                        <div>
-                            <div class="stat-title text-xs font-bold uppercase tracking-wider">Admin Phân Hệ</div>
-                            <div id="statAdminCount" class="stat-val text-2xl font-black mt-0.5">0</div>
-                            <div class="stat-sub text-[11px]">Giới hạn theo quyền cấp</div>
-                        </div>
-                        <div class="stat-icon w-10 h-10 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-shield-halved"></i></div>
-                    </div>
-
-                    <div class="admin-stat-card admin-stat-locked p-4 rounded-xl flex items-center justify-between shadow-2xs">
-                        <div>
-                            <div class="stat-title text-xs font-bold uppercase tracking-wider">Đang Tạm Khóa</div>
-                            <div id="statLockedCount" class="stat-val text-2xl font-black mt-0.5">0</div>
-                            <div class="stat-sub text-[11px]">Bị ngắt quyền đăng nhập</div>
-                        </div>
-                        <div class="stat-icon w-10 h-10 rounded-full flex items-center justify-center text-lg"><i class="fa-solid fa-user-lock"></i></div>
+                    <div class="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                        <span>Phân quyền RBAC v2.0</span>
                     </div>
                 </div>
 
-                <!-- Thanh công cụ & Tìm kiếm -->
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
-                    <div class="relative flex-1">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
-                        <input type="text" id="adminSearchInput" oninput="window.filterAdminList()" placeholder="Tìm theo email, tên quản trị viên..." class="w-full pl-9 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:border-purple-500 transition-all bg-gray-50 focus:bg-white">
+                <!-- Thanh công cụ: Tabs phân loại + Tìm kiếm + Nút thêm -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white dark:bg-[#1a1726] p-2.5 rounded-xl border border-gray-200 dark:border-[#38344D] shadow-2xs">
+                    <!-- Segmented Tabs -->
+                    <div class="inline-flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300">
+                        <button type="button" id="adminTabTeachers" onclick="window.switchAdminTab('teachers')" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-purple-700 shadow-2xs font-extrabold cursor-pointer">
+                            <i class="fa-solid fa-chalkboard-user"></i>
+                            <span>Giáo viên & Quản trị</span>
+                            <span id="tabCountTeachers" class="px-1.5 py-0.2 text-[10px] rounded-full bg-purple-100 text-purple-700 font-black">0</span>
+                        </button>
+                        <button type="button" id="adminTabRoot" onclick="window.switchAdminTab('root')" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">
+                            <i class="fa-solid fa-crown text-amber-500"></i>
+                            <span>Root Admin</span>
+                            <span id="tabCountRoot" class="px-1.5 py-0.2 text-[10px] rounded-full bg-amber-100 text-amber-700 font-black">3</span>
+                        </button>
+                        <button type="button" id="adminTabAll" onclick="window.switchAdminTab('all')" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">
+                            <span>Tất cả</span>
+                            <span id="tabCountAll" class="px-1.5 py-0.2 text-[10px] rounded-full bg-gray-200 text-gray-600 font-bold">0</span>
+                        </button>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <select id="adminRoleFilterSelect" onchange="window.filterAdminList()" class="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 outline-none bg-gray-50 cursor-pointer">
-                            <option value="all">Tất cả vai trò</option>
-                            <option value="super_admin">👑 Chỉ Super Admin</option>
-                            <option value="admin">🛡️ Chỉ Admin</option>
-                            <option value="locked">🔒 Đã khóa</option>
-                        </select>
-                        <button onclick="window.openAdminEditModal(null)" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+
+                    <!-- Search & Add Button -->
+                    <div class="flex items-center gap-2 flex-1 sm:justify-end">
+                        <div class="relative flex-1 sm:max-w-xs">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                            <input type="text" id="adminSearchInput" oninput="window.filterAdminList()" placeholder="Tìm theo tên, email..." class="w-full pl-8 pr-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-xs outline-none focus:border-purple-500 transition-all bg-gray-50 focus:bg-white dark:bg-gray-800 dark:focus:bg-gray-800">
+                        </div>
+                        <button onclick="window.openAdminEditModal(null)" class="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
                             <i class="fa-solid fa-user-plus"></i>
-                            <span>Thêm Quản Trị Viên</span>
+                            <span>+ Thêm Mới</span>
                         </button>
                     </div>
                 </div>
 
+                <!-- Banner thông báo khi ở Tab Root Admin -->
+                <div id="adminRootNoticeBox" class="hidden p-3 rounded-xl border border-amber-200 bg-amber-50/70 dark:bg-amber-950/20 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2.5">
+                    <i class="fa-solid fa-shield-halved text-amber-500 text-base shrink-0"></i>
+                    <div>
+                        <b>3 Tài khoản Root Super Admin tối cao:</b> Đây là các tài khoản cốt lõi sáng lập và vận hành hệ thống, luôn giữ toàn quyền vĩnh viễn và không thể bị chỉnh sửa hoặc xóa từ giao diện quản trị để phòng ngừa rủi ro mất quyền kiểm soát.
+                    </div>
+                </div>
+
                 <!-- Bảng danh sách Quản trị viên -->
-                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
+                <div class="bg-white dark:bg-[#1a1726] rounded-xl border border-gray-200 dark:border-[#38344D] overflow-hidden shadow-2xs">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs border-collapse min-w-[700px]">
+                        <table class="w-full text-left text-xs border-collapse min-w-[650px]">
                             <thead>
-                                <tr class="bg-gray-100 text-gray-600 font-bold uppercase border-b border-gray-200">
-                                    <th class="p-3 pl-4">Quản Trị Viên</th>
-                                    <th class="p-3 text-center">Vai Trò</th>
-                                    <th class="p-3">Phân Quyền Chi Tiết</th>
-                                    <th class="p-3 text-center">Trạng Thái</th>
-                                    <th class="p-3 text-right pr-4">Thao Tác</th>
+                                <tr class="bg-gray-50 dark:bg-[#201d30] text-gray-600 dark:text-gray-300 font-bold uppercase text-[11px] border-b border-gray-200 dark:border-[#38344D]">
+                                    <th class="py-2.5 px-3 pl-4">Nhân Sự Quản Trị</th>
+                                    <th class="py-2.5 px-3 text-center">Vai Trò</th>
+                                    <th class="py-2.5 px-3">Quyền Hạn Được Cấp</th>
+                                    <th class="py-2.5 px-3 text-center">Trạng Thái</th>
+                                    <th class="py-2.5 px-3 text-right pr-4">Thao Tác</th>
                                 </tr>
                             </thead>
-                            <tbody id="adminAccountsTableBody" class="divide-y divide-gray-100">
+                            <tbody id="adminAccountsTableBody" class="divide-y divide-gray-100 dark:divide-[#2d2940]">
                                 <tr>
-                                    <td colspan="5" class="p-8 text-center text-gray-400">
-                                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải danh sách quản trị viên...
+                                    <td colspan="5" class="py-8 text-center text-gray-400">
+                                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải danh sách...
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-
-                <div class="admin-security-box p-3 rounded-xl border text-xs flex items-center gap-2.5">
-                    <i class="fa-solid fa-shield-halved text-amber-500 text-base shrink-0"></i>
-                    <div>
-                        <b>Lưu ý bảo mật:</b> Tài khoản Root Super Admin (<b>phamdinhquang0911@gmail.com</b>) luôn được bảo vệ tối cao vĩnh viễn, không thể bị xóa hoặc hạ quyền từ giao diện để tránh rủi ro mất quyền kiểm soát hệ thống.
                     </div>
                 </div>
             </div>
@@ -2626,6 +2635,11 @@
                 return;
             }
             window.toggleModal('adminRoleModal', true);
+            const searchInput = document.getElementById('adminSearchInput');
+            if (searchInput) searchInput.value = '';
+            if (typeof window.switchAdminTab === 'function') {
+                window.switchAdminTab('teachers');
+            }
             await window.loadAdminAccountsList();
         };
 
@@ -2701,13 +2715,18 @@
                 let countSuper = 0;
                 let countAdmin = 0;
                 let countLocked = 0;
+                let countTeachers = 0;
 
                 accounts.forEach(acc => {
+                    const isRoot = ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes((acc.email || '').toLowerCase());
                     if (acc.status === 'locked') countLocked++;
                     if (acc.role === 'super_admin') countSuper++;
                     else countAdmin++;
+                    if (!isRoot) countTeachers++;
                 });
 
+                const statTotal = document.getElementById('statTotalCount');
+                if (statTotal) statTotal.textContent = accounts.length;
                 const statSuper = document.getElementById('statSuperAdminCount');
                 if (statSuper) statSuper.textContent = countSuper;
                 const statAdmin = document.getElementById('statAdminCount');
@@ -2715,7 +2734,14 @@
                 const statLocked = document.getElementById('statLockedCount');
                 if (statLocked) statLocked.textContent = countLocked;
 
-                window.renderAdminAccountsTable(accounts);
+                const tabTeachers = document.getElementById('tabCountTeachers');
+                if (tabTeachers) tabTeachers.textContent = countTeachers;
+                const tabRoot = document.getElementById('tabCountRoot');
+                if (tabRoot) tabRoot.textContent = ROOT_SUPER_ADMINS.length;
+                const tabAll = document.getElementById('tabCountAll');
+                if (tabAll) tabAll.textContent = accounts.length;
+
+                window.filterAdminList();
             } catch (err) {
                 console.error("Lỗi tải danh sách admin:", err);
                 if (tbody) {
@@ -2724,12 +2750,68 @@
             }
         };
 
+        window.currentAdminTab = 'teachers'; // 'teachers' | 'root' | 'all'
+
+        window.switchAdminTab = (tab) => {
+            window.currentAdminTab = tab;
+            const tabTeachers = document.getElementById('adminTabTeachers');
+            const tabRoot = document.getElementById('adminTabRoot');
+            const tabAll = document.getElementById('adminTabAll');
+            const rootNotice = document.getElementById('adminRootNoticeBox');
+
+            const activeBtn = (el) => {
+                if (!el) return;
+                el.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white dark:bg-purple-900/60 text-purple-700 dark:text-purple-200 shadow-2xs font-extrabold cursor-pointer";
+            };
+            const inactiveBtn = (el) => {
+                if (!el) return;
+                el.className = "px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer";
+            };
+
+            if (tabTeachers) inactiveBtn(tabTeachers);
+            if (tabRoot) inactiveBtn(tabRoot);
+            if (tabAll) inactiveBtn(tabAll);
+
+            if (tab === 'teachers') {
+                if (tabTeachers) activeBtn(tabTeachers);
+                if (rootNotice) rootNotice.classList.add('hidden');
+            } else if (tab === 'root') {
+                if (tabRoot) activeBtn(tabRoot);
+                if (rootNotice) rootNotice.classList.remove('hidden');
+            } else {
+                if (tabAll) activeBtn(tabAll);
+                if (rootNotice) rootNotice.classList.add('hidden');
+            }
+
+            window.filterAdminList();
+        };
+
         window.renderAdminAccountsTable = (accounts) => {
             const tbody = document.getElementById('adminAccountsTableBody');
             if (!tbody) return;
 
             if (!accounts || accounts.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-400">Không tìm thấy quản trị viên nào.</td></tr>`;
+                if (window.currentAdminTab === 'teachers') {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="py-10 px-4 text-center">
+                                <div class="max-w-sm mx-auto space-y-2.5">
+                                    <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-300 flex items-center justify-center mx-auto text-xl shadow-xs">
+                                        <i class="fa-solid fa-chalkboard-user"></i>
+                                    </div>
+                                    <div class="font-bold text-gray-800 dark:text-gray-100 text-sm">Chưa có tài khoản Giáo viên nào</div>
+                                    <p class="text-xs text-gray-400">Tạo tài khoản và cấp mật khẩu cho giáo viên/trợ giảng để phân quyền quản trị lớp học, đề thi và khóa học.</p>
+                                    <button onclick="window.openAdminEditModal(null)" class="mt-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer">
+                                        <i class="fa-solid fa-user-plus"></i>
+                                        <span>+ Cấp tài khoản mới ngay</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-gray-400">Không tìm thấy tài khoản nào khớp với bộ lọc.</td></tr>`;
+                }
                 return;
             }
 
@@ -2743,11 +2825,11 @@
                 let permSummaryHtml = '';
                 if (isSuper) {
                     permSummaryHtml = `
-                        <div class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold">
+                        <div class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold text-xs">
                             <i class="fa-solid fa-crown text-amber-500 text-xs"></i>
                             <span>Toàn quyền 100% hệ thống</span>
                         </div>
-                        <div class="text-[10px] text-gray-400 dark:text-gray-400 mt-0.5">Bao gồm Cấu hình Thanh toán, AI, Dọn dẹp & Phân quyền</div>
+                        <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Bảo vệ tối cao bởi hệ thống RBAC</div>
                     `;
                 } else {
                     const badges = [];
@@ -2767,40 +2849,42 @@
                     let courseBadgeHtml = '';
                     const assignedCourses = acc.assignedCourseIds || [];
                     if (assignedCourses.includes('*')) {
-                        courseBadgeHtml = `<span class="px-1.5 py-0.5 bg-purple-50 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 rounded text-[10px] font-bold"><i class="fa-solid fa-graduation-cap mr-1"></i>Toàn bộ khóa học</span>`;
+                        courseBadgeHtml = `<span class="px-1.5 py-0.2 bg-purple-50 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 rounded text-[10px] font-bold"><i class="fa-solid fa-graduation-cap mr-1"></i>Toàn bộ khóa</span>`;
                     } else if (assignedCourses.length > 0) {
-                        courseBadgeHtml = `<span class="px-1.5 py-0.5 bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 rounded text-[10px] font-bold"><i class="fa-solid fa-graduation-cap mr-1"></i>${assignedCourses.length} khóa học</span>`;
+                        courseBadgeHtml = `<span class="px-1.5 py-0.2 bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 rounded text-[10px] font-bold"><i class="fa-solid fa-graduation-cap mr-1"></i>${assignedCourses.length} khóa</span>`;
                     } else {
-                        courseBadgeHtml = `<span class="px-1.5 py-0.5 bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-400 rounded text-[10px]">Chưa cấp khóa học</span>`;
+                        courseBadgeHtml = `<span class="px-1.5 py-0.2 bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-400 rounded text-[10px]">Chưa cấp khóa</span>`;
                     }
 
                     permSummaryHtml = `
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold text-teal-700 dark:text-teal-300">${permCount} chức năng được cấp</span>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="font-bold text-teal-700 dark:text-teal-300 text-xs">${permCount} chức năng</span>
+                            <span class="text-gray-300 dark:text-gray-600">•</span>
                             ${courseBadgeHtml}
                         </div>
-                        <div class="flex flex-wrap gap-1 mt-1">
-                            ${badges.map(b => `<span class="px-1.5 py-0.5 bg-teal-50 text-teal-800 border border-teal-100 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800 rounded text-[10px] font-semibold">${b}</span>`).join('')}
+                        <div class="flex flex-wrap gap-1 mt-1 max-w-[340px]">
+                            ${badges.slice(0, 4).map(b => `<span class="px-1.5 py-0.2 bg-teal-50 text-teal-800 border border-teal-100 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800 rounded text-[10px] font-semibold">${b}</span>`).join('')}
+                            ${badges.length > 4 ? `<span class="px-1.5 py-0.2 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 rounded text-[10px] font-bold" title="${badges.slice(4).join(', ')}">+${badges.length - 4} khác</span>` : ''}
                         </div>
                     `;
                 }
 
                 const statusHtml = isLocked ? `
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 rounded-full font-bold text-[11px] border border-red-200 dark:border-red-800">
-                        <i class="fa-solid fa-lock text-[10px]"></i> Đã khóa
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 rounded-full font-bold text-[11px] border border-red-200 dark:border-red-800">
+                        <i class="fa-solid fa-lock text-[9px]"></i> Đã khóa
                     </span>
                 ` : `
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-full font-bold text-[11px] border border-emerald-200 dark:border-emerald-800">
-                        <i class="fa-solid fa-circle-check text-[10px]"></i> Hoạt động
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-full font-bold text-[11px] border border-emerald-200 dark:border-emerald-800">
+                        <i class="fa-solid fa-circle-check text-[9px]"></i> Hoạt động
                     </span>
                 `;
 
                 const roleBadge = isSuper ? `
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 dark:from-amber-950/60 dark:to-orange-950/60 dark:text-amber-300 rounded-full font-black text-[11px] border border-amber-200 dark:border-amber-700/60 shadow-2xs">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 dark:from-amber-950/60 dark:to-orange-950/60 dark:text-amber-300 rounded-full font-black text-[11px] border border-amber-200 dark:border-amber-700/60 shadow-2xs">
                         <i class="fa-solid fa-crown text-amber-500"></i> SUPER ADMIN
                     </span>
                 ` : `
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 rounded-full font-bold text-[11px] border border-purple-200 dark:border-purple-700/60">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 rounded-full font-bold text-[11px] border border-purple-200 dark:border-purple-700/60">
                         <i class="fa-solid fa-shield-halved text-purple-500"></i> ADMIN
                     </span>
                 `;
@@ -2808,7 +2892,7 @@
                 let actionsHtml = '';
                 if (isRoot) {
                     actionsHtml = `
-                        <div class="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
+                        <div class="text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-lg inline-flex items-center gap-1">
                             <i class="fa-solid fa-shield-halved text-amber-500"></i>
                             <span>Tài khoản Gốc</span>
                         </div>
@@ -2816,22 +2900,22 @@
                 } else {
                     actionsHtml = `
                         <div class="flex items-center justify-end gap-1.5">
-                            <button onclick="window.openAdminEditModal('${acc.id || acc.email}')" title="Chỉnh sửa phân quyền" class="p-1.5 sm:px-2.5 sm:py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:hover:bg-purple-900/80 dark:text-purple-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+                            <button onclick="window.openAdminEditModal('${acc.id || acc.email}')" title="Chỉnh sửa phân quyền" class="p-1 sm:px-2 sm:py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:hover:bg-purple-900/80 dark:text-purple-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
                                 <i class="fa-solid fa-sliders"></i>
                                 <span class="hidden sm:inline">Phân quyền</span>
                             </button>
                             ${isLocked ? `
-                                <button onclick="window.toggleAdminStatus('${acc.id || acc.email}', '${acc.email}', 'locked')" title="Mở khóa tài khoản" class="p-1.5 sm:px-2 sm:py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 dark:text-emerald-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+                                <button onclick="window.toggleAdminStatus('${acc.id || acc.email}', '${acc.email}', 'locked')" title="Mở khóa tài khoản" class="p-1 sm:px-2 sm:py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 dark:text-emerald-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
                                     <i class="fa-solid fa-lock-open"></i>
                                     <span class="hidden sm:inline">Mở</span>
                                 </button>
                             ` : `
-                                <button onclick="window.toggleAdminStatus('${acc.id || acc.email}', '${acc.email}', 'active')" title="Khóa tài khoản tạm thời" class="p-1.5 sm:px-2 sm:py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:hover:bg-amber-900/80 dark:text-amber-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+                                <button onclick="window.toggleAdminStatus('${acc.id || acc.email}', '${acc.email}', 'active')" title="Khóa tài khoản tạm thời" class="p-1 sm:px-2 sm:py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:hover:bg-amber-900/80 dark:text-amber-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
                                     <i class="fa-solid fa-lock"></i>
                                     <span class="hidden sm:inline">Khóa</span>
                                 </button>
                             `}
-                            <button onclick="window.deleteAdminAccount('${acc.id || acc.email}', '${acc.email}')" title="Gỡ bỏ quyền quản trị" class="p-1.5 sm:px-2 sm:py-1 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/60 dark:hover:bg-red-900/80 dark:text-red-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+                            <button onclick="window.deleteAdminAccount('${acc.id || acc.email}', '${acc.email}')" title="Gỡ bỏ quyền quản trị" class="p-1 sm:px-2 sm:py-0.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/60 dark:hover:bg-red-900/80 dark:text-red-300 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
                                 <i class="fa-solid fa-trash-can"></i>
                                 <span class="hidden sm:inline">Xóa</span>
                             </button>
@@ -2841,9 +2925,9 @@
 
                 return `
                     <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                        <td class="p-3 pl-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-xl ${isSuper ? 'bg-amber-500' : 'bg-purple-600'} text-white flex items-center justify-center font-black text-sm shadow-2xs shrink-0">
+                        <td class="py-2.5 px-3 pl-4">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-xl ${isSuper ? 'bg-amber-500' : 'bg-purple-600'} text-white flex items-center justify-center font-black text-xs shadow-2xs shrink-0">
                                     ${initial}
                                 </div>
                                 <div class="overflow-hidden">
@@ -2866,10 +2950,10 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="p-3 text-center whitespace-nowrap">${roleBadge}</td>
-                        <td class="p-3">${permSummaryHtml}</td>
-                        <td class="p-3 text-center whitespace-nowrap">${statusHtml}</td>
-                        <td class="p-3 text-right pr-4 whitespace-nowrap">${actionsHtml}</td>
+                        <td class="py-2.5 px-3 text-center whitespace-nowrap">${roleBadge}</td>
+                        <td class="py-2.5 px-3">${permSummaryHtml}</td>
+                        <td class="py-2.5 px-3 text-center whitespace-nowrap">${statusHtml}</td>
+                        <td class="py-2.5 px-3 text-right pr-4 whitespace-nowrap">${actionsHtml}</td>
                     </tr>
                 `;
             }).join('');
@@ -2877,20 +2961,22 @@
 
         window.filterAdminList = () => {
             const keyword = (document.getElementById('adminSearchInput')?.value || '').toLowerCase().trim();
-            const filterRole = document.getElementById('adminRoleFilterSelect')?.value || 'all';
+            const currentTab = window.currentAdminTab || 'teachers';
 
-            const filtered = (window.allAdminAccounts || []).filter(acc => {
+            let accounts = window.allAdminAccounts || [];
+
+            if (currentTab === 'teachers') {
+                accounts = accounts.filter(acc => !ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes((acc.email || '').toLowerCase()));
+            } else if (currentTab === 'root') {
+                accounts = accounts.filter(acc => ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes((acc.email || '').toLowerCase()));
+            }
+
+            const filtered = accounts.filter(acc => {
                 const matchKeyword = !keyword || 
                     (acc.email && acc.email.toLowerCase().includes(keyword)) ||
                     (acc.displayName && acc.displayName.toLowerCase().includes(keyword)) ||
                     (acc.note && acc.note.toLowerCase().includes(keyword));
-
-                let matchRole = true;
-                if (filterRole === 'super_admin') matchRole = acc.role === 'super_admin';
-                else if (filterRole === 'admin') matchRole = acc.role === 'admin';
-                else if (filterRole === 'locked') matchRole = acc.status === 'locked';
-
-                return matchKeyword && matchRole;
+                return matchKeyword;
             });
 
             window.renderAdminAccountsTable(filtered);
