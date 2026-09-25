@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "acorn": "^8.18.0",
+    "emf-converter": "^3.3.0",
     "mammoth": "^1.12.1"
   }
 }

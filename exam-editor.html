@@ -1275,8 +1275,10 @@
         } from "./supabase-db-compat.js?v=21";
 
         // --- IMPORT TỪ UTILS.JS VÀ PERF-CACHE ---
-        import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, renderTikz } from "./utils.js";
+        import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, renderTikz } from "./utils.js?v=9";
         import { readCache, writeCache } from "./perf-cache.js";
+        import { convertMetafileToDataUrl } from "./emf-converter.js";
+        window.convertMetafileToDataUrl = convertMetafileToDataUrl;
 
         // Gán vào window
         window.formatContent = formatContent;
@@ -3087,6 +3089,21 @@
         // --- IMPORT WORD (.DOCX) ---
         // Word thường không chứa cấu trúc \begin{ex}; vì vậy sau khi Mammoth đọc file,
         // ta nhận diện các nhãn Câu/A/B/C/D/Lời giải và chuyển thành question object chuẩn.
+                function cleanWordMathLatex(str) {
+            if (!str || typeof str !== 'string') return str;
+            const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right\s*([\s\S]*?)\s*(?:\\\{|\\\.|(?=\$))/g;
+            str = str.replace(regexMangledSystem, (match, eq1, eq2) => {
+                const clean1 = (eq1 || '').trim();
+                const clean2 = (eq2 || '').trim();
+                return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
+            });
+            str = str.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, '');
+            str = str.replace(/\\left([a-zA-Z0-9])/g, '$1');
+            str = str.replace(/\\right([a-zA-Z0-9])/g, '$1');
+            return str;
+        }
+        window.cleanWordMathLatex = cleanWordMathLatex;
+
         function wordHtmlToImportText(html) {
             const source = new DOMParser().parseFromString(html || '', 'text/html');
             const wordTables = [];
@@ -3252,7 +3269,31 @@
 
                 // Mammoth mặc định bỏ qua gạch chân. Ép xuất <u> để parser nhận được
                 // A./a) được giáo viên gạch chân làm đáp án đúng.
-                const result = await window.mammoth.convertToHtml({ arrayBuffer }, { styleMap: ['u => u'] });
+                const mammothOptions = {
+                    styleMap: ['u => u'],
+                    convertImage: window.mammoth.images.imgElement(element => {
+                        const contentType = element.contentType || '';
+                        if (contentType === 'image/x-emf' || contentType === 'image/x-wmf') {
+                            return element.readAsArrayBuffer().then(async (buf) => {
+                                try {
+                                    const arrayBuffer = (buf instanceof ArrayBuffer) ? buf : (buf.buffer ? buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) : new Uint8Array(buf).buffer);
+                                    if (typeof window.convertMetafileToDataUrl === 'function') {
+                                        const pngUrl = await window.convertMetafileToDataUrl(arrayBuffer, { dpiScale: 2 });
+                                        if (pngUrl) return { src: pngUrl, alt: 'Hình minh họa' };
+                                    }
+                                } catch (e) {
+                                    console.warn('[Word import] Lỗi chuyển EMF sang PNG:', e);
+                                }
+                                const b64 = await element.readAsBase64String();
+                                return { src: `data:${contentType};base64,${b64}`, alt: 'Hình minh họa' };
+                            });
+                        }
+                        return element.readAsBase64String().then(b64 => {
+                            return { src: `data:${contentType};base64,${b64}`, alt: 'Hình minh họa' };
+                        });
+                    })
+                };
+                const result = await window.mammoth.convertToHtml({ arrayBuffer }, mammothOptions);
                 const parsedQuestions = parseWordQuestions(wordHtmlToImportText(result.value));
                 if (!parsedQuestions.length) {
                     throw new Error('Không tìm thấy câu hỏi. File Word cần có nhãn dạng “Câu 1.” hoặc “Bài 1.”.');

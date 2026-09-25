@@ -564,6 +564,17 @@ export const formatContent = (text) => {
     processed = replaceCustomMathCmd(processed, 'hoac', '\\left[', '\\right.');
     processed = replaceCustomMathCmd(processed, 'heva*', '\\left\\{', '\\right.');
     processed = replaceCustomMathCmd(processed, 'hoac*', '\\left[', '\\right.');
+    // Sửa lỗi hệ phương trình bị phân rã từ MathType Word:
+    const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right\s*([\s\S]*?)\s*(?:\\\{|\\\.|(?=\$))/g;
+    processed = processed.replace(regexMangledSystem, (match, eq1, eq2) => {
+        const clean1 = (eq1 || '').trim();
+        const clean2 = (eq2 || '').trim();
+        return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
+    });
+    processed = processed.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, '');
+    processed = processed.replace(/\\left([a-zA-Z0-9])/g, '$1');
+    processed = processed.replace(/\\right([a-zA-Z0-9])/g, '$1');
+
     // Cleanup metadata LaTeX bảng (caption, arraystretch)
     processed = processed.replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '');
     processed = processed.replace(/\\renewcommand\s*\{?\s*\\arraystretch\s*\}?\s*\{[^}]+\}/g, '');
