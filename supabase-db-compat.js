@@ -329,6 +329,7 @@ function mapFieldToColumn(field) {
         'allowedClassId': 'allowed_class_ids',
         'qPoints': 'qpoints',
         'qpoints': 'qpoints',
+        'antiScreenshot': 'anti_screenshot',
         'createdAt': 'created_at',
         'updatedAt': 'updated_at'
     };
@@ -356,14 +357,16 @@ function unwrapRecord(r) {
     if (r.end_date !== undefined) { res.expiryDate = r.end_date; }
     if (r.max_usage !== undefined) { res.limit = r.max_usage; }
     if (r.course_id !== undefined && !res.courseIds) { res.courseIds = r.course_id ? [r.course_id] : []; }
+    if (r.status !== undefined) res.status = r.status;
+    if (r.anti_screenshot !== undefined) res.antiScreenshot = r.anti_screenshot;
 
-    // Unpack public_courses metadata from preview_link
+    // Unpack public_courses metadata from preview_link (fallback)
     if (r.preview_link && typeof r.preview_link === 'string' && r.preview_link.trim().startsWith('{')) {
         try {
             const meta = JSON.parse(r.preview_link);
             if (meta && typeof meta === 'object') {
-                if (meta.status !== undefined) res.status = meta.status;
-                if (meta.antiScreenshot !== undefined) res.antiScreenshot = meta.antiScreenshot;
+                if (meta.status !== undefined && res.status === undefined) res.status = meta.status;
+                if (meta.antiScreenshot !== undefined && res.antiScreenshot === undefined) res.antiScreenshot = meta.antiScreenshot;
                 if (meta.isSoldOut !== undefined) res.isSoldOut = meta.isSoldOut;
             }
         } catch(e) {}
@@ -398,7 +401,7 @@ const TABLE_COLUMNS = {
     user_progress: ['id', 'user_id', 'course_id', 'completed_items', 'playback_positions', 'quiz_usage', 'last_updated', 'raw_data'],
     access_requests: ['id', 'exam_id', 'exam_title', 'student_id', 'student_name', 'requested_at', 'status', 'approved_at', 'raw_data'],
     zalo_uids: ['id', 'zalo_uid', 'phone', 'name', 'updated_at', 'raw_data'],
-    public_courses: ['id', 'title', 'type', 'price', 'original_price', 'tag', 'thumbnail', 'image', 'description', 'weight', 'shipping_fee', 'students', 'fake_students', 'preview_link', 'curriculum', 'created_at', 'updated_at'],
+    public_courses: ['id', 'title', 'type', 'price', 'original_price', 'tag', 'thumbnail', 'image', 'description', 'weight', 'shipping_fee', 'students', 'fake_students', 'preview_link', 'curriculum', 'status', 'anti_screenshot', 'created_at', 'updated_at', 'raw_data'],
     orders: ['id', 'user_id', 'user_name', 'user_phone', 'course_id', 'document_id', 'course_title', 'quantity', 'unit_price', 'shipping_fee', 'amount', 'original_amount', 'voucher_code', 'voucher_discount', 'voucher_id', 'status', 'content', 'order_type', 'delivery_type', 'shipping_info', 'created_at', 'updated_at'],
     vouchers: ['id', 'code', 'discount_type', 'discount_value', 'min_order_value', 'max_discount', 'max_usage', 'used', 'used_by', 'start_date', 'end_date', 'status', 'course_id', 'created_at'],
     site_settings: ['key', 'value', 'updated_at'],
@@ -422,7 +425,7 @@ function toSupabasePayload(table, id, data) {
         }
     }
     if (table === 'public_courses') {
-        // Lưu metadata mở rộng (status, antiScreenshot, isSoldOut) an toàn vào preview_link
+        // Lưu metadata mở rộng (status, antiScreenshot, isSoldOut) an toàn vào preview_link dự phòng
         const meta = {};
         if (data.status !== undefined) meta.status = data.status;
         if (data.antiScreenshot !== undefined) meta.antiScreenshot = data.antiScreenshot;
@@ -439,7 +442,7 @@ function toSupabasePayload(table, id, data) {
             converted.value = rest;
         }
     }
-    const noRawDataTables = ['orders', 'vouchers', 'site_settings', 'public_courses'];
+    const noRawDataTables = ['orders', 'vouchers', 'site_settings'];
     if (!noRawDataTables.includes(table)) {
         converted.raw_data = data;
     }
