@@ -6961,38 +6961,58 @@ function renderTagFilterUI() {
             window.location.href = `exam-editor.html?id=${id}&view=${view}`;
         };
 
+                window.assignModalFolderId = null;
+        window.assignModalFolders = [];
+        window.assignableExams = [];
+
         window.openAssignExamModal = async (classId) => {
             if (!window.requirePermission('exams.assign', 'giao bài tập')) return;
             window.currentAssignClassId = classId; 
-            document.getElementById('assignExamModal').classList.remove('hidden');
+            window.assignModalFolderId = null;
+
+            const modal = document.getElementById('assignExamModal');
+            modal.classList.remove('hidden');
+
+            const searchInput = document.getElementById('searchAssignExam');
+            if (searchInput) searchInput.value = '';
+            const clearBtn = document.getElementById('clearSearchAssignExam');
+            if (clearBtn) clearBtn.classList.add('hidden');
+
+            // Hiển thị tên lớp
+            const classNameEl = document.getElementById('assignExamClassName');
+            if (classNameEl) {
+                const cls = (window.classesData || []).find(c => c.id === classId) || { name: 'Lớp học' };
+                classNameEl.textContent = cls.name || 'Lớp học';
+            }
+
             const listEl = document.getElementById('assignExamList');
-            listEl.innerHTML = '<div class="text-center py-8"><i class="fa-solid fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
-            
+            listEl.innerHTML = '<div class="text-center py-12"><i class="fa-solid fa-spinner fa-spin text-3xl text-primary-500 mb-3"></i><p class="text-xs sm:text-sm text-gray-500 font-medium">Đang tải cấu trúc thư mục & ngân hàng đề...</p></div>';
+
             try {
+                // Đảm bảo dữ liệu ngân hàng đã được nạp
+                if ((!folderData || folderData.length === 0) && (!examData || examData.length === 0)) {
+                    await loadFileManager(false);
+                }
+
                 const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
                 const canUseShared = isSuper || window.hasPermission('bank.use_shared');
 
-                const q = query(collection(db, "exams"), where("teacherId", "==", currentUserUid), limit(60));
-                const snap = await getDocs(q);
-                
-                window.assignableExams = [];
-                snap.forEach(d => {
-                    const ex = d.data();
-                    if (!ex.allowedClassIds || !ex.allowedClassIds.includes(classId)) {
-                        window.assignableExams.push({ id: d.id, ...ex });
-                    }
-                });
+                // Sao chép danh sách thư mục
+                window.assignModalFolders = (folderData || []).map(f => ({ ...f }));
+
+                // Khởi tạo danh sách đề từ examData
+                window.assignableExams = (examData || []).map(e => ({ ...e }));
 
                 // Tải thêm đề hệ thống dùng chung nếu có quyền bank.use_shared
                 if (canUseShared) {
                     try {
-                        const snapShared = await getDocs(query(collection(db, "exams"), where("isSystem", "==", true), limit(60)));
+                        const snapShared = await getDocs(query(collection(db, "exams"), where("isSystem", "==", true), limit(100)));
                         snapShared.forEach(d => {
-                            const ex = d.data();
                             if (!window.assignableExams.some(e => e.id === d.id)) {
-                                if (!ex.allowedClassIds || !ex.allowedClassIds.includes(classId)) {
-                                    window.assignableExams.push({ id: d.id, isSystem: true, ...ex });
-                                }
+                                const ex = d.data();
+                                const qCount = Array.isArray(ex.questions) ? ex.questions.length : (ex.questionCount || 0);
+                                delete ex.questions;
+                                window.assignableExams.push({ id: d.id, isSystem: true, ...ex, questionCount: qCount });
                             }
                         });
                     } catch(errSys) {
@@ -7001,10 +7021,10 @@ function renderTagFilterUI() {
                 }
 
                 // Tải các đề thi / Quiz từ các Khóa học được phân quyền
-                const allowedCourseIds = window.getAdminAllowedCourseIds();
+                const allowedCourseIds = window.getAdminAllowedCourseIds ? window.getAdminAllowedCourseIds() : [];
                 if (allowedCourseIds.length > 0) {
                     try {
-                        await window.loadAllCoursesForAdminModal();
+                        if (window.loadAllCoursesForAdminModal) await window.loadAllCoursesForAdminModal();
                         const allCourses = window.allPublicCoursesCache || [];
                         const allowedCourses = allCourses.filter(c => allowedCourseIds.includes('*') || allowedCourseIds.includes(c.id));
 
@@ -7039,70 +7059,385 @@ function renderTagFilterUI() {
                         console.warn("Lỗi trích xuất đề từ khóa học được cấp:", errCourseEx);
                     }
                 }
-                
-                renderAssignExamList(window.assignableExams);
-            } catch(e) { console.error(e); }
+
+                window.renderAssignModalExplorer();
+            } catch(e) {
+                console.error("Lỗi khởi tạo modal giao bài:", e);
+                listEl.innerHTML = `<div class="text-center py-8 text-red-500"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i><p>Lỗi tải ngân hàng: ${e.message}</p></div>`;
+            }
         };
 
-        // 3. Render danh sách trong Modal
-        window.renderAssignExamList = (exams) => {
-            const listEl = document.getElementById('assignExamList');
-            if(exams.length === 0) {
-                listEl.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fa-solid fa-magnifying-glass mb-2"></i><p>Không tìm thấy đề thi phù hợp.</p></div>';
-                return;
+        window.assignModalNavigate = (folderId) => {
+            window.assignModalFolderId = folderId;
+            const searchInput = document.getElementById('searchAssignExam');
+            if (searchInput) searchInput.value = '';
+            const clearBtn = document.getElementById('clearSearchAssignExam');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            window.renderAssignModalExplorer();
+        };
+
+        window.assignModalBack = () => {
+            if (window.assignModalFolderId === null) return;
+            if (window.assignModalFolderId === '__course_exams__') {
+                window.assignModalFolderId = null;
+            } else {
+                const currentFolder = (window.assignModalFolders || []).find(f => f.id === window.assignModalFolderId);
+                window.assignModalFolderId = (currentFolder && currentFolder.parentId) ? currentFolder.parentId : null;
             }
-            let html = '';
-            exams.forEach(ex => {
-                let badgeHtml = '';
-                if (ex.isSystem) {
-                    badgeHtml = `<span class="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-2 inline-flex items-center gap-1"><i class="fa-solid fa-earth-americas text-blue-500"></i> Ngân hàng chung</span>`;
-                } else if (ex.fromCourse) {
-                    badgeHtml = `<span class="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full ml-2 inline-flex items-center gap-1" title="${ex.courseTitle}"><i class="fa-solid fa-graduation-cap text-purple-500"></i> ${ex.courseTitle}</span>`;
+            window.renderAssignModalExplorer();
+        };
+
+        window.getAssignModalFolderPath = (folderId) => {
+            if (!folderId || folderId === 'root' || folderId === 'null') return 'Thư mục gốc';
+            if (folderId === '__course_exams__') return 'Đề từ khóa học';
+            const f = (window.assignModalFolders || []).find(x => x.id === folderId);
+            return f ? f.name : 'Thư mục';
+        };
+
+        window.renderAssignModalExplorer = () => {
+            const listEl = document.getElementById('assignExamList');
+            const breadcrumbEl = document.getElementById('assignExamBreadcrumb');
+            const backContainer = document.getElementById('assignExamBackContainer');
+            const footerEl = document.getElementById('assignExamFooterInfo');
+            const searchTerm = (document.getElementById('searchAssignExam')?.value || '').trim().toLowerCase();
+
+            const classId = window.currentAssignClassId;
+            const allExams = window.assignableExams || [];
+            const allFolders = window.assignModalFolders || [];
+
+            // 1. CHẾ ĐỘ TÌM KIẾM THEO TỪ KHÓA
+            if (searchTerm.length > 0) {
+                breadcrumbEl.innerHTML = `
+                    <span class="font-bold text-primary-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i> Kết quả tìm kiếm cho: "${searchTerm}"
+                    </span>
+                `;
+                backContainer.innerHTML = `
+                    <button onclick="document.getElementById('searchAssignExam').value=''; window.filterAssignExams();" class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold text-gray-700 flex items-center gap-1 transition-all">
+                        <i class="fa-solid fa-xmark"></i> Xóa tìm kiếm
+                    </button>
+                `;
+
+                const matchedFolders = allFolders.filter(f => (f.name || '').toLowerCase().includes(searchTerm));
+                const matchedExams = allExams.filter(e => (e.title || '').toLowerCase().includes(searchTerm));
+
+                if (matchedFolders.length === 0 && matchedExams.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="text-center py-12 text-gray-400">
+                            <i class="fa-solid fa-magnifying-glass text-3xl mb-3 text-gray-300 block"></i>
+                            <p class="font-medium text-sm">Không tìm thấy đề thi hoặc thư mục nào khớp với "${searchTerm}".</p>
+                        </div>
+                    `;
+                    if (footerEl) footerEl.textContent = 'Tìm thấy 0 kết quả';
+                    return;
                 }
-                html += `
-                    <div class="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-200 hover:border-primary-400 hover:shadow-sm transition-all group">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="text-xl text-primary-500 bg-primary-50 w-10 h-10 rounded-lg flex items-center justify-center shrink-0"><i class="fa-regular fa-file-lines"></i></div>
-                            <div class="min-w-0">
-                                <div class="font-bold text-gray-800 text-sm group-hover:text-primary-600 transition-colors flex items-center gap-1">
-                                    <span class="truncate">${ex.title}</span>
-                                    ${badgeHtml}
+
+                let html = '';
+                // Render các thư mục khớp tìm kiếm
+                matchedFolders.forEach(f => {
+                    const examCount = allExams.filter(e => e.folderId === f.id).length;
+                    html += `
+                        <div onclick="window.assignModalNavigate('${f.id}')" class="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-amber-400 hover:bg-amber-50/20 cursor-pointer hover:shadow-sm transition-all group">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                                    <i class="fa-solid fa-folder"></i>
                                 </div>
-                                <div class="text-xs text-gray-500">${new Date(ex.createdAt).toLocaleDateString('vi-VN')} • ${ex.questionCount || 0} câu</div>
+                                <div class="min-w-0">
+                                    <div class="font-bold text-gray-800 text-sm group-hover:text-amber-700 truncate transition-colors flex items-center gap-1.5">
+                                        <span>${f.name}</span>
+                                        <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Thư mục</span>
+                                    </div>
+                                    <div class="text-xs text-gray-400 mt-0.5">${examCount} đề thi trong thư mục</div>
+                                </div>
+                            </div>
+                            <div class="text-gray-300 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all text-sm shrink-0 pl-2">
+                                <i class="fa-solid fa-chevron-right"></i>
                             </div>
                         </div>
-                        <button onclick="assignExamToClass('${ex.id}')" class="px-4 py-2 bg-gray-100 text-gray-600 font-bold rounded-lg text-xs hover:bg-primary-600 hover:text-white transition-colors shrink-0">
-                            Chọn
-                        </button>
+                    `;
+                });
+
+                // Render các đề thi khớp tìm kiếm
+                matchedExams.forEach(ex => {
+                    html += window.renderAssignExamItemHtml(ex, classId, true);
+                });
+
+                listEl.innerHTML = html;
+                if (footerEl) footerEl.textContent = `Tìm thấy ${matchedFolders.length} thư mục, ${matchedExams.length} đề thi`;
+                return;
+            }
+
+            // 2. CHẾ ĐỘ DUYỆT CÂY THƯ MỤC HIERARCHICAL (BÌNH THƯỜNG)
+            // A. Xây dựng Breadcrumb
+            if (window.assignModalFolderId === null) {
+                breadcrumbEl.innerHTML = `
+                    <span class="font-bold text-gray-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-house text-primary-600 text-xs"></i> Thư mục gốc
+                    </span>
+                `;
+                backContainer.innerHTML = '';
+            } else if (window.assignModalFolderId === '__course_exams__') {
+                breadcrumbEl.innerHTML = `
+                    <a href="javascript:void(0)" onclick="window.assignModalNavigate(null)" class="text-primary-600 hover:underline flex items-center gap-1 font-medium">
+                        <i class="fa-solid fa-house text-xs"></i> Gốc
+                    </a>
+                    <span class="text-gray-400">/</span>
+                    <span class="font-bold text-purple-700 flex items-center gap-1">
+                        <i class="fa-solid fa-graduation-cap text-xs"></i> Đề từ khóa học
+                    </span>
+                `;
+                backContainer.innerHTML = `
+                    <button onclick="window.assignModalBack()" class="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-primary-50 hover:text-primary-600 font-semibold text-gray-700 flex items-center gap-1 transition-all shadow-sm">
+                        <i class="fa-solid fa-arrow-left"></i> Quay lại
+                    </button>
+                `;
+            } else {
+                const path = [];
+                let currId = window.assignModalFolderId;
+                while (currId) {
+                    const f = allFolders.find(x => x.id === currId);
+                    if (!f) break;
+                    path.unshift(f);
+                    currId = f.parentId || null;
+                }
+
+                let breadcrumbHtml = `
+                    <a href="javascript:void(0)" onclick="window.assignModalNavigate(null)" class="text-primary-600 hover:underline flex items-center gap-1 font-medium shrink-0">
+                        <i class="fa-solid fa-house text-xs"></i> Gốc
+                    </a>
+                `;
+                path.forEach((f, idx) => {
+                    const isLast = (idx === path.length - 1);
+                    breadcrumbHtml += `<span class="text-gray-400 shrink-0">/</span>`;
+                    if (isLast) {
+                        breadcrumbHtml += `
+                            <span class="font-bold text-gray-800 truncate max-w-[160px] flex items-center gap-1" title="${f.name}">
+                                <i class="fa-regular fa-folder-open text-amber-500 text-xs"></i> ${f.name}
+                            </span>
+                        `;
+                    } else {
+                        breadcrumbHtml += `
+                            <a href="javascript:void(0)" onclick="window.assignModalNavigate('${f.id}')" class="text-primary-600 hover:underline truncate max-w-[120px] font-medium" title="${f.name}">
+                                ${f.name}
+                            </a>
+                        `;
+                    }
+                });
+                breadcrumbEl.innerHTML = breadcrumbHtml;
+                backContainer.innerHTML = `
+                    <button onclick="window.assignModalBack()" class="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-primary-50 hover:text-primary-600 font-semibold text-gray-700 flex items-center gap-1 transition-all shadow-sm">
+                        <i class="fa-solid fa-arrow-left"></i> Quay lại
+                    </button>
+                `;
+            }
+
+            // B. Lọc thư mục con & Đề thi trong cấp hiện tại
+            let currentFolders = [];
+            let currentExams = [];
+            const courseExams = allExams.filter(e => e.fromCourse === true);
+
+            if (window.assignModalFolderId === null) {
+                // Ở thư mục gốc:
+                currentFolders = allFolders.filter(f => !f.parentId || f.parentId === 'root' || f.parentId === 'null');
+                currentExams = allExams.filter(e => !e.fromCourse && (!e.folderId || e.folderId === 'root' || e.folderId === 'null'));
+            } else if (window.assignModalFolderId === '__course_exams__') {
+                // Xem mục Đề từ khóa học
+                currentFolders = [];
+                currentExams = courseExams;
+            } else {
+                // Trong 1 thư mục cụ thể:
+                currentFolders = allFolders.filter(f => f.parentId === window.assignModalFolderId);
+                currentExams = allExams.filter(e => e.folderId === window.assignModalFolderId);
+            }
+
+            // C. Kết xuất giao diện
+            let html = '';
+
+            // Nếu ở thư mục gốc và có đề từ khóa học -> Hiển thị thư mục ảo "Đề từ khóa học"
+            if (window.assignModalFolderId === null && courseExams.length > 0) {
+                html += `
+                    <div onclick="window.assignModalNavigate('__course_exams__')" class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50/70 to-indigo-50/50 rounded-xl border border-purple-200 hover:border-purple-400 hover:shadow-sm cursor-pointer transition-all group">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-gray-800 text-sm group-hover:text-purple-700 truncate transition-colors flex items-center gap-1.5">
+                                    <span>Đề thi từ Khóa học</span>
+                                    <span class="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Khóa học</span>
+                                </div>
+                                <div class="text-xs text-gray-400 mt-0.5">${courseExams.length} bài tập trắc nghiệm trong các khóa học được phân quyền</div>
+                            </div>
+                        </div>
+                        <div class="text-gray-300 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all text-sm shrink-0 pl-2">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Render các thư mục con
+            currentFolders.forEach(f => {
+                const examCount = allExams.filter(e => e.folderId === f.id).length;
+                const childFolderCount = allFolders.filter(cf => cf.parentId === f.id).length;
+                let subInfo = [];
+                if (examCount > 0) subInfo.push(`${examCount} đề thi`);
+                if (childFolderCount > 0) subInfo.push(`${childFolderCount} thư mục`);
+                const subInfoStr = subInfo.length > 0 ? subInfo.join(' • ') : 'Trống';
+
+                const badgeHtml = f.isSystem 
+                    ? `<span class="text-[10px] font-bold bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full ml-1"><i class="fa-solid fa-earth-americas text-blue-600 mr-0.5"></i>Hệ thống</span>` 
+                    : '';
+
+                html += `
+                    <div onclick="window.assignModalNavigate('${f.id}')" class="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-amber-400 hover:bg-amber-50/20 cursor-pointer hover:shadow-sm transition-all group">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+                                <i class="fa-solid fa-folder"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-gray-800 text-sm group-hover:text-amber-700 truncate transition-colors flex items-center gap-1">
+                                    <span class="truncate">${f.name}</span>
+                                    ${badgeHtml}
+                                </div>
+                                <div class="text-xs text-gray-400 mt-0.5">${subInfoStr}</div>
+                            </div>
+                        </div>
+                        <div class="text-gray-300 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all text-sm shrink-0 pl-2">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </div>
                     </div>
                 `;
             });
+
+            // Render các đề thi trong thư mục
+            currentExams.forEach(ex => {
+                html += window.renderAssignExamItemHtml(ex, classId, false);
+            });
+
+            // Nếu không có thư mục con và không có đề thi
+            if (currentFolders.length === 0 && currentExams.length === 0 && (window.assignModalFolderId !== null || courseExams.length === 0)) {
+                html = `
+                    <div class="text-center py-12 text-gray-400">
+                        <i class="fa-regular fa-folder-open text-4xl mb-3 text-gray-300 block"></i>
+                        <p class="font-medium text-sm">Thư mục này hiện chưa có đề thi hoặc thư mục con nào.</p>
+                    </div>
+                `;
+            }
+
             listEl.innerHTML = html;
+
+            // Cập nhật thông tin footer
+            if (footerEl) {
+                const currentName = (window.assignModalFolderId === null) ? 'Thư mục gốc' : (window.assignModalFolderId === '__course_exams__' ? 'Đề từ khóa học' : (allFolders.find(x => x.id === window.assignModalFolderId)?.name || 'Thư mục'));
+                footerEl.textContent = `${currentName} (${currentFolders.length} thư mục, ${currentExams.length} đề thi)`;
+            }
         };
 
-        // 4. Tìm kiếm trong Modal
+        window.renderAssignExamItemHtml = (ex, classId, showFolderPath) => {
+            const isAssigned = Array.isArray(ex.allowedClassIds) && ex.allowedClassIds.includes(classId);
+
+            let badgeHtml = '';
+            if (ex.isSystem) {
+                badgeHtml = `<span class="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fa-solid fa-earth-americas text-blue-500"></i> Hệ thống</span>`;
+            } else if (ex.fromCourse) {
+                badgeHtml = `<span class="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full inline-flex items-center gap-1" title="${ex.courseTitle}"><i class="fa-solid fa-graduation-cap text-purple-500"></i> ${ex.courseTitle || 'Khóa học'}</span>`;
+            }
+
+            let typeBadge = '';
+            let examIcon = 'fa-regular fa-file-lines';
+            if (ex.type === 'homework') {
+                typeBadge = `<span class="text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Tự luận</span>`;
+                examIcon = 'fa-solid fa-file-pen';
+            } else if (ex.type === 'mixed') {
+                typeBadge = `<span class="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Hỗn hợp</span>`;
+                examIcon = 'fa-solid fa-layer-group';
+            } else {
+                typeBadge = `<span class="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Trắc nghiệm</span>`;
+            }
+
+            let folderBadge = '';
+            if (showFolderPath) {
+                const folderName = window.getAssignModalFolderPath(ex.folderId);
+                folderBadge = `<span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fa-regular fa-folder text-amber-500"></i> ${folderName}</span>`;
+            }
+
+            const dateStr = ex.createdAt ? new Date(ex.createdAt).toLocaleDateString('vi-VN') : '';
+
+            let actionBtn = '';
+            if (isAssigned) {
+                actionBtn = `<span class="px-3.5 py-1.5 bg-gray-100 text-gray-400 font-bold rounded-lg text-xs flex items-center gap-1 select-none"><i class="fa-solid fa-check"></i> Đã giao</span>`;
+            } else {
+                actionBtn = `<button onclick="window.assignExamToClass('${ex.id}')" class="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-plus"></i> Chọn</button>`;
+            }
+
+            return `
+                <div class="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-200 hover:border-primary-400 hover:shadow-sm transition-all group">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center text-lg shrink-0">
+                            <i class="${examIcon}"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-bold text-gray-800 text-sm group-hover:text-primary-600 transition-colors flex items-center gap-1.5 flex-wrap">
+                                <span class="truncate max-w-[280px] sm:max-w-md">${ex.title}</span>
+                                ${badgeHtml}
+                            </div>
+                            <div class="text-xs text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                                ${dateStr ? `<span>${dateStr}</span><span>•</span>` : ''}
+                                <span>${ex.questionCount || 0} câu</span>
+                                ${typeBadge}
+                                ${folderBadge}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="shrink-0 pl-3">
+                        ${actionBtn}
+                    </div>
+                </div>
+            `;
+        };
+
         window.filterAssignExams = () => {
-            const term = document.getElementById('searchAssignExam').value.toLowerCase();
-            const filtered = window.assignableExams.filter(e => e.title.toLowerCase().includes(term));
-            renderAssignExamList(filtered);
+            const val = (document.getElementById('searchAssignExam')?.value || '').trim();
+            const clearBtn = document.getElementById('clearSearchAssignExam');
+            if (clearBtn) {
+                if (val.length > 0) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+            }
+            window.renderAssignModalExplorer();
         };
 
-        // 5. Giao bài (Cập nhật Firestore)
         window.assignExamToClass = async (examId) => {
             if (!window.requirePermission('exams.assign', 'giao bài tập')) return;
-            if(!await window.customConfirm("Giao đề này cho lớp?")) return;
+            const targetExam = (window.assignableExams || []).find(e => e.id === examId);
+            const examTitle = targetExam ? targetExam.title : 'đề thi này';
+            if (!await window.customConfirm(`Giao bài tập "${examTitle}" cho lớp này?`)) return;
             try {
                 const examRef = doc(db, "exams", examId);
-                // Dùng arrayUnion để thêm classId vào mảng allowedClassIds
                 await updateDoc(examRef, {
                     accessType: 'class', 
                     allowedClassIds: arrayUnion(window.currentAssignClassId)
                 });
                 
+                // Cập nhật trạng thái in-memory
+                if (targetExam) {
+                    targetExam.allowedClassIds = targetExam.allowedClassIds || [];
+                    if (!targetExam.allowedClassIds.includes(window.currentAssignClassId)) {
+                        targetExam.allowedClassIds.push(window.currentAssignClassId);
+                    }
+                }
+                const cachedInExamData = (examData || []).find(e => e.id === examId);
+                if (cachedInExamData) {
+                    cachedInExamData.allowedClassIds = cachedInExamData.allowedClassIds || [];
+                    if (!cachedInExamData.allowedClassIds.includes(window.currentAssignClassId)) {
+                        cachedInExamData.allowedClassIds.push(window.currentAssignClassId);
+                    }
+                }
+                
                 window.showNotification("Đã giao bài tập thành công!", "success");
                 document.getElementById('assignExamModal').classList.add('hidden');
                 
-                // Reload lại danh sách bài tập
+                // Reload lại danh sách bài tập của lớp
                 renderClassExercises(window.currentAssignClassId); 
             } catch(e) {
                 console.error(e);
@@ -9020,21 +9355,45 @@ window.deleteTag = async (id) => {
             </div>
         </div>
     </div>
-    <div id="assignExamModal" class="hidden fixed inset-0 z-[160] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] flex flex-col border border-gray-200">
-            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
-                <h3 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-folder-plus mr-2 text-primary-600"></i>Chọn đề từ Ngân hàng</h3>
+        <div id="assignExamModal" class="hidden fixed inset-0 z-[160] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[85vh] flex flex-col border border-gray-200 overflow-hidden">
+            <!-- Header -->
+            <div class="p-4 sm:p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 rounded-t-2xl shrink-0">
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-folder-tree text-primary-600"></i> Chọn đề thi từ Ngân hàng
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Giao bài tập cho lớp: <span id="assignExamClassName" class="font-bold text-primary-700"></span></p>
+                </div>
                 <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center shadow-sm transition-all"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="p-4 border-b border-gray-100 bg-white">
+            
+            <!-- Ô tìm kiếm -->
+            <div class="p-3 sm:p-4 border-b border-gray-100 bg-white shrink-0">
                 <div class="relative">
-                    <i class="fa-solid fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                    <input type="text" id="searchAssignExam" onkeyup="filterAssignExams()" placeholder="Tìm kiếm tên đề thi..." class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-200 transition-all">
+                    <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
+                    <input type="text" id="searchAssignExam" oninput="window.filterAssignExams()" placeholder="Tìm kiếm nhanh tên đề thi hoặc thư mục..." class="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-200 text-xs sm:text-sm transition-all">
+                    <button id="clearSearchAssignExam" onclick="document.getElementById('searchAssignExam').value=''; window.filterAssignExams();" class="hidden absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 w-5 h-5 flex items-center justify-center rounded-full"><i class="fa-solid fa-xmark text-xs"></i></button>
                 </div>
             </div>
-            <div id="assignExamList" class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar bg-gray-50/50"></div>
-            <div class="p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-end">
-                <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="px-6 py-2.5 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 mr-3">Hủy</button>
+
+            <!-- Thanh Breadcrumb điều hướng thư mục -->
+            <div id="assignExamBreadcrumbBar" class="px-3 sm:px-4 py-2 bg-gray-50/90 border-b border-gray-200 flex items-center justify-between text-xs text-gray-600 shrink-0 gap-2">
+                <div id="assignExamBreadcrumb" class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5 min-w-0">
+                    <!-- Dynamic breadcrumb generated by JS -->
+                </div>
+                <div id="assignExamBackContainer" class="shrink-0">
+                    <!-- Dynamic back button generated by JS -->
+                </div>
+            </div>
+
+            <!-- Danh sách thư mục & đề thi -->
+            <div id="assignExamList" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 custom-scrollbar bg-gray-50/40"></div>
+            
+            <!-- Chân modal -->
+            <div class="p-3 sm:p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-between items-center shrink-0">
+                <div id="assignExamFooterInfo" class="text-xs text-gray-400"></div>
+                <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="px-5 py-2 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 text-xs sm:text-sm transition-colors">Đóng</button>
             </div>
         </div>
     </div>

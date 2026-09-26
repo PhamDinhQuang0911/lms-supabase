@@ -73,7 +73,7 @@
                 <button id="btnOpenVoucher" onclick="window.openVoucherManager()" class="flex-1 md:flex-none bg-white text-orange-600 border border-orange-100 px-4 py-2.5 rounded-xl hover:bg-orange-50 shadow-sm font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap">
                     <i class="fa-solid fa-ticket"></i> <span class="hidden sm:inline">Voucher</span>
                 </button>
-                <button id="btnCreateCourse" onclick="document.getElementById('courseId').value=''; document.getElementById('cType').value='course'; if(document.getElementById('cStatus')) document.getElementById('cStatus').value='active'; if(document.getElementById('cAntiScreenshot')) document.getElementById('cAntiScreenshot').checked=true; if(window.toggleProductFields) window.toggleProductFields(); document.getElementById('cTitle').value=''; document.getElementById('cDocFileUrl').value=''; document.getElementById('cBookWeight').value=''; document.getElementById('cThumb').value=''; document.getElementById('thumbPreviewBox').classList.add('hidden'); document.getElementById('thumbEmptyState').classList.remove('hidden'); window.toggleModal('courseModal', true);" class="flex-1 md:flex-none bg-brand text-white px-4 py-2.5 rounded-xl hover:bg-teal-800 shadow-lg shadow-teal-700/20 font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                <button id="btnCreateCourse" onclick="window.openCreateCourseModal()" class="flex-1 md:flex-none bg-brand text-white px-4 py-2.5 rounded-xl hover:bg-teal-800 shadow-lg shadow-teal-700/20 font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap">
                     <i class="fa-solid fa-plus"></i> Thêm mới
                 </button>
             </div>
@@ -843,22 +843,56 @@
             renderCoursesUI();
         };
 
+                window.openCreateCourseModal = () => {
+            const getEl = id => document.getElementById(id);
+            if (getEl('courseId')) getEl('courseId').value = '';
+            if (getEl('cType')) getEl('cType').value = 'course';
+            if (getEl('cStatus')) getEl('cStatus').value = 'active';
+            if (getEl('cAntiScreenshot')) getEl('cAntiScreenshot').checked = true;
+            if (getEl('cTitle')) getEl('cTitle').value = '';
+            if (getEl('cPrice')) getEl('cPrice').value = '0';
+            if (getEl('cOriginalPrice')) getEl('cOriginalPrice').value = '0';
+            if (getEl('cStudents')) getEl('cStudents').value = '0';
+            if (getEl('cDesc')) getEl('cDesc').value = '';
+            if (getEl('cDocFileUrl')) getEl('cDocFileUrl').value = '';
+            if (getEl('cBookWeight')) getEl('cBookWeight').value = '';
+            if (getEl('cShippingFee')) getEl('cShippingFee').value = '';
+            if (getEl('cPreviewLink')) getEl('cPreviewLink').value = '';
+            if (getEl('cThumb')) getEl('cThumb').value = '';
+            if (getEl('thumbPreviewBox')) getEl('thumbPreviewBox').classList.add('hidden');
+            if (getEl('thumbEmptyState')) getEl('thumbEmptyState').classList.remove('hidden');
+            if (window.toggleProductFields) window.toggleProductFields();
+            window.toggleModal('courseModal', true);
+        };
+
         window.loadCourses = async () => {
             document.getElementById('mainLoading').classList.remove('hidden');
             document.getElementById('viewListContainer').classList.add('hidden');
             document.getElementById('viewGridContainer').classList.add('hidden');
 
             try {
-                const q = query(collection(db, "public_courses"), orderBy("createdAt", "desc"));
-                const querySnapshot = await getDocs(q);
+                let querySnapshot;
+                try {
+                    const q = query(collection(db, "public_courses"), orderBy("createdAt", "desc"));
+                    querySnapshot = await getDocs(q);
+                } catch(errOrder) {
+                    console.warn("Lỗi orderBy createdAt, fallback getDocs:", errOrder);
+                    querySnapshot = await getDocs(collection(db, "public_courses"));
+                }
                 cachedCourses = [];
                 
                 querySnapshot.forEach(doc => {
                     cachedCourses.push({ id: doc.id, ...doc.data() });
                 });
                 
+                // Đảm bảo sắp xếp mới nhất lên đầu client-side
+                cachedCourses.sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
+                
                 renderCoursesUI();
-            } catch(e) { window.showToast(e.message, 'error'); }
+            } catch(e) { 
+                console.error("Lỗi nạp khóa học:", e);
+                window.showToast(e.message, 'error'); 
+            }
             finally { document.getElementById('mainLoading').classList.add('hidden'); }
         };
 

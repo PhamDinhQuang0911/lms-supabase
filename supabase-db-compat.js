@@ -411,6 +411,14 @@ function mapFieldToColumn(field) {
         'qPoints': 'qpoints',
         'qpoints': 'qpoints',
         'antiScreenshot': 'anti_screenshot',
+        'desc': 'description',
+        'originalPrice': 'original_price',
+        'fakeStudents': 'fake_students',
+        'previewLink': 'preview_link',
+        'shippingFee': 'shipping_fee',
+        'fileUrl': 'file_url',
+        'weight': 'weight',
+        'isSoldOut': 'is_sold_out',
         'createdAt': 'created_at',
         'updatedAt': 'updated_at'
     };
@@ -446,6 +454,13 @@ function unwrapRecord(r) {
     if (r.pass_score !== undefined) res.passScore = r.pass_score;
     if (r.access_type !== undefined) res.accessType = r.access_type;
     if (r.allowed_class_ids !== undefined) res.allowedClassIds = r.allowed_class_ids;
+    if (r.description !== undefined) res.desc = r.description;
+    if (r.original_price !== undefined) res.originalPrice = r.original_price;
+    if (r.fake_students !== undefined) res.fakeStudents = r.fake_students;
+    if (r.preview_link !== undefined && !res.previewLink) res.previewLink = r.preview_link;
+    if (r.shipping_fee !== undefined) res.shippingFee = r.shipping_fee;
+    if (r.file_url !== undefined) res.fileUrl = r.file_url;
+    if (r.weight !== undefined) res.weight = r.weight;
 
     // Unpack public_courses metadata from preview_link (fallback)
     if (r.preview_link && typeof r.preview_link === 'string' && r.preview_link.trim().startsWith('{')) {
@@ -455,6 +470,7 @@ function unwrapRecord(r) {
                 if (meta.status !== undefined && res.status === undefined) res.status = meta.status;
                 if (meta.antiScreenshot !== undefined && res.antiScreenshot === undefined) res.antiScreenshot = meta.antiScreenshot;
                 if (meta.isSoldOut !== undefined) res.isSoldOut = meta.isSoldOut;
+                if (meta.previewLink && !res.previewLink) res.previewLink = meta.previewLink;
             }
         } catch(e) {}
     }
@@ -512,12 +528,13 @@ function toSupabasePayload(table, id, data) {
         }
     }
     if (table === 'public_courses') {
-        // Lưu metadata mở rộng (status, antiScreenshot, isSoldOut) an toàn vào preview_link dự phòng
+        // Lưu metadata mở rộng (status, antiScreenshot, isSoldOut, previewLink)
         const meta = {};
         if (data.status !== undefined) meta.status = data.status;
         if (data.antiScreenshot !== undefined) meta.antiScreenshot = data.antiScreenshot;
         if (data.isSoldOut !== undefined || data.status === 'sold_out') meta.isSoldOut = (data.status === 'sold_out' || data.isSoldOut === true);
-        if (Object.keys(meta).length > 0) {
+        if (data.previewLink) meta.previewLink = data.previewLink;
+        if (Object.keys(meta).length > 0 && !converted.preview_link) {
             converted.preview_link = JSON.stringify(meta);
         }
     }
@@ -548,7 +565,20 @@ export async function getDoc(docRef) {
 
         if (error) throw error;
 
-        const docData = unwrapRecord(data);
+        let docData = unwrapRecord(data);
+        if (!docData && table === 'public_courses') {
+            try {
+                const { data: confData } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .eq('id', 'course_' + docRef.id)
+                    .maybeSingle();
+                if (confData && confData.raw_data) {
+                    docData = unwrapRecord(confData.raw_data);
+                }
+            } catch(e) {}
+        }
+
         return {
             id: docRef.id,
             exists: () => docData !== null && docData !== undefined,
@@ -556,6 +586,23 @@ export async function getDoc(docRef) {
         };
     } catch (err) {
         console.warn(`[Supabase getDoc] Lỗi đọc ${docRef.table}/${docRef.id}:`, err);
+        if (docRef.table === 'public_courses') {
+            try {
+                const { data: confData } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .eq('id', 'course_' + docRef.id)
+                    .maybeSingle();
+                if (confData && confData.raw_data) {
+                    const docData = unwrapRecord(confData.raw_data);
+                    return {
+                        id: docRef.id,
+                        exists: () => true,
+                        data: () => docData || {}
+                    };
+                }
+            } catch(e) {}
+        }
         return {
             id: docRef.id,
             exists: () => false,
@@ -621,7 +668,31 @@ export async function getDocs(queryOrColRef) {
         const { data, error } = await queryBuilder;
         if (error) throw error;
 
-        const docs = (data || []).map(r => {
+        let resultRows = (data || []).map(r => ({ ...r }));
+        if (table === 'public_courses') {
+            try {
+                const { data: confCourses } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .like('id', 'course_%');
+                if (Array.isArray(confCourses)) {
+                    confCourses.forEach(r => {
+                        const raw = (r.raw_data && typeof r.raw_data === 'object') ? r.raw_data : {};
+                        const courseId = raw.id || r.id.replace(/^course_/, '');
+                        const existingIdx = resultRows.findIndex(x => (x.id || x.key) === courseId);
+                        if (existingIdx === -1) {
+                            resultRows.push({ id: courseId, ...raw });
+                        } else {
+                            resultRows[existingIdx] = { ...resultRows[existingIdx], ...raw };
+                        }
+                    });
+                }
+            } catch(e) {
+                console.warn("[Supabase getDocs] Lỗi đọc fallback courses từ configurations:", e);
+            }
+        }
+
+        const docs = resultRows.map(r => {
             const docData = unwrapRecord(r);
             return {
                 id: r.id || r.key,
@@ -683,9 +754,28 @@ export async function setDoc(docRef, data, options = {}) {
             .upsert(payload, { onConflict: pkCol });
         if (error) throw error;
     } catch (err) {
-        console.warn(`[Supabase setDoc retry] Fallback lưu raw_data vào ${table}:`, err);
+        console.warn(`[Supabase setDoc retry] Lỗi upsert vào ${table}:`, err);
+        if (table === 'public_courses') {
+            try {
+                const confPayload = {
+                    id: 'course_' + docRef.id,
+                    raw_data: { id: docRef.id, ...data, updatedAt: new Date().toISOString() },
+                    updated_at: new Date().toISOString()
+                };
+                const { error: confErr } = await supabase
+                    .from('configurations')
+                    .upsert(confPayload, { onConflict: 'id' });
+                if (confErr) throw confErr;
+                console.log(`[Supabase setDoc] Đã lưu dự phòng khóa học ${docRef.id} vào bảng configurations thành công!`);
+                return docRef;
+            } catch(fallbackErr) {
+                console.error('[Supabase setDoc fallback failed]:', fallbackErr);
+                throw fallbackErr;
+            }
+        }
         const fallback = { [pkCol]: docRef.id, raw_data: data };
-        await supabase.from(table).upsert(fallback, { onConflict: pkCol });
+        const { error: err2 } = await supabase.from(table).upsert(fallback, { onConflict: pkCol });
+        if (err2) throw err2;
     }
     return docRef;
 }
@@ -723,6 +813,24 @@ export async function updateDoc(docRef, updates) {
         if (error) throw error;
     } catch (err) {
         console.warn(`[Supabase updateDoc retry] Fallback update ${table}:`, err);
+        if (table === 'public_courses') {
+            try {
+                const confId = 'course_' + docRef.id;
+                const { data: existing } = await supabase
+                    .from('configurations')
+                    .select('raw_data')
+                    .eq('id', confId)
+                    .maybeSingle();
+                const currRaw = (existing && existing.raw_data) ? existing.raw_data : {};
+                const mergedRaw = { ...currRaw, ...updates, updatedAt: new Date().toISOString() };
+                await supabase
+                    .from('configurations')
+                    .upsert({ id: confId, raw_data: mergedRaw, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                return docRef;
+            } catch(e) {
+                console.error('[Supabase updateDoc configurations fallback error]:', e);
+            }
+        }
     }
     return docRef;
 }
@@ -742,6 +850,17 @@ export async function addDoc(colRef, data) {
         return { id: inserted ? (inserted.id || inserted.key) : newId };
     } catch (err) {
         console.warn(`[Supabase addDoc retry] Fallback insert ${table}:`, err);
+        if (table === 'public_courses') {
+            try {
+                const confPayload = {
+                    id: 'course_' + newId,
+                    raw_data: { id: newId, ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+                    updated_at: new Date().toISOString()
+                };
+                await supabase.from('configurations').upsert(confPayload, { onConflict: 'id' });
+                return { id: newId };
+            } catch(e) {}
+        }
         const fallback = { id: newId, raw_data: data };
         await supabase.from(table).insert(fallback);
         return { id: newId };
@@ -751,11 +870,23 @@ export async function addDoc(colRef, data) {
 export async function deleteDoc(docRef) {
     const table = docRef.table;
     const pkCol = getPrimaryKeyCol(table);
-    const { error } = await supabase
-        .from(table)
-        .delete()
-        .eq(pkCol, docRef.id);
-    if (error) throw error;
+    try {
+        const { error } = await supabase
+            .from(table)
+            .delete()
+            .eq(pkCol, docRef.id);
+        if (error) throw error;
+    } catch (err) {
+        console.warn(`[Supabase deleteDoc] Lỗi xóa bản ghi từ ${table}:`, err);
+    }
+    if (table === 'public_courses') {
+        try {
+            await supabase
+                .from('configurations')
+                .delete()
+                .eq('id', 'course_' + docRef.id);
+        } catch(e) {}
+    }
     return true;
 }
 
