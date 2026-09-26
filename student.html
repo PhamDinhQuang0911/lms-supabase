@@ -991,9 +991,9 @@
     </div>
 
     <!-- Modal xem thử tài liệu / sách -->
-    <div id="previewModal" class="hidden fixed inset-0 z-[330] bg-black/80 backdrop-blur-sm flex flex-col justify-center items-center p-2 sm:p-4">
-        <div class="relative w-full max-w-4xl h-[90vh] bg-white rounded-2xl overflow-hidden flex flex-col shadow-2xl">
-            <div class="flex justify-between items-center px-4 py-3 bg-gray-900 text-white">
+    <div id="previewModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col justify-center items-center p-2 sm:p-4" style="z-index: 9999 !important;">
+        <div class="relative w-full max-w-4xl h-[90vh] bg-white rounded-2xl overflow-hidden flex flex-col shadow-2xl z-10">
+            <div class="flex justify-between items-center px-4 py-3 bg-gray-900 text-white shrink-0">
                 <h3 class="font-bold text-sm flex items-center gap-2">
                     <i class="fa-solid fa-book-open text-orange-400"></i> Đọc thử tài liệu / mục lục sách
                 </h3>
@@ -1001,7 +1001,7 @@
                     <i class="fa-solid fa-times"></i>
                 </button>
             </div>
-            <iframe id="previewIframe" src="" class="w-full flex-1 border-0" allow="autoplay"></iframe>
+            <iframe id="previewIframe" src="" class="w-full flex-1 border-0 bg-white" allow="autoplay"></iframe>
         </div>
     </div>
 

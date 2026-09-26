@@ -6226,7 +6226,7 @@ function renderTagFilterUI() {
             }
         };
         window.commitRename = async () => { 
-            const newName = document.getElementById('renameInput').value; 
+            const newName = document.getElementById('renameInput').value.trim(); 
             if(!newName) return; 
             const collName = currentActionItem.type === 'folder' ? 'folders' : 'exams'; 
             await updateDoc(doc(db, collName, currentActionItem.id), { name: newName, title: newName }); 
@@ -6238,6 +6238,13 @@ function renderTagFilterUI() {
                 const e = examData.find(x => x.id === currentActionItem.id); 
                 if (e) { e.name = newName; e.title = newName; } 
                 localStorage.setItem('bank_exams', JSON.stringify(examData)); 
+                try {
+                    const sessionKey = `qmath:exam:${currentActionItem.id}`;
+                    sessionStorage.removeItem(sessionKey);
+                    if (typeof examEditorPrefetches !== 'undefined' && examEditorPrefetches && examEditorPrefetches.delete) {
+                        examEditorPrefetches.delete(currentActionItem.id);
+                    }
+                } catch (_) {}
             } 
             saveBankCache();
             renderExplorer(); 

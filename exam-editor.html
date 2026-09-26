@@ -450,7 +450,7 @@
                                 </div>
                               </div>
                             </div>
-                            <div><label class="form-group-title">Khối lớp</label><select id="settingGrade" class="form-input bg-white"><option value="12">Khối 12</option><option value="11">Khối 11</option><option value="10">Khối 10</option><option value="9">Khối 9</option></select></div>
+                            <div><label class="form-group-title">Khối lớp</label><select id="settingGrade" class="form-input bg-white"><option value="9" selected>Khối 9</option><option value="10">Khối 10</option><option value="11">Khối 11</option><option value="12">Khối 12</option></select></div>
                             <div><label class="form-group-title">Môn học</label><select id="settingSubject" class="form-input bg-white"><option>Toán học</option><option>Vật lý</option><option>Hóa học</option><option>Tiếng Anh</option></select></div>
                             <div><label class="form-group-title">Thời gian (phút)</label><input type="number" id="settingDuration" value="90" class="form-input"></div>
                             <div><label class="form-group-title">Mục đích</label><select id="settingPurpose" class="form-input bg-white"><option value="exam">Thi / Kiểm tra</option><option value="practice">Luyện tập</option></select></div>
@@ -1663,6 +1663,18 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            const settingTitleInput = document.getElementById('settingTitle');
+            if (settingTitleInput) {
+                settingTitleInput.addEventListener('input', (e) => {
+                    e.target.dataset.userEdited = 'true';
+                    const val = e.target.value.trim() || 'Đề thi mới';
+                    const sbTitle = document.getElementById('sidebarExamTitle');
+                    if (sbTitle) {
+                        sbTitle.textContent = val;
+                        sbTitle.title = val;
+                    }
+                });
+            }
             document.getElementById('imgUploadInput').addEventListener('change', (e) => { if(e.target.files.length > 0) handleImageUpload(e.target.files[0]); });
             document.body.addEventListener('paste', (e) => {
                 if (e.target.id === 'editContent') {
@@ -2159,14 +2171,23 @@
                         if (fresh.exists()) {
                             const freshData = fresh.data();
                             try { sessionStorage.setItem(`qmath:exam:${id}`, JSON.stringify(freshData)); } catch (_) {}
+                            const freshTitle = freshData.title || freshData.name;
+                            const titleInput = document.getElementById('settingTitle');
+                            if (freshTitle && titleInput && !titleInput.dataset.userEdited) {
+                                titleInput.value = freshTitle;
+                                if (document.getElementById('sidebarExamTitle')) {
+                                    document.getElementById('sidebarExamTitle').textContent = freshTitle;
+                                    document.getElementById('sidebarExamTitle').title = freshTitle;
+                                }
+                            }
                             if (freshData.status && typeof window.updateExamStatusUI === 'function') {
                                 window.updateExamStatusUI(freshData.status, id);
                             }
                         }
                     }).catch(() => {});
                 } else {
-                    try { docSnap = await getDocFromCache(examRef); }
-                    catch (_) { docSnap = await getDoc(examRef); }
+                    try { docSnap = await getDoc(examRef); }
+                    catch (_) { docSnap = await getDocFromCache(examRef); }
                 }
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -2178,14 +2199,19 @@
                         };
                     }
                     if (typeof window.renderExamEditorTags === 'function') window.renderExamEditorTags();
-                    document.getElementById('settingTitle').value = data.title || '';
+                    const initialExamTitle = data.title || data.name || '';
+                    document.getElementById('settingTitle').value = initialExamTitle;
+                    if (document.getElementById('sidebarExamTitle')) {
+                        document.getElementById('sidebarExamTitle').textContent = initialExamTitle || 'Đề thi mới';
+                        document.getElementById('sidebarExamTitle').title = initialExamTitle || 'Đề thi mới';
+                    }
                     document.getElementById('settingType').value = data.type || 'exam';
                     document.getElementById('settingFileUrl').value = data.fileUrl || '';
                     document.getElementById('settingSolutionUrl').value = data.solutionUrl || '';
                     document.getElementById('settingHwDesc').value = data.description || '';
                     document.getElementById('settingBannerUrl').value = data.bannerUrl || '';
                     if(window.toggleHomeworkFields) window.toggleHomeworkFields();
-                    document.getElementById('settingGrade').value = data.grade || '12';
+                    document.getElementById('settingGrade').value = data.grade || '9';
                     document.getElementById('settingSubject').value = data.subject || 'Toán học';
                     document.getElementById('settingDuration').value = data.duration || 45;
                     document.getElementById('settingPurpose').value = data.purpose || 'exam';
@@ -4281,6 +4307,7 @@
 
                 const settings = {
                     title: title, 
+                    name: title,
                     type: document.getElementById('settingType').value || 'exam',
                     fileUrl: document.getElementById('settingFileUrl').value,
                     solutionUrl: document.getElementById('settingSolutionUrl') ? document.getElementById('settingSolutionUrl').value : "",

@@ -379,15 +379,15 @@
             </div>
         </div>
     </div>
-    <div id="previewModal" class="hidden fixed inset-0 z-[110] bg-black/90 flex flex-col transition-all duration-300">
-        <div class="flex justify-between items-center p-4 bg-gray-900 text-white">
+    <div id="previewModal" class="hidden fixed inset-0 bg-black/90 flex flex-col transition-all duration-300" style="z-index: 9999 !important;">
+        <div class="flex justify-between items-center p-4 bg-gray-900 text-white shrink-0">
             <h3 class="font-bold text-lg"><i class="fa-solid fa-book-open mr-2"></i>Đọc thử tài liệu</h3>
             <button onclick="closePreviewModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-700 transition-colors">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
         </div>
         <div class="flex-1 w-full bg-gray-100">
-            <iframe id="previewIframe" class="w-full h-full border-0" allow="autoplay"></iframe>
+            <iframe id="previewIframe" class="w-full h-full border-0 bg-white" allow="autoplay"></iframe>
         </div>
     </div>
     
