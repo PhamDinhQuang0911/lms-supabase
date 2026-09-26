@@ -5067,12 +5067,18 @@
                 
                 // Nút thao tác (thầy xem thống kê & sửa)
                 const hasGrading = isHomework;
+                const copyBtn = `<button onclick="event.stopPropagation(); window.copyExamShareLink('${examId}')" class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors" title="Sao chép link làm bài"><i class="fa-solid fa-link"></i> Link</button>`;
+                const infoBtn = `<button onclick="event.stopPropagation(); window.showExamInfo('${examId}')" class="px-2.5 py-1.5 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors" title="Xem thông tin đề"><i class="fa-solid fa-circle-info"></i> Chi tiết</button>`;
                 const actionBtns = hasGrading
                     ? `<button onclick="event.stopPropagation(); window.openExamEditorFast('${examId}', 'settings')" class="px-3 py-1.5 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-pen"></i> Sửa</button>
                        <button onclick="event.stopPropagation(); window.openExamEditorFast('${examId}', 'grading')" class="px-3 py-1.5 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-chart-pie"></i> Chấm</button>
+                       ${copyBtn}
+                       ${infoBtn}
                        <button onclick="event.stopPropagation(); window.removeExamFromClass('${examId}')" class="px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-trash"></i> Xóa</button>`
                     : `<button onclick="event.stopPropagation(); window.openExamEditorFast('${examId}', 'settings')" class="px-3 py-1.5 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-pen"></i> Sửa</button>
                        <button onclick="event.stopPropagation(); window.openExamEditorFast('${examId}', 'stats')" class="px-3 py-1.5 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-chart-pie"></i> Thống kê</button>
+                       ${copyBtn}
+                       ${infoBtn}
                        <button onclick="event.stopPropagation(); window.removeExamFromClass('${examId}')" class="px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-trash"></i> Xóa</button>`;
 
                 html += `<div class="bg-white rounded-xl border border-gray-200 hover:border-primary-300 transition-all shadow-sm overflow-hidden" onclick="window.openExamEditorFast('${examId}', 'settings')" onmouseenter="window.prefetchExamEditor('${examId}')" style="cursor:pointer">
@@ -5952,11 +5958,33 @@ function renderTagFilterUI() {
         }
         let breadcrumbs = [];
         function renderBreadcrumb() { const container = document.getElementById('breadcrumbContainer'); if (!currentFolderId) { container.innerHTML = '<span class="mx-2 text-gray-400">/</span><span>Tất cả</span>'; return; } let path = []; let curr = folderData.find(f => f.id === currentFolderId); while(curr) { path.unshift(curr); curr = folderData.find(f => f.id === curr.parentId); } let html = '<span class="mx-2 text-gray-400">/</span><button onclick="window.navigateFolder(\'root\')" class="hover:text-primary-600">...</button><span class="mx-2">/</span>Current'; path.forEach((p, idx) => { html += `<span class="mx-2 text-gray-400">/</span>`; if (idx === path.length - 1) html += `<span class="font-bold text-gray-800">${p.name}</span>`; else html += `<button onclick="window.navigateFolder(\'${p.id}\')" class="hover:text-primary-600">${p.name}</button>`; }); container.innerHTML = html; }
+        window.copyExamShareLink = (examId) => {
+            const link = `${window.location.origin}/exam.html?id=${examId}`;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(link).then(() => {
+                    window.showNotification("Đã sao chép link làm bài vào khay nhớ tạm!", "success");
+                }).catch(() => fallbackCopy(link));
+            } else {
+                fallbackCopy(link);
+            }
+            function fallbackCopy(text) {
+                const inp = document.createElement('textarea');
+                inp.value = text;
+                document.body.appendChild(inp);
+                inp.select();
+                document.execCommand('copy');
+                inp.remove();
+                window.showNotification("Đã sao chép link làm bài vào khay nhớ tạm!", "success");
+            }
+        };
+
         window.showExamInfo = (examId) => {
             const exam = examData.find(e => e.id === examId);
             if (!exam) return;
             const qCount = exam.questions ? exam.questions.length : (exam.questionCount || 0);
             const createdStr = exam.createdAt ? new Date(exam.createdAt).toLocaleDateString('vi-VN') : 'N/A';
+            const isPublished = exam.status === 'published';
+            const examShareLink = `${window.location.origin}/exam.html?id=${exam.id}`;
             
             let tagsHtml = '';
             if (exam.tagIds && exam.tagIds.length > 0 && typeof tagData !== 'undefined' && tagData) {
@@ -5966,8 +5994,32 @@ function renderTagFilterUI() {
                 }
             }
 
+            const linkBoxHtml = `
+                <div class="p-3 rounded-xl border ${isPublished ? 'bg-emerald-50/80 border-emerald-200' : 'bg-amber-50/80 border-amber-200'}">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs font-bold ${isPublished ? 'text-emerald-800' : 'text-amber-800'} uppercase flex items-center gap-1.5">
+                            <i class="fa-solid ${isPublished ? 'fa-link' : 'fa-file-pen'}"></i> Link làm bài thi ${isPublished ? '(Đã xuất bản)' : '(Bản nháp)'}
+                        </span>
+                        <span class="text-[10px] font-extrabold ${isPublished ? 'bg-emerald-200/80 text-emerald-900' : 'bg-amber-200/80 text-amber-900'} px-2 py-0.5 rounded-full uppercase">
+                            ${isPublished ? 'Đang mở' : 'Bản nháp'}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="examInfoLinkInput" value="${examShareLink}" readonly onclick="this.select()" class="flex-1 bg-white border ${isPublished ? 'border-emerald-300 text-emerald-900 focus:ring-emerald-400' : 'border-amber-300 text-amber-900 focus:ring-amber-400'} text-xs font-mono rounded-lg px-2.5 py-2 select-all focus:outline-none focus:ring-2 shadow-2xs">
+                        <button onclick="window.copyExamShareLink('${exam.id}')" class="px-3 py-2 ${isPublished ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'} text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer">
+                            <i class="fa-solid fa-copy"></i> Sao chép
+                        </button>
+                        <a href="${examShareLink}" target="_blank" class="p-2 bg-white border ${isPublished ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-100' : 'border-amber-300 text-amber-700 hover:bg-amber-100'} rounded-lg text-xs transition-colors shrink-0 flex items-center justify-center shadow-2xs" title="Mở trang làm bài">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+                    ${!isPublished ? `<p class="text-[11px] text-amber-700 mt-1.5 flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Đề thi đang ở trạng thái Bản nháp. Vào <a href="exam-editor.html?id=${exam.id}&view=settings" target="_blank" class="font-bold underline hover:text-amber-900">Cài đặt đề thi</a> bấm "Xuất bản" để học sinh làm bài.</p>` : ''}
+                </div>
+            `;
+
             const infoHtml = `
                 <div class="space-y-3 text-left">
+                    ${linkBoxHtml}
                     <div class="p-3 bg-primary-50 rounded-lg border border-primary-100">
                         <p class="text-xs text-primary-500 font-bold uppercase mb-1">Tên đề thi</p>
                         <p class="text-sm font-bold text-gray-800 break-words">${exam.title}</p>

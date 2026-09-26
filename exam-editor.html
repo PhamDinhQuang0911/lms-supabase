@@ -245,6 +245,14 @@
                     <p class="text-xs text-orange-500 font-bold" id="examStatus">• Bản nháp</p>
                 </div>
             </div>
+            <div id="sidebarShareAction" class="hidden mt-2 pt-2 border-t border-gray-100 flex items-center justify-between gap-1.5">
+                <button onclick="window.copyCurrentExamLink()" class="flex-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors border border-emerald-200 cursor-pointer shadow-2xs" title="Sao chép link làm bài">
+                    <i class="fa-solid fa-link text-[11px]"></i> <span>Copy Link</span>
+                </button>
+                <button onclick="window.openCurrentExamLink()" class="p-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold text-xs rounded-lg transition-colors border border-gray-200 cursor-pointer shadow-2xs" title="Mở trang làm bài">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[11px]"></i>
+                </button>
+            </div>
             <button onclick="window.toggleSidebar()" class="md:hidden absolute top-5 right-5 text-gray-400 hover:text-red-500"><i class="fa-solid fa-times text-xl"></i></button>
         </div>
         <nav class="flex-1 overflow-y-auto py-4">
@@ -290,12 +298,15 @@
                     </div>
                 </div>
 
-                <div id="publishedLinkArea" class="hidden bg-green-50 p-4 rounded-xl border border-green-200 mb-6 shadow-sm">
-                    <label class="block text-xs font-bold text-green-700 uppercase mb-2 flex items-center gap-2"><i class="fa-solid fa-check-circle"></i> Link bài thi (Đã xuất bản)</label>
+                <div id="publishedLinkArea" class="hidden bg-emerald-50 p-4 rounded-xl border border-emerald-200 mb-6 shadow-xs">
+                    <label id="settingShareLabel" class="block text-xs font-bold text-emerald-800 uppercase mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-600"></i> Link bài thi (Đã xuất bản)</span>
+                        <span class="bg-emerald-200 text-emerald-900 text-[10px] px-2 py-0.5 rounded-full font-bold">ĐANG MỞ</span>
+                    </label>
                     <div class="flex gap-2">
-                        <input type="text" id="settingShareLink" class="w-full px-3 py-2 border border-green-300 rounded-lg text-green-800 bg-white focus:outline-none text-sm font-mono" readonly>
-                        <button onclick="copySettingLink()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors text-sm whitespace-nowrap">Sao chép</button>
-                        <button onclick="window.open(document.getElementById('settingShareLink').value, '_blank')" class="px-3 py-2 bg-white border border-green-300 text-green-600 font-bold rounded-lg hover:bg-green-50 text-sm"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+                        <input type="text" id="settingShareLink" onclick="this.select()" class="w-full px-3 py-2 border border-emerald-300 rounded-lg text-emerald-900 bg-white focus:outline-none text-sm font-mono shadow-2xs" readonly>
+                        <button onclick="copySettingLink()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors text-sm whitespace-nowrap cursor-pointer flex items-center gap-1.5 shadow-xs"><i class="fa-solid fa-copy"></i> Sao chép</button>
+                        <button onclick="window.open(document.getElementById('settingShareLink').value, '_blank')" class="px-3 py-2 bg-white border border-emerald-300 text-emerald-700 font-bold rounded-lg hover:bg-emerald-50 text-sm cursor-pointer shadow-2xs" title="Mở trang làm bài"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
                     </div>
                 </div>
 
@@ -2146,7 +2157,11 @@
                     // Làm mới ngầm cho lần mở tiếp theo, không chặn giao diện chấm bài.
                     getDoc(examRef).then((fresh) => {
                         if (fresh.exists()) {
-                            try { sessionStorage.setItem(`qmath:exam:${id}`, JSON.stringify(fresh.data())); } catch (_) {}
+                            const freshData = fresh.data();
+                            try { sessionStorage.setItem(`qmath:exam:${id}`, JSON.stringify(freshData)); } catch (_) {}
+                            if (freshData.status && typeof window.updateExamStatusUI === 'function') {
+                                window.updateExamStatusUI(freshData.status, id);
+                            }
                         }
                     }).catch(() => {});
                 } else {
@@ -2236,14 +2251,93 @@
                     }
 
                     
-                    if(data.status === 'published') {
-                        const st = document.getElementById('examStatus');
-                        if(st) { st.textContent = '• Đã xuất bản'; st.classList.replace('text-orange-500', 'text-green-600'); }
-                        document.getElementById('publishedLinkArea').classList.remove('hidden');
-                        document.getElementById('settingShareLink').value = window.location.origin + window.location.pathname.replace(/exam-editor(\.html)?/i, 'exam.html') + '?id=' + id;
+                    if (typeof window.updateExamStatusUI === 'function') {
+                        window.updateExamStatusUI(data.status, id);
                     }
                 }
             } catch(e) { console.error(e); }
+        };
+
+        window.getCurrentExamShareUrl = (examId) => {
+            const id = examId || window.currentExamId || new URLSearchParams(window.location.search).get('id');
+            if (!id) return '';
+            return window.location.origin + window.location.pathname.replace(/exam-editor(\.html)?/i, 'exam.html') + '?id=' + id;
+        };
+
+        window.copyCurrentExamLink = () => {
+            const url = window.getCurrentExamShareUrl();
+            if (!url) return window.showToast("Chưa có ID đề thi để sao chép!", "warning");
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    window.showToast("Đã sao chép link bài thi!", "success");
+                }).catch(() => fallbackCopy(url));
+            } else {
+                fallbackCopy(url);
+            }
+            function fallbackCopy(text) {
+                const inp = document.createElement('textarea');
+                inp.value = text;
+                document.body.appendChild(inp);
+                inp.select();
+                document.execCommand('copy');
+                inp.remove();
+                window.showToast("Đã sao chép link bài thi!", "success");
+            }
+        };
+
+        window.openCurrentExamLink = () => {
+            const url = window.getCurrentExamShareUrl();
+            if (url) window.open(url, '_blank');
+        };
+
+        window.copySettingLink = () => {
+            window.copyCurrentExamLink();
+        };
+
+        window.updateExamStatusUI = (status, examId) => {
+            const id = examId || window.currentExamId || new URLSearchParams(window.location.search).get('id');
+            const isPublished = (status === 'published');
+            
+            // 1. Sidebar status
+            const st = document.getElementById('examStatus');
+            if (st) {
+                st.textContent = isPublished ? '• Đã xuất bản' : '• Bản nháp';
+                if (isPublished) {
+                    st.classList.remove('text-orange-500');
+                    st.classList.add('text-green-600');
+                } else {
+                    st.classList.remove('text-green-600');
+                    st.classList.add('text-orange-500');
+                }
+            }
+
+            // 2. Sidebar action button
+            const sideAction = document.getElementById('sidebarShareAction');
+            if (sideAction && id) {
+                sideAction.classList.remove('hidden');
+            }
+
+            // 3. Link area trong Cài đặt đề thi
+            const pubArea = document.getElementById('publishedLinkArea');
+            if (pubArea && id) {
+                pubArea.classList.remove('hidden');
+                const link = window.getCurrentExamShareUrl(id);
+                const input = document.getElementById('settingShareLink');
+                if (input) input.value = link;
+
+                const lbl = document.getElementById('settingShareLabel');
+                if (lbl) {
+                    if (isPublished) {
+                        pubArea.className = "bg-emerald-50 p-4 rounded-xl border border-emerald-200 mb-6 shadow-xs";
+                        lbl.className = "block text-xs font-bold text-emerald-800 uppercase mb-2 flex items-center justify-between";
+                        lbl.innerHTML = `<span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-600"></i> Link bài thi (Đã xuất bản - Sẵn sàng làm bài)</span><span class="bg-emerald-200 text-emerald-900 text-[10px] px-2 py-0.5 rounded-full font-bold">ĐANG MỞ</span>`;
+                    } else {
+                        pubArea.className = "bg-amber-50 p-4 rounded-xl border border-amber-200 mb-6 shadow-xs";
+                        lbl.className = "block text-xs font-bold text-amber-800 uppercase mb-2 flex items-center justify-between";
+                        lbl.innerHTML = `<span class="flex items-center gap-2"><i class="fa-solid fa-file-pen text-amber-600"></i> Link bài thi (Bản nháp - Bấm "Xuất bản" để mở cho học sinh)</span><span class="bg-amber-200 text-amber-900 text-[10px] px-2 py-0.5 rounded-full font-bold">BẢN NHÁP</span>`;
+                    }
+                }
+            }
         };
 
         window.isKeepOriginalOrder = () => {
@@ -4294,15 +4388,12 @@
                 document.getElementById('sidebarExamTitle').textContent = title;
 
                 // 4. Hoàn tất
+                window.updateExamStatusUI(status, currentExamId);
+                const link = window.getCurrentExamShareUrl(currentExamId);
                 if (status === 'published') {
-                    const link = window.location.origin + window.location.pathname.replace(/exam-editor(\.html)?/i, 'exam.html') + '?id=' + currentExamId;
                     document.getElementById('shareLinkInput').value = link; 
                     document.getElementById('shareModal').classList.remove('opacity-0', 'pointer-events-none');
                     document.getElementById('shareModal').querySelector('div').classList.add('scale-100');
-                    document.getElementById('examStatus').textContent = '• Đã xuất bản'; 
-                    document.getElementById('examStatus').classList.replace('text-orange-500', 'text-green-600');
-                    document.getElementById('publishedLinkArea').classList.remove('hidden'); 
-                    document.getElementById('settingShareLink').value = link;
                     
                     // Thông báo rõ ràng về việc giao bài
                     if(accessType === 'class') {
