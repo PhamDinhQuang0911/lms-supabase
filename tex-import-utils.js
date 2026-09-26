@@ -163,7 +163,7 @@ export function parseBookTexItems(source, makeId) {
             const short = extractFirstCommand(content, ['\\shortans'], 1);
             if (short) {
                 questionKind = 'short';
-                answer = postProcessBookTex(short.contents[0], registerAsset);
+                answer = postProcessBookTex(short.contents[0], registerAsset).replace(/^\$+|\$+$/g, '').replace(/\{([.,])\}/g, '$1').trim();
                 content = content.slice(0, short.startIndex) + content.slice(short.endIndex);
             } else {
                 const choice = extractFirstCommand(content, ['\\choice'], 4);

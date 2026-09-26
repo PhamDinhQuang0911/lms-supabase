@@ -750,7 +750,83 @@
         import { createQPoint, QP_COSTS, QP_REWARDS } from "./qpoint.js";
         import { formatContent, autoScaleTables, renderTikz } from "./utils.js?v=7";
 
-        const app = initializeApp({});
+        window.formatContent = formatContent;
+        window.renderTikz = renderTikz;
+        window.autoScaleTables = autoScaleTables;
+
+        window.cleanShortAns = (val) => {
+            if (val === undefined || val === null) return '';
+            if (Array.isArray(val)) return val.map(window.cleanShortAns).join('; ');
+            if (typeof val === 'object' && val.value !== undefined) val = val.value;
+            let s = String(val).normalize('NFKC');
+            s = s.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').replace(/\u00A0/g, ' ');
+            s = s.replace(/\$/g, '');
+            s = s.replace(/\\(text|mathrm|mathbf|mathit|textbf|textit)\{([^}]*)\}/g, '$2');
+            s = s.replace(/\\(?:,|;|:|!|quad|qquad|left|right)/g, '');
+            s = s.replace(/\\(?:approx|sim|simeq|approxeq)/g, '').replace(/~/g, '');
+            s = s.replace(/[\u2212\u2013\u2014]/g, '-');
+            s = s.replace(/\{([.,])\}/g, '$1');
+            s = s.replace(/[{}]/g, '');
+            s = s.trim();
+            s = s.replace(/\.$/, '');
+            return s.trim();
+        };
+
+        window.parseShortNumber = (s) => {
+            if (!s) return null;
+            let str = s.replace(/\s+/g, '').replace(/,/g, '.');
+            if (/^[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?$/.test(str)) {
+                let n = parseFloat(str);
+                if (!isNaN(n)) return n;
+            }
+            const fracMatch = /^([-+]?\d+)\/(\d+)$/.exec(str);
+            if (fracMatch) {
+                let num = parseInt(fracMatch[1], 10);
+                let den = parseInt(fracMatch[2], 10);
+                if (den !== 0) return num / den;
+            }
+            return null;
+        };
+
+        window.shortMatch = (userAns, targetAns) => {
+            if (userAns === undefined || userAns === null || targetAns === undefined || targetAns === null) return false;
+            
+            if (Array.isArray(targetAns)) {
+                return targetAns.some(t => window.shortMatch(userAns, t));
+            }
+            
+            const targetStr = String(targetAns);
+            const multiSeparators = /[;|]|\bhoặc\b|\bor\b/i;
+            if (multiSeparators.test(targetStr)) {
+                const parts = targetStr.split(multiSeparators).map(p => p.trim()).filter(Boolean);
+                if (parts.length > 1) {
+                    return parts.some(p => window.shortMatch(userAns, p));
+                }
+            }
+            
+            const cu = window.cleanShortAns(userAns).toLowerCase();
+            const ca = window.cleanShortAns(targetAns).toLowerCase();
+            if (cu === '' || ca === '') return false;
+            
+            if (cu === ca) return true;
+            
+            const normDot = (s) => s.replace(/\s+/g, '').replace(/,/g, '.');
+            if (normDot(cu) === normDot(ca)) return true;
+            
+            const normComma = (s) => s.replace(/\s+/g, '').replace(/\./g, ',');
+            if (normComma(cu) === normComma(ca)) return true;
+            
+            const numU = window.parseShortNumber(cu);
+            const numA = window.parseShortNumber(ca);
+            if (numU !== null && numA !== null) {
+                if (Math.abs(numU - numA) < 1e-7) return true;
+            }
+            
+            const stripVar = (s) => s.replace(/^[a-z]\s*=\s*/i, '').trim();
+            if (normDot(stripVar(cu)) === normDot(stripVar(ca))) return true;
+            
+            return false;
+        };
         const auth = getAuth(app);
         const db = getFirestore(app);
         
@@ -1568,7 +1644,7 @@
                         if (Number(u) === Number(q.correct)) correctCount++; 
                     } 
                     else if (q.type === 'short') { 
-                        if (q.answer && String(u).trim().toLowerCase() === String(q.answer).trim().toLowerCase()) correctCount++; 
+                        if (q.answer && window.shortMatch && window.shortMatch(u, q.answer)) correctCount++;
                     }
                     else if (q.type === 'tf') {
                         let isAllCorrect = true; 
@@ -1681,9 +1757,10 @@
                     if(isCorrect) feedbackHtml = `<div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 font-bold text-xs"><i class="fa-solid fa-check mr-2"></i>Chính xác!</div>`;
                     else feedbackHtml = `<div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 font-bold text-xs"><i class="fa-solid fa-xmark mr-2"></i>Sai rồi. Đáp án đúng: ${correctChar}</div>`;
                 } else if (q.type === 'short') {
-                    const isCorrect = (u && q.answer && u.toLowerCase() === q.answer.toString().toLowerCase());
+                    const isCorrect = Boolean(u !== undefined && u !== null && String(u).trim() !== "" && q.answer && window.shortMatch && window.shortMatch(u, q.answer));
+                    const displayAns = window.cleanShortAns ? window.cleanShortAns(q.answer) : q.answer;
                     if(isCorrect) feedbackHtml = `<div class="mt-3 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 font-bold text-xs"><i class="fa-solid fa-check mr-2"></i>Chính xác!</div>`;
-                    else feedbackHtml = `<div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 font-bold text-xs"><i class="fa-solid fa-xmark mr-2"></i>Sai. Đáp án đúng: ${q.answer}</div>`;
+                    else feedbackHtml = `<div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 font-bold text-xs"><i class="fa-solid fa-xmark mr-2"></i>Sai. Đáp án đúng: ${displayAns || q.answer}</div>`;
                 } else if (q.type === 'tf') {
                     let tableHtml = `<div class="mt-3 border border-gray-200 rounded-lg overflow-hidden"><table class="w-full text-xs">`;
                     q.statements.forEach((stmt, sIdx) => {

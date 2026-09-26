@@ -3312,7 +3312,7 @@
                         if(procBody[start] !== '{') start = procBody.indexOf('{', start);
                         for(let i=start; i<procBody.length; i++){ if(procBody[i]=='{') depth++; else if(procBody[i]=='}') depth--; if(depth===0 && depth!==-1) { end=i; break; } }
                         if(end!==-1) {
-                            qData.answer = procBody.substring(start+1, end).trim();
+                            qData.answer = procBody.substring(start+1, end).trim().replace(/^\$+|\$+$/g, '').replace(/\{([.,])\}/g, '$1').trim();
                             const leftover = procBody.substring(end+1).trim();
                             if (leftover) qData.content += '\n\n' + leftover;
                         }
@@ -3582,7 +3582,7 @@
                         if(procBody[start] !== '{') start = procBody.indexOf('{', start);
                         for(let i=start; i<procBody.length; i++){ if(procBody[i]=='{') depth++; else if(procBody[i]=='}') depth--; if(depth===0 && depth!==-1) { end=i; break; } }
                         if(end!==-1) {
-                            qData.answer = procBody.substring(start+1, end).trim();
+                            qData.answer = procBody.substring(start+1, end).trim().replace(/^\$+|\$+$/g, '').replace(/\{([.,])\}/g, '$1').trim();
                             const leftover = procBody.substring(end+1).trim();
                             if (leftover) qData.content += '\n\n' + leftover;
                         }
@@ -4061,7 +4061,7 @@
                 } else if (shortMatch) {
                     question.type = 'short';
                     let rawAns = shortMatch[1].trim();
-                    rawAns = rawAns.replace(/^\$+|\$+$/g, '').trim();
+                    rawAns = rawAns.replace(/^\$+|\$+$/g, '').replace(/\{([.,])\}/g, '$1').trim();
                     rawAns = rawAns.replace(/\.$/, '').trim();
                     question.answer = cleanWordMathLatex(rawAns);
 
@@ -4463,18 +4463,79 @@
 
                 // Cung cấp hàm phụ trợ
                 window.tfBoolean = window.tfBoolean || ((value) => value === true || value === 'true' || value === 1 || value === '1');
-                window.shortMatch = window.shortMatch || ((a, b) => {
-                    const scalarShort = (v) => Array.isArray(v) ? v[0] : (v && typeof v === 'object' && 'value' in v ? v.value : v);
-                    const normShort = (v) => String(scalarShort(v) ?? '').normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim().toLowerCase().replace(/\$/g, '').replace(/\\left|\\right/g, '').replace(/\s+/g, '').replace(/,/g, '.');
-                    const na = normShort(a), nb = normShort(b);
-                    if (na === '' || nb === '') return false;
-                    if (na === nb) return true;
-                    const numA = na.replace(/\s+/g, ''), numB = nb.replace(/\s+/g, '');
-                    const isNum = (t) => /^[-+]?\d*\.?\d+$/.test(t);
-                    if (isNum(numA) && isNum(numB)) return Math.abs(parseFloat(numA) - parseFloat(numB)) < 1e-9;
-                    if (numA === numB) return true;
-                    return false;
+                window.cleanShortAns = window.cleanShortAns || ((val) => {
+                    if (val === undefined || val === null) return '';
+                    if (Array.isArray(val)) return val.map(window.cleanShortAns).join('; ');
+                    if (typeof val === 'object' && val.value !== undefined) val = val.value;
+                    let s = String(val).normalize('NFKC');
+                    s = s.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').replace(/\u00A0/g, ' ');
+                    s = s.replace(/\$/g, '');
+                    s = s.replace(/\\(text|mathrm|mathbf|mathit|textbf|textit)\{([^}]*)\}/g, '$2');
+                    s = s.replace(/\\(?:,|;|:|!|quad|qquad|left|right)/g, '');
+                    s = s.replace(/\\(?:approx|sim|simeq|approxeq)/g, '').replace(/~/g, '');
+                    s = s.replace(/[\u2212\u2013\u2014]/g, '-');
+                    s = s.replace(/\{([.,])\}/g, '$1');
+                    s = s.replace(/[{}]/g, '');
+                    s = s.trim();
+                    s = s.replace(/\.$/, '');
+                    return s.trim();
                 });
+
+                window.parseShortNumber = window.parseShortNumber || ((s) => {
+                    if (!s) return null;
+                    let str = s.replace(/\s+/g, '').replace(/,/g, '.');
+                    if (/^[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?$/.test(str)) {
+                        let n = parseFloat(str);
+                        if (!isNaN(n)) return n;
+                    }
+                    const fracMatch = /^([-+]?\d+)\/(\d+)$/.exec(str);
+                    if (fracMatch) {
+                        let num = parseInt(fracMatch[1], 10);
+                        let den = parseInt(fracMatch[2], 10);
+                        if (den !== 0) return num / den;
+                    }
+                    return null;
+                });
+
+                window.shortMatch = (userAns, targetAns) => {
+                    if (userAns === undefined || userAns === null || targetAns === undefined || targetAns === null) return false;
+                    
+                    if (Array.isArray(targetAns)) {
+                        return targetAns.some(t => window.shortMatch(userAns, t));
+                    }
+                    
+                    const targetStr = String(targetAns);
+                    const multiSeparators = /[;|]|\bhoặc\b|\bor\b/i;
+                    if (multiSeparators.test(targetStr)) {
+                        const parts = targetStr.split(multiSeparators).map(p => p.trim()).filter(Boolean);
+                        if (parts.length > 1) {
+                            return parts.some(p => window.shortMatch(userAns, p));
+                        }
+                    }
+                    
+                    const cu = window.cleanShortAns(userAns).toLowerCase();
+                    const ca = window.cleanShortAns(targetAns).toLowerCase();
+                    if (cu === '' || ca === '') return false;
+                    
+                    if (cu === ca) return true;
+                    
+                    const normDot = (s) => s.replace(/\s+/g, '').replace(/,/g, '.');
+                    if (normDot(cu) === normDot(ca)) return true;
+                    
+                    const normComma = (s) => s.replace(/\s+/g, '').replace(/\./g, ',');
+                    if (normComma(cu) === normComma(ca)) return true;
+                    
+                    const numU = window.parseShortNumber(cu);
+                    const numA = window.parseShortNumber(ca);
+                    if (numU !== null && numA !== null) {
+                        if (Math.abs(numU - numA) < 1e-7) return true;
+                    }
+                    
+                    const stripVar = (s) => s.replace(/^[a-z]\s*=\s*/i, '').trim();
+                    if (normDot(stripVar(cu)) === normDot(stripVar(ca))) return true;
+                    
+                    return false;
+                };
 
                 // Hàm tính toán lại điểm (migration)
                 const autoMigrateScore = (attemptData) => {
@@ -4694,7 +4755,7 @@
                                     qStats[idx].total++; 
                                     let isCorrect = false; 
                                     if (q.type === 'mc' && String(u) === String(q.correct)) isCorrect = true; 
-                                    else if (q.type === 'short' && q.answer && String(u).trim().toLowerCase() === String(q.answer).trim().toLowerCase()) isCorrect = true; 
+                                    else if (q.type === 'short' && q.answer && window.shortMatch && window.shortMatch(u, q.answer)) isCorrect = true; 
                                     if (isCorrect) qStats[idx].correct++; 
                                 } 
                             }); 
@@ -6811,26 +6872,7 @@
                     u = answers[ansKey];
                 }
 
-                // [FIX] So khớp trả lời ngắn "dễ tính" hơn: bỏ khoảng trắng thừa,
-                // chấp nhận dấu phẩy/chấm thập phân, so số nếu cả hai là số (0,5 = 0.5 = .5)
-                const scalarShort = (v) => Array.isArray(v) ? v[0] : (v && typeof v === 'object' && 'value' in v ? v.value : v);
-                const normShort = (v) => String(scalarShort(v) ?? '').normalize('NFKC')
-                    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim().toLowerCase()
-                    .replace(/\$/g, '').replace(/\\left|\\right/g, '')
-                    .replace(/\s+/g, '').replace(/,/g, '.');
-                const shortMatch = (a, b) => {
-    const na = normShort(a), nb = normShort(b);
-    if (na === '' || nb === '') return false;
-    if (na === nb) return true;
-    
-    const numA = na.replace(/\s+/g, '');
-    const numB = nb.replace(/\s+/g, '');
-    const isNum = (t) => /^[-+]?\d*\.?\d+$/.test(t);
-    if (isNum(numA) && isNum(numB)) return Math.abs(parseFloat(numA) - parseFloat(numB)) < 1e-9;
-    if (numA === numB) return true;
-    
-    return false;
-};
+                const shortMatch = window.shortMatch;
 
                 let isCorrect = false; 
                 let maxPoint = parseFloat(q.point) || 0;
@@ -7146,18 +7188,7 @@
             if (window.updateTotalScore) window.updateTotalScore();
             if(window.MathJax) MathJax.typesetPromise([container]).catch(()=>{});
         };
-        window.shortMatch = window.shortMatch || ((a, b) => {
-            const scalarShort = (v) => Array.isArray(v) ? v[0] : (v && typeof v === 'object' && 'value' in v ? v.value : v);
-            const normShort = (v) => String(scalarShort(v) ?? '').normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').trim().toLowerCase().replace(/\$/g, '').replace(/\\left|\\right/g, '').replace(/\s+/g, '').replace(/,/g, '.');
-            const na = normShort(a), nb = normShort(b);
-            if (na === '' || nb === '') return false;
-            if (na === nb) return true;
-            const numA = na.replace(/\s+/g, ''), numB = nb.replace(/\s+/g, '');
-            const isNum = (t) => /^[-+]?\d*\.?\d+$/.test(t);
-            if (isNum(numA) && isNum(numB)) return Math.abs(parseFloat(numA) - parseFloat(numB)) < 1e-9;
-            if (numA === numB) return true;
-            return false;
-        });
+        window.shortMatch = window.shortMatch || ((a, b) => false);
 
         window.updateTotalScore = () => {
             let rawMcqScore = 0;

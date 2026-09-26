@@ -1040,6 +1040,80 @@
         window.renderTikz = renderTikz;
         window.reorderTfSolution = reorderTfSolution;
 
+        window.cleanShortAns = (val) => {
+            if (val === undefined || val === null) return '';
+            if (Array.isArray(val)) return val.map(window.cleanShortAns).join('; ');
+            if (typeof val === 'object' && val.value !== undefined) val = val.value;
+            let s = String(val).normalize('NFKC');
+            s = s.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').replace(/\u00A0/g, ' ');
+            s = s.replace(/\$/g, '');
+            s = s.replace(/\\(text|mathrm|mathbf|mathit|textbf|textit)\{([^}]*)\}/g, '$2');
+            s = s.replace(/\\(?:,|;|:|!|quad|qquad|left|right)/g, '');
+            s = s.replace(/\\(?:approx|sim|simeq|approxeq)/g, '').replace(/~/g, '');
+            s = s.replace(/[\u2212\u2013\u2014]/g, '-');
+            s = s.replace(/\{([.,])\}/g, '$1');
+            s = s.replace(/[{}]/g, '');
+            s = s.trim();
+            s = s.replace(/\.$/, '');
+            return s.trim();
+        };
+
+        window.parseShortNumber = (s) => {
+            if (!s) return null;
+            let str = s.replace(/\s+/g, '').replace(/,/g, '.');
+            if (/^[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?$/.test(str)) {
+                let n = parseFloat(str);
+                if (!isNaN(n)) return n;
+            }
+            const fracMatch = /^([-+]?\d+)\/(\d+)$/.exec(str);
+            if (fracMatch) {
+                let num = parseInt(fracMatch[1], 10);
+                let den = parseInt(fracMatch[2], 10);
+                if (den !== 0) return num / den;
+            }
+            return null;
+        };
+
+        window.shortMatch = (userAns, targetAns) => {
+            if (userAns === undefined || userAns === null || targetAns === undefined || targetAns === null) return false;
+            
+            if (Array.isArray(targetAns)) {
+                return targetAns.some(t => window.shortMatch(userAns, t));
+            }
+            
+            const targetStr = String(targetAns);
+            const multiSeparators = /[;|]|\bhoặc\b|\bor\b/i;
+            if (multiSeparators.test(targetStr)) {
+                const parts = targetStr.split(multiSeparators).map(p => p.trim()).filter(Boolean);
+                if (parts.length > 1) {
+                    return parts.some(p => window.shortMatch(userAns, p));
+                }
+            }
+            
+            const cu = window.cleanShortAns(userAns).toLowerCase();
+            const ca = window.cleanShortAns(targetAns).toLowerCase();
+            if (cu === '' || ca === '') return false;
+            
+            if (cu === ca) return true;
+            
+            const normDot = (s) => s.replace(/\s+/g, '').replace(/,/g, '.');
+            if (normDot(cu) === normDot(ca)) return true;
+            
+            const normComma = (s) => s.replace(/\s+/g, '').replace(/\./g, ',');
+            if (normComma(cu) === normComma(ca)) return true;
+            
+            const numU = window.parseShortNumber(cu);
+            const numA = window.parseShortNumber(ca);
+            if (numU !== null && numA !== null) {
+                if (Math.abs(numU - numA) < 1e-7) return true;
+            }
+            
+            const stripVar = (s) => s.replace(/^[a-z]\s*=\s*/i, '').trim();
+            if (normDot(stripVar(cu)) === normDot(stripVar(ca))) return true;
+            
+            return false;
+        };
+
         const app = initializeApp({}); 
         const auth = getAuth(app); 
         const db = getFirestore(app);
@@ -1762,6 +1836,7 @@
                 inp.className = "w-full p-4 border-2 rounded-xl font-bold text-lg outline-none focus:border-green-500 transition-all";
                 inp.placeholder = "Nhập đáp án của bạn...";
                 inp.value = userAnswers[idx] || '';
+                inp.oninput = (e) => { userAnswers[idx]=e.target.value; updatePalette(); saveLocal(); };
                 inp.onchange = (e) => { userAnswers[idx]=e.target.value; updatePalette(); saveLocal(); };
                 dom.options.appendChild(inp);
             } else { 
@@ -2180,20 +2255,8 @@
             if(dbSyncTimeout) clearTimeout(dbSyncTimeout);
 
             // 1. TÍNH ĐIỂM (LOGIC CŨ)
-            let totalScore = 0; let correct = 0; const normShort = (v) => String(v ?? '').trim().toLowerCase().replace(/\$/g, '').replace(/\s+/g, ' ').replace(/,/g, '.');
-const shortMatch = (a, b) => {
-    const na = normShort(a), nb = normShort(b);
-    if (na === '' || nb === '') return false;
-    if (na === nb) return true;
-    
-    const numA = na.replace(/\s+/g, '');
-    const numB = nb.replace(/\s+/g, '');
-    const isNum = (t) => /^[-+]?\d*\.?\d+$/.test(t);
-    if (isNum(numA) && isNum(numB)) return Math.abs(parseFloat(numA) - parseFloat(numB)) < 1e-9;
-    if (numA === numB) return true;
-    
-    return false;
-};
+            let totalScore = 0; let correct = 0;
+            const shortMatch = window.shortMatch;
 
             let configuredPoints = 0; let unconfiguredCount = 0;
             currentQuestions.forEach(q => { if (q.point && parseFloat(q.point) > 0) configuredPoints += parseFloat(q.point); else unconfiguredCount++; });
@@ -2615,21 +2678,7 @@ const shortMatch = (a, b) => {
             // ... (Phần render câu hỏi trắc nghiệm A,B,C,D và Đúng/Sai bạn đã làm ở Turn trước)
             // Hãy dán đoạn logic render câu hỏi vào đây (dòng currentQuestions.forEach...)
             
-            // [TỰ ĐỘNG DÁN LẠI LOGIC RENDER ĐỂ BẠN ĐỠ PHẢI TÌM]
-            const normShort = (v) => String(v ?? '').trim().toLowerCase().replace(/\$/g, '').replace(/\s+/g, ' ').replace(/,/g, '.');
-const shortMatch = (a, b) => {
-    const na = normShort(a), nb = normShort(b);
-    if (na === '' || nb === '') return false;
-    if (na === nb) return true;
-    
-    const numA = na.replace(/\s+/g, '');
-    const numB = nb.replace(/\s+/g, '');
-    const isNum = (t) => /^[-+]?\d*\.?\d+$/.test(t);
-    if (isNum(numA) && isNum(numB)) return Math.abs(parseFloat(numA) - parseFloat(numB)) < 1e-9;
-    if (numA === numB) return true;
-    
-    return false;
-};
+            const shortMatch = window.shortMatch;
 
             let currentGroup = null;
             let btnContainer = pal;
@@ -2652,7 +2701,11 @@ const shortMatch = (a, b) => {
                     isCorrect = (Number(u) === Number(q.correct)); 
                     ansHtml = `<div>Bạn chọn: <b class="${isCorrect?'text-green-600':'text-red-500'}">${userChar}</b> | Đáp án đúng: <b class="text-green-600">${correctChar}</b></div>`; 
                 }
-                else if (q.type==='short') { isCorrect = (q.answer && u && shortMatch(u, q.answer)); ansHtml = `<div>Bạn điền: <b class="${isCorrect?'text-green-600':'text-red-500'}">${u||'Trống'}</b> | Đáp án: <b class="text-green-600">${q.answer}</b></div>`; }
+                else if (q.type==='short') {
+                    isCorrect = Boolean(q.answer !== undefined && q.answer !== null && u !== undefined && u !== null && String(u).trim() !== "" && shortMatch(u, q.answer));
+                    const displayAns = window.cleanShortAns ? window.cleanShortAns(q.answer) : q.answer;
+                    ansHtml = `<div>Bạn điền: <b class="${isCorrect?'text-green-600':'text-red-500'}">${u||'Trống'}</b> | Đáp án: <b class="text-green-600">${displayAns || q.answer}</b></div>`;
+                }
                 else if (q.type==='tf') { 
                     let matches=0; ansHtml='<ul class="text-sm mt-2 space-y-1">'; 
                     let displayIndices = (examData.shuffle && q.shuffleMapTF) ? q.shuffleMapTF : (q.statements||[]).map((_,k)=>k); 
@@ -3430,7 +3483,7 @@ const shortMatch = (a, b) => {
                                     </div>`;
                                 }).join('')}</div>`;
                             } else if (q.type === 'short') {
-                                return `<input type="text" class="mt-3 w-full p-3 border-2 rounded-xl font-bold outline-none focus:border-green-500 transition-all ${window.isReviewMode?'bg-gray-100':''}" placeholder="Nhập đáp án..." value="${savedAns||''}" onchange="window.saveMixedShortAnswer(${qIdx},this.value)" ${window.isReviewMode?'readonly':''}>`;
+                                return `<input type="text" class="mt-3 w-full p-3 border-2 rounded-xl font-bold outline-none focus:border-green-500 transition-all ${window.isReviewMode?'bg-gray-100':''}" placeholder="Nhập đáp án..." value="${savedAns||''}" oninput="window.saveMixedShortAnswer(${qIdx},this.value)" onchange="window.saveMixedShortAnswer(${qIdx},this.value)" ${window.isReviewMode?'readonly':''}>`;
                             } else {
                                 return `<div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">${(q.options||[]).map((opt,oi)=>{
                                     const ri = q.shuffleMap ? q.shuffleMap[oi] : oi;
@@ -3447,7 +3500,7 @@ const shortMatch = (a, b) => {
                         if (rv) {
                             let ansText = ''; let solHtml = '';
                             if (q.type==='mc') { let di=q.shuffleMap?q.shuffleMap.indexOf(Number(q.correct)):Number(q.correct); ansText='Phương án '+String.fromCharCode(65+di); }
-                            else if (q.type==='short') ansText=String(q.answer||'');
+                            else if (q.type==='short') ansText=String(window.cleanShortAns ? window.cleanShortAns(q.answer) : (q.answer||''));
                             else if (q.type==='tf') {
                                 const idxs = (examData.shuffle && q.shuffleMapTF) ? q.shuffleMapTF : (q.statements||[]).map((_,k)=>k);
                                 ansText = idxs.map((ri, k) => `Ý ${String.fromCharCode(97+k)}: ${q.statements[ri]?.isTrue?'Đúng':'Sai'}`).join(' • ');
@@ -3635,18 +3688,7 @@ window.requestResubmit = async () => {
                         }
                     } catch (err) { console.warn("Lỗi dò tìm lớp HW:", err); }
                 }
-                const shortMatch = (a, b) => {
-                    const normShort = (v) => String(v ?? '').trim().toLowerCase().replace(/\$/g, '').replace(/\s+/g, ' ').replace(/,/g, '.');
-                    const na = normShort(a), nb = normShort(b);
-                    if (na === '' || nb === '') return false;
-                    if (na === nb) return true;
-                    const numA = na.replace(/\s+/g, '');
-                    const numB = nb.replace(/\s+/g, '');
-                    const isNum = (t) => /^[-+]?\d*\.?\d+$/.test(t);
-                    if (isNum(numA) && isNum(numB)) return Math.abs(parseFloat(numA) - parseFloat(numB)) < 1e-9;
-                    if (numA === numB) return true;
-                    return false;
-                };
+                const shortMatch = window.shortMatch;
 
                 let totalScore = 0; let correctCount = 0;
                 if (isMixed && currentQuestions && currentQuestions.length > 0) {
