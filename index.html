@@ -349,7 +349,7 @@
         function switchModal() { toggleRegisterModal(false); toggleLoginModal(true); }
         function toggleMobileMenu() { document.getElementById('mobile-menu').classList.toggle('open'); }
     </script>
-    <div id="docPaymentModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[105] flex items-center justify-center bg-teal-900/60 backdrop-blur-sm p-4 transition-all duration-300">
+    <div id="docPaymentModal" data-allow-screenshot="true" class="modal opacity-0 pointer-events-none fixed inset-0 z-[105] flex items-center justify-center bg-teal-900/60 backdrop-blur-sm p-4 transition-all duration-300">
         <div class="bg-white rounded-2xl w-full max-w-4xl flex flex-col md:flex-row overflow-hidden shadow-2xl relative">
             <button onclick="closeDocPaymentModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10 bg-white rounded-full p-1"><i class="fas fa-times text-xl"></i></button>
 
@@ -391,7 +391,7 @@
         </div>
     </div>
     
-    <div id="paymentModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[100] bg-gray-50 flex flex-col transition-all duration-300 overflow-y-auto">
+    <div id="paymentModal" data-allow-screenshot="true" class="modal opacity-0 pointer-events-none fixed inset-0 z-[100] bg-gray-50 flex flex-col transition-all duration-300 overflow-y-auto">
         <div class="bg-white border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
             <div class="flex items-center gap-2.5 sm:gap-3">
                 <div class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shrink-0"><i class="fa-solid fa-lock"></i></div>
@@ -761,7 +761,7 @@
     </div>
 
     <!-- Modal hỗ trợ lưu ảnh QR cho điện thoại -->
-    <div id="mobileQrSaveModal" class="hidden fixed inset-0 z-[120] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+    <div id="mobileQrSaveModal" data-allow-screenshot="true" class="hidden fixed inset-0 z-[120] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl p-4 max-w-xs w-full text-center shadow-2xl relative animate-scale-up">
             <button type="button" onclick="document.getElementById('mobileQrSaveModal').classList.add('hidden')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center text-sm cursor-pointer">
                 <i class="fa-solid fa-times"></i>
@@ -1072,6 +1072,41 @@
             } catch (e) { console.warn("Lỗi tải Banner:", e); }
         }
 
+        // Helper kiểm tra đề thi mẫu cho phép làm thử
+        function getPreviewExamInfo(c) {
+            if (!c) return null;
+            if (c.sampleExamId) {
+                return { id: c.sampleExamId, title: c.sampleExamTitle || 'Đề thi mẫu miễn phí' };
+            }
+            if (Array.isArray(c.curriculum)) {
+                for (const ch of c.curriculum) {
+                    if (Array.isArray(ch.lessons)) {
+                        for (const les of ch.lessons) {
+                            if (Array.isArray(les.items)) {
+                                for (const it of les.items) {
+                                    if (it.isPreview && (it.type === 'quiz' || it.quizId || it.examId)) {
+                                        return {
+                                            id: it.quizId || it.examId || it.id,
+                                            title: it.title || 'Đề thi thử miễn phí'
+                                        };
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        window.openTrialExam = (examId, courseId) => {
+            if (!examId) {
+                window.showNotification("Khóa học/Gói đề này chưa thiết lập đề thi thử mẫu!", "info");
+                return;
+            }
+            window.location.href = `exam.html?id=${encodeURIComponent(examId)}${courseId ? `&courseId=${encodeURIComponent(courseId)}` : ''}&trial=1`;
+        };
+
         // 2. RENDER COURSES (CÓ GIẢM GIÁ & SWR CACHE)
         window.renderMainItems = () => {
             if (!window.allPublicItems || !Array.isArray(window.allPublicItems)) return;
@@ -1100,12 +1135,16 @@
                         priceHtml = `<div class="flex flex-col items-end"><span class="text-xs text-gray-400 line-through decoration-gray-400">${originalPrice.toLocaleString('vi-VN')}đ</span><span class="text-base font-bold text-accent">${price.toLocaleString('vi-VN')}đ</span></div>`;
                     } else {
                         if (c.tag) discountBadge = `<span class="absolute top-3 left-3 bg-accent text-white text-xs font-bold px-3 py-1 rounded-full shadow-md uppercase z-20">${c.tag}</span>`;
+                        else if (c.type === 'exam_pack') discountBadge = `<span class="absolute top-3 left-3 bg-purple-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md uppercase z-20"><i class="fa-solid fa-file-signature mr-1"></i>Gói Đề Thi</span>`;
                         priceHtml = `<span class="text-base font-bold text-brand">${price > 0 ? price.toLocaleString('vi-VN') + 'đ' : 'Miễn phí'}</span>`;
                     }
 
                     const imgSrc = c.image || c.thumbnail || 'https://placehold.co/400x200?text=No+Image';
-                    const iconHtml = (c.type === 'document_hard' || c.type === 'book') ? '<i class="fa-solid fa-book text-amber-500"></i>' : '<i class="fa-solid fa-users text-teal-500"></i>';
                     const isBookType = (c.type === 'document_hard' || c.type === 'book');
+                    const isExamPack = (c.type === 'exam_pack');
+                    const previewExam = getPreviewExamInfo(c);
+
+                    const iconHtml = isBookType ? '<i class="fa-solid fa-book text-amber-500"></i>' : (isExamPack ? '<i class="fa-solid fa-file-signature text-purple-500"></i>' : '<i class="fa-solid fa-users text-teal-500"></i>');
                     const isSoldOut = (c.status === 'sold_out' || c.isSoldOut === true);
                     const soldOutBadge = isSoldOut ? `
                         <div class="absolute top-3 left-3 bg-red-600/95 text-white font-black text-xs px-2.5 py-1 rounded-lg uppercase tracking-wider shadow-md z-20 flex items-center gap-1.5">
@@ -1148,6 +1187,7 @@
                             </div>
                             <div class="mt-4 flex gap-2">
                                 ${c.previewLink ? `<button onclick="openPreviewModal('${c.previewLink}')" class="btn-preview flex-1 py-2 font-bold rounded-lg text-sm flex justify-center items-center gap-2 shadow-sm" title="Đọc thử"><i class="fa-solid fa-book-open"></i> Đọc thử</button>` : ''}
+                                ${previewExam ? `<button onclick="openTrialExam('${previewExam.id}', '${c.id}')" class="btn-trial flex-1 py-2 font-bold rounded-lg text-sm flex justify-center items-center gap-1.5 shadow-sm bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white border border-purple-200 transition-all cursor-pointer" title="Làm thử đề mẫu miễn phí"><i class="fa-solid fa-pen-ruler"></i> Thi thử</button>` : ''}
                                 ${isSoldOut ? `
                                     <button disabled class="flex-1 py-2 bg-gray-200 text-gray-500 font-bold rounded-lg text-sm cursor-not-allowed flex justify-center items-center gap-2 shadow-none" title="Sản phẩm hiện đã bán hết">
                                         Bán hết <i class="fa-solid fa-ban"></i>
@@ -2202,7 +2242,8 @@
                     }
 
                     // 3. XỬ LÝ SẢN PHẨM & GIÁ
-                    const tagText = isBookType ? 'SÁCH' : (c.type === 'document_soft' ? 'TÀI LIỆU SỐ' : 'KHÓA HỌC');
+                    const isExamPack = c.type === 'exam_pack';
+                    const tagText = isBookType ? 'SÁCH' : (c.type === 'document_soft' ? 'TÀI LIỆU SỐ' : (isExamPack ? 'GÓI ĐỀ THI' : 'KHÓA HỌC'));
 
                     // Ẩn/hiện bộ chọn số lượng (chỉ hiện với Sách bản in)
                     const qtyRow = document.getElementById('payQuantityRow');
@@ -2245,7 +2286,10 @@
                         const tagEl = document.getElementById('payCourseTagCourse');
                         if (imgEl) imgEl.src = c.thumbnail || c.image || 'https://placehold.co/150';
                         if (titleEl) titleEl.innerText = c.title || 'Sản phẩm';
-                        if (tagEl) tagEl.innerText = tagText;
+                        if (tagEl) {
+                            tagEl.innerText = tagText;
+                            tagEl.className = `inline-block text-[10px] font-bold ${isExamPack ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'} px-2 py-0.5 rounded mb-1`;
+                        }
                         document.getElementById('payCourseTitle').innerText = c.title || 'Sản phẩm';
                     }
 
@@ -2258,7 +2302,7 @@
                     if (sumTitle) sumTitle.innerText = c.title || 'Sản phẩm';
                     if (sumTag) {
                         sumTag.innerText = tagText;
-                        sumTag.className = `text-[10px] font-bold ${isBookType ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'} px-2 py-0.5 rounded uppercase`;
+                        sumTag.className = `text-[10px] font-bold ${isBookType ? 'bg-amber-100 text-amber-700' : (isExamPack ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700')} px-2 py-0.5 rounded uppercase`;
                     }
 
                     _unitPrice = parseInt(String(c.price || '0').replace(/\D/g, '')) || 0;

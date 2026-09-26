@@ -122,6 +122,7 @@
         <label class="block text-xs font-black text-gray-500 uppercase mb-2 ml-1">Loại Sản Phẩm Đăng Bán</label>
         <select id="cType" onchange="window.toggleProductFields()" class="w-full px-5 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:border-brand focus:ring-4 focus:ring-brand/10 outline-none transition-all font-bold text-brand">
             <option value="course">🎬 Khóa học trực tuyến (Có giáo án cấu trúc)</option>
+            <option value="exam_pack">📝 Gói luyện đề thi Online (Bộ đề trắc nghiệm / tự luận có chấm điểm)</option>
             <option value="document_soft">📄 Tài liệu bản mềm (Hệ thống tự động gửi File qua Email)</option>
             <option value="document_hard">📚 Sách bản cứng (Yêu cầu HS điền địa chỉ giao hàng)</option>
         </select>
@@ -187,6 +188,24 @@
                     <input type="number" id="cBookWeight" placeholder="VD: 500" class="w-full px-5 py-3 border border-amber-200 rounded-xl bg-white text-sm focus:border-amber-500 outline-none">
                     <p class="text-[11px] text-amber-700 mt-2 italic">* Hệ thống sẽ yêu cầu người mua cung cấp Số điện thoại và Địa chỉ nhận hàng.</p>
                 </div>
+            </div>
+
+            <div id="examPackFields" class="hidden bg-purple-50/70 p-4 rounded-xl border border-purple-200 flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-black text-purple-800 uppercase ml-1">
+                        <i class="fa-solid fa-pen-ruler text-purple-600"></i> Đề thi mẫu làm thử miễn phí (Sample Exam)
+                    </label>
+                    <span class="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">Xem trước</span>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="cSampleExamId" placeholder="Nhập ID đề thi hoặc bấm nút Chọn đề..." class="flex-1 px-4 py-2.5 border border-purple-200 rounded-xl bg-white text-sm font-mono focus:border-purple-500 outline-none">
+                    <button type="button" onclick="window.pickSampleExam()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors shrink-0 shadow-sm flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-list-check"></i> Chọn từ ngân hàng đề
+                    </button>
+                </div>
+                <p class="text-[11px] text-purple-700 italic">
+                    * Học sinh có thể làm thử đề này ngay trước khi mua gói đề thi! (Ngoài ra bạn có thể thêm nhiều đề vào mục Soạn giáo án và bật công tắc "Cho phép học thử").
+                </p>
             </div>
 
                 <div>
@@ -401,7 +420,7 @@
                 <h3 class="font-bold text-gray-800 text-lg">Chọn Đề Thi</h3>
                 <div class="flex gap-2">
                     <a href="exam-editor.html" target="_blank" class="px-4 py-2 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700"><i class="fa-solid fa-plus-circle"></i> Tạo mới</a>
-                    <button onclick="document.getElementById('examSelectorModal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg font-bold text-sm">Đóng</button>
+                    <button onclick="document.getElementById('examSelectorModal').classList.add('hidden'); _isPickingSampleExam = false;" class="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg font-bold text-sm">Đóng</button>
                 </div>
             </div>
             <div class="px-6 py-2 bg-white border-b border-gray-100 flex items-center gap-2 text-sm" id="selectorBreadcrumb"></div>
@@ -933,6 +952,10 @@
                     typeBadge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-1"><i class="fa-solid fa-book"></i> SÁCH IN</span>';
                     strucText = `Sách in vật lý / ${c.weight || 0}g`;
                     iconClass = "fa-truck-fast text-amber-500";
+                } else if (c.type === 'exam_pack') {
+                    typeBadge = '<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-1"><i class="fa-solid fa-file-signature"></i> GÓI ĐỀ THI</span>';
+                    strucText = `${itemCount} đề thi`;
+                    iconClass = "fa-file-signature text-purple-500";
                 }
 
                 const isSoldOut = (c.status === 'sold_out' || c.isSoldOut === true);
@@ -949,7 +972,7 @@
                         <div class="flex justify-end gap-2">
                             <button onclick="window.toggleCourseAntiScreenshot('${c.id}')" class="p-2 ${c.antiScreenshot === false ? 'bg-gray-100 text-gray-400' : 'bg-rose-50 text-rose-600'} rounded-lg hover:bg-rose-600 hover:text-white transition-all shadow-sm" title="${c.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh bài giảng (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình bài giảng (Bấm để cho phép)'}"><i class="fa-solid ${c.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'}"></i></button>
                             <button onclick="window.openStudentManager('${c.id}')" class="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Quản lý KH/Học viên"><i class="fa-solid fa-user-plus"></i></button>
-                            ${canManageCourses ? `<button onclick="window.openCurriculumEditor('${c.id}')" class="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all shadow-sm ${c.type !== 'course' ? 'hidden' : ''}" title="Soạn giáo án"><i class="fa-solid fa-book-open"></i></button>` : ''}
+                            ${canManageCourses ? `<button onclick="window.openCurriculumEditor('${c.id}')" class="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all shadow-sm ${(c.type !== 'course' && c.type !== 'exam_pack') ? 'hidden' : ''}" title="Soạn đề & giáo án"><i class="fa-solid fa-book-open"></i></button>` : ''}
                             <button onclick="window.copyProductLinkAdmin('${c.id}')" class="p-2 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-600 hover:text-white transition-all shadow-sm" title="Copy link mua hàng"><i class="fa-solid fa-share-nodes"></i></button>
                             ${canManageCourses ? `<button onclick="window.editCourse('${c.id}')" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-all" title="Chỉnh sửa"><i class="fa-solid fa-pen"></i></button>` : ''}
                             ${(canManageCourses || canDeleteCourses) ? `<button onclick="window.deleteCourse('${c.id}')" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all" title="Xóa"><i class="fa-solid fa-trash"></i></button>` : ''}
@@ -973,7 +996,7 @@
                         <div class="mt-auto grid grid-cols-${canManageCourses ? '6' : '3'} gap-2 pt-4 border-t border-gray-100">
                             <button onclick="window.toggleCourseAntiScreenshot('${c.id}')" class="col-span-1 py-2 ${c.antiScreenshot === false ? 'bg-gray-50 text-gray-400' : 'bg-rose-50 text-rose-600'} rounded-lg hover:bg-rose-600 hover:text-white transition-colors" title="${c.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình (Bấm để cho phép)'}"><i class="fa-solid ${c.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'}"></i></button>
                             <button onclick="window.openStudentManager('${c.id}')" class="col-span-1 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-colors" title="Học viên/Đơn hàng"><i class="fa-solid fa-user-plus"></i></button>
-                            ${canManageCourses ? `<button onclick="window.openCurriculumEditor('${c.id}')" class="col-span-1 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-colors" title="Giáo án"><i class="fa-solid fa-book-open"></i></button>` : ''}
+                            ${canManageCourses ? `<button onclick="window.openCurriculumEditor('${c.id}')" class="col-span-1 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-colors ${(c.type !== 'course' && c.type !== 'exam_pack') ? 'hidden' : ''}" title="Giáo án & Bộ đề"><i class="fa-solid fa-book-open"></i></button>` : ''}
                             <button onclick="window.copyProductLinkAdmin('${c.id}')" class="col-span-1 py-2 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-600 hover:text-white transition-colors" title="Copy link mua hàng"><i class="fa-solid fa-share-nodes"></i></button>
                             ${canManageCourses ? `<button onclick="window.editCourse('${c.id}')" class="col-span-1 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-primary-50 hover:text-primary-600 transition-colors" title="Chỉnh sửa"><i class="fa-solid fa-pen"></i></button>` : ''}
                             ${(canManageCourses || canDeleteCourses) ? `<button onclick="window.deleteCourse('${c.id}')" class="col-span-1 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors" title="Xóa"><i class="fa-solid fa-trash"></i></button>` : ''}
@@ -1231,15 +1254,26 @@ window.toggleProductFields = () => {
     const type = document.getElementById('cType').value;
     const softDocFields = document.getElementById('softDocFields');
     const hardBookFields = document.getElementById('hardBookFields');
+    const examPackFields = document.getElementById('examPackFields');
     
     if(softDocFields) softDocFields.classList.add('hidden');
     if(hardBookFields) hardBookFields.classList.add('hidden');
+    if(examPackFields) examPackFields.classList.add('hidden');
     
     if (type === 'document_soft' && softDocFields) {
         softDocFields.classList.remove('hidden');
     } else if (type === 'document_hard' && hardBookFields) {
         hardBookFields.classList.remove('hidden');
+    } else if (type === 'exam_pack' && examPackFields) {
+        examPackFields.classList.remove('hidden');
     }
+};
+
+let _isPickingSampleExam = false;
+window.pickSampleExam = () => {
+    _isPickingSampleExam = true;
+    document.getElementById('examSelectorModal').classList.remove('hidden');
+    loadExamManager(null);
 };
 
 // Hàm tải dữ liệu lên form sửa
@@ -1267,6 +1301,7 @@ window.editCourse = async (id) => {
         if(document.getElementById('cBookWeight')) document.getElementById('cBookWeight').value = dt.weight || '';
         if(document.getElementById('cShippingFee')) document.getElementById('cShippingFee').value = dt.shippingFee !== undefined ? dt.shippingFee : '30000';
         if(document.getElementById('cPreviewLink')) document.getElementById('cPreviewLink').value = dt.previewLink || '';
+        if(document.getElementById('cSampleExamId')) document.getElementById('cSampleExamId').value = dt.sampleExamId || '';
         
         window.toggleProductFields();
         if(document.getElementById('cAntiScreenshot')) document.getElementById('cAntiScreenshot').checked = (dt.antiScreenshot !== false);
@@ -1313,6 +1348,7 @@ window.saveCourseBasic = async () => {
         weight: type === 'document_hard' ? (parseInt(document.getElementById('cBookWeight')?.value) || 0) : null,
         shippingFee: type === 'document_hard' ? (parseInt(document.getElementById('cShippingFee')?.value) || 0) : null,
         previewLink: type === 'document_hard' ? (document.getElementById('cPreviewLink')?.value.trim() || '') : null,
+        sampleExamId: type === 'exam_pack' ? (document.getElementById('cSampleExamId')?.value.trim() || null) : (document.getElementById('cSampleExamId')?.value.trim() || null),
         
         updatedAt: new Date().toISOString()
     };
@@ -1784,6 +1820,14 @@ function renderCurriculumTree() {
                         const el = document.createElement('div');
                         el.className = "bg-white p-4 rounded-xl border border-gray-200 hover:border-orange-500 cursor-pointer flex flex-col items-center gap-3 aspect-square justify-center shadow-sm group relative transition-all hover:shadow-md";
                         el.onclick = () => {
+                            if (_isPickingSampleExam) {
+                                _isPickingSampleExam = false;
+                                const sampleInput = document.getElementById('cSampleExamId');
+                                if (sampleInput) sampleInput.value = d.id;
+                                document.getElementById('examSelectorModal').classList.add('hidden');
+                                window.showToast(`Đã chọn đề mẫu thi thử: ${e.title}`);
+                                return;
+                            }
                             // Logic chọn đề
                             if(activeItemIdx > -1) {
                                 const item = currentCurriculum[activeChapIdx].lessons[activeLesIdx].items[activeItemIdx];

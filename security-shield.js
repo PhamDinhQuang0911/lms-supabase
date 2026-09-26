@@ -94,6 +94,40 @@
                 }
             } catch (_) {}
 
+            // 2.1. Miễn trừ TUYỆT ĐỐI cho toàn bộ khu vực Thanh toán / Quét mã VietQR / Mua sách
+            // Học sinh CẦN chụp màn hình mã QR và thông tin chuyển khoản để thanh toán ngân hàng
+            try {
+                // Kiểm tra các phần tử có cờ cho phép chụp ảnh
+                const allowEls = document.querySelectorAll('[data-allow-screenshot="true"]');
+                for (let i = 0; i < allowEls.length; i++) {
+                    const el = allowEls[i];
+                    if (!el.classList.contains('hidden') && !el.classList.contains('opacity-0') && el.style.display !== 'none') {
+                        return false;
+                    }
+                }
+
+                // Kiểm tra các Modal và hộp thanh toán cụ thể
+                const paymentModalIds = [
+                    'paymentModal', 'step2Modal', 'modalStudentPayment', 'stepQR',
+                    'mobileQrSaveModal', 'mobileSaveModal', 'docPaymentModal', 'processingModal'
+                ];
+                for (let i = 0; i < paymentModalIds.length; i++) {
+                    const pEl = document.getElementById(paymentModalIds[i]);
+                    if (pEl && !pEl.classList.contains('hidden') && !pEl.classList.contains('opacity-0') && pEl.style.display !== 'none') {
+                        return false;
+                    }
+                }
+
+                // Kiểm tra class đại diện vùng thanh toán
+                const paymentModals = document.querySelectorAll('.payment-modal, .checkout-modal');
+                for (let i = 0; i < paymentModals.length; i++) {
+                    const pEl = paymentModals[i];
+                    if (!pEl.classList.contains('hidden') && !pEl.classList.contains('opacity-0') && pEl.style.display !== 'none') {
+                        return false;
+                    }
+                }
+            } catch (_) {}
+
             // 3. Kiểm tra theo từng Khu vực (Zones)
             // A. Bảng xếp hạng
             const lbModal = document.getElementById('examLeaderboardModal');
@@ -206,18 +240,34 @@
             @media print {
                 body { display: none !important; }
             }
+            /* Cơ chế Content Blanking 0ms: Ẩn triệt để nội dung câu hỏi/lời giải khi phát hiện chụp ảnh */
+            body.qmath-screenshot-blocked #exerciseListArea,
+            body.qmath-screenshot-blocked #examContainer,
+            body.qmath-screenshot-blocked #solutionView,
+            body.qmath-screenshot-blocked .exam-content,
+            body.qmath-screenshot-blocked #questionContent,
+            body.qmath-screenshot-blocked #examLeaderboardBox,
+            body.qmath-screenshot-blocked #lookupModalBody,
+            body.qmath-screenshot-blocked .study-area,
+            body.qmath-screenshot-blocked main {
+                visibility: hidden !important;
+                opacity: 0 !important;
+            }
+            /* Nền cảnh báo ĐEN ĐẶC 100% OPAQUE - Triệt tiêu hoàn toàn độ mờ và trong suốt */
             #copyrightViolationModal {
-                transition: opacity 0.25s ease-out;
+                background-color: #000000 !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
             }
             #copyrightViolationModal .violation-box {
-                transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+                transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
             }
         `;
         document.head.appendChild(style);
 
         if (!document.getElementById('copyrightViolationModal')) {
             const modalHtml = `
-            <div id="copyrightViolationModal" class="fixed inset-0 z-[2147483647] flex items-center justify-center bg-gray-950/80 backdrop-blur-md hidden opacity-0 p-4 select-none pointer-events-auto">
+            <div id="copyrightViolationModal" style="background-color: #000000 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;" class="fixed inset-0 z-[2147483647] flex items-center justify-center hidden opacity-0 p-4 select-none pointer-events-auto">
                 <div class="violation-box bg-white dark:bg-[#1e1b2e] rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl transform scale-90 border-2 border-red-500/80 relative">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl sm:text-4xl border border-red-200 dark:border-red-800 animate-pulse">
                         <i class="fa-solid fa-triangle-exclamation"></i>
@@ -249,11 +299,16 @@
     let isModalOpen = false;
     let lastViolationTime = 0;
 
-    // 3. HIỂN THỊ MODAL CẢNH BÁO VI PHẠM
+    // 3. HIỂN THỊ MODAL CẢNH BÁO VI PHẠM (Phản ứng tức thì 0ms, không độ trễ)
     function triggerViolationAlert(reason) {
+        if (!window.QMathSecurity.isAntiScreenshotActive()) return;
+
         const now = Date.now();
         if (now - lastViolationTime < 1500) return; // Debounce 1.5s
         lastViolationTime = now;
+
+        // Content blanking NGAY LẬP TỨC (0ms) để triệt tiêu mọi nội dung đề thi phía sau
+        document.body.classList.add('qmath-screenshot-blocked');
 
         // Xóa clipboard ngay lập tức
         try {
@@ -271,24 +326,31 @@
         }
 
         isModalOpen = true;
-        modal.classList.remove('hidden');
-        setTimeout(function() {
-            modal.classList.remove('opacity-0');
-            const box = modal.querySelector('.violation-box');
-            if (box) box.classList.remove('scale-90');
-        }, 10);
+        // Hiển thị đồng bộ ngay lập tức không qua setTimeout để bắt kịp phần cứng chụp ảnh điện thoại
+        modal.classList.remove('hidden', 'opacity-0');
+        modal.style.display = 'flex';
+        modal.style.opacity = '1';
+        const box = modal.querySelector('.violation-box');
+        if (box) {
+            box.classList.remove('scale-90');
+            box.style.transform = 'scale(1)';
+        }
     }
 
     function closeViolationModal() {
         const modal = document.getElementById('copyrightViolationModal');
         if (!modal) return;
+        document.body.classList.remove('qmath-screenshot-blocked');
         modal.classList.add('opacity-0');
         const box = modal.querySelector('.violation-box');
         if (box) box.classList.add('scale-90');
         setTimeout(function() {
             modal.classList.add('hidden');
+            modal.style.display = 'none';
+            modal.style.opacity = '0';
+            if (box) box.style.transform = '';
             isModalOpen = false;
-        }, 250);
+        }, 150);
     }
 
     // 4. CHẶN PHÍM TẮT CHỤP MÀN HÌNH (PrintScreen, Win+Shift+S, Mac Cmd+Shift+3/4/5, Ctrl+P)
@@ -303,6 +365,7 @@
                 return true; // Cho phép chụp ảnh bình thường!
             }
 
+            document.body.classList.add('qmath-screenshot-blocked');
             e.preventDefault();
             e.stopPropagation();
             triggerViolationAlert('Hệ thống đã chặn thao tác phím chụp màn hình. Nội dung được bảo vệ bản quyền!');
@@ -315,18 +378,20 @@
             if (!window.QMathSecurity.isAntiScreenshotActive()) {
                 return true;
             }
+            document.body.classList.add('qmath-screenshot-blocked');
             e.preventDefault();
             e.stopPropagation();
             triggerViolationAlert('Hệ thống đã chặn thao tác chụp màn hình (PrintScreen). Nội dung được bảo vệ bản quyền!');
         }
     }, true);
 
-    // 5. CHẶN CỬ CHỈ VUỐT 3 NGÓN TAY CHỤP MÀN HÌNH TRÊN ĐIỆN THOẠI
+    // 5. CHẶN CỬ CHỈ VUỐT 3 NGÓN TAY CHỤP MÀN HÌNH TRÊN ĐIỆN THOẠI (Bắt tức thì 0ms)
     window.addEventListener('touchstart', function(e) {
         if (e.touches && e.touches.length >= 3) {
             if (!window.QMathSecurity.isAntiScreenshotActive()) {
                 return; // Cho phép cử chỉ
             }
+            document.body.classList.add('qmath-screenshot-blocked');
             e.preventDefault();
             e.stopPropagation();
             triggerViolationAlert('Hệ thống phát hiện cử chỉ vuốt 3 ngón tay để chụp màn hình. Thao tác đã bị chặn!');
@@ -338,6 +403,7 @@
             if (!window.QMathSecurity.isAntiScreenshotActive()) {
                 return;
             }
+            document.body.classList.add('qmath-screenshot-blocked');
             e.preventDefault();
             e.stopPropagation();
             triggerViolationAlert('Hệ thống phát hiện cử chỉ vuốt 3 ngón tay để chụp màn hình. Thao tác đã bị chặn!');

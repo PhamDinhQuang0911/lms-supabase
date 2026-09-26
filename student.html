@@ -921,7 +921,7 @@
     </div>
 
     <div id="paymentModalContainer"></div>
-    <div id="processingModal" class="fixed inset-0 z-[300] hidden bg-gray-900/90 backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="processingModal" data-allow-screenshot="true" class="fixed inset-0 z-[300] hidden bg-gray-900/90 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-400 via-blue-500 to-purple-600 animate-pulse"></div>
             
@@ -969,7 +969,7 @@
     </div>
 
     <!-- Modal hỗ trợ lưu ảnh QR cho điện thoại -->
-    <div id="mobileQrSaveModal" class="hidden fixed inset-0 z-[320] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+    <div id="mobileQrSaveModal" data-allow-screenshot="true" class="hidden fixed inset-0 z-[320] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl p-4 max-w-xs w-full text-center shadow-2xl relative animate-scale-up">
             <button type="button" onclick="document.getElementById('mobileQrSaveModal').classList.add('hidden')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center text-sm cursor-pointer">
                 <i class="fa-solid fa-times"></i>
@@ -987,6 +987,21 @@
             <button type="button" onclick="document.getElementById('mobileQrSaveModal').classList.add('hidden')" class="mt-3 w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer">
                 Đã lưu xong / Đóng
             </button>
+        </div>
+    </div>
+
+    <!-- Modal xem thử tài liệu / sách -->
+    <div id="previewModal" class="hidden fixed inset-0 z-[330] bg-black/80 backdrop-blur-sm flex flex-col justify-center items-center p-2 sm:p-4">
+        <div class="relative w-full max-w-4xl h-[90vh] bg-white rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center px-4 py-3 bg-gray-900 text-white">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-orange-400"></i> Đọc thử tài liệu / mục lục sách
+                </h3>
+                <button onclick="window.closePreviewModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <iframe id="previewIframe" src="" class="w-full flex-1 border-0" allow="autoplay"></iframe>
         </div>
     </div>
 
@@ -1493,6 +1508,41 @@
             } catch(e){ console.error(e); }
         }
 
+        // Helper kiểm tra đề thi mẫu cho phép làm thử
+        function getPreviewExamInfo(c) {
+            if (!c) return null;
+            if (c.sampleExamId) {
+                return { id: c.sampleExamId, title: c.sampleExamTitle || 'Đề thi mẫu miễn phí' };
+            }
+            if (Array.isArray(c.curriculum)) {
+                for (const ch of c.curriculum) {
+                    if (Array.isArray(ch.lessons)) {
+                        for (const les of ch.lessons) {
+                            if (Array.isArray(les.items)) {
+                                for (const it of les.items) {
+                                    if (it.isPreview && (it.type === 'quiz' || it.quizId || it.examId)) {
+                                        return {
+                                            id: it.quizId || it.examId || it.id,
+                                            title: it.title || 'Đề thi thử miễn phí'
+                                        };
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        window.openTrialExam = (examId, courseId) => {
+            if (!examId) {
+                window.showNotification("Khóa học/Gói đề này chưa thiết lập đề thi thử mẫu!", "info");
+                return;
+            }
+            window.location.href = `exam.html?id=${encodeURIComponent(examId)}${courseId ? `&courseId=${encodeURIComponent(courseId)}` : ''}&trial=1`;
+        };
+
         function renderMarketUI() {
             const container = document.getElementById('marketList');
             if(!container) return;
@@ -1500,7 +1550,7 @@
             const mode = window.viewState.market;
 
             if (data.length === 0) {
-                container.innerHTML = '<div class="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-gray-300"><p class="text-gray-500 font-bold">Hiện tại chưa có khóa học nào được mở bán.</p></div>';
+                container.innerHTML = '<div class="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700"><p class="text-gray-500 dark:text-gray-400 font-bold">Hiện tại chưa có khóa học nào được mở bán.</p></div>';
                 return;
             }
 
@@ -1544,73 +1594,119 @@
 
                 // --- KIỂM TRA TRẠNG THÁI SỞ HỮU & BÁN HẾT ĐỂ HIỂN THỊ NÚT ---
                 const isSoldOut = (x.status === 'sold_out' || x.isSoldOut === true);
+                const isPurchased = purchasedCourseIds.has(x.id);
+                const isBookType = (x.type === 'document_hard' || x.type === 'book');
+                const isExamPack = (x.type === 'exam_pack');
+                const previewExam = getPreviewExamInfo(x);
+
                 let actionBtn = '';
-                if (purchasedCourseIds.has(x.id)) {
-                    actionBtn = `<button onclick="window.location.href='course-player.html?id=${x.id}'" class="bg-green-600 text-white text-xs px-4 py-2 rounded-lg font-bold hover:bg-green-700 transition-colors shadow-green-200 shadow-md whitespace-nowrap flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Đã đăng ký</button>`;
+                if (isPurchased) {
+                    actionBtn = `<button onclick="window.location.href='course-player.html?id=${x.id}'" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3.5 py-2 rounded-lg font-bold transition-colors shadow-green-200 shadow-md whitespace-nowrap flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-circle-check"></i> Đã đăng ký</button>`;
                 } else if (isSoldOut) {
-                    actionBtn = `<button disabled class="bg-gray-200 text-gray-500 text-xs px-4 py-2 rounded-lg font-bold cursor-not-allowed whitespace-nowrap shadow-none"><i class="fa-solid fa-ban mr-1"></i> Bán hết</button>`;
+                    actionBtn = `<button disabled class="bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs px-3.5 py-2 rounded-lg font-bold cursor-not-allowed whitespace-nowrap shadow-none"><i class="fa-solid fa-ban mr-1"></i> Bán hết</button>`;
                 } else {
-                    actionBtn = `<button onclick="window.openPaymentModal('${x.id}')" class="bg-brand text-white text-xs px-4 py-2 rounded-lg font-bold hover:bg-primary-700 transition-colors whitespace-nowrap shadow-md">Đăng ký ngay</button>`;
+                    actionBtn = `<button onclick="window.openPaymentModal('${x.id}')" class="bg-brand text-white text-xs px-3.5 py-2 rounded-lg font-bold hover:bg-primary-700 transition-colors whitespace-nowrap shadow-md cursor-pointer flex items-center gap-1"><i class="fa-solid fa-cart-shopping text-[11px]"></i> Đăng ký ngay</button>`;
                 }
+
+                const trialBtn = (previewExam && !isPurchased) ? `
+                    <button onclick="window.openTrialExam('${previewExam.id}', '${x.id}')" class="bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white border border-purple-200 text-xs px-2.5 py-2 rounded-lg font-bold transition-all shadow-2xs whitespace-nowrap flex items-center gap-1 cursor-pointer" title="Làm thử đề mẫu miễn phí">
+                        <i class="fa-solid fa-pen-ruler text-[11px]"></i> Thi thử
+                    </button>
+                ` : '';
+
+                const previewDocBtn = (x.previewLink) ? `
+                    <button onclick="window.openPreviewModal('${x.previewLink}')" class="bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white border border-amber-200 text-xs px-2.5 py-2 rounded-lg font-bold transition-all shadow-2xs whitespace-nowrap flex items-center gap-1 cursor-pointer" title="Đọc thử mục lục">
+                        <i class="fa-solid fa-book-open text-[11px]"></i> Đọc thử
+                    </button>
+                ` : '';
 
                 const soldBadgeHtml = isSoldOut ? `<span class="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm uppercase z-20 flex items-center gap-1"><i class="fa-solid fa-ban"></i> Bán hết</span>` : '';
 
-                const isBookType = (x.type === 'document_hard' || x.type === 'book');
+                let badgeHtml = '';
+                if (x.tag) {
+                    badgeHtml = `<span class="absolute top-3 left-3 bg-accent text-white text-[10px] font-black px-2.5 py-1 rounded shadow-sm uppercase z-20">${x.tag}</span>`;
+                } else if (isExamPack) {
+                    badgeHtml = `<span class="absolute top-3 left-3 bg-purple-600 text-white text-[10px] font-black px-2.5 py-1 rounded shadow-sm uppercase z-20"><i class="fa-solid fa-file-signature mr-1"></i>Gói Đề Thi</span>`;
+                } else if (isBookType) {
+                    badgeHtml = `<span class="absolute top-3 left-3 bg-accent text-white text-[10px] font-black px-2.5 py-1 rounded shadow-sm uppercase z-20">Sách</span>`;
+                } else if (x.type === 'document_soft') {
+                    badgeHtml = `<span class="absolute top-3 left-3 bg-blue-600 text-white text-[10px] font-black px-2.5 py-1 rounded shadow-sm uppercase z-20">Tài liệu số</span>`;
+                } else {
+                    badgeHtml = `<span class="absolute top-3 left-3 bg-accent text-white text-[10px] font-black px-2.5 py-1 rounded shadow-sm uppercase z-20">Khóa học</span>`;
+                }
+
+                let badgeHtmlList = '';
+                if (x.tag) {
+                    badgeHtmlList = `<span class="absolute top-2 left-2 bg-accent text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase z-20">${x.tag}</span>`;
+                } else if (isExamPack) {
+                    badgeHtmlList = `<span class="absolute top-2 left-2 bg-purple-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase z-20">Gói Đề Thi</span>`;
+                } else if (isBookType) {
+                    badgeHtmlList = `<span class="absolute top-2 left-2 bg-accent text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase z-20">Sách</span>`;
+                } else {
+                    badgeHtmlList = `<span class="absolute top-2 left-2 bg-accent text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase z-20">Khóa học</span>`;
+                }
+
                 const thumbContainerGrid = isBookType ? `
                     <div class="h-40 bg-slate-900 relative overflow-hidden shrink-0 flex items-center justify-center p-2 select-none">
                         ${soldBadgeHtml}
-                        <!-- Nền mờ nghệ thuật chuẩn theo tỉ lệ cài đặt khóa học (Ảnh 2) -->
                         <div class="absolute inset-0 overflow-hidden pointer-events-none select-none">
                             <img src="${thumb}" alt="" aria-hidden="true" class="w-full h-full object-cover pointer-events-none select-none" style="filter: blur(8px) brightness(0.85); transform: scale(1.15);">
                         </div>
                         <img src="${thumb}" loading="lazy" decoding="async" class="relative max-h-full max-w-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-300 z-10" style="filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">
-                        <span class="absolute top-3 left-3 bg-accent text-white text-[10px] font-black px-2.5 py-1 rounded shadow-sm uppercase z-20">${x.tag||'Sách'}</span>
+                        ${badgeHtml}
                     </div>
                 ` : `
-                    <div class="h-40 bg-gray-100 relative overflow-hidden shrink-0">
+                    <div class="h-40 bg-gray-100 dark:bg-gray-700 relative overflow-hidden shrink-0">
                         ${soldBadgeHtml}
                         <img src="${thumb}" loading="lazy" decoding="async" class="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500">
-                        <span class="absolute top-3 left-3 bg-accent text-white text-[10px] font-black px-2.5 py-1 rounded shadow-sm uppercase z-20">${x.tag||'Khóa học'}</span>
+                        ${badgeHtml}
                     </div>
                 `;
 
                 const thumbContainerList = isBookType ? `
-                    <div class="w-28 h-20 md:w-36 md:h-24 bg-slate-900 rounded-lg overflow-hidden shrink-0 relative flex items-center justify-center p-1 border border-gray-100 select-none">
-                        <!-- Nền mờ nghệ thuật chuẩn theo tỉ lệ cài đặt khóa học (Ảnh 2) -->
+                    <div class="w-28 h-20 md:w-36 md:h-24 bg-slate-900 rounded-lg overflow-hidden shrink-0 relative flex items-center justify-center p-1 border border-gray-100 dark:border-gray-700 select-none">
                         <div class="absolute inset-0 overflow-hidden pointer-events-none select-none">
                             <img src="${thumb}" alt="" aria-hidden="true" class="w-full h-full object-cover pointer-events-none select-none" style="filter: blur(6px) brightness(0.85); transform: scale(1.15);">
                         </div>
                         <img src="${thumb}" loading="lazy" decoding="async" class="relative max-h-full max-w-full object-contain rounded group-hover:scale-105 transition-transform duration-300 z-10" style="filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35));">
-                        <span class="absolute top-2 left-2 bg-accent text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase z-20">${x.tag||'Sách'}</span>
+                        ${badgeHtmlList}
                     </div>
                 ` : `
-                    <div class="w-28 h-20 md:w-36 md:h-24 bg-gray-100 rounded-lg overflow-hidden shrink-0 relative">
+                    <div class="w-28 h-20 md:w-36 md:h-24 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden shrink-0 relative">
                         <img src="${thumb}" loading="lazy" decoding="async" class="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500">
-                        <span class="absolute top-2 left-2 bg-accent text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase z-20">${x.tag||'Khóa học'}</span>
+                        ${badgeHtmlList}
                     </div>
                 `;
 
                 if (mode === 'grid') {
                     html += `
-                    <div class="bg-white rounded-2xl shadow-sm border border-primary-50 hover:shadow-lg hover:border-primary-200 transition-all group overflow-hidden flex flex-col h-full">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-primary-50 dark:border-gray-700 hover:shadow-lg hover:border-primary-200 transition-all group overflow-hidden flex flex-col h-full">
                         ${thumbContainerGrid}
                         <div class="p-3 md:p-5 flex flex-col flex-1">
-                            <h4 class="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[3rem] group-hover:text-brand transition-colors">${x.title}</h4>
-                            <div class="mt-auto flex justify-between items-center pt-4 border-t border-dashed border-gray-100">
+                            <h4 class="font-bold text-gray-800 dark:text-gray-100 mb-2 line-clamp-2 min-h-[3rem] group-hover:text-brand transition-colors">${x.title}</h4>
+                            <div class="mt-auto flex flex-wrap justify-between items-center pt-4 border-t border-dashed border-gray-100 dark:border-gray-700 gap-2">
                                 ${priceHtmlGrid}
-                                ${actionBtn}
+                                <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                                    ${previewDocBtn}
+                                    ${trialBtn}
+                                    ${actionBtn}
+                                </div>
                             </div>
                         </div>
                     </div>`;
                 } else {
                     html += `
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-primary-50 hover:shadow-md hover:border-primary-200 transition-all group flex gap-4 items-center">
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm border border-primary-50 dark:border-gray-700 hover:shadow-md hover:border-primary-200 transition-all group flex gap-4 items-center">
                         ${thumbContainerList}
                         <div class="flex-1 min-w-0 py-1">
-                            <h4 class="font-bold text-gray-800 text-sm md:text-lg mb-1 md:mb-2 line-clamp-2 group-hover:text-brand transition-colors">${x.title}</h4>
+                            <h4 class="font-bold text-gray-800 dark:text-gray-100 text-sm md:text-lg mb-1 md:mb-2 line-clamp-2 group-hover:text-brand transition-colors">${x.title}</h4>
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 mt-2">
                                 ${priceHtmlList}
-                                <div class="flex justify-end">${actionBtn}</div>
+                                <div class="flex justify-end items-center gap-1.5 flex-wrap">
+                                    ${previewDocBtn}
+                                    ${trialBtn}
+                                    ${actionBtn}
+                                </div>
                             </div>
                         </div>
                     </div>`;
@@ -2939,84 +3035,279 @@
             container.innerHTML = html;
         }
 
-        // --- PAYMENT & VOUCHER ---
+        // --- PAYMENT & VOUCHER UNIFIED SYSTEM (2-STEP, SHIPPING, QUANTITY & EXAM PACK SUPPORT) ---
         const paymentModalHTML = `
-            <div id="paymentModal" class="modal hidden fixed inset-0 z-[100] bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-300">
-                <div class="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
-                    <div class="w-full md:w-5/12 bg-gray-50 p-8 border-r border-gray-200 flex flex-col overflow-y-auto">
-                        <h3 class="font-black text-gray-800 text-xl mb-6 uppercase tracking-wider flex items-center gap-2">
-                            <i class="fa-solid fa-receipt text-brand"></i> Chi tiết đơn hàng
-                        </h3>
-                        <div class="bg-white p-3 md:p-5 rounded-2xl shadow-sm border border-gray-200 mb-4">
-                            <div class="flex items-start gap-4 mb-4">
-                                <div class="w-16 h-16 bg-gray-100 rounded-lg shrink-0 overflow-hidden"><img id="payCourseImg" class="w-full h-full object-cover"></div>
-                                <div><span class="text-[10px] font-bold bg-primary-100 text-primary-700 px-2 py-0.5 rounded uppercase">Khóa học</span><h4 id="payCourseTitle" class="font-bold text-gray-800 line-clamp-2 mt-1">...</h4></div>
-                            </div>
-                            <div class="space-y-2 text-xs text-gray-500 border-t border-dashed border-gray-200 pt-3">
-                                <div class="flex justify-between"><span>Mã đơn:</span> <span id="payOrderId" class="font-mono font-bold text-gray-700">...</span></div>
-                                <div class="flex justify-between"><span>Ngày tạo:</span> <span id="payDate" class="font-bold text-gray-700">...</span></div>
-                                <div class="flex justify-between"><span>Thời hạn:</span> <span class="font-bold text-blue-600">Vĩnh viễn</span></div>
-                            </div>
-                        </div>
-                        <div class="mt-auto">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Mã giảm giá (Voucher)</label>
-                            <div class="flex gap-2 mb-2">
-                                <input type="text" id="voucherInput" placeholder="Nhập mã (VD: CHAO2025)" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-primary-500 outline-none uppercase font-bold text-gray-700">
-                                <button onclick="window.applyVoucher()" class="px-4 py-2 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-gray-700 transition-colors">Áp dụng</button>
-                            </div>
-                            <div id="voucherMessage" class="hidden mb-3 text-xs font-bold"></div>
-                            <div class="flex justify-between items-center text-sm text-gray-500 mb-1"><span>Tạm tính:</span><span id="payOriginalPrice">0đ</span></div>
-                            <div class="flex justify-between items-center text-sm text-green-600 mb-3 font-bold"><span>Giảm giá:</span><span id="payDiscountAmount">-0đ</span></div>
-                            <div class="border-t border-gray-200 pt-3 flex justify-between items-center"><span class="font-bold text-gray-800">TỔNG CẦN TRẢ</span><span id="payFinalPrice" class="text-2xl font-black text-orange-600">0đ</span></div>
+            <div id="paymentModal" data-allow-screenshot="true" class="modal opacity-0 pointer-events-none hidden fixed inset-0 z-[100] bg-gray-50 dark:bg-gray-900 flex flex-col transition-all duration-300 overflow-y-auto">
+                <!-- Header Modal -->
+                <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sm:px-6 flex justify-between items-center sticky top-0 z-20 shadow-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shadow-xs"><i class="fa-solid fa-lock"></i></span>
+                        <div>
+                            <h2 class="font-black text-gray-800 dark:text-gray-100 text-sm sm:text-base leading-tight">Đăng ký & Thanh toán an toàn</h2>
+                            <p class="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Thông tin được bảo mật tuyệt đối</p>
                         </div>
                     </div>
-                    <div class="w-full md:w-7/12 p-8 relative flex flex-col items-center bg-white justify-center text-center">
-                        <button onclick="document.getElementById('paymentModal').classList.add('hidden')" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
-                        <div id="stepReview" class="flex flex-col items-center justify-center w-full h-full">
-                            <div class="w-20 h-20 bg-primary-50 rounded-full flex items-center justify-center mb-4 animate-bounce"><i class="fa-solid fa-wallet text-4xl text-primary-600"></i></div>
-                            <h3 class="font-bold text-xl text-gray-800 mb-2">Xác nhận thanh toán</h3>
-                            <p class="text-gray-500 text-sm mb-6 max-w-xs">Vui lòng kiểm tra kỹ số tiền sau khi áp mã giảm giá trước khi tạo mã QR.</p>
-                            <button onclick="window.generatePaymentQR()" class="px-8 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold rounded-xl shadow-lg hover:shadow-primary-200 hover:-translate-y-0.5 transition-all flex items-center gap-2">Tiếp tục thanh toán <i class="fa-solid fa-arrow-right"></i></button>
+                    <button onclick="window.closePaymentModal()" class="text-gray-400 hover:text-red-500 flex items-center gap-1.5 font-bold text-xs sm:text-sm px-2.5 py-1.5 sm:px-4 sm:py-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all cursor-pointer">
+                        <span>Đóng</span> <i class="fa-solid fa-times text-base sm:text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Thanh tiến trình 2 Bước (Step Progress Indicator) -->
+                <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 sm:px-6 shadow-2xs sticky top-[53px] sm:top-[65px] z-10">
+                    <div class="max-w-xl mx-auto flex items-center justify-between text-xs sm:text-sm">
+                        <!-- Bước 1 -->
+                        <div id="stepIndicator1" class="flex items-center gap-2 font-black text-blue-600 transition-colors">
+                            <span id="stepBadge1" class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shadow-xs">1</span>
+                            <span>1. Chọn số lượng & Thông tin</span>
                         </div>
-                        <div id="stepQR" class="hidden w-full flex-col items-center animate-fade-in">
-                            <div class="text-center mb-4"><h3 class="font-black text-2xl text-primary-700 mb-1">Quét mã VietQR</h3><p class="text-gray-500 text-sm">Sử dụng App ngân hàng để quét</p></div>
-                            <div class="relative w-64 h-64 bg-white p-2 rounded-xl shadow-xl border-4 border-primary-50 mb-3 group mx-auto">
-                                <img id="vietQrImage" class="w-full h-full object-contain rounded-lg">
-                                <div id="qrLoading" class="absolute inset-0 bg-white flex flex-col items-center justify-center rounded-lg z-10"><div class="dashed-loader mb-2"></div><span class="text-xs font-bold text-primary-600">Đang tạo QR...</span></div>
+                        <div class="flex-1 mx-3 h-1 bg-gray-200 dark:bg-gray-700 rounded-full relative overflow-hidden">
+                            <div id="stepProgressLine" class="h-full bg-gradient-to-r from-blue-600 to-green-500 w-0 transition-all duration-300 rounded-full"></div>
+                        </div>
+                        <!-- Bước 2 -->
+                        <div id="stepIndicator2" class="flex items-center gap-2 font-semibold text-gray-400 dark:text-gray-500 transition-colors">
+                            <span id="stepBadge2" class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs font-black">2</span>
+                            <span>2. Thanh toán VietQR</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 max-w-7xl mx-auto w-full p-3 sm:p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+                    <!-- ── CỘT TRÁI ── -->
+                    <div class="lg:col-span-7 space-y-4 sm:space-y-5">
+                        <!-- Mô tả sách (chỉ hiện khi là sách) -->
+                        <div id="bookDescCard" class="hidden rounded-2xl overflow-hidden shadow-sm border border-amber-200 dark:border-amber-700/60 bg-white dark:bg-gray-800">
+                            <div style="background: linear-gradient(135deg, #d97706 0%, #ea580c 50%, #e11d48 100%);" class="p-3.5 sm:p-5 flex gap-3 sm:gap-4 items-center">
+                                <img id="payCourseImg" src="" class="w-16 h-20 sm:w-20 sm:h-24 object-cover rounded-xl border-2 border-white shadow-md shrink-0 bg-white">
+                                <div class="text-white min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
+                                        <span id="payCourseTag" style="background: rgba(255,255,255,0.25);" class="inline-block text-[9px] sm:text-[10px] font-black text-white px-2 py-0.5 rounded-full uppercase tracking-wide">SÁCH</span>
+                                        <span class="text-[10px] sm:text-[11px] text-amber-100 font-medium">Bản in chất lượng cao</span>
+                                    </div>
+                                    <h4 id="payCourseTitle" class="font-black text-base sm:text-xl leading-snug sm:leading-tight line-clamp-2 text-white" style="text-shadow: 0 1px 2px rgba(0,0,0,0.2);">...</h4>
+                                    <div id="payBookPreviewBtnWrap" class="mt-1.5 sm:mt-2 hidden">
+                                        <button type="button" id="btnBookPreviewInModal" style="background: rgba(255,255,255,0.25);" class="inline-flex items-center gap-1 px-2.5 py-1 hover:bg-white text-white hover:text-orange-600 text-[11px] sm:text-xs font-bold rounded-lg transition-all shadow-sm cursor-pointer">
+                                            <i class="fa-solid fa-book-open"></i> Đọc thử mục lục
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="w-full max-w-sm mx-auto">
-                                <div class="mb-2 flex justify-center">
-                                    <button type="button" id="btnDownloadQr" onclick="window.downloadQrCode()" class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-md text-[10px] font-bold shadow-2xs active:scale-95 transition-all cursor-pointer" title="Lưu mã QR vào thư viện ảnh">
-                                        <i class="fa-solid fa-download text-[9px]"></i> Tải ảnh QR
+                            <div class="p-3.5 sm:p-5 space-y-2.5 sm:space-y-3">
+                                <div>
+                                    <p class="text-xs font-black text-amber-800 dark:text-amber-400 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-circle-info text-amber-600"></i> Giới thiệu & Mô tả cuốn sách
+                                    </p>
+                                    <div id="payBookDesc" class="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line bg-amber-50/50 dark:bg-amber-950/20 p-3 sm:p-3.5 rounded-xl border border-amber-100 dark:border-amber-800/40"></div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-1.5 sm:gap-2 pt-1 border-t border-gray-100 dark:border-gray-700 text-center">
+                                    <div class="bg-gray-50 dark:bg-gray-750 p-1.5 sm:p-2 rounded-lg"><i class="fa-solid fa-truck-fast text-amber-600 text-xs sm:text-sm mb-0.5 sm:mb-1 block"></i><span class="text-[10px] sm:text-[11px] font-bold text-gray-700 dark:text-gray-200 block">Giao nhanh</span><span class="text-[9px] sm:text-[10px] text-gray-400">Toàn quốc</span></div>
+                                    <div class="bg-gray-50 dark:bg-gray-750 p-1.5 sm:p-2 rounded-lg"><i class="fa-solid fa-box-open text-blue-600 text-xs sm:text-sm mb-0.5 sm:mb-1 block"></i><span class="text-[10px] sm:text-[11px] font-bold text-gray-700 dark:text-gray-200 block">Đồng kiểm</span><span class="text-[9px] sm:text-[10px] text-gray-400">Xem khi nhận</span></div>
+                                    <div class="bg-gray-50 dark:bg-gray-750 p-1.5 sm:p-2 rounded-lg"><i class="fa-solid fa-shield-halved text-green-600 text-xs sm:text-sm mb-0.5 sm:mb-1 block"></i><span class="text-[10px] sm:text-[11px] font-bold text-gray-700 dark:text-gray-200 block">Chính hãng</span><span class="text-[9px] sm:text-[10px] text-gray-400">Từ QMath</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card sản phẩm khóa học/gói đề (hiện khi không phải sách) -->
+                        <div id="courseProductCard" class="hidden bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-3.5 sm:p-4 flex gap-3 sm:gap-4 items-center">
+                            <img id="payCourseImgCourse" src="" class="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shrink-0">
+                            <div>
+                                <div id="payCourseTagCourse" class="inline-block text-[10px] font-bold bg-teal-100 text-teal-700 px-2 py-0.5 rounded mb-1">KHÓA HỌC</div>
+                                <h4 id="payCourseTitleCourse" class="font-bold text-gray-800 dark:text-gray-100 text-sm sm:text-base line-clamp-2">...</h4>
+                            </div>
+                        </div>
+
+                        <!-- Banner thông báo khi ở Bước 2 -->
+                        <div id="step2LeftBanner" class="hidden p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 items-center justify-between gap-2 shadow-2xs">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check text-amber-600 text-sm"></i>
+                                <span>Thông tin nhận hàng đã được chốt cho đơn này. Nếu muốn sửa lại, bấm:</span>
+                            </div>
+                            <button type="button" onclick="window.backToStep1()" class="px-2.5 py-1 bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 hover:bg-amber-100 text-amber-900 dark:text-amber-300 font-bold rounded-lg text-xs transition-colors shrink-0 cursor-pointer shadow-2xs">
+                                <i class="fa-solid fa-pen-to-square"></i> Sửa lại
+                            </button>
+                        </div>
+
+                        <!-- Thông tin nhận hàng (compact) -->
+                        <div id="checkoutFormCard" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-5">
+                            <h3 class="font-bold text-gray-800 dark:text-gray-100 mb-3 sm:mb-4 border-b border-gray-100 dark:border-gray-700 pb-2 flex items-center gap-2 text-xs sm:text-sm">
+                                <i class="fa-solid fa-user-circle text-blue-600"></i> Thông tin nhận hàng
+                            </h3>
+                            <div id="dynamicCheckoutFields" class="flex flex-col gap-3 w-full"></div>
+                        </div>
+                    </div>
+
+                    <!-- ── CỘT PHẢI ── -->
+                    <div class="lg:col-span-5 space-y-4">
+                        <div class="lg:sticky lg:top-24 space-y-4">
+                            <!-- Tóm tắt đơn hàng & QR (Thu gọn tinh gọn) -->
+                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4">
+                                <h3 class="font-bold text-gray-800 dark:text-gray-100 mb-2.5 uppercase tracking-wide text-xs flex items-center justify-between">
+                                    <span>Đơn hàng của bạn</span>
+                                    <span id="paySummaryTag" class="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase">SÁCH</span>
+                                </h3>
+
+                                <!-- Mini tóm tắt sản phẩm -->
+                                <div class="flex items-center gap-2.5 mb-2.5 pb-2.5 border-b border-gray-100 dark:border-gray-700">
+                                    <img id="paySummaryImg" src="" class="w-12 h-12 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shrink-0">
+                                    <div class="min-w-0 flex-1">
+                                        <h4 id="paySummaryTitle" class="font-bold text-gray-800 dark:text-gray-100 text-xs sm:text-sm line-clamp-2 leading-snug">...</h4>
+                                        <div id="paySummaryUnitPrice" class="text-xs text-orange-600 dark:text-orange-400 font-bold mt-0.5">...</div>
+                                    </div>
+                                </div>
+
+                                <!-- Bộ chọn số lượng (Quantity Selector) -->
+                                <div id="payQuantityRow" class="flex items-center justify-between py-2 border-y border-gray-100 dark:border-gray-700 my-2">
+                                    <div class="flex flex-col">
+                                        <span class="text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200">Số lượng mua</span>
+                                        <span class="text-[10px] text-gray-400">Chọn số cuốn sách</span>
+                                    </div>
+                                    <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-700 shadow-2xs">
+                                        <button type="button" id="btnQtyMinus" onclick="window.changeOrderQty(-1)" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold transition-colors cursor-pointer text-sm active:scale-90">-</button>
+                                        <input type="number" id="payOrderQtyInput" min="1" max="99" value="1" onchange="window.setOrderQty(this.value)" class="w-12 h-8 text-center font-black text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-800 border-x border-gray-200 dark:border-gray-600 outline-none">
+                                        <button type="button" id="btnQtyPlus" onclick="window.changeOrderQty(1)" class="w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold transition-colors cursor-pointer text-sm active:scale-90">+</button>
+                                    </div>
+                                </div>
+
+                                <!-- Ô nhập mã voucher ưu đãi -->
+                                <div class="my-2.5 p-2.5 bg-orange-50/60 dark:bg-orange-950/20 border border-dashed border-orange-200 dark:border-orange-800/50 rounded-xl text-left">
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <label class="text-xs font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                                            <i class="fa-solid fa-ticket text-orange-500"></i> Mã ưu đãi / Voucher
+                                        </label>
+                                        <span id="voucherAppliedBadge" class="hidden text-[10px] font-black text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded-full border border-green-200 dark:border-green-800 items-center gap-1">
+                                            <i class="fa-solid fa-check"></i> Đã áp dụng
+                                        </span>
+                                    </div>
+                                    <div class="flex gap-1.5">
+                                        <input type="text" id="payVoucherCode" placeholder="Nhập mã giảm giá..." class="flex-1 px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs uppercase font-black tracking-wider outline-none focus:border-orange-500 text-gray-800 dark:text-gray-100 transition-all">
+                                        <button type="button" id="btnApplyVoucher" onclick="window.applyVoucher()" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold text-xs rounded-lg shadow-sm transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-1">
+                                            Áp dụng
+                                        </button>
+                                        <button type="button" id="btnRemoveVoucher" onclick="window.removeVoucher()" class="hidden px-2.5 py-1.5 bg-white dark:bg-gray-700 hover:bg-red-50 text-gray-400 hover:text-red-500 font-bold text-xs rounded-lg border border-gray-200 dark:border-gray-600 transition-all cursor-pointer" title="Hủy mã">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                    <p id="voucherFeedbackMsg" class="hidden text-[11px] mt-1 leading-tight font-medium"></p>
+                                </div>
+
+                                <div class="space-y-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-3">
+                                    <div class="flex justify-between">
+                                        <span>Giá sản phẩm (<span id="payQtyLabel">1 cuốn</span>):</span>
+                                        <span id="payOriginalPrice" class="font-bold text-gray-700 dark:text-gray-200">0đ</span>
+                                    </div>
+                                    <div id="payDiscountRow" class="hidden justify-between text-green-600 dark:text-green-400 font-bold">
+                                        <span id="payDiscountLabel">Tiết kiệm:</span>
+                                        <span id="payDiscount">-0đ</span>
+                                    </div>
+                                    <div id="payShipRow" class="hidden justify-between text-gray-600 dark:text-gray-400">
+                                        <span>Phí vận chuyển:</span>
+                                        <span id="payShipFee" class="font-semibold text-gray-700 dark:text-gray-200">30.000đ</span>
+                                    </div>
+                                    <div class="flex justify-between text-base sm:text-lg font-black text-gray-900 dark:text-white border-t border-dashed border-gray-200 dark:border-gray-700 pt-2 mt-1">
+                                        <span>TỔNG CỘNG:</span>
+                                        <span id="payFinalPrice" class="text-orange-600 dark:text-orange-400">0đ</span>
+                                    </div>
+                                </div>
+
+                                <!-- ── BƯỚC 1: KHỐI NÚT TIẾP TỤC ĐẾN BƯỚC THANH TOÁN ── -->
+                                <div id="checkoutStep1Box" class="space-y-3">
+                                    <button type="button" id="btnProceedToPay" onclick="window.proceedToPaymentStep()" class="w-full py-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-black text-sm sm:text-base rounded-xl shadow-lg hover:shadow-blue-300 hover:scale-[1.01] active:scale-95 transition-all transform flex items-center justify-center gap-2 cursor-pointer">
+                                        <span>TIẾP TỤC ĐẾN BƯỚC THANH TOÁN</span>
+                                        <i class="fa-solid fa-arrow-right"></i>
                                     </button>
                                 </div>
-                                <div class="bg-blue-50/70 p-2.5 rounded-xl border border-blue-100 text-xs space-y-1.5 mb-3 text-left">
-                                    <div class="flex justify-between items-center gap-1">
-                                        <div class="flex items-center gap-1 min-w-0">
-                                            <span class="text-gray-500 text-[10px] sm:text-[11px] shrink-0">Ngân hàng:</span>
-                                            <b class="text-blue-900 text-[10px] sm:text-[11px] font-bold truncate" id="bankNameDisplay">...</b>
+
+                                <!-- ── BƯỚC 2: KHỐI QR VÀ THÔNG TIN THANH TOÁN ── -->
+                                <div id="checkoutStep2Box" class="hidden space-y-3">
+                                    <div class="bg-gray-50 dark:bg-gray-750 p-2.5 sm:p-3 rounded-xl border border-gray-200 dark:border-gray-700 text-center relative overflow-hidden">
+                                        <div id="step2SummaryBox" class="mb-2 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-left text-xs space-y-1">
+                                            <div class="text-[10px] uppercase font-bold text-gray-400">Người nhận & đơn hàng:</div>
+                                            <div id="recipientSummaryText" class="font-medium text-gray-800 dark:text-gray-100 text-[11px] leading-snug">...</div>
+                                            <div id="recipientQuantityText" class="text-[11px] text-amber-700 dark:text-amber-400 font-bold">...</div>
                                         </div>
-                                        <button type="button" onclick="window.copyPaymentField('bankNameDisplay', 'Tên ngân hàng')" class="text-[9px] sm:text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-50 shadow-2xs cursor-pointer shrink-0">Copy</button>
-                                    </div>
-                                    <div class="flex justify-between items-center gap-1">
-                                        <div class="flex items-center gap-1 min-w-0">
-                                            <span class="text-gray-500 text-[10px] sm:text-[11px] shrink-0">Số tài khoản:</span>
-                                            <b class="text-blue-700 font-mono text-[11px] sm:text-xs font-black tracking-wide truncate" id="accountNoDisplay">...</b>
-                                            <span class="text-gray-400 text-[9px] sm:text-[10px] truncate hidden sm:inline" id="accountOwnerDisplay"></span>
+
+                                        <!-- Lớp phủ khi mã QR hết hạn -->
+                                        <div id="qrExpiredOverlay" class="hidden absolute inset-0 bg-white/95 dark:bg-gray-900/95 z-20 flex flex-col items-center justify-center p-4">
+                                            <i class="fa-solid fa-clock-rotate-left text-4xl text-amber-500 mb-2"></i>
+                                            <h4 class="font-black text-sm text-gray-800 dark:text-gray-100 mb-1">Mã QR đã hết hạn (10 phút)</h4>
+                                            <p class="text-[11px] text-gray-500 dark:text-gray-400 mb-3 text-center">Vui lòng lấy mã mới để tiếp tục chuyển khoản an toàn.</p>
+                                            <button type="button" onclick="window.refreshPaymentCode()" class="px-4 py-2 bg-brand text-white font-bold text-xs rounded-xl shadow hover:bg-primary-700 transition-all flex items-center gap-1.5 cursor-pointer">
+                                                <i class="fa-solid fa-rotate-right"></i> Lấy mã thanh toán mới
+                                            </button>
                                         </div>
-                                        <button type="button" onclick="window.copyPaymentField('accountNoDisplay', 'Số tài khoản')" class="text-[9px] sm:text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-50 shadow-2xs cursor-pointer shrink-0">Copy</button>
-                                    </div>
-                                    <div class="flex justify-between items-center gap-1 pt-1.5 border-t border-blue-200/50">
-                                        <div class="min-w-0 flex-1">
-                                            <div class="text-[9px] sm:text-[10px] uppercase font-bold text-blue-800">Nội dung CK:</div>
-                                            <b class="text-orange-600 font-mono text-[11px] sm:text-xs break-all select-all" id="transferContentDisplay">...</b>
+
+                                        <div class="flex items-center justify-between mb-1.5 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">
+                                            <span>Quét mã QR thanh toán</span>
+                                            <span id="qrTimerBadge" class="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded border border-orange-200 dark:border-orange-800 font-mono text-[11px]">
+                                                <i class="fa-regular fa-clock"></i> <span id="qrCountdownText">10:00</span>
+                                            </span>
                                         </div>
-                                        <button type="button" onclick="window.copyPaymentField('transferContentDisplay', 'Nội dung')" class="text-[9px] sm:text-[10px] font-bold text-orange-600 hover:text-orange-800 bg-white px-2 py-0.5 rounded border border-orange-200 hover:bg-orange-50 shadow-2xs cursor-pointer shrink-0">Copy</button>
+
+                                        <div class="relative w-36 mx-auto bg-white p-1.5 rounded-lg shadow-sm border border-gray-100">
+                                            <img id="vietQrImage" src="" class="w-full h-full object-contain" alt="QR Code">
+                                            <div id="qrLoading" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
+                                                <i class="fa-solid fa-spinner fa-spin text-xl text-blue-600 mb-1"></i>
+                                                <span class="text-[9px] font-bold text-gray-400">Đang tạo QR...</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-[9px] text-gray-400 mt-1 italic">Mở app ngân hàng > Quét QR</p>
+
+                                        <!-- Nút tải mã QR về máy (gọn nhẹ, chữ bé) -->
+                                        <div class="mt-1.5 flex justify-center">
+                                            <button type="button" id="btnDownloadQr" onclick="window.downloadQrCode()" class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-md text-[10px] font-bold shadow-2xs active:scale-95 transition-all cursor-pointer" title="Lưu mã QR vào thư viện ảnh">
+                                                <i class="fa-solid fa-download text-[9px]"></i> Tải ảnh QR
+                                            </button>
+                                        </div>
+
+                                        <!-- Khối Thông tin chuyển khoản đầy đủ, chữ nhỏ, từng nút copy riêng -->
+                                        <div class="mt-2 p-2 sm:p-2.5 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/50 rounded-xl text-left space-y-1.5">
+                                            <div class="flex items-center justify-between gap-1">
+                                                <div class="flex items-center gap-1 min-w-0">
+                                                    <span class="text-[10px] sm:text-[11px] text-gray-500 shrink-0">Ngân hàng:</span>
+                                                    <b id="bankNameDisplay" class="text-[10px] sm:text-[11px] text-blue-900 dark:text-blue-300 font-bold truncate">...</b>
+                                                </div>
+                                                <button type="button" onclick="window.copyPaymentField('bankNameDisplay', 'Tên ngân hàng')" class="text-[9px] sm:text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-700 active:scale-95 transition-all cursor-pointer shrink-0 shadow-2xs" title="Sao chép tên ngân hàng">
+                                                    <i class="fa-regular fa-copy"></i> Sao chép
+                                                </button>
+                                            </div>
+
+                                            <div class="flex items-center justify-between gap-1">
+                                                <div class="flex items-center gap-1 min-w-0">
+                                                    <span class="text-[10px] sm:text-[11px] text-gray-500 shrink-0">Số tài khoản:</span>
+                                                    <b id="accountNoDisplay" class="text-[11px] sm:text-xs text-blue-700 dark:text-blue-400 font-mono font-black tracking-wide truncate">...</b>
+                                                    <span id="accountOwnerDisplay" class="text-[9px] sm:text-[10px] text-gray-500 truncate hidden sm:inline"></span>
+                                                </div>
+                                                <button type="button" onclick="window.copyPaymentField('accountNoDisplay', 'Số tài khoản')" class="text-[9px] sm:text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-700 active:scale-95 transition-all cursor-pointer shrink-0 shadow-2xs" title="Sao chép số tài khoản">
+                                                    <i class="fa-regular fa-copy"></i> Sao chép
+                                                </button>
+                                            </div>
+
+                                            <div class="pt-1.5 border-t border-blue-100/80 dark:border-blue-800/40 flex items-center justify-between gap-1">
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="text-[9px] sm:text-[10px] uppercase font-black text-blue-800 dark:text-blue-300 flex items-center gap-1">
+                                                        <i class="fa-solid fa-receipt text-blue-600"></i> Nội dung CK (Bắt buộc):
+                                                    </div>
+                                                    <div id="transferContentDisplay" class="font-black text-[11px] sm:text-xs text-orange-600 dark:text-orange-400 font-mono tracking-wider break-all select-all mt-0.5">...</div>
+                                                </div>
+                                                <button type="button" onclick="window.copyPaymentField('transferContentDisplay', 'Nội dung chuyển khoản')" class="text-[9px] sm:text-[10px] font-bold text-orange-600 hover:text-orange-800 flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-0.5 rounded border border-orange-200 dark:border-orange-700 active:scale-95 transition-all cursor-pointer shrink-0 shadow-2xs" title="Sao chép nội dung">
+                                                    <i class="fa-regular fa-copy"></i> Sao chép
+                                                </button>
+                                            </div>
+                                            <p class="text-[9px] text-gray-400 mt-1 italic leading-tight">
+                                                * Quét QR sẽ tự động điền các thông tin trên. Nếu chuyển tay, vui lòng nhập chính xác nội dung này.
+                                            </p>
+                                        </div>
                                     </div>
+
+                                    <button id="btnConfirmPayment" onclick="window.confirmPayment()" class="w-full py-3 sm:py-2.5 bg-gradient-to-r from-blue-600 to-blue-800 text-white font-bold text-sm sm:text-base rounded-xl shadow-md hover:shadow-blue-300 hover:scale-[1.01] active:scale-95 transition-all transform flex items-center justify-center gap-2 cursor-pointer">
+                                        <i class="fa-solid fa-check-circle text-base"></i> XÁC NHẬN ĐÃ CHUYỂN KHOẢN
+                                    </button>
+
+                                    <!-- Nút quay lại bước 1 -->
+                                    <button type="button" id="btnBackToStep1" onclick="window.backToStep1()" class="w-full py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-200 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                                        <i class="fa-solid fa-arrow-left"></i> <span>Quay lại sửa số lượng hoặc thông tin</span>
+                                    </button>
                                 </div>
                             </div>
-                            <button id="btnConfirmPaymentStudent" onclick="window.confirmPayment()" class="w-full max-w-sm py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-check-circle"></i> ĐÃ CHUYỂN KHOẢN XONG</button>
-                            <button onclick="window.resetQrState()" class="mt-3 text-xs text-gray-400 font-bold hover:text-primary-600 underline">Quay lại sửa voucher</button>
                         </div>
                     </div>
                 </div>
@@ -3024,212 +3315,799 @@
         `;
         document.getElementById('paymentModalContainer').innerHTML = paymentModalHTML;
 
-        async function validateVoucher(code, courseId, originalPrice) {
-            try {
-                const q = query(collection(db, "vouchers"), where("code", "==", code));
-                const snap = await getDocs(q);
-                
-                if (!snap.empty) {
-                    const vData = snap.docs[0].data();
-                    const now = new Date();
-                    
-                    if (vData.expiryDate && new Date(vData.expiryDate) < now) throw new Error("Mã giảm giá đã hết hạn sử dụng");
-                    if (vData.limit && vData.used >= vData.limit) throw new Error("Mã giảm giá đã hết lượt sử dụng");
-                    if (vData.scope === 'specific' && vData.courseIds && !vData.courseIds.includes(courseId)) throw new Error("Mã này không áp dụng cho khóa học này");
-                    
-                    // Logic tính toán
-                    let discount = 0;
-                    if (vData.type === 'percent') discount = (originalPrice * vData.value) / 100;
-                    else discount = vData.value;
-                    
-                    if (discount > originalPrice) discount = originalPrice;
-                    
-                    return { discount: discount, finalPrice: originalPrice - discount };
+        let _currentCheckoutStep = 1;
+        let _orderQuantity = 1;
+        let _unitPrice = 0;
+        let _origUnitPrice = 0;
+        let _shipFee = 0;
+        let _appliedVoucher = null;
+        let _voucherDiscount = 0;
+        let _qrCountdownInterval = null;
+
+        // Chuyển đổi giữa 2 Bước thanh toán
+        function setCheckoutStep(step) {
+            _currentCheckoutStep = step;
+            const step1Box = document.getElementById('checkoutStep1Box');
+            const step2Box = document.getElementById('checkoutStep2Box');
+            const leftForm = document.getElementById('checkoutFormCard');
+            const leftBanner = document.getElementById('step2LeftBanner');
+            const stepInd1 = document.getElementById('stepIndicator1');
+            const stepInd2 = document.getElementById('stepIndicator2');
+            const stepBadge1 = document.getElementById('stepBadge1');
+            const stepBadge2 = document.getElementById('stepBadge2');
+            const line = document.getElementById('stepProgressLine');
+            const qtyRow = document.getElementById('payQuantityRow');
+            const isBookType = currentPayingCourse && (currentPayingCourse.type === 'document_hard' || currentPayingCourse.type === 'book');
+
+            if (step === 1) {
+                step1Box?.classList.remove('hidden');
+                step2Box?.classList.add('hidden');
+                leftForm?.classList.remove('hidden');
+                leftBanner?.classList.add('hidden');
+                leftBanner?.classList.remove('flex');
+                if (isBookType) {
+                    qtyRow?.classList.remove('hidden');
+                    qtyRow?.classList.add('flex');
                 }
-            } catch (e) {
-                if (!e.message.includes("không tồn tại")) throw e;
+
+                if (stepInd1) {
+                    stepInd1.className = "flex items-center gap-2 font-black text-blue-600 transition-colors";
+                    stepBadge1.className = "w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shadow-xs";
+                    stepBadge1.innerText = "1";
+                }
+                if (stepInd2) {
+                    stepInd2.className = "flex items-center gap-2 font-semibold text-gray-400 dark:text-gray-500 transition-colors";
+                    stepBadge2.className = "w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs font-black";
+                }
+                if (line) line.style.width = "0%";
+            } else if (step === 2) {
+                step1Box?.classList.add('hidden');
+                step2Box?.classList.remove('hidden');
+                leftForm?.classList.add('hidden');
+                leftBanner?.classList.remove('hidden');
+                leftBanner?.classList.add('flex');
+                qtyRow?.classList.add('hidden');
+                qtyRow?.classList.remove('flex');
+
+                if (stepInd1) {
+                    stepInd1.className = "flex items-center gap-2 font-bold text-green-600 transition-colors";
+                    stepBadge1.className = "w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-black shadow-xs";
+                    stepBadge1.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i>';
+                }
+                if (stepInd2) {
+                    stepInd2.className = "flex items-center gap-2 font-black text-blue-600 transition-colors";
+                    stepBadge2.className = "w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shadow-xs";
+                    stepBadge2.innerText = "2";
+                }
+                if (line) line.style.width = "100%";
             }
-            throw new Error("Mã giảm giá không tồn tại");
         }
 
-        function calculateDiscount(vData, price) {
-            let discount = 0;
-            if (vData.type === 'percent') discount = (price * vData.value) / 100;
-            else discount = vData.value;
-            if (discount > price) discount = price;
-            return { discount: discount, finalPrice: price - discount };
-        }
-
-        window.openPaymentModal = async (courseId) => {
-            if (!auth.currentUser) return alert("Vui lòng đăng nhập!");
-
-            // [FIX] Reset nút CTA về trạng thái mặc định "Tiếp tục thanh toán"
-            const stepReview = document.getElementById('stepReview');
-            // Tìm và xóa nút cũ để clear event listener, tạo nút mới
-            const oldBtn = stepReview.querySelector('button[onclick^="window."]') || stepReview.querySelector('#btnCtaAction');
-            if(oldBtn) {
-                const newBtn = oldBtn.cloneNode(true);
-                newBtn.id = "btnCtaAction";
-                newBtn.innerHTML = 'Tiếp tục thanh toán <i class="fa-solid fa-arrow-right"></i>';
-                newBtn.className = "px-8 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold rounded-xl shadow-lg hover:shadow-primary-200 hover:-translate-y-0.5 transition-all flex items-center gap-2";
-                newBtn.onclick = window.generatePaymentQR; // Mặc định là tạo QR
-                oldBtn.parentNode.replaceChild(newBtn, oldBtn);
-            }
-
-            // [FIX] Reset nút "Đã chuyển khoản" ở bước QR luôn
-            const btnConfirm = document.querySelector('#stepQR button'); 
-            if(btnConfirm) {
-                 const originalBtn = btnConfirm.cloneNode(true);
-                 btnConfirm.parentNode.replaceChild(originalBtn, btnConfirm);
-                 originalBtn.onclick = window.confirmPayment;
-                 originalBtn.innerHTML = '<i class="fa-solid fa-check-circle"></i> ĐÃ CHUYỂN KHOẢN XONG';
-            }
-            
-            // Reset Voucher UI
-            document.getElementById('voucherInput').value = '';
-            document.getElementById('voucherInput').disabled = false;
-            document.getElementById('voucherMessage').className = 'hidden';
-            document.getElementById('payDiscountAmount').innerText = '-0đ';
-            currentVoucherCode = null;
-
-            // ... (Phần logic lấy data khóa học bên dưới)
-            if (!dynamicBankConfig) { 
-                 try {
-                    const s = await getDoc(doc(db, "site_settings", "payment_config"));
-                    dynamicBankConfig = s.exists() ? s.data() : { BANK_ID: "970422", BANK_NAME: "MB Bank", ACCOUNT_NO: "0000", ACCOUNT_NAME: "ADMIN" };
-                } catch(e) { console.error(e); }
-            }
-
-            document.getElementById('paymentModal').classList.remove('hidden');
-            document.getElementById('stepReview').classList.remove('hidden');
-            document.getElementById('stepQR').classList.add('hidden');
-
-            try {
-                const snap = await getDoc(doc(db, "public_courses", courseId));
-                if(snap.exists()){
-                    const c = snap.data();
-                    currentPayingCourse = { id: snap.id, ...c };
-                    
-                    if (c.status === 'sold_out' || c.isSoldOut === true) {
-                        document.getElementById('paymentModal').classList.add('hidden');
-                        window.showNotification("⛔ Khóa học/Tài liệu này hiện đã BÁN HẾT (Hết hàng)!", "warning");
-                        return;
-                    }
-                    
-                    document.getElementById('payCourseTitle').innerText = c.title;
-                    document.getElementById('payCourseImg').src = c.thumbnail || 'https://placehold.co/150';
-                    document.getElementById('payOrderId').innerText = `#${Date.now().toString().slice(-6)}`;
-                    document.getElementById('payDate').innerText = new Date().toLocaleDateString('vi-VN');
-                    
-                    let raw = c.price;
-                    if (typeof raw === 'string') raw = parseInt(raw.replace(/\D/g, '')) || 0;
-                    currentFinalPrice = raw;
-                    
-                    document.getElementById('payOriginalPrice').innerText = raw.toLocaleString() + 'đ';
-                    document.getElementById('payFinalPrice').innerText = raw.toLocaleString() + 'đ';
-
-                    // [LOGIC MỚI] Nếu khóa học gốc giá 0đ
-                    if (currentFinalPrice === 0) {
-                        const btn = document.getElementById('btnCtaAction');
-                        btn.innerHTML = '<i class="fa-solid fa-gift"></i> NHẬN MIỄN PHÍ';
-                        btn.classList.remove('from-primary-600', 'to-primary-500');
-                        btn.classList.add('from-green-600', 'to-green-500');
-                        btn.onclick = () => window.activateFreeCourse(null, false);
-                        
-                        // Disable nhập voucher
-                        document.getElementById('voucherInput').disabled = true;
-                        document.getElementById('voucherInput').placeholder = "Khóa học miễn phí";
-                    }
-                }
-            } catch(e){ console.error(e); }
+        // Tăng giảm số lượng mua sách
+        window.changeOrderQty = (delta) => {
+            let nextQty = _orderQuantity + delta;
+            if (nextQty < 1) nextQty = 1;
+            if (nextQty > 99) nextQty = 99;
+            _orderQuantity = nextQty;
+            const inp = document.getElementById('payOrderQtyInput');
+            if (inp) inp.value = _orderQuantity;
+            window.recalculatePrices();
         };
 
-        window.applyVoucher = async () => {
-            const codeInput = document.getElementById('voucherInput');
-            const code = codeInput.value.trim().toUpperCase();
-            const msgEl = document.getElementById('voucherMessage');
-            
-            // Lấy giá gốc
-            let original = 0;
-            if (currentPayingCourse) {
-                let raw = currentPayingCourse.price;
-                if (typeof raw === 'string') raw = parseInt(raw.replace(/\D/g, '')) || 0;
-                original = raw;
+        window.setOrderQty = (val) => {
+            let num = parseInt(val) || 1;
+            if (num < 1) num = 1;
+            if (num > 99) num = 99;
+            _orderQuantity = num;
+            const inp = document.getElementById('payOrderQtyInput');
+            if (inp) inp.value = _orderQuantity;
+            window.recalculatePrices();
+        };
+
+        // Tính lại tổng tiền
+        window.recalculatePrices = () => {
+            const isBookType = currentPayingCourse && (currentPayingCourse.type === 'document_hard' || currentPayingCourse.type === 'book');
+            const subtotal = _unitPrice * _orderQuantity;
+
+            if (_appliedVoucher) {
+                if (_appliedVoucher.type === 'percent') {
+                    _voucherDiscount = Math.round((subtotal * (_appliedVoucher.value || 0)) / 100);
+                } else {
+                    _voucherDiscount = Math.min(subtotal, _appliedVoucher.value || 0);
+                }
+            } else {
+                _voucherDiscount = 0;
             }
 
-            // [LOGIC MỚI] Nếu input trống -> Reset về giá gốc (Hủy voucher)
+            const effectiveShip = isBookType ? _shipFee : 0;
+            const finalTotal = Math.max(0, subtotal - _voucherDiscount) + effectiveShip;
+
+            const qtyLabel = document.getElementById('payQtyLabel');
+            if (qtyLabel) qtyLabel.innerText = `${_orderQuantity} cuốn`;
+
+            const origPriceEl = document.getElementById('payOriginalPrice');
+            if (origPriceEl) origPriceEl.innerText = subtotal.toLocaleString('vi-VN') + 'đ';
+
+            const discountRow = document.getElementById('payDiscountRow');
+            const discountEl = document.getElementById('payDiscount');
+            if (_voucherDiscount > 0) {
+                discountRow?.classList.remove('hidden');
+                discountRow?.classList.add('flex');
+                if (discountEl) discountEl.innerText = '-' + _voucherDiscount.toLocaleString('vi-VN') + 'đ';
+            } else {
+                discountRow?.classList.add('hidden');
+                discountRow?.classList.remove('flex');
+            }
+
+            const shipRow = document.getElementById('payShipRow');
+            const shipFeeEl = document.getElementById('payShipFee');
+            if (isBookType) {
+                shipRow?.classList.remove('hidden');
+                shipRow?.classList.add('flex');
+                if (shipFeeEl) shipFeeEl.innerText = effectiveShip > 0 ? effectiveShip.toLocaleString('vi-VN') + 'đ' : 'Miễn phí';
+            } else {
+                shipRow?.classList.add('hidden');
+                shipRow?.classList.remove('flex');
+            }
+
+            const finalPriceEl = document.getElementById('payFinalPrice');
+            if (finalPriceEl) finalPriceEl.innerText = finalTotal > 0 ? finalTotal.toLocaleString('vi-VN') + 'đ' : '0đ';
+
+            // Cập nhật nút CTA bước 1
+            const proceedBtn = document.getElementById('btnProceedToPay');
+            if (proceedBtn) {
+                if (finalTotal === 0 && !isBookType) {
+                    proceedBtn.innerHTML = '<i class="fa-solid fa-gift"></i> <span>NHẬN MIỄN PHÍ NGAY</span>';
+                    proceedBtn.className = "w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm sm:text-base rounded-xl shadow-lg hover:scale-[1.01] active:scale-95 transition-all transform flex items-center justify-center gap-2 cursor-pointer";
+                    proceedBtn.onclick = () => window.activateFreeCourse(null, false);
+                } else {
+                    proceedBtn.innerHTML = '<span>TIẾP TỤC ĐẾN BƯỚC THANH TOÁN</span> <i class="fa-solid fa-arrow-right"></i>';
+                    proceedBtn.className = "w-full py-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-black text-sm sm:text-base rounded-xl shadow-lg hover:shadow-blue-300 hover:scale-[1.01] active:scale-95 transition-all transform flex items-center justify-center gap-2 cursor-pointer";
+                    proceedBtn.onclick = () => window.proceedToPaymentStep();
+                }
+            }
+        };
+
+        // Áp dụng voucher
+        window.applyVoucher = async () => {
+            const codeInput = document.getElementById('payVoucherCode');
+            const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
+            const feedback = document.getElementById('voucherFeedbackMsg');
+            const btnApply = document.getElementById('btnApplyVoucher');
+            const btnRemove = document.getElementById('btnRemoveVoucher');
+            const badge = document.getElementById('voucherAppliedBadge');
+
             if (!code) {
-                currentFinalPrice = original;
-                currentVoucherCode = null;
-                document.getElementById('payDiscountAmount').innerText = '-0đ';
-                document.getElementById('payFinalPrice').innerText = currentFinalPrice.toLocaleString() + 'đ';
-                
-                msgEl.textContent = "Đã bỏ mã giảm giá.";
-                msgEl.className = "mb-2 text-xs font-bold text-gray-500 block";
-                
-                // Reset nút thanh toán về mặc định
-                resetPaymentButton(); 
+                if (feedback) {
+                    feedback.className = "text-[11px] mt-1 text-red-500 font-medium block";
+                    feedback.innerText = "Vui lòng nhập mã giảm giá!";
+                }
                 return;
             }
 
-            // Nếu có nhập mã -> Gọi API kiểm tra
-            // Reset nút thành đang tải
-            const btnApply = event.currentTarget || document.querySelector('#voucherInput + button');
-            const oldText = btnApply.innerHTML;
-            btnApply.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            btnApply.disabled = true;
+            if (btnApply) {
+                btnApply.disabled = true;
+                btnApply.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            }
 
             try {
-                const res = await validateVoucher(code, currentPayingCourse.id, original);
-                currentFinalPrice = res.finalPrice;
-                currentVoucherCode = code;
-                
-                document.getElementById('payDiscountAmount').innerText = `-${res.discount.toLocaleString()}đ`;
-                document.getElementById('payFinalPrice').innerText = currentFinalPrice.toLocaleString() + 'đ';
-                
-                msgEl.textContent = `Áp dụng mã ${code} thành công!`;
-                msgEl.className = "mb-2 text-xs font-bold text-green-600 block";
-                
-                // Khóa ô input lại để người dùng biết đã áp dụng
-                codeInput.disabled = true; 
+                const subtotal = _unitPrice * _orderQuantity;
+                const qV = query(collection(db, "vouchers"), where("code", "==", code));
+                const snap = await getDocs(qV);
 
-                // Kiểm tra nếu giá = 0đ (Xử lý nút Nhận ngay)
-                const btnAction = document.getElementById('btnCtaAction');
-                if(btnAction) {
-                    if(currentFinalPrice === 0) {
-                        btnAction.innerHTML = '<i class="fa-solid fa-gift"></i> NHẬN KHÓA HỌC NGAY';
-                        btnAction.classList.remove('from-primary-600', 'to-primary-500');
-                        btnAction.classList.add('from-green-600', 'to-green-500');
-                        btnAction.onclick = () => window.activateFreeCourse(null, false);
-                    } else {
-                        resetPaymentButton();
-                    }
+                if (snap.empty) {
+                    throw new Error("Mã giảm giá không tồn tại hoặc đã hết hạn!");
                 }
 
-            } catch (e) {
-                msgEl.textContent = e.message;
-                msgEl.className = "mb-2 text-xs font-bold text-red-500 block";
-                
-                // Nếu lỗi thì reset giá về gốc luôn cho an toàn
-                currentFinalPrice = original;
-                document.getElementById('payFinalPrice').innerText = original.toLocaleString() + 'đ';
-                document.getElementById('payDiscountAmount').innerText = '-0đ';
+                const vData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+                const now = new Date();
+
+                if (vData.expiryDate && new Date(vData.expiryDate) < now) throw new Error("Mã giảm giá đã hết hạn sử dụng");
+                if (vData.limit && (vData.used || 0) >= vData.limit) throw new Error("Mã giảm giá đã hết lượt sử dụng");
+                if (vData.scope === 'specific' && vData.courseIds && currentPayingCourse && !vData.courseIds.includes(currentPayingCourse.id)) {
+                    throw new Error("Mã này không áp dụng cho sản phẩm này");
+                }
+
+                _appliedVoucher = vData;
+                codeInput.disabled = true;
+                codeInput.classList.add('bg-green-50', 'text-green-800', 'border-green-300');
+                btnApply?.classList.add('hidden');
+                btnRemove?.classList.remove('hidden');
+                badge?.classList.remove('hidden');
+                badge?.classList.add('inline-flex');
+
+                if (feedback) {
+                    feedback.className = "text-[11px] mt-1 text-green-600 font-bold block";
+                    feedback.innerText = `Áp dụng mã ${code} thành công!`;
+                }
+
+                window.recalculatePrices();
+            } catch (err) {
+                _appliedVoucher = null;
+                _voucherDiscount = 0;
+                if (feedback) {
+                    feedback.className = "text-[11px] mt-1 text-red-500 font-medium block";
+                    feedback.innerText = err.message || "Mã không hợp lệ";
+                }
+                window.recalculatePrices();
             } finally {
-                btnApply.innerHTML = oldText;
-                btnApply.disabled = false;
+                if (btnApply) {
+                    btnApply.disabled = false;
+                    btnApply.innerHTML = 'Áp dụng';
+                }
             }
         };
 
-        // Hàm phụ trợ để reset nút thanh toán về trạng thái "Tiếp tục"
-        function resetPaymentButton() {
-            const btnAction = document.getElementById('btnCtaAction');
-            if (btnAction) {
-                btnAction.innerHTML = 'Tiếp tục thanh toán <i class="fa-solid fa-arrow-right"></i>';
-                btnAction.classList.add('from-primary-600', 'to-primary-500');
-                btnAction.classList.remove('from-green-600', 'to-green-500');
-                btnAction.onclick = window.generatePaymentQR;
+        window.removeVoucher = () => {
+            _appliedVoucher = null;
+            _voucherDiscount = 0;
+            const codeInput = document.getElementById('payVoucherCode');
+            if (codeInput) {
+                codeInput.value = '';
+                codeInput.disabled = false;
+                codeInput.classList.remove('bg-green-50', 'text-green-800', 'border-green-300');
             }
-        }
+            document.getElementById('btnApplyVoucher')?.classList.remove('hidden');
+            document.getElementById('btnRemoveVoucher')?.classList.add('hidden');
+            const badge = document.getElementById('voucherAppliedBadge');
+            badge?.classList.add('hidden');
+            badge?.classList.remove('inline-flex');
+            const feedback = document.getElementById('voucherFeedbackMsg');
+            if (feedback) {
+                feedback.className = "hidden text-[11px] mt-1";
+                feedback.innerText = "";
+            }
+            window.recalculatePrices();
+        };
+
+        // Đồng hồ đếm ngược QR (10 phút)
+        window.startQrCountdown = () => {
+            if (_qrCountdownInterval) clearInterval(_qrCountdownInterval);
+            let timeLeft = 600; // 10 phút
+            const el = document.getElementById('qrCountdownText');
+
+            _qrCountdownInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(_qrCountdownInterval);
+                    _qrCountdownInterval = null;
+                    window.handleQrExpired();
+                    return;
+                }
+                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                const s = (timeLeft % 60).toString().padStart(2, '0');
+                if (el) el.innerText = `${m}:${s}`;
+            }, 1000);
+        };
+
+        window.handleQrExpired = () => {
+            const overlay = document.getElementById('qrExpiredOverlay');
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+            }
+        };
+
+        window.refreshPaymentCode = async () => {
+            const overlay = document.getElementById('qrExpiredOverlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+            window.proceedToPaymentStep(true);
+        };
+
+        // Quay lại bước 1 để chỉnh sửa số lượng / thông tin
+        window.backToStep1 = () => {
+            if (_qrCountdownInterval) {
+                clearInterval(_qrCountdownInterval);
+                _qrCountdownInterval = null;
+            }
+            const overlay = document.getElementById('qrExpiredOverlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+            setCheckoutStep(1);
+            window.showNotification("Bạn có thể chỉnh sửa lại số lượng hoặc thông tin nhận hàng!", "info");
+        };
+
+        // Đóng modal thanh toán
+        window.closePaymentModal = () => {
+            document.getElementById('paymentModal').classList.add('hidden', 'opacity-0', 'pointer-events-none');
+            document.body.style.overflow = '';
+            if (processingListener) {
+                processingListener();
+                processingListener = null;
+            }
+            if (_qrCountdownInterval) {
+                clearInterval(_qrCountdownInterval);
+                _qrCountdownInterval = null;
+            }
+            if (window._studentRecheckTimer) {
+                clearInterval(window._studentRecheckTimer);
+                window._studentRecheckTimer = null;
+            }
+            document.getElementById('recheckPaymentBox')?.classList.add('hidden');
+            const overlay = document.getElementById('qrExpiredOverlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+            _currentCheckoutStep = 1;
+        };
+
+        // Mở Modal mua hàng (Bước 1)
+        window.openPaymentModal = async (courseId, preservedFormData = null) => {
+            if (!auth.currentUser) return alert("Vui lòng đăng nhập!");
+
+            // Xóa listener & timer cũ nếu còn
+            if (processingListener) { processingListener(); processingListener = null; }
+            if (_qrCountdownInterval) { clearInterval(_qrCountdownInterval); _qrCountdownInterval = null; }
+            window._currentStudentOrderId = null;
+            window._currentOrderId = null;
+
+            // Đặt lại giao diện về Bước 1
+            setCheckoutStep(1);
+
+            // Đặt lại voucher ưu đãi
+            _appliedVoucher = null;
+            _voucherDiscount = 0;
+            const vInput = document.getElementById('payVoucherCode');
+            if (vInput) {
+                vInput.value = '';
+                vInput.disabled = false;
+                vInput.classList.remove('bg-green-50', 'text-green-800', 'border-green-300');
+            }
+            const vBadge = document.getElementById('voucherAppliedBadge');
+            if (vBadge) { vBadge.classList.add('hidden'); vBadge.classList.remove('inline-flex'); }
+            document.getElementById('btnRemoveVoucher')?.classList.add('hidden');
+            const vApplyBtn = document.getElementById('btnApplyVoucher');
+            if (vApplyBtn) { vApplyBtn.classList.remove('hidden'); vApplyBtn.disabled = false; vApplyBtn.innerText = 'Áp dụng'; }
+            const vFeedback = document.getElementById('voucherFeedbackMsg');
+            if (vFeedback) { vFeedback.classList.add('hidden'); vFeedback.innerText = ''; }
+
+            // Ẩn overlay hết hạn
+            const overlay = document.getElementById('qrExpiredOverlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+
+            // Mở modal
+            const modal = document.getElementById('paymentModal');
+            modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            document.body.style.overflow = 'hidden';
+
+            try {
+                let c = null;
+                // Thử lấy từ cache trước
+                if (window.dataCache?.market) {
+                    c = window.dataCache.market.find(x => x.id === courseId);
+                }
+                if (!c) {
+                    const snap = await getDoc(doc(db, "public_courses", courseId));
+                    if (snap.exists()) c = { id: snap.id, ...snap.data() };
+                }
+
+                if (c) {
+                    currentPayingCourse = c;
+
+                    if (c.status === 'sold_out' || c.isSoldOut === true) {
+                        window.closePaymentModal();
+                        window.showNotification("⛔ Khóa học/Sách này hiện đã BÁN HẾT!", "warning");
+                        return;
+                    }
+
+                    const isBookType = (c.type === 'document_hard' || c.type === 'book');
+                    const isExamPack = (c.type === 'exam_pack');
+                    const tagText = isBookType ? 'SÁCH' : (c.type === 'document_soft' ? 'TÀI LIỆU SỐ' : (isExamPack ? 'GÓI ĐỀ THI' : 'KHÓA HỌC'));
+
+                    _orderQuantity = 1;
+                    const qtyInp = document.getElementById('payOrderQtyInput');
+                    if (qtyInp) qtyInp.value = 1;
+
+                    // 1. Điền thông tin vào form
+                    const u = auth.currentUser;
+                    const userName = preservedFormData?.name || u?.displayName || '';
+                    const userPhone = preservedFormData?.phone || u?.phoneNumber || '';
+                    const userEmail = preservedFormData?.email || u?.email || '';
+                    const userProvince = preservedFormData?.province || '';
+                    const userWard = preservedFormData?.ward || '';
+                    const userDistrict = preservedFormData?.district || '';
+                    const userDetail = preservedFormData?.detailAddress || '';
+
+                    const fieldContainer = document.getElementById('dynamicCheckoutFields');
+                    if (currentPayingCourse.type === 'document_soft') {
+                        fieldContainer.innerHTML = `
+                            <div class="space-y-3 w-full">
+                                <div><label class="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Người nhận tài liệu <span class="text-red-500">*</span></label><input type="text" id="payUserName" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 outline-none font-bold" value="${userName}" placeholder="Họ và tên..." required></div>
+                                <div><label class="block text-xs font-bold text-blue-600 dark:text-blue-400 mb-1">Email nhận file PDF (Bắt buộc) <span class="text-red-500">*</span></label><input type="email" id="payUserEmail" class="w-full px-4 py-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-700 rounded-lg text-gray-800 dark:text-gray-100 outline-none font-bold" value="${userEmail}" placeholder="Nhập email nhận file PDF..." required></div>
+                            </div>
+                            <p class="text-[11px] text-orange-600 dark:text-orange-400 mt-2 italic w-full">* Tài liệu số sẽ được gửi tự động vào Email này sau khi thanh toán.</p>
+                        `;
+                    } else if (isBookType) {
+                        fieldContainer.innerHTML = `
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Người nhận sách <span class="text-red-500">*</span></label>
+                                    <input type="text" id="payUserName" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 focus:border-amber-500 outline-none text-base sm:text-sm font-medium" value="${userName}" placeholder="Họ và tên..." required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-amber-700 dark:text-amber-400 mb-1">SĐT liên hệ <span class="text-red-500">*</span></label>
+                                    <input type="tel" id="payUserPhone" class="w-full px-3.5 py-2.5 bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 rounded-lg text-gray-800 dark:text-gray-100 focus:border-amber-500 outline-none text-base sm:text-sm font-bold" value="${userPhone}" placeholder="Nhập SĐT nhận hàng..." required>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                                <div>
+                                    <label class="block text-xs font-bold text-amber-700 dark:text-amber-400 mb-1">Tỉnh / Thành phố <span class="text-red-500">*</span></label>
+                                    <input list="payProvinces" id="payUserProvince" class="w-full px-3.5 py-2.5 bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 rounded-lg text-gray-800 dark:text-gray-100 focus:border-amber-500 outline-none text-base sm:text-sm font-bold" value="${userProvince}" placeholder="Chọn hoặc gõ tỉnh/thành..." required>
+                                    <datalist id="payProvinces">
+                                        <option value="Hà Nội"><option value="Hồ Chí Minh"><option value="Hải Phòng"><option value="Đà Nẵng"><option value="Cần Thơ"><option value="An Giang"><option value="Bà Rịa - Vũng Tàu"><option value="Bắc Giang"><option value="Bắc Kạn"><option value="Bạc Liêu"><option value="Bắc Ninh"><option value="Bến Tre"><option value="Bình Định"><option value="Bình Dương"><option value="Bình Phước"><option value="Bình Thuận"><option value="Cà Mau"><option value="Cao Bằng"><option value="Đắk Lắk"><option value="Đắk Nông"><option value="Điện Biên"><option value="Đồng Nai"><option value="Đồng Tháp"><option value="Gia Lai"><option value="Hà Giang"><option value="Hà Nam"><option value="Hà Tĩnh"><option value="Hải Dương"><option value="Hậu Giang"><option value="Hòa Bình"><option value="Hưng Yên"><option value="Khánh Hòa"><option value="Kiên Giang"><option value="Kon Tum"><option value="Lai Châu"><option value="Lâm Đồng"><option value="Lạng Sơn"><option value="Lào Cai"><option value="Long An"><option value="Nam Định"><option value="Nghệ An"><option value="Ninh Bình"><option value="Ninh Thuận"><option value="Phú Thọ"><option value="Phú Yên"><option value="Quảng Bình"><option value="Quảng Nam"><option value="Quảng Ngãi"><option value="Quảng Ninh"><option value="Quảng Trị"><option value="Sóc Trăng"><option value="Sơn La"><option value="Tây Ninh"><option value="Thái Bình"><option value="Thái Nguyên"><option value="Thanh Hóa"><option value="Thừa Thiên Huế"><option value="Tiền Giang"><option value="Trà Vinh"><option value="Tuyên Quang"><option value="Vĩnh Long"><option value="Vĩnh Phúc"><option value="Yên Bái">
+                                    </datalist>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-amber-700 dark:text-amber-400 mb-1">Phường / Xã <span class="text-red-500">*</span></label>
+                                    <input type="text" id="payUserWard" class="w-full px-3.5 py-2.5 bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 rounded-lg text-gray-800 dark:text-gray-100 focus:border-amber-500 outline-none text-base sm:text-sm font-bold" value="${userWard}" placeholder="Nhập phường/xã..." required>
+                                </div>
+                            </div>
+                            <div id="districtRow" class="${userDistrict ? '' : 'hidden '}w-full transition-all duration-300">
+                                <label class="block text-xs font-bold text-amber-700 dark:text-amber-400 mb-1">Quận / Huyện (Đơn vị hành chính cũ)</label>
+                                <input type="text" id="payUserDistrict" class="w-full px-3.5 py-2.5 bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 rounded-lg text-gray-800 dark:text-gray-100 focus:border-amber-500 outline-none text-base sm:text-sm font-bold" value="${userDistrict}" placeholder="Nhập quận/huyện...">
+                            </div>
+                            <div class="w-full">
+                                <label class="block text-xs font-bold text-amber-700 dark:text-amber-400 mb-1">Địa chỉ chi tiết (Số nhà, ngõ, đường...) <span class="text-red-500">*</span></label>
+                                <input type="text" id="payUserDetailAddress" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 focus:border-amber-500 outline-none text-base sm:text-sm" value="${userDetail}" placeholder="VD: Số 15 ngõ 4 đường Giải Phóng..." required>
+                            </div>
+                            <div class="flex justify-end w-full pt-1">
+                                <button type="button" onclick="document.getElementById('districtRow').classList.toggle('hidden'); this.classList.toggle('text-amber-600'); this.classList.toggle('text-gray-400');" class="text-xs ${userDistrict ? 'text-amber-600' : 'text-gray-400'} hover:text-amber-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer py-1">
+                                    <i class="fa-solid fa-map-location-dot"></i> <span>Địa chỉ theo đơn vị hành chính cũ (thêm Huyện)</span>
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        // Khóa học hoặc Gói đề thi
+                        fieldContainer.innerHTML = `
+                            <div class="space-y-3 w-full">
+                                <div><label class="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Tài khoản học viên</label><input type="text" class="w-full px-3.5 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 font-bold outline-none" value="${userName}" readonly></div>
+                                <div><label class="block text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">Email kích hoạt</label><input type="email" class="w-full px-3.5 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-100 font-bold outline-none" value="${userEmail}" readonly></div>
+                            </div>
+                            <p class="text-[11px] text-green-600 dark:text-green-400 mt-2 font-medium"><i class="fa-solid fa-circle-check"></i> ${isExamPack ? 'Gói đề thi sẽ được kích hoạt trực tiếp vào tài khoản này.' : 'Khóa học sẽ được kích hoạt trực tiếp vào tài khoản này.'}</p>
+                        `;
+                    }
+
+                    // 2. Card mô tả sản phẩm cột trái
+                    const bookDescCard = document.getElementById('bookDescCard');
+                    const courseCard = document.getElementById('courseProductCard');
+                    if (isBookType) {
+                        bookDescCard?.classList.remove('hidden');
+                        courseCard?.classList.add('hidden');
+                        document.getElementById('payCourseTitle').innerText = c.title || 'Sách';
+                        document.getElementById('payCourseImg').src = c.thumbnail || c.image || 'https://placehold.co/150';
+                        document.getElementById('payCourseTag').innerText = tagText;
+                        const descEl = document.getElementById('payBookDesc');
+                        if (descEl) descEl.innerText = c.description || c.desc || 'Tài liệu và sách tham khảo chất lượng cao, biên soạn sát cấu trúc thi mới, có lời giải chi tiết và phương pháp giải nhanh.';
+                        
+                        const previewWrap = document.getElementById('payBookPreviewBtnWrap');
+                        const previewBtn = document.getElementById('btnBookPreviewInModal');
+                        if (c.previewLink) {
+                            previewWrap?.classList.remove('hidden');
+                            if (previewBtn) previewBtn.onclick = () => window.openPreviewModal(c.previewLink);
+                        } else {
+                            previewWrap?.classList.add('hidden');
+                        }
+                    } else {
+                        bookDescCard?.classList.add('hidden');
+                        courseCard?.classList.remove('hidden');
+                        const imgEl = document.getElementById('payCourseImgCourse');
+                        const titleEl = document.getElementById('payCourseTitleCourse');
+                        const tagEl = document.getElementById('payCourseTagCourse');
+                        if (imgEl) imgEl.src = c.thumbnail || c.image || 'https://placehold.co/150';
+                        if (titleEl) titleEl.innerText = c.title || 'Sản phẩm';
+                        if (tagEl) {
+                            tagEl.innerText = tagText;
+                            tagEl.className = `inline-block text-[10px] font-bold ${isExamPack ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'} px-2 py-0.5 rounded mb-1`;
+                        }
+                        document.getElementById('payCourseTitle').innerText = c.title || 'Sản phẩm';
+                    }
+
+                    // 3. Tóm tắt sản phẩm cột phải
+                    const sumImg = document.getElementById('paySummaryImg');
+                    const sumTitle = document.getElementById('paySummaryTitle');
+                    const sumTag = document.getElementById('paySummaryTag');
+                    const sumPrice = document.getElementById('paySummaryUnitPrice');
+                    if (sumImg) sumImg.src = c.thumbnail || c.image || 'https://placehold.co/150';
+                    if (sumTitle) sumTitle.innerText = c.title || 'Sản phẩm';
+                    if (sumTag) {
+                        sumTag.innerText = tagText;
+                        sumTag.className = `text-[10px] font-bold ${isBookType ? 'bg-amber-100 text-amber-700' : (isExamPack ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700')} px-2 py-0.5 rounded uppercase`;
+                    }
+
+                    _unitPrice = parseInt(String(c.price || '0').replace(/\D/g, '')) || 0;
+                    _origUnitPrice = parseInt(String(c.originalPrice || '0').replace(/\D/g, '')) || 0;
+                    _shipFee = isBookType ? (c.shippingFee !== undefined ? parseInt(c.shippingFee) : 30000) : 0;
+
+                    if (sumPrice) sumPrice.innerText = (_unitPrice > 0 ? _unitPrice.toLocaleString('vi-VN') + (isBookType ? 'đ / cuốn' : 'đ') : 'Miễn phí');
+
+                    // 4. Ẩn/hiện bộ chọn số lượng
+                    const qtyRow = document.getElementById('payQuantityRow');
+                    if (qtyRow) {
+                        if (isBookType) {
+                            qtyRow.classList.remove('hidden');
+                            qtyRow.classList.add('flex');
+                        } else {
+                            qtyRow.classList.add('hidden');
+                            qtyRow.classList.remove('flex');
+                            _orderQuantity = 1;
+                        }
+                    }
+
+                    // 5. Tính toán và hiển thị bảng giá
+                    window.recalculatePrices();
+                } else {
+                    window.closePaymentModal();
+                    window.showNotification("Sản phẩm này không tồn tại hoặc đã bị xóa!", "error");
+                }
+            } catch(e) {
+                console.error("Lỗi khi mở form thanh toán:", e);
+                window.showNotification("Đã xảy ra lỗi tải thông tin sản phẩm, vui lòng thử lại!", "error");
+            }
+        };
+
+        // BƯỚC 2: TIẾP TỤC ĐẾN BƯỚC THANH TOÁN (VALIDATE -> TẠO ĐƠN -> TẠO QR)
+        window.proceedToPaymentStep = async (isRefreshing = false) => {
+            if (!currentPayingCourse) return;
+
+            const isDoc = currentPayingCourse.type === 'document_soft' || currentPayingCourse.type === 'document_hard' || currentPayingCourse.type === 'book';
+            const isBookType = currentPayingCourse.type === 'document_hard' || currentPayingCourse.type === 'book';
+            
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i; 
+            const validPhonePrefixes = ['086','096','097','098','032','033','034','035','036','037','038','039','088','091','094','083','084','085','081','082','089','090','093','070','079','077','076','078','092','056','058','099','059','087','055'];
+            const phoneRegex = new RegExp(`^(${validPhonePrefixes.join('|')})\\d{7}$`);
+
+            let shippingInfo = {};
+            let nameInp = '';
+            let phoneInp = '';
+            let emailInp = '';
+            let composedAddress = '';
+
+            // 1. VALIDATE DỮ LIỆU ĐẦU VÀO
+            if (!isDoc) {
+                const user = auth.currentUser;
+                nameInp = user?.displayName || 'Học viên';
+                emailInp = user?.email || '';
+                shippingInfo = { name: nameInp, email: emailInp };
+            } else if (currentPayingCourse.type === 'document_soft') {
+                nameInp = document.getElementById('payUserName')?.value.trim() || '';
+                emailInp = document.getElementById('payUserEmail')?.value.trim() || '';
+                if (!nameInp) {
+                    window.showNotification("Vui lòng nhập Họ Tên người nhận tài liệu!", "error");
+                    document.getElementById('payUserName')?.focus();
+                    return;
+                }
+                if (!emailInp) {
+                    window.showNotification("Vui lòng nhập Email nhận tài liệu PDF!", "error");
+                    document.getElementById('payUserEmail')?.focus();
+                    return;
+                }
+                if (!emailRegex.test(emailInp)) {
+                    window.showNotification("Email không hợp lệ! Vui lòng nhập đúng định dạng @gmail.com", "error");
+                    document.getElementById('payUserEmail')?.focus();
+                    return;
+                }
+                shippingInfo = { name: nameInp, email: emailInp, quantity: 1 };
+            } else if (isBookType) {
+                nameInp = document.getElementById('payUserName')?.value.trim() || '';
+                phoneInp = document.getElementById('payUserPhone')?.value.replace(/\s+/g, '') || '';
+                const provinceInp = document.getElementById('payUserProvince')?.value.trim() || '';
+                const districtInp = document.getElementById('payUserDistrict')?.value.trim() || '';
+                const wardInp = document.getElementById('payUserWard')?.value.trim() || '';
+                const detailInp = document.getElementById('payUserDetailAddress')?.value.trim() || '';
+
+                if (!nameInp) {
+                    window.showNotification("Vui lòng nhập Họ Tên người nhận sách!", "error");
+                    document.getElementById('payUserName')?.focus();
+                    return;
+                }
+                if (!phoneInp) {
+                    window.showNotification("Vui lòng nhập Số điện thoại nhận sách!", "error");
+                    document.getElementById('payUserPhone')?.focus();
+                    return;
+                }
+                if (!phoneRegex.test(phoneInp)) {
+                    window.showNotification("Số điện thoại không hợp lệ! Vui lòng nhập đúng 10 số của các nhà mạng Việt Nam.", "error");
+                    document.getElementById('payUserPhone')?.focus();
+                    return;
+                }
+                if (!provinceInp) {
+                    window.showNotification("Vui lòng chọn hoặc nhập Tỉnh / Thành phố!", "error");
+                    document.getElementById('payUserProvince')?.focus();
+                    return;
+                }
+                if (!wardInp) {
+                    window.showNotification("Vui lòng nhập Phường / Xã!", "error");
+                    document.getElementById('payUserWard')?.focus();
+                    return;
+                }
+                if (!detailInp) {
+                    window.showNotification("Vui lòng nhập Địa chỉ chi tiết (Số nhà, tên ngõ, đường...)!", "error");
+                    document.getElementById('payUserDetailAddress')?.focus();
+                    return;
+                }
+
+                composedAddress = [detailInp, wardInp, districtInp, provinceInp].filter(x=>x).join(', ');
+                shippingInfo = {
+                    name: nameInp,
+                    phone: phoneInp,
+                    province: provinceInp,
+                    district: districtInp,
+                    ward: wardInp,
+                    detailAddress: detailInp,
+                    address: composedAddress,
+                    nameAndPhone: `${nameInp} - ${phoneInp}`,
+                    quantity: _orderQuantity
+                };
+            }
+
+            const proceedBtn = document.getElementById('btnProceedToPay');
+            const originProceedBtnHtml = proceedBtn ? proceedBtn.innerHTML : '';
+            if (proceedBtn) {
+                proceedBtn.disabled = true;
+                proceedBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Đang khởi tạo đơn hàng...</span>';
+            }
+
+            try {
+                // 2. TẢI CẤU HÌNH NGÂN HÀNG
+                if (!dynamicBankConfig) {
+                    try {
+                        const s = await getDoc(doc(db, "site_settings", "payment_config"));
+                        dynamicBankConfig = s.exists() ? s.data() : { BANK_ID: "970422", BANK_NAME: "MB Bank", ACCOUNT_NO: "0000", ACCOUNT_NAME: "ADMIN", TEMPLATE: "compact2" };
+                    } catch (e) { dynamicBankConfig = { BANK_ID: "970422", BANK_NAME: "MB Bank", ACCOUNT_NO: "0000", ACCOUNT_NAME: "ADMIN", TEMPLATE: "compact2" }; }
+                }
+
+                // 3. TÍNH TỔNG TIỀN VÀ NỘI DUNG CHUYỂN KHOẢN
+                const totalItemPrice = _unitPrice * _orderQuantity;
+                const totalAmount = Math.max(0, totalItemPrice - _voucherDiscount) + (isBookType ? _shipFee : 0);
+
+                let content = '';
+                let isEditingOrder = false;
+
+                if (window._currentStudentOrderId || window._currentOrderId) {
+                    const checkId = window._currentStudentOrderId || window._currentOrderId;
+                    try {
+                        const snapOld = await getDoc(doc(db, "orders", checkId));
+                        if (snapOld.exists() && snapOld.data().status === 'pending') {
+                            isEditingOrder = true;
+                            content = snapOld.data().content || '';
+                        }
+                    } catch(e) {
+                        console.warn("Không tìm thấy đơn hàng cũ:", e);
+                    }
+                }
+
+                if (!content) {
+                    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+                    const cleanUid = auth.currentUser ? auth.currentUser.uid.substring(0, 5).toUpperCase().replace(/[^A-Z0-9]/g, "") : `U${randomSuffix}`;
+                    const cleanCourseId = currentPayingCourse.id.substring(0,5).toUpperCase().replace(/[^A-Z0-9]/g, "");
+                    const prefixCode = isDoc ? "TLIEU" : "TTOAN";
+                    content = `${prefixCode} ${cleanUid} ${cleanCourseId}`;
+                }
+
+                document.getElementById('bankNameDisplay').innerText = dynamicBankConfig.BANK_NAME || dynamicBankConfig.BANK_ID;
+                document.getElementById('accountNoDisplay').innerText = dynamicBankConfig.ACCOUNT_NO;
+                document.getElementById('transferContentDisplay').innerText = content;
+                const ownerEl = document.getElementById('accountOwnerDisplay');
+                if (ownerEl) {
+                    ownerEl.innerText = dynamicBankConfig.ACCOUNT_NAME ? `(${dynamicBankConfig.ACCOUNT_NAME})` : '';
+                }
+
+                // Tạo link VietQR
+                const bankId = dynamicBankConfig.BANK_ID;
+                const accNo = dynamicBankConfig.ACCOUNT_NO;
+                const template = dynamicBankConfig.TEMPLATE || 'compact2';
+                const qrUrl = `https://img.vietqr.io/image/${bankId}-${accNo}-${template}.png?amount=${totalAmount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(dynamicBankConfig.ACCOUNT_NAME || '')}`;
+
+                const qrImg = document.getElementById('vietQrImage');
+                document.getElementById('qrLoading')?.classList.remove('hidden');
+                qrImg.onload = () => document.getElementById('qrLoading')?.classList.add('hidden');
+                qrImg.src = qrUrl;
+
+                // 4. HIỂN THỊ TÓM TẮT THÔNG TIN NGƯỜI NHẬN TẠI BƯỚC 2
+                const summaryTextEl = document.getElementById('recipientSummaryText');
+                const qtyTextEl = document.getElementById('recipientQuantityText');
+                if (summaryTextEl) {
+                    if (isBookType) {
+                        summaryTextEl.innerHTML = `<b>${nameInp}</b> - <b>${phoneInp}</b><br><span class="text-gray-600 dark:text-gray-300">${composedAddress}</span>`;
+                    } else if (currentPayingCourse.type === 'document_soft') {
+                        summaryTextEl.innerHTML = `<b>${nameInp}</b><br><span class="text-blue-700 dark:text-blue-400 font-bold">${emailInp}</span>`;
+                    } else {
+                        summaryTextEl.innerHTML = `<b>${nameInp}</b> (${emailInp})`;
+                    }
+                }
+                if (qtyTextEl) {
+                    const discountNote = _voucherDiscount > 0 ? ` (Đã giảm ${_voucherDiscount.toLocaleString('vi-VN')}đ từ voucher ${_appliedVoucher?.code || ''})` : '';
+                    qtyTextEl.innerText = isBookType ? `Số lượng: ${_orderQuantity} cuốn${discountNote} (Tổng tiền: ${totalAmount.toLocaleString('vi-VN')}đ)` : `Khóa học trực tuyến${discountNote} (${totalAmount.toLocaleString('vi-VN')}đ)`;
+                }
+
+                // 5. LƯU HOẶC CẬP NHẬT ĐƠN HÀNG TRÊN FIRESTORE
+                let activeOrderId = window._currentStudentOrderId || window._currentOrderId;
+                if (isEditingOrder && activeOrderId) {
+                    await updateDoc(doc(db, "orders", activeOrderId), {
+                        userName: nameInp || 'Không tên',
+                        userPhone: phoneInp || null,
+                        quantity: _orderQuantity,
+                        unitPrice: _unitPrice,
+                        shippingFee: isBookType ? _shipFee : 0,
+                        amount: totalAmount,
+                        originalAmount: totalItemPrice + (isBookType ? _shipFee : 0),
+                        voucherCode: _appliedVoucher ? _appliedVoucher.code : null,
+                        voucherDiscount: _voucherDiscount,
+                        voucherId: _appliedVoucher ? _appliedVoucher.id : null,
+                        content: content,
+                        shippingInfo: shippingInfo,
+                        updatedAt: new Date().toISOString()
+                    });
+                } else {
+                    const userIdToSave = auth.currentUser ? auth.currentUser.uid : 'guest_' + Date.now();
+                    const docRef = await addDoc(collection(db, "orders"), {
+                        userId: userIdToSave,
+                        userName: nameInp || 'Không tên',
+                        userPhone: phoneInp || null,
+                        courseId: currentPayingCourse.id,
+                        documentId: isDoc ? currentPayingCourse.id : null,
+                        courseTitle: currentPayingCourse.title || 'Sản phẩm',
+                        quantity: _orderQuantity,
+                        unitPrice: _unitPrice,
+                        shippingFee: isBookType ? _shipFee : 0,
+                        amount: totalAmount,
+                        originalAmount: totalItemPrice + (isBookType ? _shipFee : 0),
+                        voucherCode: _appliedVoucher ? _appliedVoucher.code : null,
+                        voucherDiscount: _voucherDiscount,
+                        voucherId: _appliedVoucher ? _appliedVoucher.id : null,
+                        status: 'pending',
+                        content: content,
+                        orderType: isDoc ? "document" : "course",
+                        deliveryType: currentPayingCourse.type || 'course',
+                        shippingInfo: shippingInfo,
+                        createdAt: new Date().toISOString()
+                    });
+                    activeOrderId = docRef.id;
+                    window._currentStudentOrderId = docRef.id;
+                    window._currentOrderId = docRef.id;
+                }
+
+                try {
+                    localStorage.setItem('pendingStudentCheckoutOrderId', JSON.stringify({
+                        id: activeOrderId,
+                        content: content,
+                        timestamp: Date.now()
+                    }));
+                } catch(e) {}
+
+                // 6. BẮT ĐẦU ĐỒNG HỒ 10 PHÚT
+                window.startQrCountdown();
+
+                // 7. CHUYỂN SANG BƯỚC 2
+                setCheckoutStep(2);
+
+                if (!isRefreshing) {
+                    if (isEditingOrder) {
+                        window.showNotification("Đã cập nhật đơn hàng thành công! Vui lòng quét mã QR để thanh toán.", "success");
+                    } else {
+                        window.showNotification("Đã tạo đơn hàng thành công! Vui lòng quét mã QR để thanh toán.", "success");
+                    }
+                }
+
+            } catch (err) {
+                console.error("Lỗi khi tiến hành thanh toán:", err);
+                window.showNotification("Đã xảy ra lỗi khởi tạo đơn hàng. Vui lòng thử lại!", "error");
+            } finally {
+                if (proceedBtn) {
+                    proceedBtn.disabled = false;
+                    proceedBtn.innerHTML = originProceedBtnHtml;
+                }
+            }
+        };
 
         // Sao chép thông tin thanh toán (Ngân hàng, STK, Nội dung CK)
         window.copyPaymentField = (elementId, labelName) => {
@@ -3264,7 +4142,7 @@
             document.body.removeChild(ta);
         }
 
-        // Tải ảnh mã VietQR về thiết bị để quét trực tiếp từ thư viện ảnh ngân hàng
+        // Tải ảnh mã VietQR về thiết bị
         window.downloadQrCode = async () => {
             const qrImg = document.getElementById('vietQrImage');
             if (!qrImg || !qrImg.src) {
@@ -3371,42 +4249,6 @@
             }
         };
 
-        window.generatePaymentQR = () => {
-            document.getElementById('stepReview').classList.add('hidden');
-            document.getElementById('stepQR').classList.remove('hidden');
-            document.getElementById('stepQR').classList.add('flex');
-            const user = auth.currentUser;
-            const cleanUid = user ? user.uid.substring(0,5).replace(/[^a-zA-Z0-9]/g, "") : "U0001";
-            const cCourse = currentPayingCourse || window.currentPayingCourse || { id: 'CRS01' };
-            const bConfig = dynamicBankConfig || window.dynamicBankConfig || { BANK_ID: '970422', BANK_NAME: 'MB Bank', ACCOUNT_NO: '0000', ACCOUNT_NAME: 'ADMIN', TEMPLATE: 'compact2' };
-            const cleanCourseId = (cCourse.id || 'CRS01').substring(0,5).toUpperCase().replace(/[^a-zA-Z0-9]/g, "");
-            const content = `TTOAN ${cleanUid} ${cleanCourseId}`;
-            document.getElementById('bankNameDisplay').innerText = bConfig.BANK_NAME || bConfig.BANK_ID;
-            document.getElementById('accountNoDisplay').innerText = bConfig.ACCOUNT_NO;
-            const ownerEl = document.getElementById('accountOwnerDisplay');
-            if (ownerEl) {
-                ownerEl.innerText = bConfig.ACCOUNT_NAME ? `(${bConfig.ACCOUNT_NAME})` : '';
-            }
-            document.getElementById('transferContentDisplay').innerText = content;
-
-            const btnConfirm = document.getElementById('btnConfirmPaymentStudent');
-            if (btnConfirm) {
-                btnConfirm.disabled = false;
-                btnConfirm.innerHTML = '<i class="fa-solid fa-check-circle"></i> ĐÃ CHUYỂN KHOẢN XONG';
-            }
-
-            const bankBin = bConfig.BANK_ID;
-            const accNo = bConfig.ACCOUNT_NO;
-            const template = bConfig.TEMPLATE || 'compact2';
-            const amount = currentFinalPrice || window.currentFinalPrice || 0; 
-            const addInfo = encodeURIComponent(content);
-            const accName = encodeURIComponent(bConfig.ACCOUNT_NAME || '');
-            const qrUrl = `https://img.vietqr.io/image/${bankBin}-${accNo}-${template}.png?amount=${amount}&addInfo=${addInfo}&accountName=${accName}`;
-            const img = document.getElementById('vietQrImage');
-            img.onload = () => document.getElementById('qrLoading').classList.add('hidden');
-            img.src = qrUrl;
-        };
-
         window._studentRecheckTimer = null;
         window._currentStudentOrderId = null;
 
@@ -3449,13 +4291,12 @@
             return s === 'paid' || s === 'approved' || s === 'completed' || s === 'success';
         };
 
-        // Kích hoạt quét giao dịch tức thì qua Google Apps Script / Webhook (Non-blocking & No-error)
+        // Kích hoạt quét giao dịch tức thì qua Google Apps Script / Webhook
         window.triggerImmediateScan = (isAuto = true) => {
             const scanUrl = dynamicBankConfig?.SCAN_TRIGGER_URL || "https://script.google.com/macros/s/AKfycbxTRrSksmNVCb9UjOXhfTmKjY4XFrZO5QlIc_CnPoemUEEo5akhPoCmpYv3_x78AN_neQ/exec";
             if (!scanUrl) return;
 
             try {
-                // Ping bằng Image beacon để kích hoạt server Google Apps Script mà không sinh lỗi đỏ CORS / 404 abort trên console
                 const pingUrl = scanUrl + (scanUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
                 const img = new Image();
                 img.src = pingUrl;
@@ -3475,7 +4316,7 @@
             }
         };
 
-        // Hàm Kiểm tra lại thanh toán thủ công (Check DB Cực Nhanh <100ms + Gọi Webhook Dự Phòng)
+        // Kiểm tra lại thanh toán thủ công
         window.recheckStudentPayment = async () => {
             const btn = document.getElementById('btnRecheckPayment');
             const originHtml = btn ? btn.innerHTML : '';
@@ -3485,23 +4326,15 @@
             }
 
             try {
-                // 1. Phục hồi orderId nếu bị mất (do reload trang hoặc đổi app)
-                let orderId = window._currentStudentOrderId;
+                let orderId = window._currentStudentOrderId || window._currentOrderId;
                 if (!orderId) {
                     try {
                         const raw = localStorage.getItem('pendingStudentCheckoutOrderId');
                         if (raw) {
-                            try {
-                                const parsed = JSON.parse(raw);
-                                if (parsed && parsed.id && (Date.now() - (parsed.timestamp || 0) < 2 * 3600 * 1000)) {
-                                    orderId = parsed.id;
-                                    window._currentStudentOrderId = orderId;
-                                }
-                            } catch(e) {
-                                if (typeof raw === 'string' && raw.length > 5) {
-                                    orderId = raw;
-                                    window._currentStudentOrderId = orderId;
-                                }
+                            const parsed = JSON.parse(raw);
+                            if (parsed && parsed.id && (Date.now() - (parsed.timestamp || 0) < 2 * 3600 * 1000)) {
+                                orderId = parsed.id;
+                                window._currentStudentOrderId = orderId;
                             }
                         }
                     } catch(e) {}
@@ -3544,7 +4377,6 @@
                     }
                 };
 
-                // 2. [CỰC NHANH - <100ms]: Kiểm tra trực tiếp Firestore trước
                 const snap = await getDoc(doc(db, "orders", orderId));
                 if (snap.exists() && isOrderApproved(snap.data())) {
                     await onPaymentSuccess(snap.data());
@@ -3552,12 +4384,10 @@
                     return;
                 }
 
-                // 3. Nếu chưa -> Gọi webhook quét giao dịch chạy nền (không block UI)
                 if (window.triggerImmediateScan) {
                     window.triggerImmediateScan(false);
                 }
 
-                // 4. Smart Polling kiểm tra lại Firestore (lần 1 sau 1.2s)
                 await new Promise(r => setTimeout(r, 1200));
                 const snap1 = await getDoc(doc(db, "orders", orderId));
                 if (snap1.exists() && isOrderApproved(snap1.data())) {
@@ -3566,7 +4396,6 @@
                     return;
                 }
 
-                // Smart Polling kiểm tra lại Firestore (lần 2 sau 1.5s nữa)
                 await new Promise(r => setTimeout(r, 1500));
                 const snap2 = await getDoc(doc(db, "orders", orderId));
                 if (snap2.exists() && isOrderApproved(snap2.data())) {
@@ -3575,7 +4404,6 @@
                     return;
                 }
 
-                // 5. Nếu vẫn chưa có biến động tiền
                 window.showNotification("Hệ thống đã gửi yêu cầu đối soát tới ngân hàng. Nếu bạn vừa chuyển tiền, ngân hàng có thể mất 30s - 1 phút để cập nhật số dư. Bạn vui lòng thử bấm lại sau giây lát nhé!", "info");
 
             } catch (err) {
@@ -3589,40 +4417,24 @@
             }
         };
 
+        // Xác nhận đã chuyển khoản xong -> Chuyển sang Modal Processing
         window.confirmPayment = async () => {
-            const btn = document.getElementById('btnConfirmPaymentStudent') || document.querySelector('#stepQR button');
+            const btn = document.getElementById('btnConfirmPayment');
             const oldBtnContent = btn ? btn.innerHTML : '';
             if (btn) {
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo đơn...'; 
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối...'; 
                 btn.disabled = true;
             }
 
             try {
-                // 1. Tạo đơn hàng lên Firebase
-                const docRef = await addDoc(collection(db, "orders"), {
-                    userId: auth.currentUser.uid,
-                    userName: auth.currentUser.displayName || "No Name",
-                    courseId: currentPayingCourse.id,
-                    courseTitle: currentPayingCourse.title,
-                    amount: currentFinalPrice,
-                    originalAmount: parseInt(String(currentPayingCourse.price).replace(/\D/g, '')) || 0,
-                    voucher: currentVoucherCode || null,
-                    status: 'pending',
-                    content: document.getElementById('transferContentDisplay').innerText,
-                    createdAt: new Date().toISOString()
-                });
+                let activeOrderId = window._currentStudentOrderId || window._currentOrderId;
+                if (!activeOrderId) {
+                    throw new Error("Chưa có mã đơn hàng. Vui lòng thử lại!");
+                }
 
-                window._currentStudentOrderId = docRef.id;
-                try {
-                    localStorage.setItem('pendingStudentCheckoutOrderId', JSON.stringify({
-                        id: docRef.id,
-                        content: document.getElementById('transferContentDisplay')?.innerText || '',
-                        timestamp: Date.now()
-                    }));
-                } catch(e) {}
-
-                // 2. Chuyển đổi giao diện: Ẩn Payment, Hiện Processing
-                document.getElementById('paymentModal').classList.add('hidden');
+                // Ẩn Payment Modal, hiện Processing Modal
+                document.getElementById('paymentModal').classList.add('hidden', 'opacity-0', 'pointer-events-none');
+                document.body.style.overflow = '';
                 document.getElementById('processingModal').classList.remove('hidden');
                 document.getElementById('processingState').classList.remove('hidden');
                 document.getElementById('successState').classList.add('hidden');
@@ -3632,14 +4444,13 @@
                     window.startStudentRecheckCountdown(30);
                 }
 
-                // 3. Kích hoạt lắng nghe dữ liệu Real-time
-                if (processingListener) processingListener(); // Hủy cái cũ nếu có
+                // Kích hoạt lắng nghe dữ liệu Real-time
+                if (processingListener) processingListener();
 
-                processingListener = onSnapshot(doc(db, "orders", docRef.id), async (snapshot) => {
+                processingListener = onSnapshot(doc(db, "orders", activeOrderId), async (snapshot) => {
                     if (snapshot.exists()) {
                         const data = snapshot.data();
                         
-                        // Khi Script Google hoặc Admin duyệt đơn thành công
                         if (isOrderApproved(data)) {
                             try { localStorage.removeItem('pendingStudentCheckoutOrderId'); } catch(e) {}
                             if (window._studentRecheckTimer) {
@@ -3648,23 +4459,39 @@
                             }
                             document.getElementById('recheckPaymentBox')?.classList.add('hidden');
 
+                            // Cập nhật voucher usage
+                            if (data.voucherId) {
+                                try {
+                                    getDoc(doc(db, "vouchers", data.voucherId)).then(vSnap => {
+                                        if (vSnap.exists()) {
+                                            const vCur = vSnap.data();
+                                            const usedByArr = vCur.usedBy || [];
+                                            if (!usedByArr.includes(activeOrderId)) {
+                                                usedByArr.push(activeOrderId);
+                                                updateDoc(doc(db, "vouchers", data.voucherId), {
+                                                    used: (vCur.used || 0) + 1,
+                                                    usedBy: usedByArr
+                                                });
+                                            }
+                                        }
+                                    }).catch(()=>{});
+                                } catch(e){}
+                            }
+
                             // Tự động cộng dồn đơn mua vào số lượt mua ảo của khóa học
                             if (data.courseId && data.studentCountIncremented !== true) {
                                 try {
                                     updateDoc(doc(db, "public_courses", data.courseId), { students: increment(1) }).catch(()=>{});
-                                    updateDoc(doc(db, "orders", docRef.id), { studentCountIncremented: true }).catch(()=>{});
+                                    updateDoc(doc(db, "orders", activeOrderId), { studentCountIncremented: true }).catch(()=>{});
                                 } catch(e){}
                             }
 
-                            // a. Hiện thông báo thành công
                             document.getElementById('processingState').classList.add('hidden');
                             document.getElementById('successState').classList.remove('hidden');
                             
-                            // b. Tự động tải lại dữ liệu để đổi nút Mua -> Vào học
                             await loadMyPurchased(auth.currentUser); 
                             await loadMarket(); 
                             
-                            // c. Dừng lắng nghe
                             if (processingListener) {
                                 processingListener();
                                 processingListener = null;
@@ -3682,7 +4509,7 @@
             }
         };
 
-        // Hàm đóng modal chờ (nếu người dùng muốn tắt tay)
+        // Hàm đóng modal chờ
         window.closeProcessingModal = () => {
             if(confirm("Hệ thống vẫn sẽ kiểm tra ngầm. Bạn có chắc muốn đóng bảng này?")) {
                 if (window._studentRecheckTimer) {
@@ -3705,14 +4532,24 @@
             window.switchTab('my-courses');
         };
 
+        window.openPreviewModal = (link) => {
+            let previewUrl = link;
+            if(previewUrl.includes('drive.google.com') && previewUrl.includes('/view')) {
+                previewUrl = previewUrl.replace('/view', '/preview');
+            }
+            document.getElementById('previewIframe').src = previewUrl;
+            document.getElementById('previewModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closePreviewModal = () => {
+            document.getElementById('previewModal').classList.add('hidden');
+            document.getElementById('previewIframe').src = '';
+            document.body.style.overflow = '';
+        };
+
         window.resetQrState = () => {
-            document.getElementById('stepQR').classList.add('hidden');
-            document.getElementById('stepQR').classList.remove('flex');
-            document.getElementById('stepReview').classList.remove('hidden');
-            
-            // [FIX] Mở khóa ô nhập voucher để sửa
-            document.getElementById('voucherInput').disabled = false;
-            document.getElementById('voucherInput').focus();
+            window.backToStep1();
         };
 
         // UI Helpers
@@ -4019,82 +4856,40 @@
             }
         };
 
-        // --- 2. HÀM TIẾP TỤC THANH TOÁN (QUAN TRỌNG) ---
-        // --- 2. HÀM TIẾP TỤC THANH TOÁN (Đã sửa lỗi ảnh & 0đ) ---
+        // --- 2. HÀM TIẾP TỤC THANH TOÁN (HỆ THỐNG MỚI ĐỒNG BỘ 2 BƯỚC) ---
         window.continuePayment = async (orderDataEncoded) => {
             try {
                 const order = JSON.parse(decodeURIComponent(orderDataEncoded));
                 
-                // [FIX] Lấy lại thông tin khóa học để hiển thị Ảnh Thumbnail
+                let c = null;
                 const courseSnap = await getDoc(doc(db, "public_courses", order.courseId));
-                const thumb = courseSnap.exists() ? (courseSnap.data().thumbnail || 'https://placehold.co/150') : 'https://placehold.co/150';
-                
-                // Điền thông tin vào Modal Review
-                document.getElementById('payCourseTitle').innerText = order.courseTitle;
-                document.getElementById('payCourseImg').src = thumb;
-                document.getElementById('payOrderId').innerText = order.id.substring(0,6); // Dùng ID đơn hàng làm mã hiển thị
-                document.getElementById('payDate').innerText = new Date(order.createdAt).toLocaleDateString('vi-VN');
-                document.getElementById('payOriginalPrice').innerText = (order.originalAmount || order.amount).toLocaleString() + 'đ';
-                document.getElementById('payFinalPrice').innerText = order.amount.toLocaleString() + 'đ';
-                
-                // [LOGIC MỚI] Nếu đơn hàng là 0đ -> Kích hoạt luôn
+                if (courseSnap.exists()) c = { id: order.courseId, ...courseSnap.data() };
+                else c = { id: order.courseId, title: order.courseTitle || 'Sản phẩm', price: order.unitPrice || order.amount };
+
+                currentPayingCourse = c;
+                window._currentStudentOrderId = order.id;
+                window._currentOrderId = order.id;
+
                 if (order.amount === 0) {
                     if(confirm("Đơn hàng này miễn phí. Bạn có muốn kích hoạt ngay không?")) {
-                        await window.activateFreeCourse(order.id, true); // True = là đơn cũ
+                        await window.activateFreeCourse(order.id, true);
                     }
                     return;
                 }
 
-                // Nếu có tiền -> Hiện lại quy trình thanh toán QR
-                document.getElementById('paymentModal').classList.remove('hidden');
-                
-                // Lấy config ngân hàng
-                if (!dynamicBankConfig) {
-                    const s = await getDoc(doc(db, "site_settings", "payment_config"));
-                    dynamicBankConfig = s.exists() ? s.data() : { BANK_ID: "970422", BANK_NAME: "MB Bank", ACCOUNT_NO: "0000", ACCOUNT_NAME: "ADMIN" };
-                }
+                // Mở modal và nạp thông tin đơn hàng
+                await window.openPaymentModal(order.courseId, order.shippingInfo);
+                _orderQuantity = order.quantity || 1;
+                _unitPrice = order.unitPrice || parseInt(String(c.price || 0).replace(/\D/g, '')) || 0;
+                _shipFee = order.shippingFee || 0;
+                _voucherDiscount = order.voucherDiscount || 0;
 
-                // Tái tạo mã QR
-                const bankBin = dynamicBankConfig.BANK_ID;
-                const accNo = dynamicBankConfig.ACCOUNT_NO;
-                const template = dynamicBankConfig.TEMPLATE || 'compact2';
-                const content = order.content;
-                const qrUrl = `https://img.vietqr.io/image/${bankBin}-${accNo}-${template}.png?amount=${order.amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent(dynamicBankConfig.ACCOUNT_NAME)}`;
-
-                // Điền data vào Modal QR
-                document.getElementById('bankNameDisplay').innerText = dynamicBankConfig.BANK_NAME || dynamicBankConfig.BANK_ID;
-                document.getElementById('accountNoDisplay').innerText = dynamicBankConfig.ACCOUNT_NO;
-                const ownerEl = document.getElementById('accountOwnerDisplay');
-                if (ownerEl) {
-                    ownerEl.innerText = dynamicBankConfig.ACCOUNT_NAME ? `(${dynamicBankConfig.ACCOUNT_NAME})` : '';
-                }
-                document.getElementById('transferContentDisplay').innerText = content;
-                const img = document.getElementById('vietQrImage');
-                document.getElementById('qrLoading').classList.remove('hidden');
-                img.onload = () => document.getElementById('qrLoading').classList.add('hidden');
-                img.src = qrUrl;
-
-                // Chuyển sang bước QR
-                document.getElementById('stepReview').classList.add('hidden');
-                document.getElementById('stepQR').classList.remove('hidden');
-                document.getElementById('stepQR').classList.add('flex');
-
-                // Sửa nút bấm thành "Theo dõi đơn hàng cũ"
-                const btnConfirm = document.getElementById('btnConfirmPaymentStudent') || document.querySelector('#stepQR button[onclick*="confirmPayment"]');
-                if (btnConfirm) {
-                    const newBtn = btnConfirm.cloneNode(true);
-                    btnConfirm.parentNode.replaceChild(newBtn, btnConfirm);
-                    newBtn.onclick = () => window.watchExistingOrder(order.id);
-                    newBtn.innerHTML = '<i class="fa-solid fa-check-circle"></i> ĐÃ CHUYỂN KHOẢN XONG';
-                }
-                
-                // Ẩn nút quay lại vì đơn cũ không sửa voucher được nữa
-                const backBtn = document.querySelector('#stepQR button[onclick="window.resetQrState()"]');
-                if(backBtn) backBtn.style.display = 'none';
+                // Chuyển sang Bước 2 thanh toán với mã đơn hiện có
+                window.proceedToPaymentStep(true);
 
             } catch(e) {
                 console.error(e);
-                window.showNotification("Có lỗi khi mở lại đơn hàng", "error");
+                window.showNotification("Có lỗi khi mở lại đơn hàng: " + e.message, "error");
             }
         };
 
