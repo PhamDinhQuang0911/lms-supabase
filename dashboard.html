@@ -816,6 +816,19 @@
                             <option value="">Tất cả nhãn</option>
                         </select>
 
+                        <!-- Bộ chọn sắp xếp đề thi -->
+                        <div class="relative shrink-0">
+                            <select id="explorerSortSelect" onchange="window.changeExamSort(this.value)" class="text-xs md:text-sm border border-gray-300 rounded-lg py-1 md:py-1.5 pl-2 pr-6 md:pl-2.5 md:pr-7 bg-white text-gray-700 font-bold outline-none cursor-pointer hover:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all appearance-none" title="Sắp xếp danh sách đề thi">
+                                <option value="newest">🕒 Mới nhất</option>
+                                <option value="oldest">⏳ Cũ nhất</option>
+                                <option value="az">🔤 Tên A → Z</option>
+                                <option value="za">🔠 Tên Z → A</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-gray-400">
+                                <i class="fa-solid fa-arrow-down-short-wide text-[10px]"></i>
+                            </div>
+                        </div>
+
                         <div class="bg-gray-100 p-1 rounded-lg flex items-center shrink-0">
                             <button onclick="window.switchExplorerView('grid')" id="btnExpGrid" class="p-1 md:p-1.5 rounded text-primary-600 bg-white shadow-sm transition-all text-xs md:text-sm" title="Lưới"><i class="fa-solid fa-border-all"></i></button>
                             <button onclick="window.switchExplorerView('list')" id="btnExpList" class="p-1 md:p-1.5 rounded text-gray-400 hover:text-primary-600 transition-all text-xs md:text-sm" title="Danh sách"><i class="fa-solid fa-list"></i></button>
@@ -5787,6 +5800,15 @@ function renderTagFilterUI() {
             }
             return validIds;
         }
+        
+        window.currentExamSort = localStorage.getItem('lms_exam_sort') || 'newest';
+        window.changeExamSort = (val) => {
+            window.currentExamSort = val;
+            try {
+                localStorage.setItem('lms_exam_sort', val);
+            } catch(e) {}
+            renderExplorer();
+        };
         function renderExplorer() { 
             const isSuper = window.checkIsSuperAdmin ? window.checkIsSuperAdmin() : (window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase()));
             const container = document.getElementById('explorerGrid'); 
@@ -5817,6 +5839,48 @@ function renderTagFilterUI() {
                 }
                 return tabMatch;
             });
+
+            // Đồng bộ trạng thái vào dropdown sắp xếp
+            const sortSelectEl = document.getElementById('explorerSortSelect');
+            if (sortSelectEl && sortSelectEl.value !== (window.currentExamSort || 'newest')) {
+                sortSelectEl.value = window.currentExamSort || 'newest';
+            }
+
+            function getExamSortTime(ex) {
+                if (!ex) return 0;
+                const v = ex.createdAt || ex.updatedAt;
+                if (!v) return 0;
+                if (typeof v === 'number') return v;
+                if (v.seconds) return v.seconds * 1000;
+                if (typeof v === 'string') {
+                    const p = Date.parse(v);
+                    return isNaN(p) ? 0 : p;
+                }
+                if (v instanceof Date) return v.getTime();
+                return 0;
+            }
+
+            // Sắp xếp thư mục
+            currentFolders.sort((a, b) => {
+                if (window.currentExamSort === 'za') {
+                    return (b.name || '').localeCompare(a.name || '', 'vi', { sensitivity: 'base' });
+                }
+                return (a.name || '').localeCompare(b.name || '', 'vi', { sensitivity: 'base' });
+            });
+
+            // Sắp xếp đề thi theo lựa chọn của người dùng (Mới nhất, Cũ nhất, Tên A-Z, Tên Z-A)
+            currentExams.sort((a, b) => {
+                if (window.currentExamSort === 'oldest') {
+                    return getExamSortTime(a) - getExamSortTime(b);
+                } else if (window.currentExamSort === 'az') {
+                    return (a.title || '').localeCompare(b.title || '', 'vi', { sensitivity: 'base' });
+                } else if (window.currentExamSort === 'za') {
+                    return (b.title || '').localeCompare(a.title || '', 'vi', { sensitivity: 'base' });
+                } else { // 'newest' (mặc định: thời gian tạo mới nhất lên trước)
+                    return getExamSortTime(b) - getExamSortTime(a);
+                }
+            });
+
             
             // Xử lý thông báo trống
             if (currentFolders.length === 0 && currentExams.length === 0) {
