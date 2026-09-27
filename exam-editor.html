@@ -77,7 +77,8 @@
     <script src="ai-grader.js"></script>
     <script src="ai-id-assigner.js?v=20260924-hotswap"></script>
     <script src="bank-service.js?v=20260927-hotswap"></script>
-    <script src="math-palette.js?v=20260927-v3"></script>
+    <script src="mathlive.min.js"></script>
+    <script src="math-palette.js?v=20260927-v4"></script>
     <script src="mapid-picker.js"></script>
     <script>
         // Sẵn sàng ngay các hàm điều hướng giao diện trước khi tải dữ liệu
@@ -2828,15 +2829,15 @@
                             </span>
                         </div>
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button" onclick="window.MathPalette.openFormulaDialog('editContent')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở bảng soạn công thức MathType trực quan">
-                                <i class="fa-solid fa-square-root-variable text-indigo-600"></i> <span>MathType</span>
+                            <button type="button" onclick="window.MathPalette.openFormulaDialog('editContent')" class="btn-editor-action btn-editor-mathtype" title="Mở bảng soạn công thức MathType trực quan">
+                                <i class="fa-solid fa-square-root-variable"></i> <span>MathType</span>
                             </button>
-                            <label class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Tải & chèn ảnh mới từ máy">
-                                <i class="fa-solid fa-image text-teal-600"></i> <span>Ảnh</span>
+                            <label class="btn-editor-action btn-editor-image" title="Tải & chèn ảnh mới từ máy">
+                                <i class="fa-solid fa-image"></i> <span>Ảnh</span>
                                 <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, 'editContent')">
                             </label>
-                            <button type="button" id="btnToggleLatexContent" onclick="window.toggleLatexEditor('editContent', 'btnToggleLatexContent')" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở / Thu gọn ô nhập mã LaTeX">
-                                <i class="fa-solid fa-code text-gray-600"></i> <span>LaTeX</span>
+                            <button type="button" id="btnToggleLatexContent" onclick="window.toggleLatexEditor('editContent', 'btnToggleLatexContent')" class="btn-editor-action btn-editor-latex" title="Mở / Thu gọn ô nhập mã LaTeX">
+                                <i class="fa-solid fa-code"></i> <span>LaTeX</span>
                             </button>
                         </div>
                     </div>
@@ -2934,15 +2935,15 @@
                             </span>
                         </div>
                         <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button" onclick="window.MathPalette.openFormulaDialog('editSolution')" class="px-2.5 py-1 bg-emerald-100/70 hover:bg-emerald-200/70 text-emerald-800 rounded-lg border border-emerald-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở bảng soạn công thức MathType">
-                                <i class="fa-solid fa-square-root-variable text-emerald-700"></i> <span>MathType</span>
+                            <button type="button" onclick="window.MathPalette.openFormulaDialog('editSolution')" class="btn-editor-action btn-editor-mathtype" title="Mở bảng soạn công thức MathType trực quan">
+                                <i class="fa-solid fa-square-root-variable"></i> <span>MathType</span>
                             </button>
-                            <label class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Tải & chèn ảnh mới vào lời giải">
-                                <i class="fa-solid fa-image text-teal-600"></i> <span>Ảnh</span>
+                            <label class="btn-editor-action btn-editor-image" title="Tải & chèn ảnh mới vào lời giải">
+                                <i class="fa-solid fa-image"></i> <span>Ảnh</span>
                                 <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, 'editSolution')">
                             </label>
-                            <button type="button" id="btnToggleLatexSolution" onclick="window.toggleLatexEditor('editSolution', 'btnToggleLatexSolution')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở / Thu gọn ô nhập mã LaTeX">
-                                <i class="fa-solid fa-code text-emerald-600"></i> <span>LaTeX</span>
+                            <button type="button" id="btnToggleLatexSolution" onclick="window.toggleLatexEditor('editSolution', 'btnToggleLatexSolution')" class="btn-editor-action btn-editor-latex" title="Mở / Thu gọn ô nhập mã LaTeX">
+                                <i class="fa-solid fa-code"></i> <span>LaTeX</span>
                             </button>
                         </div>
                     </div>

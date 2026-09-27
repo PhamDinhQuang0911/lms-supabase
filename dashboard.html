@@ -96,7 +96,8 @@
     </script>
         <script src="https://unpkg.com/mammoth@1.12.1/mammoth.browser.min.js"></script>
     <script src="ai-id-assigner.js?v=20260927"></script>
-    <script src="math-palette.js?v=20260927-v3"></script>
+    <script src="mathlive.min.js"></script>
+    <script src="math-palette.js?v=20260927-v4"></script>
     <script src="mapid-picker.js"></script>
     <script src="question-importer.js"></script>
     <script src="bank-service.js?v=20260927-hotswap"></script>
@@ -8601,15 +8602,15 @@ function renderTagFilterUI() {
                         <span class="text-[11px] text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-full border border-primary-200 font-semibold hidden md:inline-flex items-center gap-1"><i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Bấm vào ảnh để <strong>Dán đè (Ctrl+V)</strong> hoặc <strong>Tải từ máy</strong></span>
                     </div>
                     <div class="flex items-center gap-1.5 flex-wrap">
-                        <button type="button" onclick="window.MathPalette.openFormulaDialog('edit_content')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở bảng soạn công thức MathType">
-                            <i class="fa-solid fa-square-root-variable text-indigo-600"></i> <span>MathType</span>
+                        <button type="button" onclick="window.MathPalette.openFormulaDialog('edit_content')" class="btn-editor-action btn-editor-mathtype" title="Mở bảng soạn công thức MathType trực quan">
+                            <i class="fa-solid fa-square-root-variable"></i> <span>MathType</span>
                         </button>
-                        <label class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Tải & chèn ảnh từ máy">
-                            <i class="fa-solid fa-image text-teal-600"></i> <span>Ảnh</span>
+                        <label class="btn-editor-action btn-editor-image" title="Tải & chèn ảnh từ máy">
+                            <i class="fa-solid fa-image"></i> <span>Ảnh</span>
                             <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, 'edit_content')">
                         </label>
-                        <button type="button" id="btnToggleLatexBankContent" onclick="window.toggleLatexEditor('edit_content', 'btnToggleLatexBankContent')" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở / Thu gọn ô nhập mã LaTeX">
-                            <i class="fa-solid fa-code text-gray-600"></i> <span>LaTeX</span>
+                        <button type="button" id="btnToggleLatexBankContent" onclick="window.toggleLatexEditor('edit_content', 'btnToggleLatexBankContent')" class="btn-editor-action btn-editor-latex" title="Mở / Thu gọn ô nhập mã LaTeX">
+                            <i class="fa-solid fa-code"></i> <span>LaTeX</span>
                         </button>
                     </div>
                 </div>
@@ -8636,15 +8637,15 @@ function renderTagFilterUI() {
                         <span class="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-semibold hidden md:inline-flex items-center gap-1"><i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Bấm vào hình vẽ để Thay ảnh / Ctrl+V</span>
                     </div>
                     <div class="flex items-center gap-1.5 flex-wrap">
-                        <button type="button" onclick="window.MathPalette.openFormulaDialog('edit_solution')" class="px-2.5 py-1 bg-emerald-100/70 hover:bg-emerald-200/70 text-emerald-800 rounded-lg border border-emerald-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở bảng soạn công thức MathType">
-                            <i class="fa-solid fa-square-root-variable text-emerald-700"></i> <span>MathType</span>
+                        <button type="button" onclick="window.MathPalette.openFormulaDialog('edit_solution')" class="btn-editor-action btn-editor-mathtype" title="Mở bảng soạn công thức MathType trực quan">
+                            <i class="fa-solid fa-square-root-variable"></i> <span>MathType</span>
                         </button>
-                        <label class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Tải & chèn ảnh vào lời giải">
-                            <i class="fa-solid fa-image text-teal-600"></i> <span>Ảnh</span>
+                        <label class="btn-editor-action btn-editor-image" title="Tải & chèn ảnh vào lời giải">
+                            <i class="fa-solid fa-image"></i> <span>Ảnh</span>
                             <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, 'edit_solution')">
                         </label>
-                        <button type="button" id="btnToggleLatexBankSolution" onclick="window.toggleLatexEditor('edit_solution', 'btnToggleLatexBankSolution')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở / Thu gọn ô nhập mã LaTeX">
-                            <i class="fa-solid fa-code text-emerald-600"></i> <span>LaTeX</span>
+                        <button type="button" id="btnToggleLatexBankSolution" onclick="window.toggleLatexEditor('edit_solution', 'btnToggleLatexBankSolution')" class="btn-editor-action btn-editor-latex" title="Mở / Thu gọn ô nhập mã LaTeX">
+                            <i class="fa-solid fa-code"></i> <span>LaTeX</span>
                         </button>
                     </div>
                 </div>

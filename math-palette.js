@@ -1,5 +1,5 @@
 /**
- * math-palette.js - Thanh công cụ & Bảng Soạn thảo Công thức Toán học trực quan kiểu MathType (Modal & Inline)
+ * math-palette.js - Bảng Soạn thảo Công thức Toán học TRỰC QUAN kiểu MathType (WYSIWYG qua MathLive)
  * & Hệ thống tương tác chọn/thay thế/dán ảnh trực tiếp vào câu hỏi LaTeX.
  * Dùng chung cho: exam-editor.html, dashboard.html (questionEditModal), book-manager.html...
  */
@@ -9,20 +9,20 @@
 
     const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
 
-    // Danh mục các mẫu công thức toán học phân theo nhóm
+    // Danh mục các mẫu công thức toán học phân theo nhóm trực quan
     const PALETTE_GROUPS = [
         {
             id: 'basic',
             name: 'Cơ bản',
             icon: 'fa-solid fa-square-root-variable',
             templates: [
-                { label: 'a/b', desc: 'Phân số', latex: '\\frac{#sel#}{?}', cursorOffset: -4 },
-                { label: '√x', desc: 'Căn bậc hai', latex: '\\sqrt{#sel#?}', cursorOffset: -1 },
-                { label: 'ⁿ√x', desc: 'Căn bậc n', latex: '\\sqrt[n]{#sel#?}', cursorOffset: -1 },
-                { label: 'x²', desc: 'Số mũ', latex: '{#sel#?}^{2}', cursorOffset: -4 },
-                { label: 'xⁿ', desc: 'Lũy thừa tổng quát', latex: '{#sel#?}^{n}', cursorOffset: -4 },
-                { label: 'xᵢ', desc: 'Chỉ số dưới', latex: '{#sel#?}_{i}', cursorOffset: -4 },
-                { label: 'xᵢⁿ', desc: 'Chỉ số trên và dưới', latex: '{#sel#?}_{i}^{n}', cursorOffset: -7 },
+                { label: 'a/b', desc: 'Phân số trực quan', latex: '\\frac{#?}{#?}' },
+                { label: '√x', desc: 'Căn bậc hai', latex: '\\sqrt{#?}' },
+                { label: 'ⁿ√x', desc: 'Căn bậc n', latex: '\\sqrt[#?]{#?}' },
+                { label: 'x²', desc: 'Bình phương', latex: '{#?}^{2}' },
+                { label: 'xⁿ', desc: 'Lũy thừa số mũ', latex: '{#?}^{#?}' },
+                { label: 'xᵢ', desc: 'Chỉ số dưới', latex: '{#?}_{#?}' },
+                { label: 'xᵢⁿ', desc: 'Chỉ số trên và dưới', latex: '{#?}_{#?}^{#?}' },
                 { label: '±', desc: 'Cộng trừ', latex: '\\pm ' },
                 { label: '∓', desc: 'Trừ cộng', latex: '\\mp ' },
                 { label: '×', desc: 'Nhân', latex: '\\times ' },
@@ -40,13 +40,14 @@
             name: 'Hệ & Ngoặc',
             icon: 'fa-solid fa-brackets-curly',
             templates: [
-                { label: '{ Hệ', desc: 'Hệ phương trình (\\heva)', latex: '\\heva{\n    & #sel#? \\\\\n    & \n}', cursorOffset: -12 },
-                { label: '[ Hoặc', desc: 'Dấu hoặc (\\hoac)', latex: '\\hoac{\n    & #sel#? \\\\\n    & \n}', cursorOffset: -12 },
-                { label: '( ... )', desc: 'Ngoặc tròn co giãn', latex: '\\left( #sel#? \\right)', cursorOffset: -8 },
-                { label: '[ ... ]', desc: 'Ngoặc vuông co giãn', latex: '\\left[ #sel#? \\right]', cursorOffset: -8 },
-                { label: '{ ... }', desc: 'Ngoặc nhọn co giãn', latex: '\\left\\{ #sel#? \\right\\}', cursorOffset: -9 },
-                { label: '| ... |', desc: 'Trị tuyệt đối co giãn', latex: '\\left| #sel#? \\right|', cursorOffset: -8 },
-                { label: '‖ ... ‖', desc: 'Chuẩn / Độ dài', latex: '\\left\\| #sel#? \\right\\|', cursorOffset: -9 }
+                { label: '{ Hệ 2 PT', desc: 'Hệ 2 phương trình', latex: '\\begin{cases} #? \\\\ #? \\end{cases}' },
+                { label: '{ Hệ 3 PT', desc: 'Hệ 3 phương trình', latex: '\\begin{cases} #? \\\\ #? \\\\ #? \\end{cases}' },
+                { label: '[ Hoặc', desc: 'Dấu ngoặc hoặc', latex: '\\left[\\begin{aligned} #? \\\\ #? \\end{aligned}\\right.' },
+                { label: '( ... )', desc: 'Ngoặc tròn co giãn', latex: '\\left( #? \\right)' },
+                { label: '[ ... ]', desc: 'Ngoặc vuông co giãn', latex: '\\left[ #? \\right]' },
+                { label: '{ ... }', desc: 'Ngoặc nhọn co giãn', latex: '\\left\\{ #? \\right\\}' },
+                { label: '| ... |', desc: 'Trị tuyệt đối co giãn', latex: '\\left| #? \\right|' },
+                { label: '‖ ... ‖', desc: 'Độ dài / Chuẩn vector', latex: '\\left\\| #? \\right\\|' }
             ]
         },
         {
@@ -54,11 +55,11 @@
             name: 'Hình học & Vector',
             icon: 'fa-solid fa-shapes',
             templates: [
-                { label: 'v⃗', desc: 'Vector ngắn', latex: '\\vec{#sel#?}', cursorOffset: -1 },
-                { label: 'AB⃗', desc: 'Vector dài (\\overrightarrow)', latex: '\\overrightarrow{#sel#?}', cursorOffset: -1 },
-                { label: 'ABĈ', desc: 'Góc (\\widehat)', latex: '\\widehat{#sel#?}', cursorOffset: -1 },
-                { label: 'AB⁀', desc: 'Cung tròn (\\wideparen)', latex: '\\wideparen{#sel#?}', cursorOffset: -1 },
-                { label: 'Δ', desc: 'Tam giác (\\Delta)', latex: '\\Delta ' },
+                { label: 'v⃗', desc: 'Vector ngắn', latex: '\\vec{#?}' },
+                { label: 'AB⃗', desc: 'Vector dài', latex: '\\overrightarrow{#?}' },
+                { label: 'ABĈ', desc: 'Ký hiệu góc', latex: '\\widehat{#?}' },
+                { label: 'AB⁀', desc: 'Cung tròn', latex: '\\wideparen{#?}' },
+                { label: 'Δ', desc: 'Tam giác (Delta)', latex: '\\Delta ' },
                 { label: '⊥', desc: 'Vuông góc', latex: '\\perp ' },
                 { label: '∥', desc: 'Song song', latex: '\\parallel ' },
                 { label: '°', desc: 'Độ (đo góc)', latex: '^{\\circ}' },
@@ -71,19 +72,19 @@
             name: 'Giải tích',
             icon: 'fa-solid fa-chart-line',
             templates: [
-                { label: '∫dx', desc: 'Tích phân bất định', latex: '\\int #sel#?\\, dx', cursorOffset: -6 },
-                { label: '∫ₐᵇ', desc: 'Tích phân xác định', latex: '\\int_{a}^{b} {#sel#?}\\, dx', cursorOffset: -7 },
-                { label: 'lim', desc: 'Giới hạn', latex: '\\lim_{x \\to x_0} {#sel#?}', cursorOffset: -1 },
-                { label: 'lim₊', desc: 'Giới hạn bên phải', latex: '\\lim_{x \\to x_0^+} {#sel#?}', cursorOffset: -1 },
-                { label: 'lim₋', desc: 'Giới hạn bên trái', latex: '\\lim_{x \\to x_0^-} {#sel#?}', cursorOffset: -1 },
-                { label: '∑', desc: 'Tổng sigma', latex: '\\sum_{i=1}^{n} {#sel#?}', cursorOffset: -1 },
-                { label: '∏', desc: 'Tích pi', latex: '\\prod_{i=1}^{n} {#sel#?}', cursorOffset: -1 },
-                { label: 'f\'(x)', desc: 'Đạo hàm', latex: 'f\'(#sel#?)', cursorOffset: -1 },
-                { label: "f''(x)", desc: 'Đạo hàm cấp hai', latex: "f''(#sel#?)", cursorOffset: -1 },
-                { label: 'sin', desc: 'Hàm sin', latex: '\\sin(#sel#?)', cursorOffset: -1 },
-                { label: 'cos', desc: 'Hàm cos', latex: '\\cos(#sel#?)', cursorOffset: -1 },
-                { label: 'tan', desc: 'Hàm tan', latex: '\\tan(#sel#?)', cursorOffset: -1 },
-                { label: 'cot', desc: 'Hàm cot', latex: '\\cot(#sel#?)', cursorOffset: -1 }
+                { label: '∫dx', desc: 'Tích phân bất định', latex: '\\int {#?}\\, dx' },
+                { label: '∫ₐᵇ', desc: 'Tích phân xác định', latex: '\\int_{#?}^{#?} {#?}\\, dx' },
+                { label: 'lim', desc: 'Giới hạn', latex: '\\lim_{x \\to #?} {#?}' },
+                { label: 'lim₊', desc: 'Giới hạn bên phải', latex: '\\lim_{x \\to {#?}^+} {#?}' },
+                { label: 'lim₋', desc: 'Giới hạn bên trái', latex: '\\lim_{x \\to {#?}^-} {#?}' },
+                { label: '∑', desc: 'Tổng sigma', latex: '\\sum_{i=1}^{#?} {#?}' },
+                { label: '∏', desc: 'Tích pi', latex: '\\prod_{i=1}^{#?} {#?}' },
+                { label: 'f\'(x)', desc: 'Đạo hàm', latex: 'f\'(#?)' },
+                { label: "f''(x)", desc: 'Đạo hàm cấp hai', latex: "f''(#?)" },
+                { label: 'sin', desc: 'Hàm sin', latex: '\\sin(#?)' },
+                { label: 'cos', desc: 'Hàm cos', latex: '\\cos(#?)' },
+                { label: 'tan', desc: 'Hàm tan', latex: '\\tan(#?)' },
+                { label: 'cot', desc: 'Hàm cot', latex: '\\cot(#?)' }
             ]
         },
         {
@@ -136,10 +137,8 @@
     const MathPalette = {
         activeTextarea: null,
         dialogTargetInput: null,
-        dialogActiveGroupId: 'basic',
         selectedImageElement: null,
         selectedImageTargetTextarea: null,
-        previewDebounceTimer: null,
 
         /**
          * Gán con trỏ hoặc ghi nhớ textarea đang được chỉnh sửa
@@ -170,17 +169,14 @@
             let inserted = latexTpl;
             let targetCursor = start;
 
-            // Xử lý placeholder #sel#
             if (inserted.includes('#sel#')) {
                 inserted = inserted.replace('#sel#', selectedText);
             }
+            if (inserted.includes('#?')) {
+                inserted = inserted.replace(/#\?/g, '');
+            }
 
-            // Xử lý vị trí con trỏ '?'
-            if (inserted.includes('?')) {
-                const qIdx = inserted.indexOf('?');
-                inserted = inserted.replace('?', '');
-                targetCursor = start + qIdx;
-            } else if (cursorOffset !== 0) {
+            if (cursorOffset !== 0) {
                 targetCursor = start + inserted.length + cursorOffset;
             } else {
                 targetCursor = start + inserted.length;
@@ -191,18 +187,17 @@
             ta.focus();
             ta.setSelectionRange(targetCursor, targetCursor);
 
-            // Bắn sự kiện input để hệ thống tự động lưu & preview
             ta.dispatchEvent(new Event('input', { bubbles: true }));
         },
 
         /**
          * =========================================================================
-         * MODAL SOẠN THẢO CÔNG THỨC MATHTYPE TRỰC QUAN (MATH FORMULA MODAL BUILDER)
+         * MODAL SOẠN THẢO CÔNG THỨC MATHTYPE TRỰC QUAN (WYSIWYG MATHLIVE)
          * =========================================================================
          */
 
         /**
-         * Đảm bảo DOM của Modal MathType đã tồn tại trong body
+         * Đảm bảo DOM của Modal MathType đã tồn tại trong body với z-index cực đại
          */
         ensureDialogInDom() {
             let modal = document.getElementById('mathFormulaModal');
@@ -210,10 +205,11 @@
 
             modal = document.createElement('div');
             modal.id = 'mathFormulaModal';
-            modal.className = 'fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 hidden opacity-0 transition-opacity duration-200';
+            // Cài đặt style trực tiếp z-index: 9999999 để luôn hiển thị TRÊN MỌI BẢNG MODAL KHÁC
+            modal.style.cssText = 'position: fixed !important; inset: 0 !important; z-index: 9999999 !important; background-color: rgba(15, 23, 42, 0.75) !important; backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; padding: 12px;';
             
             modal.innerHTML = `
-                <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-2xl flex flex-col max-h-[92vh] overflow-hidden transform scale-95 transition-transform duration-200">
+                <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-2xl flex flex-col max-h-[94vh] overflow-hidden transform scale-95 transition-transform duration-200" style="position: relative !important; z-index: 10000000 !important;">
                     <!-- Header -->
                     <div class="px-5 py-3.5 bg-gradient-to-r from-indigo-700 via-purple-700 to-indigo-800 text-white flex items-center justify-between shadow-xs">
                         <div class="flex items-center gap-2.5">
@@ -222,9 +218,9 @@
                             </div>
                             <div>
                                 <h3 class="font-bold text-sm leading-tight text-white flex items-center gap-1.5">
-                                    Soạn thảo Công thức MathType
+                                    Soạn thảo Công thức MathType (Trực quan)
                                 </h3>
-                                <p class="text-[11px] text-indigo-200 leading-none mt-0.5">Chọn ký hiệu hoặc gõ mã LaTeX → Kiểm tra trực quan → Bấm [Chèn vào bài]</p>
+                                <p class="text-[11px] text-indigo-200 leading-none mt-0.5">Nhấp chọn mẫu công thức (Phân số, Căn, Hệ PT...) & Nhập trực tiếp vào các ô trống</p>
                             </div>
                         </div>
                         <button type="button" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer" onclick="window.MathPalette.closeFormulaDialog()">
@@ -247,7 +243,7 @@
                         ${PALETTE_GROUPS.map((g, idx) => `
                             <div class="modal-group-grid grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1.5 ${idx === 0 ? '' : 'hidden'}" id="modal-grid-${g.id}">
                                 ${g.templates.map(tpl => `
-                                    <button type="button" class="modal-sym-btn h-8 px-1.5 bg-white hover:bg-indigo-50 text-gray-800 hover:text-indigo-700 border border-gray-200 rounded-lg flex items-center justify-center font-bold text-xs transition-colors shadow-2xs hover:border-indigo-300 transform active:scale-95 cursor-pointer" title="${tpl.desc || tpl.label}" data-latex="${tpl.latex.replace(/"/g, '&quot;')}" data-offset="${tpl.cursorOffset || 0}">
+                                    <button type="button" class="modal-sym-btn h-8 px-1.5 bg-white hover:bg-indigo-50 text-gray-800 hover:text-indigo-700 border border-gray-200 rounded-lg flex items-center justify-center font-bold text-xs transition-colors shadow-2xs hover:border-indigo-300 transform active:scale-95 cursor-pointer" title="${tpl.desc || tpl.label}" data-latex="${tpl.latex.replace(/"/g, '&quot;')}">
                                         <span class="font-serif leading-none">${tpl.label}</span>
                                     </button>
                                 `).join('')}
@@ -255,37 +251,40 @@
                         `).join('')}
                     </div>
 
-                    <!-- Sandbox Editor & Live Preview -->
-                    <div class="p-4 space-y-3.5 flex-1 overflow-y-auto bg-white">
-                        <!-- Input LaTeX -->
-                        <div>
-                            <div class="flex items-center justify-between mb-1.5">
-                                <label class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-code text-indigo-600"></i> Mã LaTeX công thức:
+                    <!-- Sandbox WYSIWYG MathLive Field -->
+                    <div class="p-4 space-y-3 flex-1 overflow-y-auto bg-white">
+                        <div class="bg-indigo-50/40 p-3.5 rounded-2xl border-2 border-indigo-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-xs font-bold text-indigo-900 flex items-center gap-1.5 uppercase tracking-wide">
+                                    <i class="fa-solid fa-shapes text-indigo-600"></i> Khung Soạn thảo Trực quan (MathType):
                                 </label>
-                                <div class="flex items-center gap-1.5">
-                                    <button type="button" onclick="window.MathPalette.wrapModalInput('$', '$')" class="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold rounded-md border border-indigo-200 transition" title="Bọc dấu $...$">$...$</button>
-                                    <button type="button" onclick="window.MathPalette.wrapModalInput('$$', '$$')" class="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[11px] font-bold rounded-md border border-purple-200 transition" title="Bọc dấu $$...$$">$$...$$</button>
-                                    <button type="button" onclick="window.MathPalette.clearModalInput()" class="px-2 py-0.5 text-gray-400 hover:text-red-600 text-[11px] font-bold transition flex items-center gap-1" title="Xóa toàn bộ nội dung công thức">
-                                        <i class="fa-solid fa-trash-can"></i> Xóa trắng
-                                    </button>
-                                </div>
+                                <button type="button" onclick="window.MathPalette.clearModalInput()" class="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 text-[11px] font-bold rounded-lg border border-red-200 shadow-2xs transition flex items-center gap-1 cursor-pointer" title="Xóa toàn bộ">
+                                    <i class="fa-solid fa-trash-can"></i> Xóa trắng
+                                </button>
                             </div>
-                            <textarea id="modalFormulaInput" rows="3" class="w-full p-3 border border-indigo-200 rounded-xl font-mono text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-indigo-50/20 leading-relaxed" placeholder="Bấm chọn các ký hiệu ở trên hoặc gõ trực tiếp mã LaTeX (ví dụ: \\frac{a}{b}, \\sqrt{x^2+1}, \\int_0^1 f(x)dx...)..."></textarea>
-                        </div>
+                            
+                            <!-- BẢNG NHẬP WYSIWYG MATHLIVE -->
+                            <div class="bg-white rounded-xl border border-indigo-300 shadow-inner p-3 min-h-[96px] flex items-center focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+                                <math-field id="modalMathField" class="w-full font-serif text-gray-900 leading-relaxed" style="font-size: 1.55rem; min-height: 52px; outline: none; border: none; background: transparent;"></math-field>
+                            </div>
 
-                        <!-- Live Preview MathJax -->
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <label class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-eye text-emerald-600"></i> Xem trước hiển thị trực quan:
-                                </label>
-                                <span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold flex items-center gap-1">
-                                    <i class="fa-solid fa-check"></i> Biên dịch tức thì
+                            <!-- Dòng hiển thị mã LaTeX tương ứng -->
+                            <div class="mt-2.5 pt-2 border-t border-indigo-100 flex items-center justify-between flex-wrap gap-2 text-xs">
+                                <div class="flex items-center gap-1.5 text-gray-600 font-mono text-[11px] overflow-hidden">
+                                    <span class="font-bold text-indigo-700 font-sans">Mã LaTeX:</span>
+                                    <code id="modalMathFieldLatexPreview" class="bg-white px-2 py-0.5 rounded border border-gray-200 text-indigo-800 text-[11px] truncate max-w-sm italic">...</code>
+                                </div>
+                                <span class="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold border border-emerald-200 flex items-center gap-1">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Điền trực tiếp vào ô vuông
                                 </span>
                             </div>
-                            <div id="modalFormulaPreview" class="p-4 bg-slate-50 border border-slate-200 rounded-xl min-h-[68px] flex items-center justify-center text-center text-gray-800 text-base overflow-x-auto shadow-inner">
-                                <span class="text-gray-400 text-xs italic">Công thức sẽ hiển thị trực quan tại đây...</span>
+                        </div>
+
+                        <!-- Hướng dẫn thao tác nhanh -->
+                        <div class="bg-amber-50/60 border border-amber-200 rounded-xl p-2.5 flex items-start gap-2 text-[11px] text-amber-800">
+                            <i class="fa-solid fa-lightbulb text-amber-600 mt-0.5 shrink-0"></i>
+                            <div>
+                                <strong>Mẹo thao tác MathType:</strong> Bấm chọn mẫu (ví dụ <strong>a/b</strong> hoặc <strong>{ Hệ</strong>), các ô trống <span class="border border-dashed border-amber-500 px-1 rounded bg-white font-mono">[ ]</span> sẽ xuất hiện để bạn nhập số hoặc chữ. Dùng phím mũi tên <strong>← → ↑ ↓</strong> hoặc <strong>Tab</strong> để chuyển đổi giữa tử số và mẫu số!
                             </div>
                         </div>
                     </div>
@@ -293,7 +292,7 @@
                     <!-- Footer Action Bar -->
                     <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3">
                         <span class="text-[11px] text-gray-500 hidden sm:inline flex items-center gap-1">
-                            <i class="fa-solid fa-circle-info text-blue-500"></i> Sẽ tự động chèn vào vị trí con trỏ của bài viết
+                            <i class="fa-solid fa-circle-info text-blue-500"></i> Tự động bọc chuẩn $...$ khi chèn vào bài viết
                         </span>
                         <div class="flex items-center gap-2 ml-auto">
                             <button type="button" onclick="window.MathPalette.closeFormulaDialog()" class="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-xl font-bold text-xs transition cursor-pointer">
@@ -327,27 +326,27 @@
                 });
             });
 
-            // Bind sự kiện bấm nút ký hiệu
+            // Bind sự kiện bấm nút ký hiệu vào MathLive
             modal.querySelectorAll('.modal-sym-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     const latex = btn.dataset.latex;
-                    const offset = parseInt(btn.dataset.offset || 0, 10);
-                    MathPalette.insertIntoModalFormulaInput(latex, offset);
+                    MathPalette.insertIntoModalFormulaInput(latex);
                 });
             });
 
-            // Bind sự kiện gõ trong modal input
-            const formulaInput = modal.querySelector('#modalFormulaInput');
-            if (formulaInput) {
-                formulaInput.addEventListener('input', () => {
-                    MathPalette.triggerModalPreviewDebounced();
+            // Cấu hình MathField
+            const mf = modal.querySelector('#modalMathField');
+            if (mf) {
+                mf.mathVirtualKeyboardPolicy = 'manual';
+                mf.addEventListener('input', () => {
+                    MathPalette.updateModalMathFieldStatus();
                 });
             }
 
             // Bấm Esc để đóng modal
             window.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                if (e.key === 'Escape' && modal.style.display === 'flex') {
                     MathPalette.closeFormulaDialog();
                 }
             });
@@ -363,7 +362,7 @@
         },
 
         /**
-         * Mở bảng soạn thảo công thức MathType
+         * Mở bảng soạn thảo công thức MathType trực quan
          * @param {string|HTMLElement} targetInputOrId - Ô textarea/input cần chèn công thức vào
          */
         openFormulaDialog(targetInputOrId = null) {
@@ -381,29 +380,24 @@
             }
             this.dialogTargetInput = targetEl;
 
-            // Nếu người dùng đang bôi đen một đoạn text trong target textarea, đưa vào modal để sửa tiếp
-            const formulaInput = modal.querySelector('#modalFormulaInput');
+            // Nếu người dùng đang bôi đen một đoạn text trong target textarea, đưa vào MathLive
+            const mf = modal.querySelector('#modalMathField');
             let initialVal = '';
             if (targetEl && (targetEl.tagName === 'TEXTAREA' || targetEl.tagName === 'INPUT')) {
                 const s = targetEl.selectionStart || 0;
                 const e = targetEl.selectionEnd || 0;
                 if (e > s) {
                     let sel = targetEl.value.substring(s, e).trim();
-                    // Loại bỏ bọc $ nếu có
                     if (sel.startsWith('$') && sel.endsWith('$')) {
                         sel = sel.replace(/^[\$]+|[\$]+$/g, '').trim();
                     }
                     initialVal = sel;
                 }
             }
-            if (formulaInput) {
-                formulaInput.value = initialVal;
-            }
 
-            // Hiển thị modal
-            modal.classList.remove('hidden');
+            // Hiển thị modal trực tiếp bằng inline style flex
+            modal.style.display = 'flex';
             requestAnimationFrame(() => {
-                modal.classList.remove('opacity-0');
                 const content = modal.querySelector('div');
                 if (content) {
                     content.classList.remove('scale-95');
@@ -411,16 +405,18 @@
                 }
             });
 
-            // Cập nhật preview tức thì
-            this.updateModalPreview();
-
-            // Focus vào ô soạn thảo
-            setTimeout(() => {
-                if (formulaInput) {
-                    formulaInput.focus();
-                    formulaInput.setSelectionRange(formulaInput.value.length, formulaInput.value.length);
+            if (mf) {
+                if (typeof mf.setValue === 'function') {
+                    mf.setValue(initialVal || '');
+                } else {
+                    mf.value = initialVal || '';
                 }
-            }, 100);
+                setTimeout(() => {
+                    if (typeof mf.focus === 'function') mf.focus();
+                }, 100);
+            }
+
+            this.updateModalMathFieldStatus();
         },
 
         /**
@@ -430,136 +426,71 @@
             const modal = document.getElementById('mathFormulaModal');
             if (!modal) return;
 
-            modal.classList.add('opacity-0');
             const content = modal.querySelector('div');
             if (content) {
                 content.classList.remove('scale-100');
                 content.classList.add('scale-95');
             }
             setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 200);
+                modal.style.display = 'none';
+            }, 150);
         },
 
         /**
-         * Chèn một mẫu ký hiệu vào ô textarea trong modal
+         * Chèn một mẫu ký hiệu vào MathLive (với các ô trống #? trực quan)
          */
-        insertIntoModalFormulaInput(latexTpl, cursorOffset = 0) {
+        insertIntoModalFormulaInput(latexTpl) {
             const modal = document.getElementById('mathFormulaModal');
             if (!modal) return;
-            const input = modal.querySelector('#modalFormulaInput');
-            if (!input) return;
+            const mf = modal.querySelector('#modalMathField');
+            if (!mf) return;
 
-            const start = input.selectionStart || 0;
-            const end = input.selectionEnd || 0;
-            const selectedText = input.value.substring(start, end);
-
-            let inserted = latexTpl;
-            let targetCursor = start;
-
-            if (inserted.includes('#sel#')) {
-                inserted = inserted.replace('#sel#', selectedText);
-            }
-
-            if (inserted.includes('?')) {
-                const qIdx = inserted.indexOf('?');
-                inserted = inserted.replace('?', '');
-                targetCursor = start + qIdx;
-            } else if (cursorOffset !== 0) {
-                targetCursor = start + inserted.length + cursorOffset;
+            if (typeof mf.insert === 'function') {
+                mf.focus();
+                mf.insert(latexTpl, { mode: 'math' });
+            } else if (typeof mf.executeCommand === 'function') {
+                mf.focus();
+                mf.executeCommand(['insert', latexTpl]);
             } else {
-                targetCursor = start + inserted.length;
+                mf.value = (mf.value || '') + latexTpl.replace(/#\?/g, '');
             }
 
-            const oldVal = input.value;
-            input.value = oldVal.substring(0, start) + inserted + oldVal.substring(end);
-            input.focus();
-            input.setSelectionRange(targetCursor, targetCursor);
-
-            this.updateModalPreview();
+            this.updateModalMathFieldStatus();
         },
 
         /**
-         * Xóa trắng ô công thức trong modal
+         * Xóa trắng ô công thức trong MathLive
          */
         clearModalInput() {
             const modal = document.getElementById('mathFormulaModal');
             if (!modal) return;
-            const input = modal.querySelector('#modalFormulaInput');
-            if (input) {
-                input.value = '';
-                input.focus();
+            const mf = modal.querySelector('#modalMathField');
+            if (mf) {
+                if (typeof mf.setValue === 'function') mf.setValue('');
+                else mf.value = '';
+                mf.focus();
             }
-            this.updateModalPreview();
+            this.updateModalMathFieldStatus();
         },
 
         /**
-         * Bọc công thức bằng tiền tố / hậu tố (ví dụ $, $$)
+         * Cập nhật dòng preview mã LaTeX dưới khung MathLive
          */
-        wrapModalInput(prefix, suffix) {
+        updateModalMathFieldStatus() {
             const modal = document.getElementById('mathFormulaModal');
             if (!modal) return;
-            const input = modal.querySelector('#modalFormulaInput');
-            if (!input) return;
+            const mf = modal.querySelector('#modalMathField');
+            const previewCode = modal.querySelector('#modalMathFieldLatexPreview');
+            if (!mf || !previewCode) return;
 
-            const start = input.selectionStart || 0;
-            const end = input.selectionEnd || 0;
-            if (start !== end) {
-                const sel = input.value.substring(start, end);
-                input.value = input.value.substring(0, start) + prefix + sel + suffix + input.value.substring(end);
+            let val = '';
+            if (typeof mf.getValue === 'function') {
+                val = mf.getValue('latex') || mf.value || '';
             } else {
-                input.value = prefix + input.value + suffix;
-            }
-            input.focus();
-            this.updateModalPreview();
-        },
-
-        /**
-         * Gọi render preview có debounce
-         */
-        triggerModalPreviewDebounced() {
-            clearTimeout(this.previewDebounceTimer);
-            this.previewDebounceTimer = setTimeout(() => {
-                this.updateModalPreview();
-            }, 120);
-        },
-
-        /**
-         * Render công thức trong modal bằng MathJax
-         */
-        updateModalPreview() {
-            const modal = document.getElementById('mathFormulaModal');
-            if (!modal) return;
-            const input = modal.querySelector('#modalFormulaInput');
-            const previewEl = modal.querySelector('#modalFormulaPreview');
-            if (!input || !previewEl) return;
-
-            const rawVal = (input.value || '').trim();
-            if (!rawVal) {
-                previewEl.innerHTML = '<span class="text-gray-400 text-xs italic">Công thức sẽ hiển thị trực quan tại đây...</span>';
-                return;
+                val = mf.value || '';
             }
 
-            // Chuẩn hóa chuỗi render để MathJax biên dịch
-            let renderStr = rawVal;
-            // Nếu chưa có bao bọc $ hoặc $$, tự động bọc $$ để hiển thị to rõ trong khung preview
-            if (!renderStr.startsWith('$') && !renderStr.startsWith('\\begin{') && !renderStr.startsWith('\\[') && !renderStr.startsWith('\\(')) {
-                renderStr = '$$' + renderStr + '$$';
-            } else if (renderStr.startsWith('$') && !renderStr.startsWith('$$') && renderStr.endsWith('$')) {
-                // Đổi inline $...$ sang $$...$$ để preview nổi bật ở giữa
-                const inner = renderStr.replace(/^[\$]+|[\$]+$/g, '');
-                renderStr = '$$' + inner + '$$';
-            }
-
-            if (typeof window.formatContent === 'function') {
-                previewEl.innerHTML = window.formatContent(renderStr);
-            } else {
-                previewEl.innerHTML = renderStr;
-            }
-
-            if (window.MathJax && window.MathJax.typesetPromise) {
-                MathJax.typesetPromise([previewEl]).catch(() => {});
-            }
+            previewCode.textContent = val.trim() ? val : '(Trống)';
         },
 
         /**
@@ -568,13 +499,28 @@
         confirmInsertFormula() {
             const modal = document.getElementById('mathFormulaModal');
             if (!modal) return;
-            const input = modal.querySelector('#modalFormulaInput');
-            if (!input) return;
+            const mf = modal.querySelector('#modalMathField');
+            if (!mf) return;
 
-            let formula = (input.value || '').trim();
+            let formula = '';
+            if (typeof mf.getValue === 'function') {
+                formula = mf.getValue('latex') || mf.value || '';
+            } else {
+                formula = mf.value || '';
+            }
+
+            formula = (formula || '').trim();
             if (!formula) {
                 if (window.showToast) window.showToast('Vui lòng nhập hoặc chọn công thức trước khi chèn!', 'warning');
                 return;
+            }
+
+            // Chuyển đổi \begin{cases} sang \heva chuẩn QMath
+            if (formula.includes('\\begin{cases}')) {
+                formula = formula.replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, function(match, inner) {
+                    const lines = inner.split('\\\\').map(l => l.trim()).filter(Boolean);
+                    return '\\heva{\n    & ' + lines.join(' \\\\\n    & ') + '\n}';
+                });
             }
 
             // Tự động bọc chuẩn công thức nếu chưa có dấu $ hoặc môi trường LaTeX
@@ -593,7 +539,6 @@
                 const end = targetEl.selectionEnd || 0;
                 const oldVal = targetEl.value;
 
-                // Thêm khoảng trắng đệm nếu cần thiết
                 let toInsert = formula;
                 if (start > 0 && oldVal[start - 1] !== ' ' && oldVal[start - 1] !== '\n') {
                     toInsert = ' ' + toInsert;
@@ -607,7 +552,6 @@
                 const newPos = start + toInsert.length;
                 targetEl.setSelectionRange(newPos, newPos);
 
-                // Kích hoạt cập nhật dữ liệu và preview câu hỏi
                 targetEl.dispatchEvent(new Event('input', { bubbles: true }));
 
                 if (window.showToast) window.showToast('Đã chèn công thức vào bài viết!', 'success');
@@ -718,7 +662,8 @@
 
             const toolbar = document.createElement('div');
             toolbar.id = 'imageReplacementToolbar';
-            toolbar.className = 'absolute z-50 bg-gray-900/95 text-white px-2.5 py-1.5 rounded-xl shadow-xl flex items-center gap-2 text-xs backdrop-blur-xs border border-gray-700 animate-fadeIn';
+            toolbar.style.cssText = 'position: absolute !important; z-index: 999999 !important;';
+            toolbar.className = 'bg-gray-900/95 text-white px-2.5 py-1.5 rounded-xl shadow-xl flex items-center gap-2 text-xs backdrop-blur-xs border border-gray-700 animate-fadeIn';
             toolbar.innerHTML = `
                 <span class="font-bold text-amber-400 flex items-center gap-1"><i class="fa-solid fa-image"></i> Đang chọn ảnh</span>
                 <span class="text-gray-500">|</span>
@@ -827,7 +772,7 @@
         },
 
         /**
-         * Tạo thanh công cụ nhỏ gọn hoặc gắn kết tương thích ngược
+         * Tạo thanh công cụ nhỏ gọn
          */
         createToolbar(container, targetTextarea = null) {
             const containerEl = typeof container === 'string' ? document.getElementById(container) : container;
@@ -839,14 +784,13 @@
                 if (taEl) this.registerTextarea(taEl);
             }
 
-            // Thanh công cụ thu gọn thông minh (dạng bar mini nếu được gọi trực tiếp)
             containerEl.innerHTML = `
-                <div class="flex items-center gap-1.5 py-1 text-xs">
-                    <button type="button" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer" onclick="window.MathPalette.openFormulaDialog('${typeof targetTextarea === 'string' ? targetTextarea : ''}')">
-                        <i class="fa-solid fa-square-root-variable text-indigo-600"></i> MathType
+                <div class="flex items-center gap-2 py-1 text-xs">
+                    <button type="button" class="btn-editor-action btn-editor-mathtype px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer" onclick="window.MathPalette.openFormulaDialog('${typeof targetTextarea === 'string' ? targetTextarea : ''}')">
+                        <i class="fa-solid fa-square-root-variable"></i> MathType
                     </button>
-                    <label class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Chèn ảnh từ máy tính">
-                        <i class="fa-solid fa-image text-teal-600"></i> Ảnh
+                    <label class="btn-editor-action btn-editor-image px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Chèn ảnh từ máy tính">
+                        <i class="fa-solid fa-image"></i> Ảnh
                         <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, '${typeof targetTextarea === 'string' ? targetTextarea : ''}')">
                     </label>
                 </div>
@@ -867,25 +811,20 @@
 
         const isHidden = wrapper.classList.contains('hidden');
         if (isHidden) {
-            // Mở khung soạn mã LaTeX
             wrapper.classList.remove('hidden');
             const ta = document.getElementById(textareaId);
             if (ta) {
                 ta.focus();
-                // Đưa con trỏ về cuối văn bản
                 const len = ta.value.length;
                 ta.setSelectionRange(len, len);
             }
             if (btn) {
-                btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600', 'shadow-xs');
-                btn.classList.remove('bg-gray-100', 'text-gray-700', 'bg-white', 'text-emerald-800', 'border-gray-300', 'border-emerald-300');
+                btn.classList.add('active');
             }
         } else {
-            // Đóng khung soạn mã LaTeX
             wrapper.classList.add('hidden');
             if (btn) {
-                btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600', 'shadow-xs');
-                btn.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-300');
+                btn.classList.remove('active');
             }
         }
     };
@@ -921,6 +860,60 @@
             MathPalette.clearImageSelection();
         }
     });
+
+    // Chèn CSS định kiểu nổi bật cho các nút bấm action (High-contrast, đẹp cả sáng lẫn tối)
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+        .btn-editor-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700 !important;
+            font-size: 12px !important;
+            padding: 5px 12px !important;
+            border-radius: 8px !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            user-select: none !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+        }
+        .btn-editor-mathtype {
+            background-color: #4f46e5 !important;
+            color: #ffffff !important;
+            border: 1px solid #6366f1 !important;
+        }
+        .btn-editor-mathtype:hover {
+            background-color: #4338ca !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3) !important;
+        }
+        .btn-editor-image {
+            background-color: #0d9488 !important;
+            color: #ffffff !important;
+            border: 1px solid #14b8a6 !important;
+        }
+        .btn-editor-image:hover {
+            background-color: #0f766e !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.3) !important;
+        }
+        .btn-editor-latex {
+            background-color: #334155 !important;
+            color: #ffffff !important;
+            border: 1px solid #475569 !important;
+        }
+        .btn-editor-latex:hover {
+            background-color: #1e293b !important;
+            transform: translateY(-1px);
+        }
+        .btn-editor-latex.active {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+            border: 1px solid #60a5fa !important;
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5) !important;
+        }
+    `;
+    document.head.appendChild(styleEl);
 
     // Export to global
     window.MathPalette = MathPalette;
