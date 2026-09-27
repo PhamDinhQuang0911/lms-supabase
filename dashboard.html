@@ -96,10 +96,10 @@
     </script>
         <script src="https://unpkg.com/mammoth@1.12.1/mammoth.browser.min.js"></script>
     <script src="ai-id-assigner.js?v=20260927"></script>
-    <script src="math-palette.js"></script>
+    <script src="math-palette.js?v=20260927-hotswap"></script>
     <script src="mapid-picker.js"></script>
     <script src="question-importer.js"></script>
-    <script src="bank-service.js"></script>
+    <script src="bank-service.js?v=20260927-hotswap"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
     window.MathJax = {
@@ -8321,9 +8321,24 @@ function renderTagFilterUI() {
                 if(e.target.type !== 'checkbox') window.fetchAndPreview(q.id);
             };
             
-            // Màu sắc mức độ
-            let levelColor = 'gray';
+            // Màu sắc mức độ & Phân môn (Tự động đồng bộ chuẩn theo MapID)
+            let levelColor = q.levelColor || 'blue';
             let lvText = q.level || '';
+            let subjectText = q.subject || 'Khác';
+
+            if (q.mapId && window.BankService) {
+                const a = window.BankService.analyzeMapId(q.mapId);
+                if (a) {
+                    if (a.level && (!lvText || lvText === 'Thông hiểu' && a.level !== 'Thông hiểu')) {
+                        lvText = a.level;
+                        levelColor = a.levelColor;
+                    }
+                    if ((!subjectText || subjectText === 'Khác' || subjectText === 'Chưa phân loại') && a.subject) {
+                        subjectText = a.subject;
+                    }
+                }
+            }
+
             if(lvText.includes('Nhận biết') || lvText === 'NB') { levelColor = 'green'; lvText = 'Nhận biết'; }
             else if(lvText.includes('Thông hiểu') || lvText === 'TH') { levelColor = 'blue'; lvText = 'Thông hiểu'; }
             else if(lvText.includes('Vận dụng cao') || lvText === 'VDC') { levelColor = 'red'; lvText = 'Vận dụng cao'; }
