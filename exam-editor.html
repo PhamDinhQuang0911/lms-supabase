@@ -54,6 +54,8 @@
     <script src="ai-grader.js"></script>
     <script src="ai-id-assigner.js?v=20260924-hotswap"></script>
     <script src="bank-service.js"></script>
+    <script src="math-palette.js"></script>
+    <script src="mapid-picker.js"></script>
     <script>
         // Sẵn sàng ngay các hàm điều hướng giao diện trước khi tải dữ liệu
         function toggleSidebar() {
@@ -591,6 +593,7 @@
                             <input type="checkbox" id="editorKeepOriginalOrder" class="w-3.5 h-3.5 rounded text-amber-600 focus:ring-amber-500 accent-amber-600" onchange="window.handleKeepOriginalOrderChange(this.checked)">
                             <span class="font-bold">📖 Giữ thứ tự gốc</span>
                         </label>
+                        <button onclick="window.openSupplementaryMapIdModal()" class="px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded text-xs font-bold hover:bg-blue-200 border border-blue-200 flex items-center gap-1" title="Gán MapID cho các câu chưa có ID (AI hoặc chọn Cây)"><i class="fa-solid fa-tags"></i> Gán MapID</button>
                         <button onclick="saveCurrentQuestionsToBank()" class="px-2.5 py-1.5 bg-indigo-100 text-indigo-700 rounded text-xs font-bold hover:bg-indigo-200 border border-indigo-200" title="Lưu các câu có ID vào kho"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Lưu Bank</button>
                         <button onclick="openScoringModal()" class="px-2.5 py-1.5 bg-yellow-100 text-yellow-700 rounded text-xs font-bold hover:bg-yellow-200"><i class="fa-solid fa-calculator mr-1"></i> Chia điểm</button>
                         <button onclick="openBookBankModal()" class="px-2.5 py-1.5 bg-purple-100 text-purple-700 rounded text-xs font-bold hover:bg-purple-200"><i class="fa-solid fa-book-open mr-1"></i> Sách</button>
@@ -2735,6 +2738,8 @@
                         </select>
                         <span class="font-bold text-gray-600 ml-1">MapID:</span>
                         <input type="text" id="editMapId" class="w-24 px-2 py-0.5 border border-gray-300 rounded font-mono font-bold text-primary-700 bg-white" value="${q.mapId || ''}" placeholder="VD: 9D1H2-4" oninput="autoSaveMemory(); if(typeof renderPreviewList==='function') renderPreviewList();">
+                        <button type="button" onclick="window.assignSingleQuestionMapIdAi(${index}, '${listType}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200 font-bold text-[11px] transition shadow-2xs" title="Gán MapID câu này bằng AI (Gemini Flash)"><i class="fa-solid fa-robot"></i> AI</button>
+                        <button type="button" onclick="window.pickSingleQuestionMapIdTree(${index}, '${listType}')" class="px-1.5 py-0.5 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded border border-teal-200 font-bold text-[11px] transition shadow-2xs" title="Chọn MapID câu này từ Cây Ma Trận"><i class="fa-solid fa-network-wired"></i> Cây</button>
                         <span class="font-bold text-gray-600 ml-1">Nguồn:</span>
                         <input type="text" id="editSource" class="w-28 px-2 py-0.5 border border-gray-300 rounded text-gray-700 bg-white" value="${q.source || ''}" placeholder="Nguồn câu hỏi" oninput="autoSaveMemory()">
                     </div>
@@ -2760,6 +2765,7 @@
                         <button onclick="document.getElementById('contentLivePreview').classList.toggle('hidden')" class="text-xs text-primary-600 font-bold hover:bg-primary-50 px-2 py-1 rounded transition-colors"><i class="fa-solid fa-eye"></i> Bật/Tắt xem trước</button>
                     </div>
                     <div id="contentLivePreview" class="mb-2 p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm math-content text-gray-800 hidden shadow-inner">${window.formatContent(q.content || 'Chưa có nội dung')}</div>
+                    <div id="editorMathPalette"></div>
                     <textarea id="editContent" class="form-input min-h-[120px]" oninput="autoSaveMemory(); document.getElementById('contentLivePreview').innerHTML = window.formatContent(this.value); if(window.MathJax) MathJax.typesetPromise([document.getElementById('contentLivePreview')]);">${q.content || ''}</textarea>
                 </div>
             `;
@@ -2790,10 +2796,163 @@
             html += `<div class="mb-4 w-1/3"><label class="form-group-title">Điểm</label><input type="number" id="editPoint" class="form-input font-bold text-orange-600" value="${q.point || 0}" step="0.1" oninput="autoSaveMemory()"></div>`;
             
             editor.innerHTML = html;
+            if (window.MathPalette) {
+                window.MathPalette.createToolbar('editorMathPalette', 'editContent');
+                window.MathPalette.registerTextarea(document.getElementById('editSolution'));
+                window.MathPalette.enableImageReplacement('contentLivePreview', 'editContent');
+                window.MathPalette.enableImageReplacement('solLivePreview', 'editSolution');
+            }
             if(window.MathJax) MathJax.typesetPromise([editor]).catch(()=>{});
             setTimeout(() => window.renderTikz(), 200);
         };
 
+        
+        // --- CÁC HÀM XỬ LÝ GÁN MAPID BỔ SUNG & CÂY MA TRẬN CHO ĐỀ THI ---
+        window.assignSingleQuestionMapIdAi = async (index, listType = 'normal') => {
+            const qList = listType === 'mixed-tl' ? window.mixedTlQuestions : window.questions;
+            const q = qList && qList[index];
+            if (!q) return;
+            if (typeof window.checkAndAssignMissingIds !== 'function') {
+                if (window.showToast) window.showToast('Chưa nạp module AI ID Assigner!', 'warning');
+                return;
+            }
+            const tempQs = [{ ...q, index: 0 }];
+            try {
+                await window.checkAndAssignMissingIds(tempQs, { db: window._examDb, forceAll: true, defaultClass: (window.examData?.grade || '9') });
+                if (tempQs[0].mapId) {
+                    q.mapId = tempQs[0].mapId;
+                    const mapIdEl = document.getElementById('editMapId');
+                    if (mapIdEl) mapIdEl.value = q.mapId;
+                    autoSaveMemory();
+                    if (typeof renderPreviewList === 'function') renderPreviewList();
+                    if (window.showToast) window.showToast('Đã gán MapID [' + q.mapId + '] thành công!', 'success');
+                }
+            } catch(e) {
+                console.warn('Hủy hoặc lỗi gán AI:', e);
+            }
+        };
+
+        window.pickSingleQuestionMapIdTree = (index, listType = 'normal') => {
+            const qList = listType === 'mixed-tl' ? window.mixedTlQuestions : window.questions;
+            const q = qList && qList[index];
+            if (!q) return;
+            if (typeof window.showMapIdTreePicker !== 'function') {
+                if (window.showToast) window.showToast('Chưa nạp module MapID Picker!', 'warning');
+                return;
+            }
+            window.showMapIdTreePicker({
+                initialMapId: q.mapId || '',
+                title: 'Chọn MapID cho Câu #' + (index + 1),
+                onSelect: (mapId) => {
+                    q.mapId = mapId;
+                    const mapIdEl = document.getElementById('editMapId');
+                    if (mapIdEl) mapIdEl.value = mapId;
+                    autoSaveMemory();
+                    if (typeof renderPreviewList === 'function') renderPreviewList();
+                    if (window.showToast) window.showToast('Đã gán MapID [' + mapId + ']!', 'success');
+                }
+            });
+        };
+
+        window.openSupplementaryMapIdModal = async () => {
+            const allQs = [...(window.questions || []), ...(window.mixedTlQuestions || [])];
+            if (allQs.length === 0) {
+                if (window.showToast) window.showToast('Đề thi chưa có câu hỏi nào!', 'warning');
+                return;
+            }
+            const missingQs = allQs.filter(q => !q.mapId || !q.mapId.trim());
+            
+            const modalId = 'supplementaryMapIdModal';
+            const old = document.getElementById(modalId);
+            if (old) old.remove();
+
+            const div = document.createElement('div');
+            div.id = modalId;
+            div.className = 'fixed inset-0 z-[120] flex items-center justify-center bg-gray-900/60 backdrop-blur-xs p-4 select-none';
+            div.innerHTML = `
+                <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 border border-gray-100 flex flex-col gap-4 animate-fadeIn">
+                    <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-black shadow-inner">
+                                <i class="fa-solid fa-tags"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-gray-800 text-base">Gán MapID bổ sung</h3>
+                                <p class="text-xs text-gray-500">${missingQs.length > 0 ? 'Có ' + missingQs.length + '/' + allQs.length + ' câu chưa có MapID' : 'Toàn bộ ' + allQs.length + ' câu đã có MapID'}</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="document.getElementById('${modalId}').remove()" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 transition">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <button type="button" id="btnAssignViaAi" class="w-full p-4 rounded-xl border-2 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 text-left transition flex items-center gap-3 group cursor-pointer">
+                            <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-sm group-hover:scale-105 transition shrink-0">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <div>
+                                <div class="font-black text-indigo-950 text-sm">Gán tự động bằng AI (Gemini Flash)</div>
+                                <div class="text-xs text-indigo-700/80">Phân tích đề bài, chọn đúng Ma trận & Mức độ tự động</div>
+                            </div>
+                        </button>
+
+                        <button type="button" id="btnAssignViaTree" class="w-full p-4 rounded-xl border-2 border-teal-200 bg-teal-50/50 hover:bg-teal-50 text-left transition flex items-center gap-3 group cursor-pointer">
+                            <div class="w-11 h-11 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg shadow-sm group-hover:scale-105 transition shrink-0">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </div>
+                            <div>
+                                <div class="font-black text-teal-950 text-sm">Gán thủ công từ Cây Ma Trận</div>
+                                <div class="text-xs text-teal-700/80">Chọn chính xác Lớp -> Môn -> Chương -> Bài -> Mức độ</div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                        <button type="button" onclick="document.getElementById('${modalId}').remove()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer">Đóng</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(div);
+
+            div.querySelector('#btnAssignViaAi').onclick = async () => {
+                div.remove();
+                if (typeof window.checkAndAssignMissingIds !== 'function') {
+                    if (window.showToast) window.showToast('Chưa nạp module AI ID Assigner!', 'warning');
+                    return;
+                }
+                try {
+                    await window.checkAndAssignMissingIds(allQs, { db: window._examDb, forceAll: false, defaultClass: (window.examData?.grade || '9') });
+                    autoSaveMemory();
+                    if (typeof renderPreviewList === 'function') renderPreviewList();
+                    if (window.currentQIndex !== -1) window.loadQuestionToEditor(window.currentQIndex, window.currentQListType);
+                    if (window.showToast) window.showToast('Gán MapID hoàn tất!', 'success');
+                } catch(e) {
+                    console.warn('Lỗi AI assign:', e);
+                }
+            };
+
+            div.querySelector('#btnAssignViaTree').onclick = () => {
+                div.remove();
+                if (typeof window.showMapIdTreePicker !== 'function') {
+                    if (window.showToast) window.showToast('Chưa nạp module MapID Picker!', 'warning');
+                    return;
+                }
+                window.showMapIdTreePicker({
+                    title: 'Chọn MapID cho ' + (missingQs.length > 0 ? missingQs.length + ' câu chưa có ID' : 'các câu hỏi'),
+                    onSelect: (chosenMapId) => {
+                        const targetQs = missingQs.length > 0 ? missingQs : allQs;
+                        targetQs.forEach(q => { q.mapId = chosenMapId; });
+                        autoSaveMemory();
+                        if (typeof renderPreviewList === 'function') renderPreviewList();
+                        if (window.currentQIndex !== -1) window.loadQuestionToEditor(window.currentQIndex, window.currentQListType);
+                        if (window.showToast) window.showToast('Đã áp dụng MapID [' + chosenMapId + '] cho ' + targetQs.length + ' câu!', 'success');
+                    }
+                });
+            };
+        };
+        
         window.addNewQuestion = (type) => { if (window.currentQIndex !== -1) saveCurrentQuestionToMemory(); const newQ = { type: type, content: "", solution: "", point: 0 }; if (type === 'mc') { newQ.options = ["", "", "", ""]; newQ.correct = -1; } if (type === 'tf') { newQ.statements = [{text:"", isTrue:false}, {text:"", isTrue:false}, {text:"", isTrue:false}, {text:"", isTrue:false}]; } if (type === 'short') { newQ.answer = ""; } window.questions.push(newQ); sortQuestionsByType(); renderPreviewList(); loadQuestionToEditor(window.questions.length - 1); };
         window.autoSaveMemory = () => { saveCurrentQuestionToMemory(); };
         window.setCorrectMC = (idx) => { window.questions[window.currentQIndex].correct = idx; loadQuestionToEditor(window.currentQIndex); };

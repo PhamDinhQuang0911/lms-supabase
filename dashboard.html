@@ -67,6 +67,11 @@
     }
     window.switchView = switchView;
     </script>
+        <script src="https://unpkg.com/mammoth@1.12.1/mammoth.browser.min.js"></script>
+    <script src="ai-id-assigner.js?v=20260927"></script>
+    <script src="math-palette.js"></script>
+    <script src="mapid-picker.js"></script>
+    <script src="question-importer.js"></script>
     <script src="bank-service.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
@@ -915,7 +920,171 @@
             </div>
         </div>
 
-                <!-- Modal Sửa câu hỏi -->
+                
+        <!-- Modal Nạp câu hỏi trực tiếp vào Ngân hàng -->
+        <div id="bankDirectImportModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[110] flex items-center justify-center bg-gray-900/60 px-4 backdrop-blur-xs transition-all duration-200">
+            <div class="modal-content bg-white w-full max-w-4xl rounded-2xl shadow-2xl transform scale-95 transition-all duration-300 flex flex-col max-h-[92vh] overflow-hidden">
+                <!-- Header -->
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-primary-600 to-indigo-700 text-white rounded-t-2xl shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl font-bold shadow-inner">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-black leading-tight">Nạp câu hỏi vào Ngân hàng</h2>
+                            <p class="text-xs text-primary-100 font-medium">Hỗ trợ File LaTeX (.tex), Word (.docx) hoặc nhập thủ công • Cấp CCCD số duy nhất</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="window.closeBankDirectImportModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="flex-1 overflow-y-auto p-5 bg-gray-50 flex flex-col gap-4 text-sm custom-scrollbar">
+                    <!-- Source Tabs: LaTeX / Word / Nhập thủ công -->
+                    <div class="flex gap-2 bg-white p-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                        <button type="button" id="tabImportTex" onclick="window.switchBankImportTab('tex')" class="flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition bg-primary-50 text-primary-700 shadow-2xs">
+                            <i class="fa-solid fa-file-code"></i> File LaTeX (.tex / txt)
+                        </button>
+                        <button type="button" id="tabImportWord" onclick="window.switchBankImportTab('word')" class="flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition text-gray-600 hover:text-primary-600 hover:bg-gray-50">
+                            <i class="fa-solid fa-file-word text-blue-600"></i> File Word (.docx)
+                        </button>
+                        <button type="button" id="tabImportManual" onclick="window.switchBankImportTab('manual')" class="flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition text-gray-600 hover:text-primary-600 hover:bg-gray-50">
+                            <i class="fa-solid fa-keyboard"></i> Nhập trực tiếp
+                        </button>
+                    </div>
+
+                    <!-- Tab 1: LaTeX -->
+                    <div id="bankTabContentTex" class="space-y-3">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <label class="font-bold text-gray-700 text-xs">Mã nguồn LaTeX (hỗ trợ \begin{ex}, \begin{bt}, \choice, \choiceTF, \loigiai...):</label>
+                            <div class="flex items-center gap-2">
+                                <label class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg font-bold text-xs cursor-pointer transition flex items-center gap-1.5 shadow-2xs">
+                                    <i class="fa-solid fa-upload"></i> Chọn file .tex/.txt
+                                    <input type="file" id="bankTexFileInput" accept=".tex,.txt" class="hidden" onchange="window.handleBankTexFileUpload(this)">
+                                </label>
+                                <button type="button" onclick="document.getElementById('bankTexInput').value = ''" class="px-2 py-1.5 text-gray-400 hover:text-red-500 text-xs font-bold transition">Xóa trắng</button>
+                            </div>
+                        </div>
+                        <textarea id="bankTexInput" rows="7" placeholder="Dán nội dung file TeX vào đây... Ví dụ:&#10;\begin{ex}&#10;[9D1H1-1] Cho biểu thức A...&#10;\choice&#10;{A. Đúng}&#10;{\True B. Sai}&#10;{C. Không xác định}&#10;{D. Vô nghiệm}&#10;\loigiai{Lời giải chi tiết...}&#10;\end{ex}" class="w-full p-3 border border-gray-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-primary-500 bg-white"></textarea>
+                        <button type="button" onclick="window.parseBankTexQuestions()" class="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-magnifying-glass"></i> Phân tích câu hỏi từ LaTeX
+                        </button>
+                    </div>
+
+                    <!-- Tab 2: Word -->
+                    <div id="bankTabContentWord" class="space-y-3 hidden">
+                        <div class="border-2 border-dashed border-blue-200 rounded-2xl p-6 bg-blue-50/40 text-center flex flex-col items-center justify-center gap-3">
+                            <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl shadow-inner">
+                                <i class="fa-solid fa-file-word"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-sm">Chọn tệp đề thi Word (.docx)</h4>
+                                <p class="text-xs text-gray-500 mt-1 max-w-md">Tự động bóc tách Câu 1, Câu 2... Nhận diện 4 loại câu hỏi (Trắc nghiệm A, B, C, D gạch chân, Đúng/Sai, Điền số, Tự luận).</p>
+                            </div>
+                            <label class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition flex items-center gap-2">
+                                <i class="fa-solid fa-folder-open"></i> Tải file .docx
+                                <input type="file" id="bankWordFileInput" accept=".docx" class="hidden" onchange="window.handleBankWordFileUpload(this)">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Nhập trực tiếp -->
+                    <div id="bankTabContentManual" class="space-y-3 hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white p-3.5 rounded-xl border border-gray-200">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Loại câu hỏi</label>
+                                <select id="manualQType" onchange="window.switchManualQuestionType(this.value)" class="w-full p-2 border border-gray-300 rounded-lg text-xs font-bold bg-white">
+                                    <option value="mc">Trắc nghiệm 4 lựa chọn</option>
+                                    <option value="tf">Đúng / Sai 4 ý</option>
+                                    <option value="short">Điền số / Trả lời ngắn</option>
+                                    <option value="essay">Tự luận</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Mã MapID (Tùy chọn)</label>
+                                <div class="flex gap-1">
+                                    <input type="text" id="manualQMapId" placeholder="VD: 9D1H2-1" class="w-full p-2 border border-gray-300 rounded-lg text-xs font-mono font-bold">
+                                    <button type="button" onclick="window.pickManualImportMapId()" class="px-2 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-lg text-xs font-bold shrink-0" title="Chọn từ Cây MapID"><i class="fa-solid fa-network-wired"></i></button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">Mức độ nhận thức</label>
+                                <select id="manualQLevel" class="w-full p-2 border border-gray-300 rounded-lg text-xs font-bold bg-white">
+                                    <option value="Nhận biết">Nhận biết (NB)</option>
+                                    <option value="Thông hiểu" selected>Thông hiểu (TH)</option>
+                                    <option value="Vận dụng">Vận dụng (VD)</option>
+                                    <option value="Vận dụng cao">Vận dụng cao (VDC)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-3.5 rounded-xl border border-gray-200 space-y-2">
+                            <label class="block text-xs font-bold text-gray-700">Đề bài (LaTeX)</label>
+                            <div id="manualMathPaletteContainer"></div>
+                            <textarea id="manualQContent" rows="3" placeholder="Nhập đề bài câu hỏi..." class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-primary-500"></textarea>
+                            
+                            <div id="manualTypeSpecificContainer"></div>
+
+                            <label class="block text-xs font-bold text-gray-700 mt-2">Lời giải chi tiết</label>
+                            <textarea id="manualQSolution" rows="2" placeholder="Nhập lời giải chi tiết..." class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-primary-500"></textarea>
+
+                            <div class="flex justify-end pt-1">
+                                <button type="button" onclick="window.addManualQuestionToImportQueue()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                                    <i class="fa-solid fa-plus"></i> Thêm vào danh sách chờ nạp
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Danh sách câu hỏi chờ nạp -->
+                    <div id="bankImportPreviewArea" class="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs space-y-3">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-black text-gray-800 text-xs flex items-center gap-1.5">
+                                    <i class="fa-solid fa-list-check text-primary-600"></i>
+                                    <span>Danh sách câu hỏi (<span id="bankImportCount" class="text-primary-600 font-bold">0</span> câu)</span>
+                                </h4>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs flex-wrap">
+                                <label class="flex items-center gap-1 font-bold text-gray-700 cursor-pointer">
+                                    <input type="checkbox" id="chkBankAutoAiAssign" checked class="w-4 h-4 rounded text-primary-600 accent-primary-600">
+                                    <span>🤖 Tự động gán MapID bằng AI nếu thiếu</span>
+                                </label>
+                                <select id="selBankDefaultGrade" class="px-2 py-1 border border-gray-300 rounded-lg font-bold text-xs bg-white text-gray-700">
+                                    <option value="9" selected>Khối: Lớp 9</option>
+                                    <option value="6">Khối: Lớp 6</option>
+                                    <option value="7">Khối: Lớp 7</option>
+                                    <option value="8">Khối: Lớp 8</option>
+                                    <option value="10">Khối: Lớp 10</option>
+                                    <option value="11">Khối: Lớp 11</option>
+                                    <option value="12">Khối: Lớp 12</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Container danh sách câu hỏi xem trước -->
+                        <div id="bankImportQuestionsList" class="max-h-60 overflow-y-auto space-y-2 custom-scrollbar p-1">
+                            <div class="p-6 text-center text-gray-400 text-xs italic">Chưa có câu hỏi nào. Hãy tải file TeX/Word hoặc nhập câu hỏi ở trên.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-between items-center shrink-0 flex-wrap gap-2">
+                    <span id="bankImportCccdNotice" class="text-xs text-gray-500 font-medium">Hệ thống sẽ tự động cấp phát dải <b>CCCD số 8 chữ số duy nhất</b> cho toàn bộ câu hỏi.</span>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="window.closeBankDirectImportModal()" class="px-5 py-2 bg-gray-100 text-gray-600 font-bold rounded-xl text-xs hover:bg-gray-200 transition cursor-pointer">Hủy</button>
+                        <button type="button" id="btnExecuteBankImport" onclick="window.executeDirectBankImport()" class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none" disabled>
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Nạp vào Ngân hàng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Modal Sửa câu hỏi -->
         <div id="questionEditModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[110] flex items-center justify-center bg-gray-900 bg-opacity-60 px-4 backdrop-blur-sm">
             <div class="modal-content bg-white w-full max-w-4xl rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]">
                 <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-orange-50 rounded-t-2xl shrink-0">
@@ -8412,6 +8581,517 @@ function renderTagFilterUI() {
         }
     };
 
+    
+    // =========================================================================
+    // HỆ THỐNG NẠP TRỰC TIẾP NGÂN HÀNG & GÁN MAPID BỔ SUNG (TEX / WORD / MANUAL)
+    // =========================================================================
+    window.bankImportQueue = [];
+
+    window.openBankDirectImportModal = () => {
+        if (!window.canManageQuestionBank || !window.canManageQuestionBank()) {
+            if (window.requirePermission) window.requirePermission('bank.manage_system', 'nạp câu hỏi vào ngân hàng');
+            return;
+        }
+        window.bankImportQueue = [];
+        window.renderBankImportQueue();
+        window.switchBankImportTab('tex');
+
+        const modal = document.getElementById('bankDirectImportModal');
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modal.classList.add('opacity-100', 'pointer-events-auto');
+        modal.querySelector('.modal-content').classList.remove('scale-95');
+        modal.querySelector('.modal-content').classList.add('scale-100');
+
+        // Khởi tạo MathPalette cho tab thủ công nếu có
+        setTimeout(() => {
+            const manualPaletteContainer = document.getElementById('manualMathPaletteContainer');
+            if (manualPaletteContainer && window.MathPalette) {
+                window.MathPalette.createToolbar('manualMathPaletteContainer', 'manualQContent');
+                window.MathPalette.registerTextarea(document.getElementById('manualQSolution'));
+            }
+            window.switchManualQuestionType('mc');
+        }, 150);
+    };
+
+    window.closeBankDirectImportModal = () => {
+        const modal = document.getElementById('bankDirectImportModal');
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modal.querySelector('.modal-content').classList.remove('scale-100');
+        modal.querySelector('.modal-content').classList.add('scale-95');
+    };
+
+    window.switchBankImportTab = (tab) => {
+        const tabTex = document.getElementById('tabImportTex');
+        const tabWord = document.getElementById('tabImportWord');
+        const tabManual = document.getElementById('tabImportManual');
+        const contentTex = document.getElementById('bankTabContentTex');
+        const contentWord = document.getElementById('bankTabContentWord');
+        const contentManual = document.getElementById('bankTabContentManual');
+
+        [tabTex, tabWord, tabManual].forEach(btn => {
+            btn.className = "flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition text-gray-600 hover:text-primary-600 hover:bg-gray-50";
+        });
+        [contentTex, contentWord, contentManual].forEach(c => c.classList.add('hidden'));
+
+        if (tab === 'tex') {
+            tabTex.className = "flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition bg-primary-50 text-primary-700 shadow-2xs";
+            contentTex.classList.remove('hidden');
+        } else if (tab === 'word') {
+            tabWord.className = "flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition bg-blue-50 text-blue-700 shadow-2xs";
+            contentWord.classList.remove('hidden');
+        } else if (tab === 'manual') {
+            tabManual.className = "flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition bg-emerald-50 text-emerald-700 shadow-2xs";
+            contentManual.classList.remove('hidden');
+        }
+    };
+
+    window.handleBankTexFileUpload = (input) => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('bankTexInput').value = e.target.result;
+            window.parseBankTexQuestions();
+        };
+        reader.readAsText(file);
+        input.value = '';
+    };
+
+    window.parseBankTexQuestions = () => {
+        const text = document.getElementById('bankTexInput')?.value || '';
+        if (!text.trim()) {
+            if (window.showToast) window.showToast('Vui lòng dán nội dung LaTeX hoặc chọn file .tex!', 'warning');
+            return;
+        }
+
+        if (typeof window.QuestionImporter?.parseLatexExamString !== 'function') {
+            if (window.showToast) window.showToast('Module QuestionImporter chưa sẵn sàng!', 'warning');
+            return;
+        }
+
+        const parsed = window.QuestionImporter.parseLatexExamString(text);
+        if (!parsed || parsed.length === 0) {
+            if (window.showToast) window.showToast('Không tìm thấy câu hỏi \begin{ex}...\end{ex} nào!', 'warning');
+            return;
+        }
+
+        window.bankImportQueue.push(...parsed);
+        window.renderBankImportQueue();
+        if (window.showToast) window.showToast('Đã trích xuất được ' + parsed.length + ' câu hỏi từ LaTeX!', 'success');
+    };
+
+    window.handleBankWordFileUpload = async (input) => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        input.value = '';
+
+        if (typeof window.QuestionImporter?.parseWordFile !== 'function') {
+            if (window.showToast) window.showToast('Module đọc Word chưa sẵn sàng!', 'warning');
+            return;
+        }
+
+        try {
+            if (window.showToast) window.showToast('Đang đọc tệp Word...', 'info');
+            const parsed = await window.QuestionImporter.parseWordFile(file);
+            if (!parsed || parsed.length === 0) {
+                if (window.showToast) window.showToast('Không tìm thấy câu hỏi nào dạng Câu 1, Bài 1 trong tệp Word!', 'warning');
+                return;
+            }
+            window.bankImportQueue.push(...parsed);
+            window.renderBankImportQueue();
+            if (window.showToast) window.showToast('Đã trích xuất được ' + parsed.length + ' câu hỏi từ Word!', 'success');
+        } catch(err) {
+            console.error('Lỗi đọc Word:', err);
+            if (window.showToast) window.showToast('Lỗi đọc Word: ' + err.message, 'error');
+        }
+    };
+
+    window.switchManualQuestionType = (type) => {
+        const container = document.getElementById('manualTypeSpecificContainer');
+        if (!container) return;
+
+        if (type === 'mc') {
+            container.innerHTML = `
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    ${['A', 'B', 'C', 'D'].map((opt, i) => `
+                        <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                            <label class="flex items-center gap-1 font-bold text-xs text-gray-700 cursor-pointer">
+                                <input type="radio" name="manualMcCorrect" value="${i}" ${i === 0 ? 'checked' : ''} class="w-3.5 h-3.5 accent-primary-600">
+                                <span>${opt}:</span>
+                            </label>
+                            <input type="text" id="manual_opt_${i}" placeholder="Nội dung phương án ${opt}" class="flex-1 p-1.5 border border-gray-300 rounded text-xs bg-white">
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (type === 'tf') {
+            container.innerHTML = `
+                <div class="space-y-1.5 mt-2">
+                    ${['a', 'b', 'c', 'd'].map((item, i) => `
+                        <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                            <span class="font-bold text-xs text-gray-700 w-5">${item})</span>
+                            <input type="text" id="manual_tf_text_${i}" placeholder="Nội dung mệnh đề ${item}" class="flex-1 p-1.5 border border-gray-300 rounded text-xs bg-white">
+                            <select id="manual_tf_val_${i}" class="p-1.5 border border-gray-300 rounded text-xs font-bold bg-white">
+                                <option value="true">Đúng (True)</option>
+                                <option value="false">Sai (False)</option>
+                            </select>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (type === 'short') {
+            container.innerHTML = `
+                <div class="mt-2 bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Đáp án số / Trả lời ngắn:</label>
+                    <input type="text" id="manual_short_ans" placeholder="VD: 5 hoặc 3/4 hoặc -2.5" class="w-full p-2 border border-gray-300 rounded text-xs font-mono font-bold bg-white">
+                </div>
+            `;
+        } else {
+            container.innerHTML = '';
+        }
+    };
+
+    window.pickManualImportMapId = () => {
+        if (typeof window.showMapIdTreePicker !== 'function') {
+            if (window.showToast) window.showToast('Chưa nạp module MapID Picker!', 'warning');
+            return;
+        }
+        window.showMapIdTreePicker({
+            initialMapId: document.getElementById('manualQMapId')?.value || '',
+            onSelect: (mapId) => {
+                const el = document.getElementById('manualQMapId');
+                if (el) el.value = mapId;
+            }
+        });
+    };
+
+    window.addManualQuestionToImportQueue = () => {
+        const type = document.getElementById('manualQType')?.value || 'mc';
+        const mapId = document.getElementById('manualQMapId')?.value.trim() || '';
+        const level = document.getElementById('manualQLevel')?.value || 'Thông hiểu';
+        const content = document.getElementById('manualQContent')?.value.trim() || '';
+        const solution = document.getElementById('manualQSolution')?.value.trim() || '';
+
+        if (!content) {
+            if (window.showToast) window.showToast('Vui lòng nhập nội dung đề bài!', 'warning');
+            return;
+        }
+
+        const q = {
+            type,
+            mapId,
+            level,
+            content,
+            solution,
+            point: 0.25,
+            options: [],
+            statements: [],
+            answer: '',
+            correct: -1
+        };
+
+        if (type === 'mc') {
+            for (let i = 0; i < 4; i++) {
+                q.options.push(document.getElementById('manual_opt_' + i)?.value.trim() || '');
+            }
+            const checkedRadio = document.querySelector('input[name="manualMcCorrect"]:checked');
+            q.correct = checkedRadio ? parseInt(checkedRadio.value, 10) : 0;
+        } else if (type === 'tf') {
+            for (let i = 0; i < 4; i++) {
+                q.statements.push({
+                    text: document.getElementById('manual_tf_text_' + i)?.value.trim() || '',
+                    isTrue: document.getElementById('manual_tf_val_' + i)?.value === 'true'
+                });
+            }
+        } else if (type === 'short') {
+            q.answer = document.getElementById('manual_short_ans')?.value.trim() || '';
+        }
+
+        window.bankImportQueue.push(q);
+        window.renderBankImportQueue();
+
+        // Xóa trắng form đề bài
+        document.getElementById('manualQContent').value = '';
+        document.getElementById('manualQSolution').value = '';
+        if (window.showToast) window.showToast('Đã thêm câu hỏi vào danh sách chờ nạp!', 'success');
+    };
+
+    window.renderBankImportQueue = () => {
+        const countEl = document.getElementById('bankImportCount');
+        const listEl = document.getElementById('bankImportQuestionsList');
+        const btnExec = document.getElementById('btnExecuteBankImport');
+
+        const total = window.bankImportQueue.length;
+        if (countEl) countEl.textContent = total;
+        if (btnExec) btnExec.disabled = total === 0;
+
+        if (!listEl) return;
+        if (total === 0) {
+            listEl.innerHTML = '<div class="p-6 text-center text-gray-400 text-xs italic">Chưa có câu hỏi nào. Hãy tải file TeX/Word hoặc nhập câu hỏi ở trên.</div>';
+            return;
+        }
+
+        const typeLabels = { 'mc': 'Trắc nghiệm', 'tf': 'Đúng/Sai', 'short': 'Điền số', 'essay': 'Tự luận' };
+
+        listEl.innerHTML = window.bankImportQueue.map((q, idx) => `
+            <div class="flex items-start justify-between gap-3 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs hover:border-primary-300 transition">
+                <div class="flex items-start gap-2 flex-1 min-w-0">
+                    <span class="w-6 h-6 rounded-lg bg-primary-100 text-primary-700 font-black flex items-center justify-center text-[11px] shrink-0">${idx + 1}</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                            <span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">${typeLabels[q.type] || q.type}</span>
+                            <span class="px-1.5 py-0.5 rounded bg-gray-200 text-gray-700 font-mono font-bold text-[10px]">${q.mapId ? '[' + q.mapId + ']' : '<span class="text-orange-600">Chưa có MapID</span>'}</span>
+                            <span class="text-[10px] text-gray-400">${q.level || 'Thông hiểu'}</span>
+                        </div>
+                        <p class="text-gray-700 truncate font-mono text-[11px]">${(q.content || '').replace(/\n/g, ' ')}</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.removeBankImportItem(${idx})" class="w-6 h-6 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition shrink-0" title="Xóa câu này">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+            </div>
+        `).join('');
+    };
+
+    window.removeBankImportItem = (idx) => {
+        window.bankImportQueue.splice(idx, 1);
+        window.renderBankImportQueue();
+    };
+
+    window.executeDirectBankImport = async () => {
+        if (!window.bankImportQueue || window.bankImportQueue.length === 0) {
+            if (window.showToast) window.showToast('Không có câu hỏi nào để nạp!', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('btnExecuteBankImport');
+        const oldBtnText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang chuẩn bị...';
+
+        const grade = document.getElementById('selBankDefaultGrade')?.value || '9';
+        const autoAi = document.getElementById('chkBankAutoAiAssign')?.checked;
+
+        try {
+            // 1. Tự động gán MapID bằng AI nếu người dùng chọn và có câu thiếu MapID
+            if (autoAi && typeof window.checkAndAssignMissingIds === 'function') {
+                const missing = window.bankImportQueue.filter(q => !q.mapId || !q.mapId.trim());
+                if (missing.length > 0) {
+                    btn.innerHTML = '<i class="fa-solid fa-robot"></i> Đang gán MapID (' + missing.length + ' câu)...';
+                    try {
+                        await window.checkAndAssignMissingIds(window.bankImportQueue, { db: window.db, forceAll: false, defaultClass: grade });
+                    } catch(e) {
+                        console.warn('AI assign skipped/cancelled:', e);
+                    }
+                }
+            }
+
+            // 2. CẤP PHÁT KHỐI MÃ CCCD DUY NHẤT TOÀN HỆ THỐNG
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Đang cấp mã CCCD duy nhất...';
+            const count = window.bankImportQueue.length;
+            const cccdBatch = await window.BankService.allocateCccdBatch(count);
+
+            // 3. Chuẩn hóa câu hỏi
+            const bankQuestions = window.bankImportQueue.map((q, idx) => {
+                const cccd = cccdBatch.list[idx];
+                return window.BankService.createBankQuestion(q, cccd);
+            });
+
+            // 4. Tải lên Cloudflare R2
+            btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Đang nạp Cloudflare R2 (0/' + count + ')...';
+            const uploadResult = await window.BankService.uploadQuestionsToBank(bankQuestions, {
+                concurrency: 6,
+                onProgress: (done, total, succ, fail) => {
+                    btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Đang nạp Cloudflare (' + done + '/' + total + ')...';
+                }
+            });
+
+            // 5. Cập nhật bộ nhớ cache toàn cục & Giao diện
+            if (!window.globalBankQuestions) window.globalBankQuestions = [];
+            window.globalBankQuestions.unshift(...bankQuestions);
+            try {
+                localStorage.setItem('lms_cached_bank', JSON.stringify(window.globalBankQuestions));
+            } catch(e) {}
+
+            // Đóng modal và reset queue
+            window.closeBankDirectImportModal();
+            window.bankImportQueue = [];
+            window.applyBankFilters();
+
+            const successMsg = 'Đã nạp thành công ' + uploadResult.successCount + ' câu hỏi vào Ngân hàng! Dải CCCD: #' + cccdBatch.start + ' - #' + cccdBatch.end;
+            if (window.showNotification) window.showNotification(successMsg, 'success');
+            else if (window.showToast) window.showToast(successMsg, 'success');
+            else alert(successMsg);
+
+        } catch(err) {
+            console.error("Lỗi nạp ngân hàng:", err);
+            const errMsg = 'Lỗi nạp câu hỏi: ' + err.message;
+            if (window.showNotification) window.showNotification(errMsg, 'error');
+            else alert(errMsg);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldBtnText;
+        }
+    };
+
+    window.openBankSupplementaryMapIdModal = async () => {
+        if (!window.canManageQuestionBank || !window.canManageQuestionBank()) {
+            if (window.requirePermission) window.requirePermission('bank.manage_system', 'gán MapID bổ sung');
+            return;
+        }
+
+        const allBankQs = window.globalBankQuestions || [];
+        if (allBankQs.length === 0) {
+            if (window.showToast) window.showToast('Ngân hàng chưa có câu hỏi nào!', 'warning');
+            return;
+        }
+
+        // Xác định tập câu hỏi mục tiêu
+        let targetQuestions = [];
+        let isSelectedSubset = false;
+
+        if (window.selectedBankQuestions && window.selectedBankQuestions.size > 0) {
+            targetQuestions = allBankQs.filter(q => window.selectedBankQuestions.has(q.id));
+            isSelectedSubset = true;
+        } else {
+            targetQuestions = allBankQs.filter(q => !q.mapId || !q.mapId.trim());
+        }
+
+        if (targetQuestions.length === 0) {
+            if (window.showToast) window.showToast('Toàn bộ câu hỏi trong ngân hàng đều đã có MapID!', 'info');
+            return;
+        }
+
+        // Modal popup chọn AI hoặc Thủ công
+        const modalId = 'bankSupplementaryMapIdModal';
+        const old = document.getElementById(modalId);
+        if (old) old.remove();
+
+        const div = document.createElement('div');
+        div.id = modalId;
+        div.className = 'fixed inset-0 z-[120] flex items-center justify-center bg-gray-900/60 backdrop-blur-xs p-4 select-none';
+        div.innerHTML = `
+            <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 border border-gray-100 flex flex-col gap-4 animate-fadeIn">
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-black shadow-inner">
+                            <i class="fa-solid fa-tags"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-gray-800 text-base">Gán MapID bổ sung Ngân hàng</h3>
+                            <p class="text-xs text-gray-500">${isSelectedSubset ? 'Đang chọn ' + targetQuestions.length + ' câu hỏi' : 'Tìm thấy ' + targetQuestions.length + ' câu chưa có MapID'}</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="document.getElementById('${modalId}').remove()" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <button type="button" id="btnBankAssignAi" class="w-full p-4 rounded-xl border-2 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 text-left transition flex items-center gap-3 group cursor-pointer">
+                        <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg shadow-sm group-hover:scale-105 transition shrink-0">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <div>
+                            <div class="font-black text-indigo-950 text-sm">Gán tự động bằng AI (Gemini Flash)</div>
+                            <div class="text-xs text-indigo-700/80">Quét ma trận kiến thức, tự gán mã phù hợp cho từng câu</div>
+                        </div>
+                    </button>
+
+                    <button type="button" id="btnBankAssignTree" class="w-full p-4 rounded-xl border-2 border-teal-200 bg-teal-50/50 hover:bg-teal-50 text-left transition flex items-center gap-3 group cursor-pointer">
+                        <div class="w-11 h-11 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg shadow-sm group-hover:scale-105 transition shrink-0">
+                            <i class="fa-solid fa-network-wired"></i>
+                        </div>
+                        <div>
+                            <div class="font-black text-teal-950 text-sm">Gán thủ công từ Cây Ma Trận</div>
+                            <div class="text-xs text-teal-700/80">Chọn chính xác Lớp -> Môn -> Chương -> Bài -> Mức độ áp dụng hàng loạt</div>
+                        </div>
+                    </button>
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <button type="button" onclick="document.getElementById('${modalId}').remove()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer">Đóng</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(div);
+
+        div.querySelector('#btnBankAssignAi').onclick = async () => {
+            div.remove();
+            if (typeof window.checkAndAssignMissingIds !== 'function') {
+                if (window.showToast) window.showToast('Chưa nạp module AI ID Assigner!', 'warning');
+                return;
+            }
+            try {
+                await window.checkAndAssignMissingIds(targetQuestions, { db: window.db, forceAll: false, defaultClass: '9' });
+                // Đồng bộ lên Cloudflare R2
+                await window.BankService.uploadQuestionsToBank(targetQuestions);
+                localStorage.setItem('lms_cached_bank', JSON.stringify(window.globalBankQuestions));
+                window.applyBankFilters();
+                if (window.showToast) window.showToast('Đã gán và đồng bộ MapID lên Cloudflare thành công!', 'success');
+            } catch(e) {
+                console.warn('Lỗi AI assign bank:', e);
+            }
+        };
+
+        div.querySelector('#btnBankAssignTree').onclick = () => {
+            div.remove();
+            if (typeof window.showMapIdTreePicker !== 'function') {
+                if (window.showToast) window.showToast('Chưa nạp module MapID Picker!', 'warning');
+                return;
+            }
+            window.showMapIdTreePicker({
+                title: 'Chọn MapID cho ' + targetQuestions.length + ' câu hỏi',
+                onSelect: async (chosenMapId) => {
+                    targetQuestions.forEach(q => { q.mapId = chosenMapId; });
+                    await window.BankService.uploadQuestionsToBank(targetQuestions);
+                    localStorage.setItem('lms_cached_bank', JSON.stringify(window.globalBankQuestions));
+                    window.applyBankFilters();
+                    if (window.showToast) window.showToast('Đã gán MapID [' + chosenMapId + '] cho ' + targetQuestions.length + ' câu thành công!', 'success');
+                }
+            });
+        };
+    };
+
+    window.assignCurrentBankEditMapIdAi = async () => {
+        if (!currentEditingQuestion) return;
+        if (typeof window.checkAndAssignMissingIds !== 'function') {
+            if (window.showToast) window.showToast('Chưa nạp module AI ID Assigner!', 'warning');
+            return;
+        }
+        const tempQs = [{ ...currentEditingQuestion, index: 0 }];
+        try {
+            await window.checkAndAssignMissingIds(tempQs, { db: window.db, forceAll: true, defaultClass: '9' });
+            if (tempQs[0].mapId) {
+                const mapIdEl = document.getElementById('edit_mapId');
+                if (mapIdEl) mapIdEl.value = tempQs[0].mapId;
+                currentEditingQuestion.mapId = tempQs[0].mapId;
+                if (window.showToast) window.showToast('Đã gán MapID [' + tempQs[0].mapId + ']!', 'success');
+            }
+        } catch(e) {
+            console.warn('Hủy gán AI:', e);
+        }
+    };
+
+    window.pickCurrentBankEditMapIdTree = () => {
+        if (typeof window.showMapIdTreePicker !== 'function') {
+            if (window.showToast) window.showToast('Chưa nạp module MapID Picker!', 'warning');
+            return;
+        }
+        window.showMapIdTreePicker({
+            initialMapId: document.getElementById('edit_mapId')?.value || currentEditingQuestion?.mapId || '',
+            title: 'Chọn MapID cho câu hỏi #' + (currentEditingQuestion?.id || ''),
+            onSelect: (mapId) => {
+                const mapIdEl = document.getElementById('edit_mapId');
+                if (mapIdEl) mapIdEl.value = mapId;
+                if (currentEditingQuestion) currentEditingQuestion.mapId = mapId;
+                if (window.showToast) window.showToast('Đã chọn MapID [' + mapId + ']!', 'success');
+            }
+        });
+    };
+    
     window.deleteBankQuestion = async (id) => {
         if (!window.canManageQuestionBank || !window.canManageQuestionBank()) {
             if (window.requirePermission) window.requirePermission('bank.manage_system', 'xóa câu hỏi trong ngân hàng');
