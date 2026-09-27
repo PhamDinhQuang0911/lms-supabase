@@ -7855,11 +7855,31 @@ function renderTagFilterUI() {
     };
 
     // 2. Tải dữ liệu Ngân hàng & Cây MapID
+    // Hàm làm giàu thông tin câu hỏi từ MapID (Môn học, Mức độ, Màu sắc)
+    window.enrichBankQuestions = (list) => {
+        if (!Array.isArray(list)) return;
+        list.forEach(q => {
+            if (q.mapId && window.BankService) {
+                const analysis = window.BankService.analyzeMapId(q.mapId);
+                if (!q.subject || q.subject === 'Khác' || q.subject === 'Chưa phân loại') {
+                    q.subject = analysis.subject;
+                }
+                if (!q.level || q.level === 'Thông hiểu' && analysis.level !== 'Thông hiểu') {
+                    q.level = analysis.level;
+                    q.levelColor = analysis.levelColor;
+                }
+                if (!q.levelColor) q.levelColor = analysis.levelColor;
+            }
+        });
+    };
+
+    // 2. Tải dữ liệu Ngân hàng & Cây MapID
     window.loadQuestionBank = async () => {
         if (window.globalBankQuestions && window.globalBankQuestions.length > 0) {
-                window.applyBankFilters();
-                return;
-            }
+            window.enrichBankQuestions(window.globalBankQuestions);
+            window.applyBankFilters();
+            return;
+        }
         
         const countEl = document.getElementById('bankCount');
         const grid = document.getElementById('bankListGrid');
@@ -7875,6 +7895,7 @@ function renderTagFilterUI() {
             if (cachedBank) {
                 try {
                     window.globalBankQuestions = JSON.parse(cachedBank);
+                    window.enrichBankQuestions(window.globalBankQuestions);
                     if (!window.globalIdTree || window.globalIdTree.length === 0) {
                          getDoc(doc(db, "configurations", "map_id_tree")).then(snap => {
                              if(snap.exists()) window.globalIdTree = snap.data().tree || [];
@@ -7884,23 +7905,51 @@ function renderTagFilterUI() {
                 } catch(e) {}
             }
             
+            const R2_CATALOG_URL = "https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank_catalog.json";
             const WORKER_URL = "https://upload-helper.phamngockhanh-942001.workers.dev/bank";
-            fetch(WORKER_URL).then(async (res) => {
-                if (!res.ok) throw new Error("Không kết nối được Server");
+            
+            // Ưu tiên nạp danh mục giàu thông tin (MapID, Môn, Mức độ) từ R2
+            fetch(R2_CATALOG_URL + '?t=' + Date.now()).then(async (res) => {
+                if (!res.ok) throw new Error("Fallback worker");
                 const data = await res.json();
+                window.enrichBankQuestions(data);
                 window.globalBankQuestions = data;
                 localStorage.setItem('lms_cached_bank', JSON.stringify(data));
                 window.applyBankFilters();
-            }).catch(e => console.error(e));
+            }).catch(async () => {
+                try {
+                    const res2 = await fetch(WORKER_URL);
+                    if (res2.ok) {
+                        const data2 = await res2.json();
+                        window.enrichBankQuestions(data2);
+                        window.globalBankQuestions = data2;
+                        localStorage.setItem('lms_cached_bank', JSON.stringify(data2));
+                        window.applyBankFilters();
+                    }
+                } catch(err2) {
+                    console.error("Lỗi tải ngân hàng:", err2);
+                }
+            });
             
             if (window.globalBankQuestions && window.globalBankQuestions.length > 0) {
                 if(loading) loading.classList.add('hidden');
                 if(grid) grid.classList.remove('hidden');
             } else {
-                const res = await fetch(WORKER_URL);
-                if (!res.ok) throw new Error("Không kết nối được Server");
-                window.globalBankQuestions = await res.json(); 
-                localStorage.setItem('lms_cached_bank', JSON.stringify(window.globalBankQuestions));
+                try {
+                    const rInit = await fetch(R2_CATALOG_URL + '?t=' + Date.now());
+                    if (rInit.ok) {
+                        window.globalBankQuestions = await rInit.json();
+                        window.enrichBankQuestions(window.globalBankQuestions);
+                    } else {
+                        const res = await fetch(WORKER_URL);
+                        if (!res.ok) throw new Error("Không kết nối được Server");
+                        window.globalBankQuestions = await res.json();
+                        window.enrichBankQuestions(window.globalBankQuestions);
+                    }
+                    localStorage.setItem('lms_cached_bank', JSON.stringify(window.globalBankQuestions));
+                } catch(eInit) {
+                    console.warn(eInit);
+                }
             }
             
             // Tải Cây MapID (nếu chưa có)
@@ -8299,7 +8348,7 @@ function renderTagFilterUI() {
                         <div class="font-bold text-gray-800 font-mono shrink-0 w-28 group-hover:text-primary-600 truncate"><i class="fa-solid fa-hashtag text-primary-500 text-xs mr-1"></i>${mapIdText}</div>
                         <div class="shrink-0">${cccdBadgeHtml}</div>
                         <div class="hidden md:flex gap-2 shrink-0 w-32">
-                            <span class="text-[10px] border border-gray-200 px-2 py-0.5 rounded bg-gray-50 text-gray-600 font-bold truncate"><i class="fa-solid fa-book text-gray-400 mr-1"></i>${q.subject || 'Khác'}</span>
+                            <span class="text-[10px] border border-gray-200 px-2 py-0.5 rounded bg-gray-50 text-gray-600 font-bold truncate"><i class="fa-solid fa-book text-gray-400 mr-1"></i>${subjectText || 'Khác'}</span>
                         </div>
                     </div>
                     <span class="text-xs border border-${levelColor}-200 text-${levelColor}-600 px-2 py-1 rounded bg-${levelColor}-50 font-bold shrink-0 w-24 text-center">${lvText || 'Chưa rõ'}</span>
@@ -8321,7 +8370,7 @@ function renderTagFilterUI() {
                         <span class="text-xs border border-${levelColor}-200 text-${levelColor}-600 px-2 py-1 rounded bg-${levelColor}-50 font-bold whitespace-nowrap">${lvText || 'Chưa rõ'}</span>
                     </div>
                     <div class="flex gap-2 mt-auto pt-2">
-                        <span class="text-xs border border-gray-200 px-2 py-1 rounded-lg bg-gray-50 text-gray-600 font-bold"><i class="fa-solid fa-book text-gray-400 mr-1"></i>${q.subject || 'Khác'}</span>
+                        <span class="text-xs border border-gray-200 px-2 py-1 rounded-lg bg-gray-50 text-gray-600 font-bold"><i class="fa-solid fa-book text-gray-400 mr-1"></i>${subjectText || 'Khác'}</span>
                     </div>
                 `;
             }
@@ -8467,6 +8516,13 @@ function renderTagFilterUI() {
             return str.replaceAll('\\left\\{', '\\heva').replaceAll('\\left\\[', '\\hoac');
         };
 
+        // Phân tích MapID làm giàu mức độ/phân môn
+        if (fullData.mapId && window.BankService) {
+            const an = window.BankService.analyzeMapId(fullData.mapId);
+            if (!fullData.subject || fullData.subject === 'Khác' || fullData.subject === 'Chưa phân loại') fullData.subject = an.subject;
+            if (!fullData.level || fullData.level === 'Thông hiểu' && an.level !== 'Thông hiểu') fullData.level = an.level;
+        }
+
         const rawType = fullData.type || '';
         let qType = 'mc';
         if (rawType === 'tf' || rawType === 'DUNG_SAI' || fullData.statements?.length) qType = 'tf';
@@ -8486,8 +8542,14 @@ function renderTagFilterUI() {
                     <input type="text" id="edit_cccd" value="${qId}" readonly class="w-full p-2.5 bg-gray-100 border border-gray-300 rounded-lg font-mono text-sm text-gray-600 font-bold">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Mã MapID</label>
-                    <input type="text" id="edit_mapId" value="${qMapId}" placeholder="VD: 9D1H2-4" class="w-full p-2.5 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-orange-500 font-bold">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Mã MapID</label>
+                    </div>
+                    <input type="text" id="edit_mapId" value="${qMapId}" placeholder="VD: 9D1H2-4" class="w-full p-2.5 border border-primary-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary-500 font-bold text-primary-700 bg-primary-50/20">
+                    <div class="flex items-center gap-1.5 mt-1.5">
+                        <button type="button" onclick="window.assignBankModalMapIdAi()" class="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer" title="AI gợi ý MapID"><i class="fa-solid fa-robot"></i> AI gợi ý</button>
+                        <button type="button" onclick="window.pickBankModalMapIdTree()" class="px-2 py-0.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Chọn từ Cây MapID"><i class="fa-solid fa-network-wired"></i> Cây MapID</button>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Mức độ</label>
@@ -8517,21 +8579,45 @@ function renderTagFilterUI() {
                 </div>
             </div>
 
-            <div>
-                <label class="block font-bold text-gray-700 mb-2">Đề bài (Hỗ trợ công thức LaTeX $...$ & TikZ)</label>
-                <textarea id="edit_content" class="w-full h-32 p-3 border border-gray-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">${restoreLaTeX(fullData.content)}</textarea>
+            <div class="bg-white p-4 rounded-xl border border-gray-200">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block font-bold text-gray-800 text-sm flex items-center gap-1.5"><i class="fa-solid fa-pen-nib text-primary-600"></i> Đề bài (Hỗ trợ công thức LaTeX $...$ & TikZ)</label>
+                    <span class="text-[11px] text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-full border border-primary-200 font-semibold"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Nhấp vào hình vẽ để <strong>Dán đè (Ctrl+V)</strong> hoặc <strong>Tải từ máy</strong></span>
+                </div>
+                <div id="bankEditContentLivePreview" class="p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm math-content text-gray-800 mb-2 shadow-inner min-h-[60px] leading-relaxed">${window.formatContent ? window.formatContent(fullData.content || '') : fullData.content}</div>
+                <div id="bankEditMathPalette" class="mb-2"></div>
+                <textarea id="edit_content" class="w-full h-32 p-3 border border-gray-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed bg-white" oninput="document.getElementById('bankEditContentLivePreview').innerHTML = window.formatContent ? window.formatContent(this.value) : this.value; if(window.MathJax) MathJax.typesetPromise([document.getElementById('bankEditContentLivePreview')]).catch(()=>{});">${restoreLaTeX(fullData.content)}</textarea>
             </div>
 
             <div id="editTypeSpecificContainer"></div>
 
-            <div>
-                <label class="block font-bold text-gray-700 mb-2">Lời giải chi tiết (\\loigiai)</label>
-                <textarea id="edit_solution" class="w-full h-36 p-3 border border-gray-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">${restoreLaTeX(fullData.solution)}</textarea>
+            <div class="bg-emerald-50/20 p-4 rounded-xl border border-emerald-200">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block font-bold text-emerald-800 text-sm flex items-center gap-1.5"><i class="fa-regular fa-lightbulb text-emerald-600"></i> Lời giải chi tiết (\\loigiai)</label>
+                    <span class="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-semibold"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Nhấp vào hình vẽ để <strong>Dán đè (Ctrl+V)</strong> hoặc <strong>Tải từ máy</strong></span>
+                </div>
+                <div id="bankEditSolutionLivePreview" class="p-4 bg-white border border-emerald-200 rounded-xl text-sm math-content text-gray-800 mb-2 shadow-inner min-h-[60px] leading-relaxed">${window.formatContent ? window.formatContent(fullData.solution || '') : fullData.solution}</div>
+                <textarea id="edit_solution" class="w-full h-36 p-3 border border-emerald-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 leading-relaxed bg-white" oninput="document.getElementById('bankEditSolutionLivePreview').innerHTML = window.formatContent ? window.formatContent(this.value) : this.value; if(window.MathJax) MathJax.typesetPromise([document.getElementById('bankEditSolutionLivePreview')]).catch(()=>{});">${restoreLaTeX(fullData.solution)}</textarea>
             </div>
         `;
 
         container.innerHTML = htmlContent;
         window.switchEditQuestionType(qType);
+
+        // Khởi tạo MathPalette & Thay thế ảnh cho modal
+        if (window.MathPalette) {
+            window.MathPalette.createToolbar('bankEditMathPalette', 'edit_content');
+            window.MathPalette.registerTextarea(document.getElementById('edit_solution'));
+            window.MathPalette.enableImageReplacement('bankEditContentLivePreview', 'edit_content');
+            window.MathPalette.enableImageReplacement('bankEditSolutionLivePreview', 'edit_solution');
+        }
+
+        if (window.MathJax && window.MathJax.typesetPromise) {
+            MathJax.typesetPromise([
+                document.getElementById('bankEditContentLivePreview'),
+                document.getElementById('bankEditSolutionLivePreview')
+            ]).catch(()=>{});
+        }
         
         // Hiện modal
         modal.classList.remove('opacity-0', 'pointer-events-none');
@@ -8541,6 +8627,59 @@ function renderTagFilterUI() {
         
         // Ẩn modal preview
         window.closeQuestionPreviewModal();
+    };
+
+    // AI và Tree Picker cho modal sửa câu hỏi Ngân hàng
+    window.assignBankModalMapIdAi = async () => {
+        const mapIdInput = document.getElementById('edit_mapId');
+        const contentInput = document.getElementById('edit_content');
+        if (!mapIdInput || !contentInput) return;
+        if (typeof window.checkAndAssignMissingIds !== 'function') {
+            if (window.showToast) window.showToast('Chưa nạp module AI ID Assigner!', 'warning');
+            return;
+        }
+        const tempQ = {
+            content: contentInput.value,
+            type: document.getElementById('edit_type')?.value || 'mc',
+            index: 0
+        };
+        try {
+            await window.checkAndAssignMissingIds([tempQ], { forceAll: true });
+            if (tempQ.mapId) {
+                mapIdInput.value = tempQ.mapId;
+                if (window.BankService) {
+                    const analysis = window.BankService.analyzeMapId(tempQ.mapId);
+                    const lvEl = document.getElementById('edit_level');
+                    if (lvEl && analysis.level) lvEl.value = analysis.level;
+                    const subEl = document.getElementById('edit_subject');
+                    if (subEl && analysis.subject) subEl.value = analysis.subject;
+                }
+                if (window.showToast) window.showToast(`AI đã gợi ý MapID: ${tempQ.mapId}`, 'success');
+            }
+        } catch(e) {
+            console.error(e);
+            if (window.showToast) window.showToast('Lỗi AI: ' + e.message, 'error');
+        }
+    };
+
+    window.pickBankModalMapIdTree = () => {
+        if (!window.MapIdPicker) {
+            if (window.showToast) window.showToast('Chưa nạp Cây MapID Picker!', 'warning');
+            return;
+        }
+        window.MapIdPicker.open((node) => {
+            if (node && node.id) {
+                const mapIdInput = document.getElementById('edit_mapId');
+                if (mapIdInput) mapIdInput.value = node.id;
+                if (window.BankService) {
+                    const analysis = window.BankService.analyzeMapId(node.id);
+                    const lvEl = document.getElementById('edit_level');
+                    if (lvEl && analysis.level) lvEl.value = analysis.level;
+                    const subEl = document.getElementById('edit_subject');
+                    if (subEl && analysis.subject) subEl.value = analysis.subject;
+                }
+            }
+        });
     };
 
     document.getElementById('btnSaveEditQuestion').onclick = async () => {

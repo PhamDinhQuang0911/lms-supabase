@@ -2742,98 +2742,212 @@
             setTimeout(() => { const activeItem = document.getElementById(listType === 'mixed-tl' ? `q-preview-tl-${index}` : `q-preview-${index}`); if(activeItem) activeItem.scrollIntoView({behavior: 'smooth', block: 'nearest'}); }, 100);
             const q = listType === 'mixed-tl' ? window.mixedTlQuestions[index] : window.questions[index];
             const editor = document.getElementById('editorArea');
-            
+            if (!q || !editor) return;
+
+            // 1. Phân tích sư phạm từ MapID
+            let analysis = { subject: 'Toán', level: 'Thông hiểu', levelColor: 'blue' };
+            if (q.mapId && window.BankService) {
+                analysis = window.BankService.analyzeMapId(q.mapId);
+            }
+            const lvText = analysis.level;
+            const lvColor = analysis.levelColor;
+
+            // 2. Định danh CCCD & Nút Bank
             const cccdVal = q.cccd || q.bankId || '';
             const cccdBadgeHtml = cccdVal 
-                ? `<span class="font-mono font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded text-xs flex items-center gap-1"><i class="fa-solid fa-id-card text-[10px]"></i> CCCD: #${cccdVal}</span>
-                   <button type="button" id="btnSyncSingleToBank" onclick="window.saveSingleQuestionToBank(${index}, '${listType}')" class="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer ml-1" title="Lưu cập nhật và ghi đè câu hỏi này (kèm MapID, mức độ, dạng) vào Ngân hàng R2"><i class="fa-solid fa-cloud-arrow-up text-[11px]"></i> Lưu vào Bank</button>`
-                : `<span class="text-[11px] text-gray-400 italic">Chưa cấp CCCD</span>
-                   <button type="button" onclick="window.assignCccdToCurrentQuestion()" class="px-2 py-0.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded text-xs font-bold transition flex items-center gap-1 shadow-xs" title="Cấp mã CCCD số cho câu này"><i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Cấp CCCD</button>
-                   <button type="button" id="btnSyncSingleToBank" onclick="window.saveSingleQuestionToBank(${index}, '${listType}')" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer ml-1" title="Cấp CCCD và lưu câu hỏi này vào Ngân hàng R2"><i class="fa-solid fa-cloud-arrow-up text-[11px]"></i> Cấp CCCD & Lưu Bank</button>`;
+                ? `<div class="flex items-center gap-1.5 bg-teal-50/80 border border-teal-200 px-2.5 py-1 rounded-lg">
+                       <span class="font-mono font-bold text-teal-800 text-xs flex items-center gap-1"><i class="fa-solid fa-id-card text-[11px] text-teal-600"></i> CCCD: #${cccdVal}</span>
+                       <button type="button" id="btnSyncSingleToBank" onclick="window.saveSingleQuestionToBank(${index}, '${listType}')" class="px-2 py-0.5 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-[11px] font-bold transition flex items-center gap-1 shadow-xs cursor-pointer ml-1" title="Lưu cập nhật và ghi đè câu hỏi này vào Ngân hàng R2"><i class="fa-solid fa-cloud-arrow-up text-[10px]"></i> Lưu đè Bank</button>
+                   </div>`
+                : `<div class="flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-lg">
+                       <span class="text-[11px] text-gray-500 italic">Chưa có CCCD</span>
+                       <button type="button" onclick="window.assignCccdToCurrentQuestion()" class="px-2 py-0.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded text-[11px] font-bold transition flex items-center gap-1 shadow-2xs" title="Cấp mã CCCD số cho câu này"><i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Cấp CCCD</button>
+                       <button type="button" id="btnSyncSingleToBank" onclick="window.saveSingleQuestionToBank(${index}, '${listType}')" class="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Cấp CCCD và lưu câu hỏi này vào Ngân hàng R2"><i class="fa-solid fa-cloud-arrow-up text-[10px]"></i> Cấp & Lưu Bank</button>
+                   </div>`;
 
             const envVal = q.env || (q.type === 'essay' || q.type === 'tl' ? 'bt' : 'ex');
-            let idInfoBar = `
-                <div class="mb-3 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between flex-wrap gap-2 text-xs">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-bold text-gray-600">Loại MT:</span>
-                        <select id="editEnv" class="px-2 py-0.5 border border-gray-300 rounded font-mono font-bold text-gray-700 bg-white" onchange="autoSaveMemory()">
-                            <option value="ex" ${envVal==='ex'?'selected':''}>ex (TN/Đề)</option>
-                            <option value="bt" ${envVal==='bt'?'selected':''}>bt (Bài tập)</option>
-                            <option value="vd" ${envVal==='vd'?'selected':''}>vd (Ví dụ)</option>
-                            <option value="vidu" ${envVal==='vidu'?'selected':''}>vidu (Ví dụ)</option>
-                        </select>
-                        <span class="font-bold text-gray-600 ml-1">MapID:</span>
-                        <input type="text" id="editMapId" class="w-24 px-2 py-0.5 border border-gray-300 rounded font-mono font-bold text-primary-700 bg-white" value="${q.mapId || ''}" placeholder="VD: 9D1H2-4" oninput="autoSaveMemory(); if(typeof renderPreviewList==='function') renderPreviewList();">
-                        <button type="button" onclick="window.assignSingleQuestionMapIdAi(${index}, '${listType}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200 font-bold text-[11px] transition shadow-2xs" title="Gán MapID câu này bằng AI (Gemini Flash)"><i class="fa-solid fa-robot"></i> AI</button>
-                        <button type="button" onclick="window.pickSingleQuestionMapIdTree(${index}, '${listType}')" class="px-1.5 py-0.5 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded border border-teal-200 font-bold text-[11px] transition shadow-2xs" title="Chọn MapID câu này từ Cây Ma Trận"><i class="fa-solid fa-network-wired"></i> Cây</button>
-                        <span class="font-bold text-gray-600 ml-1">Nguồn:</span>
-                        <input type="text" id="editSource" class="w-28 px-2 py-0.5 border border-gray-300 rounded text-gray-700 bg-white" value="${q.source || ''}" placeholder="Nguồn câu hỏi" oninput="autoSaveMemory()">
+            const qTitle = (listType === 'mixed-tl' || q.type === 'essay' || q.type === 'tl') ? `TỰ LUẬN ${index + 1}` : `CÂU ${index + 1}`;
+            const typeLabel = q.type === 'mc' ? 'Trắc nghiệm 4 lựa chọn' : (q.type === 'tf' ? 'Đúng / Sai' : (q.type === 'short' ? 'Điền khuyết / Trả lời ngắn' : 'Tự luận'));
+
+            // CARD 1: THẺ ĐỊNH DANH & PHÂN LOẠI SƯ PHẠM
+            const card1Html = `
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 mb-4">
+                    <div class="flex items-center justify-between flex-wrap gap-2 pb-3 mb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 bg-primary-600 text-white font-black text-sm rounded-xl tracking-tight shadow-xs">${qTitle}</span>
+                            <span class="px-2.5 py-0.5 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg border border-gray-200">${typeLabel}</span>
+                            <span class="px-2.5 py-0.5 bg-${lvColor}-50 text-${lvColor}-700 font-bold text-xs rounded-lg border border-${lvColor}-200 flex items-center gap-1">
+                                <i class="fa-solid fa-layer-group text-[10px]"></i> ${lvText}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-1.5 text-xs">
+                                <span class="font-bold text-gray-500 uppercase">Môi trường:</span>
+                                <select id="editEnv" class="px-2 py-1 border border-gray-300 rounded-lg font-mono font-bold text-gray-700 bg-gray-50 text-xs" onchange="autoSaveMemory()">
+                                    <option value="ex" ${envVal==='ex'?'selected':''}>ex (Đề/TN)</option>
+                                    <option value="bt" ${envVal==='bt'?'selected':''}>bt (Bài tập)</option>
+                                    <option value="vd" ${envVal==='vd'?'selected':''}>vd (Ví dụ)</option>
+                                    <option value="vidu" ${envVal==='vidu'?'selected':''}>vidu (Ví dụ)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1.5 text-xs">
+                                <span class="font-bold text-gray-500 uppercase">Điểm:</span>
+                                <input type="number" id="editPoint" class="w-16 px-2 py-1 border border-gray-300 rounded-lg font-bold text-orange-600 bg-orange-50/50 text-center text-xs" value="${q.point !== undefined ? q.point : 0.25}" step="0.05" oninput="autoSaveMemory()">
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="font-bold text-gray-600">CCCD:</span>
-                        ${cccdBadgeHtml}
+                    
+                    <div class="flex items-center justify-between flex-wrap gap-3">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs font-bold text-gray-500 uppercase">MapID:</span>
+                                <input type="text" id="editMapId" class="w-28 px-2.5 py-1 border border-primary-300 rounded-lg font-mono font-bold text-primary-700 bg-primary-50/20 text-xs focus:ring-2 focus:ring-primary-500" value="${q.mapId || ''}" placeholder="VD: 9D1H2-4" oninput="autoSaveMemory(); if(typeof renderPreviewList==='function') renderPreviewList();">
+                            </div>
+                            <button type="button" onclick="window.assignSingleQuestionMapIdAi(${index}, '${listType}')" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Gợi ý MapID bằng AI (Gemini Flash)"><i class="fa-solid fa-robot"></i> AI gợi ý ID</button>
+                            <button type="button" onclick="window.pickSingleQuestionMapIdTree(${index}, '${listType}')" class="px-2 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Chọn MapID từ Cây Ma Trận"><i class="fa-solid fa-network-wired"></i> Cây MapID</button>
+                            <div class="flex items-center gap-1 ml-1">
+                                <span class="text-xs font-bold text-gray-400">Nguồn:</span>
+                                <input type="text" id="editSource" class="w-32 px-2 py-1 border border-gray-300 rounded-lg text-gray-700 bg-white text-xs" value="${q.source || ''}" placeholder="VD: Đề thi, SGK..." oninput="autoSaveMemory()">
+                            </div>
+                        </div>
+                        <div>
+                            ${cccdBadgeHtml}
+                        </div>
                     </div>
                 </div>
             `;
 
-            let alertHtml = '';
-            if (!q.mapId) {
-                alertHtml = `<div class="mb-2 text-[10px] text-orange-500 italic bg-orange-50 px-2 py-1 rounded border border-orange-100 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Câu này chưa có MapID (Khuyến khích gán ID dạng [9D1H1-1] để tiện tra cứu)</div>`;
-            }
-
-            // [FIX LỖI XEM TRƯỚC]: Bổ sung Khối Xem trước HTML/Ảnh nằm trên Textarea
-            let html = `
-                ${idInfoBar}
-                ${alertHtml}
-                <div class="mb-4">
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="form-group-title mb-0">Nội dung</label>
-                        <button onclick="document.getElementById('contentLivePreview').classList.toggle('hidden')" class="text-xs text-primary-600 font-bold hover:bg-primary-50 px-2 py-1 rounded transition-colors"><i class="fa-solid fa-eye"></i> Bật/Tắt xem trước</button>
+            // CARD 2: THẺ NỘI DUNG & MATHTYPE & ẢNH TRỰC QUAN
+            const card2Html = `
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 mb-4">
+                    <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <label class="font-bold text-gray-800 text-sm flex items-center gap-1.5"><i class="fa-solid fa-pen-nib text-primary-600"></i> Đề bài / Nội dung câu hỏi</label>
+                            <span class="text-[11px] text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full border border-primary-200 font-semibold hidden md:inline-flex items-center gap-1">
+                                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Nhấp vào hình vẽ bên dưới để <strong>Dán đè (Ctrl+V)</strong> hoặc <strong>Tải từ máy</strong>
+                            </span>
+                        </div>
+                        <button type="button" onclick="document.getElementById('contentLivePreview').classList.toggle('hidden')" class="text-xs text-gray-500 hover:text-primary-600 font-bold px-2 py-1 rounded-lg hover:bg-gray-100 transition flex items-center gap-1">
+                            <i class="fa-solid fa-eye"></i> Ẩn/Hiện xem trước
+                        </button>
                     </div>
-                    <div id="contentLivePreview" class="mb-2 p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm math-content text-gray-800 hidden shadow-inner">${window.formatContent(q.content || 'Chưa có nội dung')}</div>
-                    <div id="editorMathPalette"></div>
-                    <textarea id="editContent" class="form-input min-h-[120px]" oninput="autoSaveMemory(); document.getElementById('contentLivePreview').innerHTML = window.formatContent(this.value); if(window.MathJax) MathJax.typesetPromise([document.getElementById('contentLivePreview')]);">${q.content || ''}</textarea>
+
+                    <div id="contentLivePreview" class="p-4 bg-gray-50/80 border border-gray-200 rounded-xl text-sm math-content text-gray-800 mb-3 shadow-inner min-h-[50px] leading-relaxed">
+                        ${window.formatContent(q.content || 'Chưa có nội dung')}
+                    </div>
+
+                    <div id="editorMathPalette" class="mb-2"></div>
+
+                    <textarea id="editContent" class="w-full min-h-[130px] p-3 border border-gray-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 leading-relaxed bg-white" placeholder="Nhập nội dung đề bài (LaTeX $...$, TikZ...)" oninput="autoSaveMemory(); document.getElementById('contentLivePreview').innerHTML = window.formatContent(this.value); if(window.MathJax) MathJax.typesetPromise([document.getElementById('contentLivePreview')]).catch(()=>{});">${q.content || ''}</textarea>
                 </div>
             `;
+
+            // CARD 3: THẺ PHƯƠNG ÁN TRẢ LỜI
+            let card3Html = '';
             if (q.type === 'mc') {
-                html += `<div class="grid grid-cols-1 gap-3 mb-4">`;
+                const labels = ['A', 'B', 'C', 'D'];
                 const opts = q.options || ["", "", "", ""];
-                opts.forEach((opt, i) => { html += `<div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full border flex items-center justify-center font-bold cursor-pointer ${q.correct === i ? 'bg-primary-600 text-white' : 'bg-gray-50'}" onclick="setCorrectMC(${i})">${String.fromCharCode(65+i)}</div><input type="text" class="form-input mc-option" value="${opt}" placeholder="Phương án ${String.fromCharCode(65+i)}" oninput="autoSaveMemory()"></div>`; });
-                html += `</div>`;
+                card3Html = `
+                    <div class="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 mb-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-bold text-gray-800 text-sm flex items-center gap-1.5"><i class="fa-solid fa-list-ol text-primary-600"></i> Các phương án lựa chọn & Đáp án đúng</span>
+                            <span class="text-xs text-orange-600 font-semibold italic">* Nhấp vào nút chữ cái A, B, C, D để chọn đáp án đúng</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                `;
+                opts.forEach((opt, i) => {
+                    const isCorrect = (q.correct === i);
+                    const btnClass = isCorrect 
+                        ? 'bg-emerald-600 text-white font-black shadow-md ring-4 ring-emerald-200 scale-105' 
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold';
+                    const cardBorder = isCorrect ? 'border-emerald-300 bg-emerald-50/20' : 'border-gray-200 bg-gray-50/30';
+                    card3Html += `
+                        <div class="flex items-center gap-2.5 p-2.5 rounded-xl border ${cardBorder} transition-all">
+                            <button type="button" class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all cursor-pointer ${btnClass}" onclick="setCorrectMC(${i})" title="${isCorrect ? 'Đáp án đúng' : 'Nhấp để chọn đáp án đúng'}">
+                                ${labels[i]}
+                            </button>
+                            <input type="text" class="form-input mc-option flex-1 text-sm bg-white font-mono" value="${opt}" placeholder="Nội dung phương án ${labels[i]}" oninput="autoSaveMemory()">
+                        </div>
+                    `;
+                });
+                card3Html += `</div></div>`;
             } else if (q.type === 'tf') {
-                html += `<div class="space-y-2 mb-4">`;
                 const stmts = q.statements || [{text:"", isTrue:false}, {text:"", isTrue:false}, {text:"", isTrue:false}, {text:"", isTrue:false}];
-                stmts.forEach((s, i) => { html += `<div class="tf-row flex items-center gap-2 border p-2 rounded"><span class="font-bold text-xs text-gray-400 w-4">${i+1}</span><input type="text" class="form-input tf-text" value="${s.text}" oninput="autoSaveMemory()"><label class="flex items-center gap-1"><input type="checkbox" class="w-4 h-4 tf-check" ${s.isTrue?'checked':''} onchange="autoSaveMemory()"><span class="text-xs font-bold text-green-600">Đúng</span></label></div>`; });
-                html += `</div>`;
+                const labels = ['a', 'b', 'c', 'd'];
+                card3Html = `
+                    <div class="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 mb-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="font-bold text-gray-800 text-sm flex items-center gap-1.5"><i class="fa-solid fa-check-double text-indigo-600"></i> Các mệnh đề khẳng định (Đúng / Sai)</span>
+                            <span class="text-xs text-indigo-600 font-semibold">* Tích chọn "Đúng" cho từng ý</span>
+                        </div>
+                        <div class="space-y-2.5">
+                `;
+                stmts.forEach((s, i) => {
+                    const isTrue = s.isTrue === true || s.isTrue === 'true' || s.isTrue === 'D';
+                    card3Html += `
+                        <div class="tf-row flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/40">
+                            <span class="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">${labels[i]}</span>
+                            <input type="text" class="form-input tf-text flex-1 text-sm bg-white font-mono" value="${s.text}" placeholder="Nội dung mệnh đề ${labels[i]}" oninput="autoSaveMemory()">
+                            <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border cursor-pointer select-none transition ${isTrue ? 'bg-green-50 border-green-300 text-green-700 font-bold' : 'bg-gray-100 border-gray-200 text-gray-500'}">
+                                <input type="checkbox" class="w-4 h-4 tf-check text-green-600 rounded" ${isTrue?'checked':''} onchange="autoSaveMemory(); loadQuestionToEditor(${index}, '${listType}')">
+                                <span class="text-xs font-bold">${isTrue ? 'Đúng' : 'Sai'}</span>
+                            </label>
+                        </div>
+                    `;
+                });
+                card3Html += `</div></div>`;
             } else if (q.type === 'short') {
-                html += `<div class="mb-4"><label class="form-group-title">Đáp án mẫu</label><input type="text" id="editShortAns" class="form-input font-bold text-green-700" value="${q.answer || ''}" oninput="autoSaveMemory()"></div>`;
-            }
-            
-            html += `
-                <div class="mb-4">
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="form-group-title mb-0">Lời giải</label>
-                        <button onclick="document.getElementById('solLivePreview').classList.toggle('hidden')" class="text-xs text-green-600 font-bold hover:bg-green-50 px-2 py-1 rounded transition-colors"><i class="fa-solid fa-eye"></i> Bật/Tắt xem trước</button>
+                card3Html = `
+                    <div class="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 mb-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fa-solid fa-key text-emerald-600"></i>
+                            <label class="font-bold text-gray-800 text-sm">Đáp án mẫu (Số nguyên / Thập phân / Phân số)</label>
+                        </div>
+                        <input type="text" id="editShortAns" class="w-full p-3 border border-emerald-300 rounded-xl font-mono text-base font-bold text-emerald-800 bg-emerald-50/30 focus:ring-2 focus:ring-emerald-500" value="${q.answer || ''}" placeholder="VD: 15 hoặc 3.5 hoặc -2/3" oninput="autoSaveMemory()">
                     </div>
-                    <div id="solLivePreview" class="mb-2 p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm math-content text-gray-800 hidden shadow-inner">${window.formatContent(q.solution || 'Chưa có lời giải')}</div>
-                    <textarea id="editSolution" class="form-input min-h-[80px]" oninput="autoSaveMemory(); document.getElementById('solLivePreview').innerHTML = window.formatContent(this.value); if(window.MathJax) MathJax.typesetPromise([document.getElementById('solLivePreview')]);">${q.solution || ''}</textarea>
+                `;
+            }
+
+            // CARD 4: THẺ HƯỚNG DẪN GIẢI CHI TIẾT
+            const card4Html = `
+                <div class="bg-emerald-50/20 rounded-2xl border border-emerald-200 shadow-xs p-4 mb-4">
+                    <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <label class="font-bold text-emerald-800 text-sm flex items-center gap-1.5"><i class="fa-regular fa-lightbulb text-emerald-600 text-base"></i> Lời giải chi tiết (\\loigiai)</label>
+                            <span class="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold hidden md:inline-flex items-center gap-1">
+                                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Nhấp vào hình vẽ để Thay ảnh / Ctrl+V
+                            </span>
+                        </div>
+                        <button type="button" onclick="document.getElementById('solLivePreview').classList.toggle('hidden')" class="text-xs text-emerald-600 hover:text-emerald-800 font-bold px-2 py-1 rounded-lg hover:bg-emerald-100/50 transition flex items-center gap-1">
+                            <i class="fa-solid fa-eye"></i> Ẩn/Hiện xem trước
+                        </button>
+                    </div>
+
+                    <div id="solLivePreview" class="p-4 bg-white border border-emerald-200 rounded-xl text-sm math-content text-gray-800 mb-3 shadow-inner min-h-[50px] leading-relaxed">
+                        ${window.formatContent(q.solution || 'Chưa có lời giải')}
+                    </div>
+
+                    <textarea id="editSolution" class="w-full min-h-[110px] p-3 border border-emerald-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 leading-relaxed bg-white" placeholder="Nhập lời giải chi tiết (hỗ trợ MathType, LaTeX, TikZ...)" oninput="autoSaveMemory(); document.getElementById('solLivePreview').innerHTML = window.formatContent(this.value); if(window.MathJax) MathJax.typesetPromise([document.getElementById('solLivePreview')]).catch(()=>{});">${q.solution || ''}</textarea>
                 </div>
             `;
-            html += `<div class="mb-4 w-1/3"><label class="form-group-title">Điểm</label><input type="number" id="editPoint" class="form-input font-bold text-orange-600" value="${q.point || 0}" step="0.1" oninput="autoSaveMemory()"></div>`;
-            
-            editor.innerHTML = html;
+
+            editor.innerHTML = card1Html + card2Html + card3Html + card4Html;
+
+            // Khởi tạo thanh MathType & Tương tác thay thế ảnh
             if (window.MathPalette) {
                 window.MathPalette.createToolbar('editorMathPalette', 'editContent');
                 window.MathPalette.registerTextarea(document.getElementById('editSolution'));
+                document.querySelectorAll('.mc-option, .tf-text, #editShortAns').forEach(el => window.MathPalette.registerTextarea(el));
                 window.MathPalette.enableImageReplacement('contentLivePreview', 'editContent');
                 window.MathPalette.enableImageReplacement('solLivePreview', 'editSolution');
             }
-            if(window.MathJax) MathJax.typesetPromise([editor]).catch(()=>{});
+
+            if(window.MathJax && window.MathJax.typesetPromise) {
+                MathJax.typesetPromise([editor]).catch(()=>{});
+            }
             setTimeout(() => window.renderTikz(), 200);
         };
 
-        
-        // --- CÁC HÀM XỬ LÝ GÁN MAPID BỔ SUNG & CÂY MA TRẬN CHO ĐỀ THI ---
         window.assignSingleQuestionMapIdAi = async (index, listType = 'normal') => {
             const qList = listType === 'mixed-tl' ? window.mixedTlQuestions : window.questions;
             const q = qList && qList[index];

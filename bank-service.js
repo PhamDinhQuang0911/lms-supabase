@@ -189,7 +189,8 @@
             // 1. Phân tích theo cấu trúc chuẩn MapID: [Khối][Môn][Chương][Mức độ][Bài]-[Dạng]
             // Ví dụ: 9H0H1-7 -> Môn H (Hình học), Mức độ H (Thông hiểu), Dạng 7
             // 9D1N1-1 -> Môn D (Đại số), Mức độ N (Nhận biết)
-            const m = clean.match(/^(\d+)([A-Z]+)(\d+)([NHVC])(\d+)(?:-(\d+))?$/);
+            // 9D1V3-X -> Môn D (Đại số), Mức độ V (Vận dụng), Dạng X
+            const m = clean.match(/^(\d+)([A-Z]+)(\d+)([NHVC])(\d*)(?:-([A-Za-z0-9]+))?$/);
             if (m) {
                 const subCode = m[2];
                 const lvCode = m[4];
@@ -311,9 +312,10 @@
             }
             await Promise.all(workers);
 
-            // Cập nhật bộ nhớ đệm Bank cục bộ
+            // Cập nhật bộ nhớ đệm Bank cục bộ và đồng bộ catalog R2
             try {
                 this.updateLocalBankCache(questions);
+                this.syncQuestionsToCatalog(questions);
             } catch(e) {}
 
             return { successCount, failCount, total };
@@ -409,12 +411,90 @@
                 const res = await fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: formData });
                 if (res.ok) {
                     this.updateLocalBankCache([normalized]);
+                    this.syncQuestionsToCatalog([normalized]);
                     return true;
                 }
                 return false;
             } catch(e) {
                 console.error("Lỗi lưu câu hỏi lên R2:", e);
                 return false;
+            }
+        },
+
+        /**
+         * Đồng bộ danh sách câu hỏi vào catalog toàn cục và tải lên R2
+         */
+        async syncQuestionsToCatalog(newQuestions) {
+            if (!newQuestions || newQuestions.length === 0) return;
+            try {
+                // 1. Cập nhật window.globalBankQuestions nếu đang ở trang dashboard
+                if (typeof window !== 'undefined' && Array.isArray(window.globalBankQuestions)) {
+                    newQuestions.forEach(nq => {
+                        const idx = window.globalBankQuestions.findIndex(q => String(q.id) === String(nq.id));
+                        const catItem = {
+                            id: String(nq.id),
+                            cccd: String(nq.cccd || nq.id),
+                            mapId: String(nq.mapId || ''),
+                            level: nq.level || 'Thông hiểu',
+                            levelColor: nq.levelColor || 'blue',
+                            subject: nq.subject || 'Khác',
+                            type: nq.type || 'mc',
+                            source: nq.source || '',
+                            uploadedAt: nq.updatedAt || new Date().toISOString()
+                        };
+                        if (idx !== -1) {
+                            window.globalBankQuestions[idx] = Object.assign({}, window.globalBankQuestions[idx], catItem);
+                        } else {
+                            window.globalBankQuestions.unshift(catItem);
+                        }
+                    });
+                    try {
+                        localStorage.setItem(LOCAL_BANK_CACHE_KEY, JSON.stringify(window.globalBankQuestions));
+                    } catch(e) {}
+                    if (typeof window.applyBankFilters === 'function') {
+                        window.applyBankFilters();
+                    }
+                }
+
+                // 2. Tải catalog hiện tại từ R2 hoặc LocalStorage, ghép và đẩy lên R2
+                const cachedBank = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
+                let catalogList = cachedBank ? JSON.parse(cachedBank) : [];
+                if (!Array.isArray(catalogList) || catalogList.length === 0) {
+                    try {
+                        const r = await fetch("https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank_catalog.json?t=" + Date.now());
+                        if (r.ok) catalogList = await r.json();
+                    } catch(e) {}
+                }
+                if (Array.isArray(catalogList) && catalogList.length > 0) {
+                    const map = new Map();
+                    catalogList.forEach(item => map.set(String(item.id), item));
+                    newQuestions.forEach(nq => {
+                        const cur = map.get(String(nq.id)) || {};
+                        map.set(String(nq.id), {
+                            ...cur,
+                            id: String(nq.id),
+                            cccd: String(nq.cccd || nq.id),
+                            mapId: String(nq.mapId || ''),
+                            level: nq.level || cur.level || 'Thông hiểu',
+                            levelColor: nq.levelColor || cur.levelColor || 'blue',
+                            subject: nq.subject || cur.subject || 'Khác',
+                            type: nq.type || cur.type || 'mc',
+                            source: nq.source || cur.source || '',
+                            uploadedAt: nq.updatedAt || new Date().toISOString()
+                        });
+                    });
+                    const updatedCatalog = Array.from(map.values());
+                    const blob = new Blob([JSON.stringify(updatedCatalog, null, 2)], { type: 'application/json' });
+                    const fd = new FormData();
+                    fd.append('file', blob, 'bank_catalog.json');
+                    fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: fd }).catch(() => {});
+
+                    const fd2 = new FormData();
+                    fd2.append('file', blob, 'full_bank_catalog.json');
+                    fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: fd2 }).catch(() => {});
+                }
+            } catch(err) {
+                console.warn('Lỗi syncQuestionsToCatalog:', err);
             }
         },
 
