@@ -96,7 +96,7 @@
     </script>
         <script src="https://unpkg.com/mammoth@1.12.1/mammoth.browser.min.js"></script>
     <script src="ai-id-assigner.js?v=20260927"></script>
-    <script src="math-palette.js?v=20260927-hotswap"></script>
+    <script src="math-palette.js?v=20260927-v3"></script>
     <script src="mapid-picker.js"></script>
     <script src="question-importer.js"></script>
     <script src="bank-service.js?v=20260927-hotswap"></script>
@@ -8595,33 +8595,80 @@ function renderTagFilterUI() {
             </div>
 
             <div class="bg-white p-4 rounded-xl border border-gray-200">
-                <div class="flex items-center justify-between mb-2">
-                    <label class="block font-bold text-gray-800 text-sm flex items-center gap-1.5"><i class="fa-solid fa-pen-nib text-primary-600"></i> Đề bài (Hỗ trợ công thức LaTeX $...$ & TikZ)</label>
-                    <span class="text-[11px] text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-full border border-primary-200 font-semibold"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Nhấp vào hình vẽ để <strong>Dán đè (Ctrl+V)</strong> hoặc <strong>Tải từ máy</strong></span>
+                <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                    <div class="flex items-center gap-2">
+                        <label class="block font-bold text-gray-800 text-sm flex items-center gap-1.5"><i class="fa-solid fa-pen-nib text-primary-600"></i> Đề bài / Nội dung</label>
+                        <span class="text-[11px] text-primary-700 bg-primary-50 px-2.5 py-0.5 rounded-full border border-primary-200 font-semibold hidden md:inline-flex items-center gap-1"><i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Bấm vào ảnh để <strong>Dán đè (Ctrl+V)</strong> hoặc <strong>Tải từ máy</strong></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" onclick="window.MathPalette.openFormulaDialog('edit_content')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở bảng soạn công thức MathType">
+                            <i class="fa-solid fa-square-root-variable text-indigo-600"></i> <span>MathType</span>
+                        </button>
+                        <label class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Tải & chèn ảnh từ máy">
+                            <i class="fa-solid fa-image text-teal-600"></i> <span>Ảnh</span>
+                            <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, 'edit_content')">
+                        </label>
+                        <button type="button" id="btnToggleLatexBankContent" onclick="window.toggleLatexEditor('edit_content', 'btnToggleLatexBankContent')" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở / Thu gọn ô nhập mã LaTeX">
+                            <i class="fa-solid fa-code text-gray-600"></i> <span>LaTeX</span>
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Hiển thị công thức đã biên dịch mặc định -->
                 <div id="bankEditContentLivePreview" class="p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm math-content text-gray-800 mb-2 shadow-inner min-h-[60px] leading-relaxed">${window.formatContent ? window.formatContent(fullData.content || '') : fullData.content}</div>
-                <div id="bankEditMathPalette" class="mb-2"></div>
-                <textarea id="edit_content" class="w-full h-32 p-3 border border-gray-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 leading-relaxed bg-white" oninput="document.getElementById('bankEditContentLivePreview').innerHTML = window.formatContent ? window.formatContent(this.value) : this.value; if(window.MathJax) MathJax.typesetPromise([document.getElementById('bankEditContentLivePreview')]).catch(()=>{});">${restoreLaTeX(fullData.content)}</textarea>
+
+                <!-- Ô soạn mã LaTeX thô (Ẩn mặc định) -->
+                <div id="wrapper_edit_content" class="hidden transition-all duration-200 mb-1">
+                    <div class="flex items-center justify-between mb-1 px-1">
+                        <span class="text-[11px] font-bold text-indigo-700 flex items-center gap-1"><i class="fa-solid fa-terminal text-[10px]"></i> Soạn mã LaTeX trực tiếp:</span>
+                        <span class="text-[10px] text-gray-400 font-mono">Hỗ trợ $...$, $$...$$, TikZ</span>
+                    </div>
+                    <textarea id="edit_content" class="w-full h-32 p-3 border border-indigo-300 rounded-xl font-mono text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 leading-relaxed bg-white" oninput="document.getElementById('bankEditContentLivePreview').innerHTML = window.formatContent ? window.formatContent(this.value) : this.value; if(window.MathJax) MathJax.typesetPromise([document.getElementById('bankEditContentLivePreview')]).catch(()=>{});">${restoreLaTeX(fullData.content)}</textarea>
+                </div>
             </div>
 
             <div id="editTypeSpecificContainer"></div>
 
             <div class="bg-emerald-50/20 p-4 rounded-xl border border-emerald-200">
-                <div class="flex items-center justify-between mb-2">
-                    <label class="block font-bold text-emerald-800 text-sm flex items-center gap-1.5"><i class="fa-regular fa-lightbulb text-emerald-600"></i> Lời giải chi tiết (\\loigiai)</label>
-                    <span class="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-semibold"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Nhấp vào hình vẽ để <strong>Dán đè (Ctrl+V)</strong> hoặc <strong>Tải từ máy</strong></span>
+                <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                    <div class="flex items-center gap-2">
+                        <label class="block font-bold text-emerald-800 text-sm flex items-center gap-1.5"><i class="fa-regular fa-lightbulb text-emerald-600"></i> Lời giải chi tiết (\\loigiai)</label>
+                        <span class="text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 font-semibold hidden md:inline-flex items-center gap-1"><i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Bấm vào hình vẽ để Thay ảnh / Ctrl+V</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" onclick="window.MathPalette.openFormulaDialog('edit_solution')" class="px-2.5 py-1 bg-emerald-100/70 hover:bg-emerald-200/70 text-emerald-800 rounded-lg border border-emerald-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở bảng soạn công thức MathType">
+                            <i class="fa-solid fa-square-root-variable text-emerald-700"></i> <span>MathType</span>
+                        </button>
+                        <label class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Tải & chèn ảnh vào lời giải">
+                            <i class="fa-solid fa-image text-teal-600"></i> <span>Ảnh</span>
+                            <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, 'edit_solution')">
+                        </label>
+                        <button type="button" id="btnToggleLatexBankSolution" onclick="window.toggleLatexEditor('edit_solution', 'btnToggleLatexBankSolution')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở / Thu gọn ô nhập mã LaTeX">
+                            <i class="fa-solid fa-code text-emerald-600"></i> <span>LaTeX</span>
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Hiển thị công thức đã biên dịch mặc định -->
                 <div id="bankEditSolutionLivePreview" class="p-4 bg-white border border-emerald-200 rounded-xl text-sm math-content text-gray-800 mb-2 shadow-inner min-h-[60px] leading-relaxed">${window.formatContent ? window.formatContent(fullData.solution || '') : fullData.solution}</div>
-                <textarea id="edit_solution" class="w-full h-36 p-3 border border-emerald-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 leading-relaxed bg-white" oninput="document.getElementById('bankEditSolutionLivePreview').innerHTML = window.formatContent ? window.formatContent(this.value) : this.value; if(window.MathJax) MathJax.typesetPromise([document.getElementById('bankEditSolutionLivePreview')]).catch(()=>{});">${restoreLaTeX(fullData.solution)}</textarea>
+
+                <!-- Ô soạn mã LaTeX thô (Ẩn mặc định) -->
+                <div id="wrapper_edit_solution" class="hidden transition-all duration-200 mb-1">
+                    <div class="flex items-center justify-between mb-1 px-1">
+                        <span class="text-[11px] font-bold text-emerald-800 flex items-center gap-1"><i class="fa-solid fa-terminal text-[10px]"></i> Soạn mã LaTeX lời giải:</span>
+                        <span class="text-[10px] text-gray-400 font-mono">Hỗ trợ $...$, $$...$$, TikZ</span>
+                    </div>
+                    <textarea id="edit_solution" class="w-full h-36 p-3 border border-emerald-300 rounded-xl font-mono text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 leading-relaxed bg-white" oninput="document.getElementById('bankEditSolutionLivePreview').innerHTML = window.formatContent ? window.formatContent(this.value) : this.value; if(window.MathJax) MathJax.typesetPromise([document.getElementById('bankEditSolutionLivePreview')]).catch(()=>{});">${restoreLaTeX(fullData.solution)}</textarea>
+                </div>
             </div>
         `;
 
         container.innerHTML = htmlContent;
         window.switchEditQuestionType(qType);
 
-        // Khởi tạo MathPalette & Thay thế ảnh cho modal
+        // Đăng ký Textarea & Tương tác thay thế ảnh với MathPalette
         if (window.MathPalette) {
-            window.MathPalette.createToolbar('bankEditMathPalette', 'edit_content');
+            window.MathPalette.registerTextarea(document.getElementById('edit_content'));
             window.MathPalette.registerTextarea(document.getElementById('edit_solution'));
             window.MathPalette.enableImageReplacement('bankEditContentLivePreview', 'edit_content');
             window.MathPalette.enableImageReplacement('bankEditSolutionLivePreview', 'edit_solution');

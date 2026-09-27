@@ -77,7 +77,7 @@
     <script src="ai-grader.js"></script>
     <script src="ai-id-assigner.js?v=20260924-hotswap"></script>
     <script src="bank-service.js?v=20260927-hotswap"></script>
-    <script src="math-palette.js?v=20260927-hotswap"></script>
+    <script src="math-palette.js?v=20260927-v3"></script>
     <script src="mapid-picker.js"></script>
     <script>
         // Sẵn sàng ngay các hàm điều hướng giao diện trước khi tải dữ liệu
@@ -2817,28 +2817,43 @@
                 </div>
             `;
 
-            // CARD 2: THẺ NỘI DUNG & MATHTYPE & ẢNH TRỰC QUAN
+            // CARD 2: THẺ NỘI DUNG & MATHTYPE & ẢNH TRỰC QUAN (RENDERED-FIRST + LATEX TOGGLE)
             const card2Html = `
                 <div class="bg-white rounded-2xl border border-gray-200 shadow-xs p-4 mb-4">
                     <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
                         <div class="flex items-center gap-2">
                             <label class="font-bold text-gray-800 text-sm flex items-center gap-1.5"><i class="fa-solid fa-pen-nib text-primary-600"></i> Đề bài / Nội dung câu hỏi</label>
                             <span class="text-[11px] text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full border border-primary-200 font-semibold hidden md:inline-flex items-center gap-1">
-                                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Nhấp vào hình vẽ bên dưới để <strong>Dán đè (Ctrl+V)</strong> hoặc <strong>Tải từ máy</strong>
+                                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Bấm vào ảnh để <strong>Dán đè (Ctrl+V)</strong> hoặc <strong>Tải từ máy</strong>
                             </span>
                         </div>
-                        <button type="button" onclick="document.getElementById('contentLivePreview').classList.toggle('hidden')" class="text-xs text-gray-500 hover:text-primary-600 font-bold px-2 py-1 rounded-lg hover:bg-gray-100 transition flex items-center gap-1">
-                            <i class="fa-solid fa-eye"></i> Ẩn/Hiện xem trước
-                        </button>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <button type="button" onclick="window.MathPalette.openFormulaDialog('editContent')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở bảng soạn công thức MathType trực quan">
+                                <i class="fa-solid fa-square-root-variable text-indigo-600"></i> <span>MathType</span>
+                            </button>
+                            <label class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Tải & chèn ảnh mới từ máy">
+                                <i class="fa-solid fa-image text-teal-600"></i> <span>Ảnh</span>
+                                <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, 'editContent')">
+                            </label>
+                            <button type="button" id="btnToggleLatexContent" onclick="window.toggleLatexEditor('editContent', 'btnToggleLatexContent')" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở / Thu gọn ô nhập mã LaTeX">
+                                <i class="fa-solid fa-code text-gray-600"></i> <span>LaTeX</span>
+                            </button>
+                        </div>
                     </div>
 
-                    <div id="contentLivePreview" class="p-4 bg-gray-50/80 border border-gray-200 rounded-xl text-sm math-content text-gray-800 mb-3 shadow-inner min-h-[50px] leading-relaxed">
+                    <!-- Hiển thị công thức đã biên dịch mặc định -->
+                    <div id="contentLivePreview" class="p-4 bg-gray-50/80 border border-gray-200 rounded-xl text-sm math-content text-gray-800 mb-2 shadow-inner min-h-[50px] leading-relaxed">
                         ${window.formatContent(q.content || 'Chưa có nội dung')}
                     </div>
 
-                    <div id="editorMathPalette" class="mb-2"></div>
-
-                    <textarea id="editContent" class="w-full min-h-[130px] p-3 border border-gray-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 leading-relaxed bg-white" placeholder="Nhập nội dung đề bài (LaTeX $...$, TikZ...)" oninput="autoSaveMemory(); document.getElementById('contentLivePreview').innerHTML = window.formatContent(this.value); if(window.MathJax) MathJax.typesetPromise([document.getElementById('contentLivePreview')]).catch(()=>{});">${q.content || ''}</textarea>
+                    <!-- Ô soạn mã LaTeX thô (Ẩn mặc định, bật tắt bằng nút [LaTeX]) -->
+                    <div id="wrapper_editContent" class="hidden transition-all duration-200 mb-1">
+                        <div class="flex items-center justify-between mb-1 px-1">
+                            <span class="text-[11px] font-bold text-indigo-700 flex items-center gap-1"><i class="fa-solid fa-terminal text-[10px]"></i> Soạn mã LaTeX trực tiếp:</span>
+                            <span class="text-[10px] text-gray-400 font-mono">Hỗ trợ $...$, $$...$$, TikZ</span>
+                        </div>
+                        <textarea id="editContent" class="w-full min-h-[120px] p-3 border border-indigo-300 rounded-xl font-mono text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 leading-relaxed bg-white" placeholder="Nhập nội dung đề bài (LaTeX $...$, TikZ...)" oninput="autoSaveMemory(); document.getElementById('contentLivePreview').innerHTML = window.formatContent(this.value); if(window.MathJax) MathJax.typesetPromise([document.getElementById('contentLivePreview')]).catch(()=>{});">${q.content || ''}</textarea>
+                    </div>
                 </div>
             `;
 
@@ -2908,34 +2923,51 @@
                 `;
             }
 
-            // CARD 4: THẺ HƯỚNG DẪN GIẢI CHI TIẾT
+            // CARD 4: THẺ HƯỚNG DẪN GIẢI CHI TIẾT (RENDERED-FIRST + LATEX TOGGLE)
             const card4Html = `
                 <div class="bg-emerald-50/20 rounded-2xl border border-emerald-200 shadow-xs p-4 mb-4">
                     <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
                         <div class="flex items-center gap-2">
                             <label class="font-bold text-emerald-800 text-sm flex items-center gap-1.5"><i class="fa-regular fa-lightbulb text-emerald-600 text-base"></i> Lời giải chi tiết (\\loigiai)</label>
                             <span class="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold hidden md:inline-flex items-center gap-1">
-                                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Nhấp vào hình vẽ để Thay ảnh / Ctrl+V
+                                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Bấm vào hình vẽ để Thay ảnh / Ctrl+V
                             </span>
                         </div>
-                        <button type="button" onclick="document.getElementById('solLivePreview').classList.toggle('hidden')" class="text-xs text-emerald-600 hover:text-emerald-800 font-bold px-2 py-1 rounded-lg hover:bg-emerald-100/50 transition flex items-center gap-1">
-                            <i class="fa-solid fa-eye"></i> Ẩn/Hiện xem trước
-                        </button>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <button type="button" onclick="window.MathPalette.openFormulaDialog('editSolution')" class="px-2.5 py-1 bg-emerald-100/70 hover:bg-emerald-200/70 text-emerald-800 rounded-lg border border-emerald-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở bảng soạn công thức MathType">
+                                <i class="fa-solid fa-square-root-variable text-emerald-700"></i> <span>MathType</span>
+                            </button>
+                            <label class="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Tải & chèn ảnh mới vào lời giải">
+                                <i class="fa-solid fa-image text-teal-600"></i> <span>Ảnh</span>
+                                <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, 'editSolution')">
+                            </label>
+                            <button type="button" id="btnToggleLatexSolution" onclick="window.toggleLatexEditor('editSolution', 'btnToggleLatexSolution')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-800 rounded-lg border border-emerald-300 font-bold text-xs transition flex items-center gap-1 shadow-2xs cursor-pointer" title="Mở / Thu gọn ô nhập mã LaTeX">
+                                <i class="fa-solid fa-code text-emerald-600"></i> <span>LaTeX</span>
+                            </button>
+                        </div>
                     </div>
 
-                    <div id="solLivePreview" class="p-4 bg-white border border-emerald-200 rounded-xl text-sm math-content text-gray-800 mb-3 shadow-inner min-h-[50px] leading-relaxed">
+                    <!-- Hiển thị công thức đã biên dịch mặc định -->
+                    <div id="solLivePreview" class="p-4 bg-white border border-emerald-200 rounded-xl text-sm math-content text-gray-800 mb-2 shadow-inner min-h-[50px] leading-relaxed">
                         ${window.formatContent(q.solution || 'Chưa có lời giải')}
                     </div>
 
-                    <textarea id="editSolution" class="w-full min-h-[110px] p-3 border border-emerald-300 rounded-xl font-mono text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 leading-relaxed bg-white" placeholder="Nhập lời giải chi tiết (hỗ trợ MathType, LaTeX, TikZ...)" oninput="autoSaveMemory(); document.getElementById('solLivePreview').innerHTML = window.formatContent(this.value); if(window.MathJax) MathJax.typesetPromise([document.getElementById('solLivePreview')]).catch(()=>{});">${q.solution || ''}</textarea>
+                    <!-- Ô soạn mã LaTeX thô (Ẩn mặc định, bật tắt bằng nút [LaTeX]) -->
+                    <div id="wrapper_editSolution" class="hidden transition-all duration-200 mb-1">
+                        <div class="flex items-center justify-between mb-1 px-1">
+                            <span class="text-[11px] font-bold text-emerald-800 flex items-center gap-1"><i class="fa-solid fa-terminal text-[10px]"></i> Soạn mã LaTeX lời giải:</span>
+                            <span class="text-[10px] text-gray-400 font-mono">Hỗ trợ $...$, $$...$$, TikZ</span>
+                        </div>
+                        <textarea id="editSolution" class="w-full min-h-[110px] p-3 border border-emerald-300 rounded-xl font-mono text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 leading-relaxed bg-white" placeholder="Nhập lời giải chi tiết (LaTeX $...$, TikZ...)" oninput="autoSaveMemory(); document.getElementById('solLivePreview').innerHTML = window.formatContent(this.value); if(window.MathJax) MathJax.typesetPromise([document.getElementById('solLivePreview')]).catch(()=>{});">${q.solution || ''}</textarea>
+                    </div>
                 </div>
             `;
 
             editor.innerHTML = card1Html + card2Html + card3Html + card4Html;
 
-            // Khởi tạo thanh MathType & Tương tác thay thế ảnh
+            // Đăng ký Textarea & Tương tác thay thế ảnh với MathPalette
             if (window.MathPalette) {
-                window.MathPalette.createToolbar('editorMathPalette', 'editContent');
+                window.MathPalette.registerTextarea(document.getElementById('editContent'));
                 window.MathPalette.registerTextarea(document.getElementById('editSolution'));
                 document.querySelectorAll('.mc-option, .tf-text, #editShortAns').forEach(el => window.MathPalette.registerTextarea(el));
                 window.MathPalette.enableImageReplacement('contentLivePreview', 'editContent');
