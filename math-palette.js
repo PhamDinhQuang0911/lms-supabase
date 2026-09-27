@@ -79,7 +79,7 @@
                 { label: '∑', desc: 'Tổng sigma', latex: '\\sum_{i=1}^{n} {#sel#?}', cursorOffset: -1 },
                 { label: '∏', desc: 'Tích pi', latex: '\\prod_{i=1}^{n} {#sel#?}', cursorOffset: -1 },
                 { label: 'f\'(x)', desc: 'Đạo hàm', latex: 'f\'(#sel#?)', cursorOffset: -1 },
-                { label: 'f''(x)', desc: 'Đạo hàm cấp hai', latex: 'f''(#sel#?)', cursorOffset: -1 },
+                { label: "f''(x)", desc: 'Đạo hàm cấp hai', latex: "f''(#sel#?)", cursorOffset: -1 },
                 { label: 'sin', desc: 'Hàm sin', latex: '\\sin(#sel#?)', cursorOffset: -1 },
                 { label: 'cos', desc: 'Hàm cos', latex: '\\cos(#sel#?)', cursorOffset: -1 },
                 { label: 'tan', desc: 'Hàm tan', latex: '\\tan(#sel#?)', cursorOffset: -1 },

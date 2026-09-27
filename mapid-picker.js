@@ -58,7 +58,7 @@
         if (!mapIdStr) return null;
         const clean = String(mapIdStr).trim().toUpperCase();
         // Regex: (Lớp: d+)(Môn: [A-Z]+)(Chương: d+)(Mức: [NHVC])(Bài: d+)(?:-(d+))?
-        const m = clean.match(/^(d+)([A-Z]+)(d+)([NHVC])(d+)(?:-(d+))?$/);
+        const m = clean.match(/^(\d+)([A-Z]+)(\d+)([NHVC])(\d+)(?:-(\d+))?$/);
         if (m) {
             return {
                 grade: m[1],

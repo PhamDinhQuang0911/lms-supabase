@@ -186,18 +186,40 @@
             if (!mapId) return { subject, level, levelColor };
             const clean = String(mapId).toUpperCase().trim();
 
-            if (clean.includes('D') || clean.includes('DS') || clean.includes('ĐẠI')) subject = "Đại số";
-            else if (clean.includes('H') || clean.includes('HH') || clean.includes('HÌNH')) subject = "Hình học";
-            else if (clean.includes('X') || clean.includes('XS') || clean.includes('THỐNG')) subject = "Xác suất";
+            // 1. Phân tích theo cấu trúc chuẩn MapID: [Khối][Môn][Chương][Mức độ][Bài]-[Dạng]
+            // Ví dụ: 9H0H1-7 -> Môn H (Hình học), Mức độ H (Thông hiểu), Dạng 7
+            // 9D1N1-1 -> Môn D (Đại số), Mức độ N (Nhận biết)
+            const m = clean.match(/^(\d+)([A-Z]+)(\d+)([NHVC])(\d+)(?:-(\d+))?$/);
+            if (m) {
+                const subCode = m[2];
+                const lvCode = m[4];
 
-            if (clean.includes('NB') || clean.includes('N1') || clean.includes('N2') || clean.includes('NHẬN BIẾT')) {
-                level = "Nhận biết"; levelColor = "green";
-            } else if (clean.includes('TH') || clean.includes('H1') || clean.includes('H2') || clean.includes('THÔNG HIỂU')) {
-                level = "Thông hiểu"; levelColor = "blue";
-            } else if (clean.includes('VDC') || clean.includes('C1') || clean.includes('C2') || clean.includes('CAO')) {
+                if (subCode === 'D' || subCode === 'DS') subject = "Đại số";
+                else if (subCode === 'H' || subCode === 'HH') subject = "Hình học";
+                else if (subCode === 'X' || subCode === 'XS') subject = "Xác suất";
+                else if (subCode === 'G') subject = "Giải tích";
+
+                if (lvCode === 'N') { level = "Nhận biết"; levelColor = "green"; }
+                else if (lvCode === 'H') { level = "Thông hiểu"; levelColor = "blue"; }
+                else if (lvCode === 'V') { level = "Vận dụng"; levelColor = "orange"; }
+                else if (lvCode === 'C') { level = "Vận dụng cao"; levelColor = "red"; }
+
+                return { subject, level, levelColor };
+            }
+
+            // 2. Fallback cho các định dạng MapID linh hoạt khác
+            if (clean.includes('DS') || clean.startsWith('9D') || clean.includes('ĐẠI')) subject = "Đại số";
+            else if (clean.includes('HH') || clean.startsWith('9H') || clean.includes('HÌNH')) subject = "Hình học";
+            else if (clean.includes('XS') || clean.startsWith('9X') || clean.includes('THỐNG')) subject = "Xác suất";
+
+            if (clean.includes('VDC') || clean.includes('C1') || clean.includes('C2') || clean.includes('CAO')) {
                 level = "Vận dụng cao"; levelColor = "red";
             } else if (clean.includes('VD') || clean.includes('V1') || clean.includes('V2') || clean.includes('VẬN DỤNG')) {
                 level = "Vận dụng"; levelColor = "orange";
+            } else if (clean.includes('NB') || clean.includes('N1') || clean.includes('N2') || clean.includes('NHẬN BIẾT')) {
+                level = "Nhận biết"; levelColor = "green";
+            } else if (clean.includes('TH') || clean.includes('H1') || clean.includes('H2') || clean.includes('THÔNG HIỂU')) {
+                level = "Thông hiểu"; levelColor = "blue";
             }
 
             return { subject, level, levelColor };

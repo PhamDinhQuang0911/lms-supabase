@@ -2660,6 +2660,7 @@
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
                                 <span class="${q.isTheory ? 'hidden' : ''} bg-orange-50 text-orange-600 text-[10px] px-2 py-1 rounded font-bold border border-orange-100">${q.point || 0}đ</span>
+                                <button onclick="event.stopPropagation(); window.saveSingleQuestionToBank(${idx}, 'normal')" class="px-2 py-1 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded text-[11px] font-bold border border-teal-200 flex items-center gap-1 shadow-2xs transition-all" title="Lưu và ghi đè câu hỏi này vào Ngân hàng R2"><i class="fa-solid fa-cloud-arrow-up text-[10px]"></i> Bank</button>
                                 <button onclick="event.stopPropagation(); window.deleteQuestionFromList(${idx})" class="px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded text-[11px] font-bold border border-red-200 flex items-center gap-1 shadow-sm transition-all" title="Xóa câu hỏi này">
                                     <i class="fa-solid fa-trash-can"></i> Xóa
                                 </button>
@@ -2744,9 +2745,11 @@
             
             const cccdVal = q.cccd || q.bankId || '';
             const cccdBadgeHtml = cccdVal 
-                ? `<span class="font-mono font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded text-xs flex items-center gap-1"><i class="fa-solid fa-id-card text-[10px]"></i> CCCD: #${cccdVal}</span>`
+                ? `<span class="font-mono font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded text-xs flex items-center gap-1"><i class="fa-solid fa-id-card text-[10px]"></i> CCCD: #${cccdVal}</span>
+                   <button type="button" id="btnSyncSingleToBank" onclick="window.saveSingleQuestionToBank(${index}, '${listType}')" class="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer ml-1" title="Lưu cập nhật và ghi đè câu hỏi này (kèm MapID, mức độ, dạng) vào Ngân hàng R2"><i class="fa-solid fa-cloud-arrow-up text-[11px]"></i> Lưu vào Bank</button>`
                 : `<span class="text-[11px] text-gray-400 italic">Chưa cấp CCCD</span>
-                   <button type="button" onclick="window.assignCccdToCurrentQuestion()" class="px-2 py-0.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded text-xs font-bold transition flex items-center gap-1 shadow-xs" title="Cấp mã CCCD số cho câu này"><i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Cấp CCCD</button>`;
+                   <button type="button" onclick="window.assignCccdToCurrentQuestion()" class="px-2 py-0.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded text-xs font-bold transition flex items-center gap-1 shadow-xs" title="Cấp mã CCCD số cho câu này"><i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Cấp CCCD</button>
+                   <button type="button" id="btnSyncSingleToBank" onclick="window.saveSingleQuestionToBank(${index}, '${listType}')" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer ml-1" title="Cấp CCCD và lưu câu hỏi này vào Ngân hàng R2"><i class="fa-solid fa-cloud-arrow-up text-[11px]"></i> Cấp CCCD & Lưu Bank</button>`;
 
             const envVal = q.env || (q.type === 'essay' || q.type === 'tl' ? 'bt' : 'ex');
             let idInfoBar = `
@@ -8058,7 +8061,120 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
         // ============================================================
         // --- HỢP NHẤT: CẤP MÃ CCCD SỐ & NẠP VÀO NGÂN HÀNG (R2) QUA BANKSERVICE ---
         // ============================================================
+        
+        // --- [MỚI] LƯU & GHI ĐÈ 1 CÂU HỎI TRỰC TIẾP VÀO NGÂN HÀNG R2 ---
+        window.saveSingleQuestionToBank = async (index, listType = 'normal') => {
+            // 1. Lưu dữ liệu từ form hiện tại vào bộ nhớ RAM
+            if (typeof saveCurrentQuestionToMemory === 'function') {
+                saveCurrentQuestionToMemory();
+            }
+
+            const q = listType === 'mixed-tl' 
+                ? (window.mixedTlQuestions && window.mixedTlQuestions[index]) 
+                : (window.questions && window.questions[index]);
+
+            if (!q) {
+                window.customAlert("Không tìm thấy dữ liệu câu hỏi!", "error");
+                return;
+            }
+
+            // 2. Đảm bảo câu hỏi có mã CCCD số duy nhất
+            let cccd = q.cccd || q.bankId;
+            if (!window.BankService?.isNumericCccd(cccd)) {
+                if (!window.BankService) {
+                    window.customAlert("Module BankService chưa sẵn sàng!", "error");
+                    return;
+                }
+                const batch = await window.BankService.allocateCccdBatch(1);
+                if (!batch.list || batch.list.length === 0) {
+                    window.customAlert("Không thể cấp phát mã CCCD mới!", "error");
+                    return;
+                }
+                cccd = batch.list[0];
+                q.cccd = cccd;
+                q.bankId = cccd;
+            }
+
+            // 3. Phân tích tự động MapID để cập nhật Mức độ (Nhận biết, Thông hiểu, Vận dụng, VDC) và Phân môn
+            if (q.mapId && window.BankService) {
+                const analysis = window.BankService.analyzeMapId(q.mapId);
+                if (!q.subject || q.subject === 'Toán') q.subject = analysis.subject;
+                q.level = analysis.level;
+                q.levelColor = analysis.levelColor;
+            }
+
+            q.examId = window.currentExamId || "";
+
+            // 4. Chuẩn hóa payload theo format chuẩn Ngân hàng R2
+            const payload = window.BankService ? window.BankService.createBankQuestion(q, cccd) : {
+                id: String(cccd),
+                cccd: String(cccd),
+                mapId: q.mapId || "",
+                type: q.type || 'mc',
+                content: q.content || "",
+                solution: q.solution || "",
+                options: q.options || [],
+                correct: q.correct,
+                statements: q.statements || [],
+                answer: q.answer || "",
+                subject: q.subject || "Toán",
+                level: q.level || "Thông hiểu",
+                levelColor: q.levelColor || "blue",
+                point: q.point || 0.25,
+                examId: q.examId || "",
+                updatedAt: new Date().toISOString()
+            };
+
+            const btn = document.getElementById('btnSyncSingleToBank');
+            const oldHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Đang lưu...';
+                btn.disabled = true;
+            }
+
+            try {
+                let saved = false;
+                if (window.BankService) {
+                    saved = await window.BankService.saveSingleQuestion(payload);
+                } else {
+                    const BASE_URL = "https://upload-helper.phamngockhanh-942001.workers.dev/";
+                    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                    const formData = new FormData();
+                    formData.append('file', blob, `bank/${cccd}.json`);
+                    const r = await fetch(BASE_URL, { method: 'PUT', body: formData });
+                    saved = r.ok;
+                }
+
+                if (saved) {
+                    // Cập nhật lại UI danh sách & Editor
+                    if (typeof renderPreviewList === 'function') renderPreviewList();
+                    if (window.currentQIndex === index && typeof loadQuestionToEditor === 'function') {
+                        loadQuestionToEditor(index, listType);
+                    }
+                    // Tự động lưu đề thi ngầm để đồng bộ dữ liệu câu hỏi trong đề
+                    if (window.currentExamId && typeof window.saveExam === 'function') {
+                        const currentStatus = (window.examData && window.examData.status) || 'published';
+                        window.saveExam(currentStatus).catch(() => {});
+                    }
+                    window.showToast(`✅ Đã lưu và ghi đè câu ${index + 1} (CCCD: #${cccd}, MapID: ${q.mapId || 'Chưa gán'}) vào Ngân hàng R2!`, "success");
+                } else {
+                    window.showToast("Không thể lưu câu hỏi lên Cloudflare R2. Vui lòng kiểm tra lại!", "error");
+                }
+            } catch (err) {
+                console.error("Lỗi lưu câu hỏi vào Bank:", err);
+                window.showToast("Lỗi kết nối khi lưu vào Ngân hàng R2: " + (err.message || err), "error");
+            } finally {
+                if (btn) {
+                    btn.innerHTML = oldHtml;
+                    btn.disabled = false;
+                }
+            }
+        };
+
         window.saveCurrentQuestionsToBank = async () => {
+            if (window.currentQIndex !== -1 && typeof saveCurrentQuestionToMemory === 'function') {
+                saveCurrentQuestionToMemory();
+            }
             const validQuestions = (window.questions || []).filter(q => (q.mapId && q.mapId.trim() !== "") || (q.content && q.content.trim() !== ""));
             
             if (validQuestions.length === 0) {
