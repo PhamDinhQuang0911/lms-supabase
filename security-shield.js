@@ -11,6 +11,28 @@
  */
 (function() {
     'use strict';
+    // Lá chắn chống lỗi crash từ các tiện ích mở rộng bên thứ ba (Browser Extensions: 200.js, M_ID...)
+    window.addEventListener('unhandledrejection', function(event) {
+        try {
+            var reason = event.reason;
+            var msg = (reason && (reason.message || reason.stack || String(reason))) || '';
+            if (msg.includes('M_ID') || msg.includes('200.js') || (reason && reason.stack && (reason.stack.includes('200.js') || reason.stack.includes('chrome-extension://')))) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        } catch (_) {}
+    });
+    window.addEventListener('error', function(event) {
+        try {
+            var filename = event.filename || '';
+            var msg = event.message || '';
+            if (filename.includes('200.js') || filename.includes('chrome-extension://') || msg.includes('M_ID')) {
+                event.preventDefault();
+                return true;
+            }
+        } catch (_) {}
+    });
+
 
     // 1. CẤU HÌNH BẢO MẬT & API TOÀN CỤC
     const DEFAULT_CONFIG = {

@@ -16,6 +16,33 @@
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
+    // Khởi tạo sớm hàm prefetch dự phòng để tránh lỗi khi người dùng rê chuột trước khi module script nạp xong
+    window.hoverPrefetchExam = function() {};
+    window.prefetchExamEditor = function() { return Promise.resolve(null); };
+
+    // Lá chắn chống lỗi crash từ các tiện ích mở rộng bên thứ ba (Browser Extensions: 200.js, M_ID...)
+    window.addEventListener('unhandledrejection', function(event) {
+        try {
+            var reason = event.reason;
+            var msg = (reason && (reason.message || reason.stack || String(reason))) || '';
+            if (msg.includes('M_ID') || msg.includes('200.js') || (reason && reason.stack && (reason.stack.includes('200.js') || reason.stack.includes('chrome-extension://')))) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        } catch (_) {}
+    });
+    window.addEventListener('error', function(event) {
+        try {
+            var filename = event.filename || '';
+            var msg = event.message || '';
+            if (filename.includes('200.js') || filename.includes('chrome-extension://') || msg.includes('M_ID')) {
+                event.preventDefault();
+                return true;
+            }
+        } catch (_) {}
+    });
+    </script>
+    <script>
     // Tự động giải phóng triệt để Service Worker & Cache cũ để cập nhật ngay kiến trúc mobile mới
     (function() {
         const CACHE_RESET_ID = 'qmath_mobile_v17_reset';
@@ -5263,7 +5290,7 @@
                        ${infoBtn}
                        <button onclick="event.stopPropagation(); window.removeExamFromClass('${examId}')" class="px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-trash"></i> Xóa</button>`;
 
-                html += `<div class="bg-white rounded-xl border border-gray-200 hover:border-primary-300 transition-all shadow-sm overflow-hidden" onclick="window.openExamEditorFast('${examId}', 'settings')" onmouseenter="window.prefetchExamEditor('${examId}')" style="cursor:pointer">
+                html += `<div class="bg-white rounded-xl border border-gray-200 hover:border-primary-300 transition-all shadow-sm overflow-hidden" onclick="window.openExamEditorFast('${examId}', 'settings')" onmouseenter="window.hoverPrefetchExam('${examId}')" onmouseleave="if(window.clearHoverPrefetch)window.clearHoverPrefetch()" style="cursor:pointer">
                     <!-- Dòng 1: Icon + Tên + Status -->
                     <div class="flex items-start gap-3 p-4 pb-2">
                         <div class="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center shrink-0 mt-0.5">
@@ -5980,7 +6007,8 @@ function renderTagFilterUI() {
                         }
                     }
                 }; 
-                div.onmouseenter = () => { if (!isSharedExam || isSuper) window.prefetchExamEditor(exam.id); };
+                div.onmouseenter = () => { if (!isSharedExam || isSuper) window.hoverPrefetchExam(exam.id); };
+                div.onmouseleave = () => { if (window.clearHoverPrefetch) window.clearHoverPrefetch(); };
                 
                 const examBadge = exam.isSystem 
                     ? `<span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fa-solid fa-earth-americas text-blue-600"></i> Ngân hàng chung</span>` 
@@ -7149,8 +7177,8 @@ function renderTagFilterUI() {
                             <div class="hidden sm:block shrink-0">${statusBadge}</div>
                             <div class="flex items-center shrink-0 rounded-lg border border-gray-200 bg-white overflow-hidden">
                                 <button onclick="window.showExerciseInfo('${ex.id}')" class="w-6 h-6 sm:w-8 sm:h-8 text-cyan-600 hover:bg-cyan-50 border-r border-gray-100" title="Thông tin"><i class="fa-solid fa-circle-info text-[10px] sm:text-[11px]"></i></button>
-                                <button onclick="window.openExamEditorFast('${ex.id}', 'settings')" onmouseenter="window.prefetchExamEditor('${ex.id}')" class="w-6 h-6 sm:w-8 sm:h-8 text-gray-500 hover:text-primary-600 hover:bg-primary-50 border-r border-gray-100" title="Sửa"><i class="fa-solid fa-pen text-[10px] sm:text-[11px]"></i></button>
-                                <button onclick="window.openExamEditorFast('${ex.id}', 'grading')" onmouseenter="window.prefetchExamEditor('${ex.id}')" class="hidden sm:flex w-8 h-8 text-gray-500 hover:text-primary-600 hover:bg-primary-50 border-r border-gray-100 items-center justify-center" title="Chấm"><i class="fa-solid fa-pen-nib text-[11px]"></i></button>
+                                <button onclick="window.openExamEditorFast('${ex.id}', 'settings')" onmouseenter="window.hoverPrefetchExam('${ex.id}')" onmouseleave="if(window.clearHoverPrefetch)window.clearHoverPrefetch()" class="w-6 h-6 sm:w-8 sm:h-8 text-gray-500 hover:text-primary-600 hover:bg-primary-50 border-r border-gray-100" title="Sửa"><i class="fa-solid fa-pen text-[10px] sm:text-[11px]"></i></button>
+                                <button onclick="window.openExamEditorFast('${ex.id}', 'grading')" onmouseenter="window.hoverPrefetchExam('${ex.id}')" onmouseleave="if(window.clearHoverPrefetch)window.clearHoverPrefetch()" class="hidden sm:flex w-8 h-8 text-gray-500 hover:text-primary-600 hover:bg-primary-50 border-r border-gray-100 items-center justify-center" title="Chấm"><i class="fa-solid fa-pen-nib text-[11px]"></i></button>
                                 <button onclick="window.deleteExam('${ex.id}', '${ex.title.replace(/'/g, "\\'")}')" class="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 hover:text-red-600 hover:bg-red-50" title="Xóa"><i class="fa-solid fa-trash text-[10px] sm:text-[11px]"></i></button>
                             </div>
                         </div>
@@ -7172,28 +7200,66 @@ function renderTagFilterUI() {
         };
 
         const examEditorPrefetches = new Map();
+        let examHoverTimer = null;
+        window.clearHoverPrefetch = () => {
+            if (examHoverTimer) {
+                clearTimeout(examHoverTimer);
+                examHoverTimer = null;
+            }
+        };
+        window.hoverPrefetchExam = (id) => {
+            window.clearHoverPrefetch();
+            if (!id || typeof id !== 'string' || id === 'undefined' || id === 'null' || id.trim().length < 3) return;
+            examHoverTimer = setTimeout(() => {
+                window.prefetchExamEditor(id);
+            }, 300);
+        };
         window.prefetchExamEditor = (id) => {
-            if (!id || examEditorPrefetches.has(id)) return examEditorPrefetches.get(id);
-            // Nạp trước cả document Firestore lẫn HTML editor. Khi người dùng bấm
-            // chấm bài, editor có thể lấy snapshot từ sessionStorage ngay lập tức.
-            const pagePrefetch = document.createElement('link');
-            pagePrefetch.rel = 'prefetch';
-            pagePrefetch.as = 'document';
-            pagePrefetch.href = `exam-editor.html?id=${id}&view=grading`;
-            pagePrefetch.dataset.examEditorPrefetch = id;
-            document.head.appendChild(pagePrefetch);
-            const task = getDoc(doc(db, 'exams', id)).then((snap) => {
-                if (snap.exists()) {
-                    try { sessionStorage.setItem(`qmath:exam:${id}`, JSON.stringify(snap.data())); } catch (_) {}
-                    return snap.data();
+            if (!id || typeof id !== 'string' || id === 'undefined' || id === 'null' || id.trim().length < 3) {
+                return Promise.resolve(null);
+            }
+            if (examEditorPrefetches.has(id)) return examEditorPrefetches.get(id);
+
+            // 1. Kiểm tra cache trong bộ nhớ (nếu đã có câu hỏi thì lưu ngay vào sessionStorage mà không tốn request mạng)
+            const inMemory = (window.allExamsList || []).find((exam) => exam && exam.id === id) ||
+                             (window.currentClassExamsData || []).find((exam) => exam && exam.id === id);
+            if (inMemory && (Array.isArray(inMemory.questions) || Array.isArray(inMemory.tlQuestions))) {
+                try { sessionStorage.setItem(`qmath:exam:${id}`, JSON.stringify(inMemory)); } catch (_) {}
+                const p = Promise.resolve(inMemory);
+                examEditorPrefetches.set(id, p);
+                return p;
+            }
+
+            // 2. Kiểm tra sessionStorage nếu trước đó đã có snapshot
+            try {
+                if (sessionStorage.getItem(`qmath:exam:${id}`)) {
+                    const p = Promise.resolve(null);
+                    examEditorPrefetches.set(id, p);
+                    return p;
                 }
+            } catch (_) {}
+
+            // 3. Tải an toàn có catch tuyệt đối (ngăn chặn mọi lỗi unhandled rejection / extension crash)
+            const task = (async () => {
+                try {
+                    if (typeof getDoc !== 'function' || typeof doc !== 'function' || !db) return null;
+                    const snap = await getDoc(doc(db, 'exams', id)).catch(() => null);
+                    if (snap && typeof snap.exists === 'function' && snap.exists()) {
+                        const data = snap.data();
+                        try { sessionStorage.setItem(`qmath:exam:${id}`, JSON.stringify(data)); } catch (_) {}
+                        return data;
+                    }
+                } catch (_) {}
                 return null;
-            }).catch(() => null);
+            })();
+
             examEditorPrefetches.set(id, task);
             return task;
         };
         window.openExamEditorFast = (id, view) => {
-            const inMemoryExam = (window.currentClassExamsData || []).find((exam) => exam.id === id);
+            window.clearHoverPrefetch();
+            const inMemoryExam = (window.currentClassExamsData || []).find((exam) => exam && exam.id === id) ||
+                                 (window.allExamsList || []).find((exam) => exam && exam.id === id);
             if (inMemoryExam && (Array.isArray(inMemoryExam.questions) || Array.isArray(inMemoryExam.tlQuestions))) {
                 try { sessionStorage.setItem(`qmath:exam:${id}`, JSON.stringify(inMemoryExam)); } catch (_) {}
             }
