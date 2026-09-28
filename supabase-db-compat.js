@@ -461,6 +461,8 @@ function unwrapRecord(r) {
     if (r.shipping_fee !== undefined) res.shippingFee = r.shipping_fee;
     if (r.file_url !== undefined) res.fileUrl = r.file_url;
     if (r.weight !== undefined) res.weight = r.weight;
+    if (r.start_time !== undefined) res.startTime = r.start_time;
+    if (r.end_time !== undefined) res.endTime = r.end_time;
 
     // Unpack public_courses metadata from preview_link (fallback)
     if (r.preview_link && typeof r.preview_link === 'string' && r.preview_link.trim().startsWith('{')) {
@@ -492,6 +494,44 @@ function unwrapRecord(r) {
     return res;
 }
 
+const TIMESTAMP_COLUMNS = new Set([
+    'start_time', 'end_time', 'created_at', 'updated_at', 'last_login', 
+    'submitted_at', 'last_updated', 'completed_at', 'requested_at', 
+    'approved_at', 'start_date', 'end_date'
+]);
+
+const NUMERIC_COLUMNS = new Set([
+    'duration', 'pass_score', 'question_count', 'attempts',
+    'price', 'original_price', 'weight', 'shipping_fee', 'students', 'fake_students',
+    'quantity', 'unit_price', 'amount', 'original_amount', 'voucher_discount',
+    'discount_value', 'min_order_value', 'max_discount', 'max_usage', 'used',
+    'score', 'correct_count', 'total_questions', 'submit_count', 'cheat_count',
+    'qpoints', 'student_count'
+]);
+
+function sanitizeColumnValue(col, v) {
+    if (TIMESTAMP_COLUMNS.has(col)) {
+        if (v === '' || v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) {
+            return null;
+        }
+        if (v instanceof Date) return v.toISOString();
+        if (typeof v === 'string' || typeof v === 'number') {
+            const d = new Date(v);
+            if (!isNaN(d.getTime())) return d.toISOString();
+            return null;
+        }
+        return null;
+    }
+    if (NUMERIC_COLUMNS.has(col)) {
+        if (v === '' || v === null || v === undefined) {
+            return null;
+        }
+        const num = Number(v);
+        return isNaN(num) ? null : num;
+    }
+    return v;
+}
+
 const TABLE_COLUMNS = {
     users: ['id', 'email', 'display_name', 'phone', 'role', 'password', 'gender', 'birth_date', 'birth_year', 'school', 'city', 'sbd', 'photo_url', 'zalo_uid', 'qpoints', 'created_at', 'updated_at', 'last_login', 'raw_data'],
     classes: ['id', 'name', 'academic_year', 'teacher_id', 'student_count', 'student_ids', 'students', 'zalo_group_uid', 'created_at', 'raw_data'],
@@ -518,7 +558,7 @@ function toSupabasePayload(table, id, data) {
     for (const [k, v] of Object.entries(data)) {
         const col = mapFieldToColumn(k);
         if (!validCols || validCols.includes(col)) {
-            converted[col] = v;
+            converted[col] = sanitizeColumnValue(col, v);
         }
     }
     converted[pkCol] = id;
@@ -843,7 +883,13 @@ export async function setDoc(docRef, data, options = {}) {
                 throw fallbackErr;
             }
         }
-        const fallback = { [pkCol]: docRef.id, raw_data: data };
+        const fallback = {
+            [pkCol]: docRef.id,
+            ...(data.title ? { title: data.title } : (table === 'exams' ? { title: 'Đề thi' } : {})),
+            ...(data.name ? { name: data.name } : (table === 'classes' ? { name: 'Lớp' } : {})),
+            ...(data.content ? { content: data.content } : (table === 'orders' ? { content: 'ORDER_' + docRef.id.slice(0, 8), amount: data.amount || 0 } : {})),
+            raw_data: data
+        };
         const { error: err2 } = await supabase.from(table).upsert(fallback, { onConflict: pkCol });
         if (err2) throw err2;
     }
@@ -868,7 +914,7 @@ export async function updateDoc(docRef, updates) {
             val = currVal + v.value;
         }
         if (!validCols || validCols.includes(col)) {
-            payload[col] = val;
+            payload[col] = sanitizeColumnValue(col, val);
         }
     }
     if (!validCols || validCols.includes('updated_at')) {

@@ -1521,7 +1521,7 @@
             getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, addDoc, updateDoc, enableMultiTabIndexedDbPersistence,
             getStorage, ref, uploadBytes, getDownloadURL,
             supabase
-        } from "./supabase-db-compat.js?v=22";
+        } from "./supabase-db-compat.js?v=23";
 
         // --- IMPORT TỪ UTILS.JS VÀ PERF-CACHE ---
         import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, renderTikz } from "./utils.js?v=9";
@@ -2242,8 +2242,17 @@
                     document.getElementById('settingSubject').value = data.subject || 'Toán học';
                     document.getElementById('settingDuration').value = data.duration || 45;
                     document.getElementById('settingPurpose').value = data.purpose || 'exam';
-                    document.getElementById('settingStartTime').value = data.startTime || '';
-                    document.getElementById('settingEndTime').value = data.endTime || '';
+                    const toDatetimeLocal = (val) => {
+                        if (!val) return '';
+                        try {
+                            const d = new Date(val);
+                            if (isNaN(d.getTime())) return '';
+                            const pad = n => String(n).padStart(2, '0');
+                            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                        } catch(e) { return ''; }
+                    };
+                    document.getElementById('settingStartTime').value = toDatetimeLocal(data.startTime);
+                    document.getElementById('settingEndTime').value = toDatetimeLocal(data.endTime);
                     document.getElementById('settingPassword').value = data.password || '';
                     document.getElementById('settingAttempts').value = (data.attempts !== undefined) ? data.attempts : 1;
                     document.getElementById('settingProctoring').checked = (data.proctoring === true);
@@ -4649,8 +4658,8 @@
                     subject: document.getElementById('settingSubject').value,
                     duration: parseInt(document.getElementById('settingDuration').value) || 0, 
                     purpose: document.getElementById('settingPurpose').value,
-                    startTime: document.getElementById('settingStartTime').value, 
-                    endTime: document.getElementById('settingEndTime').value,
+                    startTime: document.getElementById('settingStartTime').value ? new Date(document.getElementById('settingStartTime').value).toISOString() : null, 
+                    endTime: document.getElementById('settingEndTime').value ? new Date(document.getElementById('settingEndTime').value).toISOString() : null,
                     password: document.getElementById('settingPassword').value, 
                     attempts: parseInt(document.getElementById('settingAttempts').value) || 0,
                     proctoring: document.getElementById('settingProctoring').checked, 
