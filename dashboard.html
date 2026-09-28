@@ -2167,7 +2167,7 @@
             initializeApp, deleteApp, getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, updatePassword,
             getFirestore, doc, getDoc, getDocFromCache, setDoc, collection, addDoc, query, where, orderBy, getDocs, updateDoc, deleteDoc, arrayUnion, limit, enableMultiTabIndexedDbPersistence, onSnapshot,
             getStorage, ref, deleteObject, getFunctions, httpsCallable, supabase, DEFAULT_ADMIN
-        } from "./supabase-db-compat.js?v=21";
+        } from "./supabase-db-compat.js?v=22";
 
         // 1. CẤU HÌNH SUPABASE (HỆ THỐNG ĐÃ CHUYỂN TỪ FIREBASE SANG SUPABASE)
         const app = initializeApp({});
@@ -9836,7 +9836,7 @@ function renderTagFilterUI() {
         window.saveMathTypeApi = async () => {
             const url = document.getElementById('webhookMathTypeUrl').value.trim();
             try {
-                const { setDoc, doc } = await import("./supabase-db-compat.js?v=21");
+                const { setDoc, doc } = await import("./supabase-db-compat.js?v=22");
                 await setDoc(doc(db, "configurations", "mathtype_api"), { url: url }, { merge: true });
                 updateAiModalBadges();
                 window.showNotification("Lưu cấu hình API MathType thành công!", "success");

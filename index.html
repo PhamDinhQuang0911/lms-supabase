@@ -786,7 +786,7 @@
         import { 
             supabase, initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile, onAuthStateChanged, sendPasswordResetEmail,
             getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, onSnapshot, increment
-        } from "./supabase-db-compat.js?v=21";
+        } from "./supabase-db-compat.js?v=22";
 
         // Khởi tạo Supabase
         let app = initializeApp({});
@@ -840,6 +840,18 @@
                             }
                         }
                     } catch(e) {}
+                }
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const isProductCheckout = !!urlParams.get('product');
+
+                if (isProductCheckout) {
+                    // Người dùng đã đăng nhập đang truy cập link mua sản phẩm cụ thể:
+                    // Giữ nguyên ở trang chủ để mở modal thanh toán (tự động điền thông tin tài khoản)
+                    console.log("Đã đăng nhập và đang mở link mua sản phẩm:", urlParams.get('product'));
+                    loadHeroSettings();
+                    renderCoursesFromDB();
+                    return;
                 }
 
                 if (isStaffUser) {
@@ -3017,9 +3029,14 @@
             const urlParams = new URLSearchParams(window.location.search);
             const productId = urlParams.get('product');
             if (productId) {
-                setTimeout(() => {
-                    window.openPaymentModal(productId);
-                }, 1000); // Trì hoãn 1 chút để Firebase và giao diện nạp xong
+                const tryOpen = (attempts = 0) => {
+                    if (typeof window.openPaymentModal === 'function') {
+                        window.openPaymentModal(productId);
+                    } else if (attempts < 25) {
+                        setTimeout(() => tryOpen(attempts + 1), 200);
+                    }
+                };
+                setTimeout(() => tryOpen(0), 300);
             }
         });
 

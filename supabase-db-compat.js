@@ -500,7 +500,7 @@ const TABLE_COLUMNS = {
     results: ['id', 'exam_id', 'student_id', 'student_name', 'class_id', 'score', 'correct_count', 'total_questions', 'submit_count', 'submitted_at', 'duration', 'is_passed', 'answers', 'brief_notes', 'cheat_count', 'pass_score_snapshot', 'teacher_feedback', 'raw_data'],
     exam_attempts: ['id', 'exam_id', 'student_id', 'answers', 'brief_notes', 'last_updated', 'raw_data'],
     practice_results: ['id', 'user_id', 'topic_id', 'score', 'total_questions', 'duration', 'completed_at', 'details', 'raw_data'],
-    configurations: ['id', 'keys', 'tree', 'metadata', 'url', 'key', 'value', 'description', 'updated_at', 'raw_data'],
+    configurations: ['id', 'keys', 'tree', 'metadata', 'url', 'updated_at', 'raw_data'],
     user_progress: ['id', 'user_id', 'course_id', 'completed_items', 'playback_positions', 'quiz_usage', 'last_updated', 'raw_data'],
     access_requests: ['id', 'exam_id', 'exam_title', 'student_id', 'student_name', 'requested_at', 'status', 'approved_at', 'raw_data'],
     zalo_uids: ['id', 'zalo_uid', 'phone', 'name', 'updated_at', 'raw_data'],
@@ -557,6 +557,27 @@ export async function getDoc(docRef) {
     try {
         const table = docRef.table;
         const pkCol = getPrimaryKeyCol(table);
+
+        if (table === 'site_settings') {
+            try {
+                const { data: confData } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .eq('id', 'setting_' + docRef.id)
+                    .maybeSingle();
+                if (confData && (confData.raw_data || confData.value)) {
+                    const docData = unwrapRecord({ ...(confData.raw_data || confData.value), key: docRef.id, id: docRef.id });
+                    return {
+                        id: docRef.id,
+                        exists: () => true,
+                        data: () => docData
+                    };
+                }
+            } catch(e) {
+                console.warn("[Supabase getDoc] Lỗi đọc configurations cho site_settings:", e);
+            }
+        }
+
         const { data, error } = await supabase
             .from(table)
             .select('*')
@@ -586,6 +607,23 @@ export async function getDoc(docRef) {
         };
     } catch (err) {
         console.warn(`[Supabase getDoc] Lỗi đọc ${docRef.table}/${docRef.id}:`, err);
+        if (docRef.table === 'site_settings') {
+            try {
+                const { data: confData } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .eq('id', 'setting_' + docRef.id)
+                    .maybeSingle();
+                if (confData && (confData.raw_data || confData.value)) {
+                    const docData = unwrapRecord({ ...(confData.raw_data || confData.value), key: docRef.id, id: docRef.id });
+                    return {
+                        id: docRef.id,
+                        exists: () => true,
+                        data: () => docData
+                    };
+                }
+            } catch(e) {}
+        }
         if (docRef.table === 'public_courses') {
             try {
                 const { data: confData } = await supabase
@@ -749,12 +787,44 @@ export async function setDoc(docRef, data, options = {}) {
     const payload = toSupabasePayload(table, docRef.id, data);
 
     try {
+        if (table === 'site_settings') {
+            const confPayload = {
+                id: 'setting_' + docRef.id,
+                raw_data: data,
+                updated_at: new Date().toISOString()
+            };
+            const { error: confErr } = await supabase
+                .from('configurations')
+                .upsert(confPayload, { onConflict: 'id' });
+            if (confErr) console.warn('[Supabase setDoc configurations fallback]:', confErr);
+            else console.log(`[Supabase setDoc] Đã lưu cài đặt setting_${docRef.id} vào bảng configurations thành công!`);
+        }
+
         const { error } = await supabase
             .from(table)
             .upsert(payload, { onConflict: pkCol });
-        if (error) throw error;
+        if (error && table !== 'site_settings') throw error;
+        return docRef;
     } catch (err) {
         console.warn(`[Supabase setDoc retry] Lỗi upsert vào ${table}:`, err);
+        if (table === 'site_settings') {
+            try {
+                const confPayload = {
+                    id: 'setting_' + docRef.id,
+                    raw_data: data,
+                    updated_at: new Date().toISOString()
+                };
+                const { error: confErr } = await supabase
+                    .from('configurations')
+                    .upsert(confPayload, { onConflict: 'id' });
+                if (confErr) throw confErr;
+                console.log(`[Supabase setDoc] Đã lưu dự phòng cài đặt setting_${docRef.id} vào bảng configurations!`);
+                return docRef;
+            } catch(fallbackErr) {
+                console.error('[Supabase setDoc fallback failed]:', fallbackErr);
+                throw fallbackErr;
+            }
+        }
         if (table === 'public_courses') {
             try {
                 const confPayload = {
@@ -806,13 +876,46 @@ export async function updateDoc(docRef, updates) {
     }
 
     try {
+        if (table === 'site_settings') {
+            try {
+                const confId = 'setting_' + docRef.id;
+                const { data: existing } = await supabase
+                    .from('configurations')
+                    .select('raw_data')
+                    .eq('id', confId)
+                    .maybeSingle();
+                const currRaw = (existing && existing.raw_data) ? existing.raw_data : {};
+                const mergedRaw = { ...currRaw, ...updates, updatedAt: new Date().toISOString() };
+                await supabase
+                    .from('configurations')
+                    .upsert({ id: confId, raw_data: mergedRaw, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+            } catch(e) {}
+        }
         const { error } = await supabase
             .from(table)
             .update(payload)
             .eq(pkCol, docRef.id);
-        if (error) throw error;
+        if (error && table !== 'site_settings') throw error;
     } catch (err) {
         console.warn(`[Supabase updateDoc retry] Fallback update ${table}:`, err);
+        if (table === 'site_settings') {
+            try {
+                const confId = 'setting_' + docRef.id;
+                const { data: existing } = await supabase
+                    .from('configurations')
+                    .select('raw_data')
+                    .eq('id', confId)
+                    .maybeSingle();
+                const currRaw = (existing && existing.raw_data) ? existing.raw_data : {};
+                const mergedRaw = { ...currRaw, ...updates, updatedAt: new Date().toISOString() };
+                await supabase
+                    .from('configurations')
+                    .upsert({ id: confId, raw_data: mergedRaw, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                return docRef;
+            } catch(e) {
+                console.error('[Supabase updateDoc configurations fallback error]:', e);
+            }
+        }
         if (table === 'public_courses') {
             try {
                 const confId = 'course_' + docRef.id;
@@ -875,9 +978,17 @@ export async function deleteDoc(docRef) {
             .from(table)
             .delete()
             .eq(pkCol, docRef.id);
-        if (error) throw error;
+        if (error && table !== 'site_settings') throw error;
     } catch (err) {
         console.warn(`[Supabase deleteDoc] Lỗi xóa bản ghi từ ${table}:`, err);
+    }
+    if (table === 'site_settings') {
+        try {
+            await supabase
+                .from('configurations')
+                .delete()
+                .eq('id', 'setting_' + docRef.id);
+        } catch(e) {}
     }
     if (table === 'public_courses') {
         try {
