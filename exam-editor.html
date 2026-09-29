@@ -1151,6 +1151,12 @@
                     <span id="overwriteWarningDiffText"></span>
                 </div>
 
+                <!-- Thông báo phát hiện TikZ, Hình ảnh & Dọn dẹp R2 -->
+                <div id="overwriteMediaInfoBox" class="hidden p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-emerald-600 mt-0.5 text-sm shrink-0"></i>
+                    <span id="overwriteMediaInfoText"></span>
+                </div>
+
                 <!-- Bảng so sánh đối chiếu câu hỏi -->
                 <div>
                     <label class="block text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Bảng đối chiếu câu hỏi theo vị trí tương ứng:</label>
@@ -3267,30 +3273,75 @@
                 if (typeof window.renderMixedTlList === 'function') window.renderMixedTlList();
             }
 
-            if (!window.isKeepOriginalOrder || !window.isKeepOriginalOrder()) {
+            if (!window._isOverwriteMode && (!window.isKeepOriginalOrder || !window.isKeepOriginalOrder())) {
                 sortQuestionsByType(); 
             }
             renderPreviewList(); 
+            if (typeof renderPalette === 'function') renderPalette();
+            if (window.currentQIndex !== -1 && typeof loadQuestionToEditor === 'function') {
+                loadQuestionToEditor(window.currentQIndex, window.currentQListType);
+            }
             
             const mcLen = window.questions.length;
             const tlLen = window.mixedTlQuestions ? window.mixedTlQuestions.length : 0;
             const isKeep = window.isKeepOriginalOrder && window.isKeepOriginalOrder();
             const orderNotice = isKeep ? ' (Giữ nguyên thứ tự gốc sách in)' : '';
-            if (isMixed) {
+            if (window._isOverwriteMode) {
+                const opt = window._overwriteContext || {};
+                let msg = `✅ Đã cập nhật đè thành công ${opt.overwriteCount || mcLen} câu hỏi (Bảo lưu 100% mã CCCD)!`;
+                if (opt.deletedImgCount > 0) {
+                    msg += ` Đã dọn dẹp ${opt.deletedImgCount} ảnh cũ trên R2.`;
+                }
+                if (window.showToast) window.showToast(msg, "success");
+            } else if (isMixed) {
                 if(window.showToast) window.showToast(`Đã nạp thành công ${mcLen} câu trắc nghiệm & ${tlLen} bài tự luận!${orderNotice}`, "success");
             } else {
                 if(window.showToast) window.showToast(`Đã nhập ${mcLen} câu hỏi thành công!${orderNotice}`, "success"); 
             }
             
-            if(window.MathJax) MathJax.typesetPromise();
+            if(window.MathJax) MathJax.typesetPromise().catch(() => {});
             setTimeout(() => { 
                 if(window.renderTikz) window.renderTikz(); 
-                window.autoScaleTables(); 
+                if(window.autoScaleTables) window.autoScaleTables(); 
                 if(window.cleanWhitespace) window.cleanWhitespace();
             }, 500);
             
             if (pendingImageUploads.some(i => i.type === 'normal')) renderBatchImageModal();
             if (pendingImageUploads.some(i => i.type === 'tikz')) window.renderMissingImagesPanel();
+
+            if (window._isOverwriteMode) {
+                const opt = window._overwriteContext || {};
+                // Thực hiện đồng bộ Ngân hàng R2 nếu được chọn
+                if (opt.syncR2 && window.BankService) {
+                    (async () => {
+                        try {
+                            const validBankQuestions = window.questions.filter(q => window.BankService.isNumericCccd(q.cccd || q.bankId));
+                            if (validBankQuestions.length > 0) {
+                                const examId = window.currentExamId || "";
+                                const payloads = validBankQuestions.map(q => {
+                                    q.examId = examId;
+                                    return window.BankService.createBankQuestion(q, q.cccd || q.bankId);
+                                });
+                                const r2Result = await window.BankService.uploadQuestionsToBank(payloads, { concurrency: 5 });
+                                if (r2Result && window.showToast) {
+                                    window.showToast(`Đã đồng bộ ${r2Result.successCount} câu hỏi lên Ngân hàng R2.`, "success");
+                                }
+                            }
+                        } catch (e) {
+                            console.warn("Lỗi đồng bộ Bank R2 sau cập nhật đè:", e);
+                        }
+                    })();
+                }
+
+                // Tự động lưu đề thi nếu được chọn
+                if (opt.autoSave && typeof window.saveExam === 'function') {
+                    const currentStatus = (window.examData && window.examData.status) ? window.examData.status : 'draft';
+                    window.saveExam(currentStatus).catch(e => console.warn("Lỗi auto save sau overwrite:", e));
+                }
+
+                window._isOverwriteMode = false;
+                window._overwriteContext = null;
+            }
         };
 
         window.handleManualImport = () => {
@@ -3713,54 +3764,77 @@
                     count++;
                 }
 
-                // Hàm tiếp tục xử lý TikZ
-                const continueProcessTikZ = () => {
-                    const tikzCount = pendingImageUploads.filter(i => i.type === 'tikz').length;
-                    if (tikzCount > 0) {
-                        document.getElementById('detectTikzCount').innerText = tikzCount;
-                        const m = document.getElementById('importModeModal');
-                        
-                        // Load VPS config
-                        const vpsMode = localStorage.getItem('tikzVpsMode') || 'personal';
-                        const vpsUrl = localStorage.getItem('tikzVpsUrl') || 'https://api.qmath.io.vn';
-                        document.getElementById('vpsModeSelector').value = vpsMode;
-                        document.getElementById('vpsCustomUrl').value = vpsUrl;
-                        document.getElementById('vpsUrlContainer').classList.toggle('hidden', vpsMode === 'free');
-
-                        m.classList.remove('opacity-0', 'pointer-events-none');
-                        m.querySelector('div').classList.add('scale-100');
-                    } else {
-                        window.finishImportProcess();
-                    }
-                };
-
                 // [AI ID ASSIGNER] Gọi gán ID bằng AI trước khi xử lý TikZ / kết thúc
                 const allParsedQs = [...(window.questions || []), ...(window.mixedTlQuestions || [])];
                 if (typeof window.checkAndAssignMissingIds === 'function' && (window.globalIdTree || []).length > 0) {
                     const missingCount = allParsedQs.filter(q => !q.mapId || !q.mapId.trim()).length;
                     if (missingCount > 0) {
                         window.checkAndAssignMissingIds(allParsedQs, { db: window._examDb })
-                            .then(() => continueProcessTikZ())
+                            .then(() => window.continueProcessTikZ())
                             .catch(e => {
                                 console.warn('[AI ID Assigner] Bỏ qua gán ID:', e.message);
                                 if (window.showToast) window.showToast('⚠️ AI gán ID: ' + e.message, 'warning');
                                 else if (window.showNotification) window.showNotification('⚠️ AI gán ID: ' + e.message, 'warning');
-                                continueProcessTikZ();
+                                window.continueProcessTikZ();
                             });
                         return; // Dừng hàm lại để chờ promise hoàn thành
                     }
                 }
 
-                // Xử lý TikZ và kết thúc (Giữ nguyên)
-                continueProcessTikZ();
+                // Xử lý TikZ và kết thúc
+                window.continueProcessTikZ();
             };
             
             reader.readAsText(file);
         }
 
+        // --- HÀM XỬ LÝ TIKZ DÙNG CHUNG (CHO CẢ NHẬP MỚI VÀ CẬP NHẬT ĐÈ) ---
+        window.continueProcessTikZ = () => {
+            const tikzCount = (pendingImageUploads || []).filter(i => i.type === 'tikz').length;
+            if (tikzCount > 0) {
+                const countEl = document.getElementById('detectTikzCount');
+                if (countEl) countEl.innerText = tikzCount;
+                const m = document.getElementById('importModeModal');
+                
+                // Load VPS config
+                const vpsMode = localStorage.getItem('tikzVpsMode') || 'personal';
+                const vpsUrl = localStorage.getItem('tikzVpsUrl') || 'https://api.qmath.io.vn';
+                const modeSel = document.getElementById('vpsModeSelector');
+                if (modeSel) modeSel.value = vpsMode;
+                const customUrlEl = document.getElementById('vpsCustomUrl');
+                if (customUrlEl) customUrlEl.value = vpsUrl;
+                const urlCont = document.getElementById('vpsUrlContainer');
+                if (urlCont) urlCont.classList.toggle('hidden', vpsMode === 'free');
+
+                if (m) {
+                    m.classList.remove('opacity-0', 'pointer-events-none');
+                    m.querySelector('div')?.classList.add('scale-100');
+                }
+            } else {
+                window.finishImportProcess();
+            }
+        };
+
         // ============================================================
         // --- CHỨC NĂNG CẬP NHẬT ĐÈ CÂU HỎI TỪ TEX (BẢO LƯU CCCD) ---
         // ============================================================
+        function extractR2ImageUrls(dataObj) {
+            if (!dataObj) return [];
+            const str = typeof dataObj === 'string' ? dataObj : JSON.stringify(dataObj);
+            const urls = new Set();
+            // Regex tìm tất cả các URL ảnh lưu trên Cloudflare R2 hoặc upload-helper worker
+            const regex = /https:\/\/[a-zA-Z0-9\-_.]*(?:r2\.dev|workers\.dev)\/[^\s"'<>\\]+/g;
+            const matches = str.match(regex) || [];
+            for (let raw of matches) {
+                const clean = raw.replace(/[\\\)\]\>,"';.]+$/, '');
+                if (clean.includes('.r2.dev/')) {
+                    urls.add(clean);
+                }
+            }
+            return Array.from(urls);
+        }
+        window.extractR2ImageUrls = extractR2ImageUrls;
+
         window.triggerOverwriteFromTex = () => {
             if (!window.questions || window.questions.length === 0) {
                 if (window.customAlert) window.customAlert("Đề hiện tại chưa có câu hỏi nào để cập nhật đè! Vui lòng sử dụng tính năng 'Nhập TeX' để thêm đề mới.", "warning");
@@ -3782,6 +3856,9 @@
                 m.querySelector('div')?.classList.add('scale-95');
             }
             window._pendingOverwriteQuestions = null;
+            if (!window._isOverwriteMode) {
+                pendingImageUploads = [];
+            }
         };
 
         window.parseLatexExamString = function(rawFileContent) {
@@ -3999,6 +4076,8 @@
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const rawText = e.target.result;
+                // [QUAN TRỌNG] Reset sạch hàng đợi ảnh trước khi phân tích file TeX mới
+                pendingImageUploads = [];
                 const parsedList = window.parseLatexExamString(rawText);
 
                 if (!parsedList || parsedList.length === 0) {
@@ -4032,6 +4111,32 @@
                     }
                 } else {
                     warningBox.classList.add('hidden');
+                }
+
+                // Phát hiện TikZ, hình ảnh thư mục và số ảnh R2 cũ sẽ dọn dẹp
+                const tikzCount = pendingImageUploads.filter(i => i.type === 'tikz').length;
+                const normalCount = pendingImageUploads.filter(i => i.type === 'normal').length;
+                const oldOverwrittenQs = window.questions.slice(0, Math.min(curCount, newCount));
+                const oldR2Urls = extractR2ImageUrls(oldOverwrittenQs);
+                const retainedQs = curCount > newCount ? window.questions.slice(newCount) : [];
+                const retainedR2Urls = new Set(extractR2ImageUrls(retainedQs));
+                const newR2Urls = new Set(extractR2ImageUrls(parsedList));
+                const willDeleteCount = oldR2Urls.filter(u => !retainedR2Urls.has(u) && !newR2Urls.has(u)).length;
+
+                const mediaBox = document.getElementById('overwriteMediaInfoBox');
+                const mediaText = document.getElementById('overwriteMediaInfoText');
+                if (mediaBox && mediaText) {
+                    let mediaMsgs = [];
+                    if (tikzCount > 0) mediaMsgs.push(`<b>${tikzCount} hình TikZ</b> (sẽ tự động biên dịch sang ảnh)`);
+                    if (normalCount > 0) mediaMsgs.push(`<b>${normalCount} hình từ thư mục</b> (hệ thống sẽ mở hộp thoại nạp thư mục ảnh)`);
+                    if (willDeleteCount > 0) mediaMsgs.push(`<b>${willDeleteCount} hình của đề cũ</b> trên kho R2 (sẽ tự động xóa sạch)`);
+
+                    if (mediaMsgs.length > 0) {
+                        mediaBox.classList.remove('hidden');
+                        mediaText.innerHTML = `Hệ thống phát hiện: ${mediaMsgs.join('; ')}.`;
+                    } else {
+                        mediaBox.classList.add('hidden');
+                    }
                 }
 
                 // Render bảng so sánh
@@ -4104,7 +4209,26 @@
                 const newLen = parsedList.length;
                 const overwriteCount = Math.min(curLen, newLen);
 
-                // 1. Thực hiện ghi đè từng câu theo vị trí tương ứng
+                // 1. TỰ ĐỘNG XÓA ẢNH CỦA ĐỀ CŨ TRÊN KHO R2 (CLOUDFLARE)
+                const oldOverwrittenQs = window.questions.slice(0, overwriteCount);
+                const oldR2Urls = extractR2ImageUrls(oldOverwrittenQs);
+
+                const retainedQs = curLen > overwriteCount ? window.questions.slice(overwriteCount) : [];
+                const retainedR2Urls = new Set(extractR2ImageUrls(retainedQs));
+                const newR2Urls = new Set(extractR2ImageUrls(parsedList));
+
+                const r2UrlsToDelete = oldR2Urls.filter(u => !retainedR2Urls.has(u) && !newR2Urls.has(u));
+
+                let deletedR2Count = 0;
+                if (r2UrlsToDelete.length > 0) {
+                    if (window.showToast) window.showToast(`Đang xóa ${r2UrlsToDelete.length} ảnh đề cũ trên kho R2...`, "info");
+                    const deleteFn = window.deleteR2Image || deleteR2Image;
+                    const delResults = await Promise.allSettled(r2UrlsToDelete.map(u => deleteFn(u)));
+                    deletedR2Count = delResults.filter(r => r.status === 'fulfilled').length;
+                    console.log(`[Cập nhật đè TeX] Đã xóa ${deletedR2Count}/${r2UrlsToDelete.length} ảnh cũ trên R2`);
+                }
+
+                // 2. THỰC HIỆN GHI ĐÈ TỪNG CÂU THEO VỊ TRÍ TƯƠNG ỨNG (BẢO LƯU CCCD TUYỆT ĐỐI)
                 for (let i = 0; i < overwriteCount; i++) {
                     const targetQ = window.questions[i];
                     const srcQ = parsedList[i];
@@ -4145,55 +4269,46 @@
                     window.questions.push(...surplus);
                 }
 
-                // 2. Kiểm tra tùy chọn đồng bộ ghi đè lên Ngân hàng R2
+                // Cập nhật bản sao lưu câu hỏi gốc
+                window.originalQuestionsData = JSON.parse(JSON.stringify(window.questions));
+
+                // 3. THIẾT LẬP NGỮ CẢNH CẬP NHẬT ĐÈ CHO CHU TRÌNH TIẾP THEO
                 const syncR2 = document.getElementById('overwriteSyncR2Bank')?.checked;
-                let r2Result = null;
-                if (syncR2 && window.BankService) {
-                    const validBankQuestions = window.questions.filter(q => window.BankService.isNumericCccd(q.cccd || q.bankId));
-                    if (validBankQuestions.length > 0) {
-                        const examId = window.currentExamId || "";
-                        const payloads = validBankQuestions.map(q => {
-                            q.examId = examId;
-                            return window.BankService.createBankQuestion(q, q.cccd || q.bankId);
-                        });
-                        r2Result = await window.BankService.uploadQuestionsToBank(payloads, { concurrency: 5 });
+                const autoSave = document.getElementById('overwriteAutoSaveExam')?.checked;
+
+                window._isOverwriteMode = true;
+                window._overwriteContext = {
+                    syncR2,
+                    autoSave,
+                    overwriteCount,
+                    deletedImgCount: deletedR2Count
+                };
+
+                // Đóng modal đối soát ghi đè
+                window.closeOverwriteLatexModal();
+
+                // 4. KIỂM TRA AI GÁN ID NẾU THIẾU HOẶC TIẾP TỤC XỬ LÝ TIKZ & HÌNH THƯ MỤC
+                const allQs = window.questions || [];
+                if (typeof window.checkAndAssignMissingIds === 'function' && (window.globalIdTree || []).length > 0) {
+                    const missingCount = allQs.filter(q => !q.mapId || !q.mapId.trim()).length;
+                    if (missingCount > 0) {
+                        window.checkAndAssignMissingIds(allQs, { db: window._examDb })
+                            .then(() => window.continueProcessTikZ())
+                            .catch(e => {
+                                console.warn('[AI ID Assigner] Bỏ qua gán ID:', e.message);
+                                window.continueProcessTikZ();
+                            });
+                        return;
                     }
                 }
 
-                // 3. Render lại toàn bộ giao diện soạn thảo
-                if (typeof renderPreviewList === 'function') renderPreviewList();
-                if (typeof renderPalette === 'function') renderPalette();
-                if (window.currentQIndex !== -1 && typeof loadQuestionToEditor === 'function') {
-                    loadQuestionToEditor(window.currentQIndex, window.currentQListType);
-                }
-                if (window.MathJax) {
-                    MathJax.typesetPromise().catch(() => {});
-                }
-                setTimeout(() => {
-                    if (window.renderTikz) window.renderTikz();
-                    if (window.autoScaleTables) window.autoScaleTables();
-                }, 500);
-
-                // 4. Tự động lưu đề thi nếu được chọn
-                const autoSave = document.getElementById('overwriteAutoSaveExam')?.checked;
-                if (autoSave && typeof window.saveExam === 'function') {
-                    const currentStatus = (window.examData && window.examData.status) ? window.examData.status : 'draft';
-                    await window.saveExam(currentStatus);
-                }
-
-                // Đóng modal
-                window.closeOverwriteLatexModal();
-
-                // Hiển thị thông báo thành công
-                let msg = `✅ Đã cập nhật đè thành công ${overwriteCount} câu hỏi (Bảo lưu 100% mã CCCD)!`;
-                if (r2Result) {
-                    msg += ` Đã đồng bộ ${r2Result.successCount} câu lên Ngân hàng câu hỏi R2.`;
-                }
-                if (window.showToast) window.showToast(msg, "success");
-                else alert(msg);
+                // Kích hoạt chu trình xử lý TikZ & Folder Image
+                window.continueProcessTikZ();
 
             } catch (err) {
                 console.error("Lỗi cập nhật đè TeX:", err);
+                window._isOverwriteMode = false;
+                window._overwriteContext = null;
                 if (window.customAlert) window.customAlert("Lỗi cập nhật đè: " + err.message, "error");
                 else alert("Lỗi: " + err.message);
             } finally {
@@ -6145,6 +6260,8 @@
                         keyName = decodeURIComponent(keyName);
                     } catch(e) { console.warn("Lỗi parse URL:", input); }
                 }
+                if (!keyName) return;
+                keyName = keyName.replace(/^\/+/, '');
                 
                 return fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/?key=${encodeURIComponent(keyName)}`, {
                     method: 'DELETE',
@@ -6152,6 +6269,7 @@
                 });
             } catch (e) { console.error("Lỗi xóa R2:", e); }
         }
+        window.deleteR2Image = deleteR2Image;
         
         window.addEventListener('resize', () => {
             window.autoScaleTables();
