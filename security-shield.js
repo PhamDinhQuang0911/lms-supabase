@@ -374,37 +374,82 @@
         }, 150);
     }
 
-    // 4. CHẶN PHÍM TẮT CHỤP MÀN HÌNH (PrintScreen, Win+Shift+S, Mac Cmd+Shift+3/4/5, Ctrl+P)
-    document.addEventListener('keydown', function(e) {
-        const isPrintScreen = e.key === 'PrintScreen' || e.keyCode === 44;
-        const isPrint = (e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P');
-        const isMacScreenshot = e.metaKey && e.shiftKey && ['3', '4', '5', 's'].indexOf(e.key.toLowerCase()) !== -1;
+    // 4. CHẶN PHÍM TẮT CHỤP MÀN HÌNH (Ctrl+Shift+S, PrintScreen, Win+Shift+S, Mac Cmd+Shift+3/4/5/S, Ctrl+P, Ctrl+S)
+    function handleScreenshotKey(e) {
+        const key = (e.key || '').toLowerCase();
+        const code = e.code || '';
+        const keyCode = e.keyCode || e.which || 0;
 
-        if (isPrintScreen || isPrint || isMacScreenshot) {
+        const isPrintScreen = e.key === 'PrintScreen' || keyCode === 44 || code === 'PrintScreen';
+        const isPrint = (e.ctrlKey || e.metaKey) && (key === 'p' || keyCode === 80 || code === 'KeyP');
+        const isSave = (e.ctrlKey || e.metaKey) && !e.shiftKey && (key === 's' || keyCode === 83 || code === 'KeyS');
+
+        // Bắt triệt để Ctrl + Shift + S (Edge Web Capture, công cụ chụp màn hình Windows/Chromium)
+        const isKeyS = (key === 's' || keyCode === 83 || code === 'KeyS');
+        const isCtrlShiftS = (e.ctrlKey || e.metaKey) && e.shiftKey && isKeyS;
+
+        // Bắt Mac Screenshot (Cmd+Shift+3/4/5/S) và Windows Snipping Tool (Win+Shift+S)
+        const isMacScreenshot = (e.metaKey || e.ctrlKey) && e.shiftKey && (['3', '4', '5', 's', 'x'].indexOf(key) !== -1 || isKeyS);
+        const isWinShiftS = e.shiftKey && isKeyS && (e.metaKey || e.ctrlKey);
+
+        if (isPrintScreen || isPrint || isCtrlShiftS || isMacScreenshot || isWinShiftS || isSave) {
             // Kiểm tra xem hiện tại có đang bị cấm chụp hay không
             if (!window.QMathSecurity.isAntiScreenshotActive()) {
                 return true; // Cho phép chụp ảnh bình thường!
             }
 
             document.body.classList.add('qmath-screenshot-blocked');
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText('').catch(function() {});
+                }
+            } catch (_) {}
+
             e.preventDefault();
             e.stopPropagation();
-            triggerViolationAlert('Hệ thống đã chặn thao tác phím chụp màn hình. Nội dung được bảo vệ bản quyền!');
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+
+            let actionName = 'chụp màn hình';
+            if (isCtrlShiftS) actionName = 'chụp màn hình (Ctrl+Shift+S)';
+            else if (isPrintScreen) actionName = 'chụp màn hình (PrintScreen)';
+            else if (isPrint) actionName = 'in ấn / lưu PDF (Ctrl+P)';
+            else if (isSave) actionName = 'lưu trang (Ctrl+S)';
+
+            triggerViolationAlert(`Hệ thống đã chặn thao tác phím ${actionName}. Nội dung được bảo vệ bản quyền!`);
             return false;
         }
-    }, true);
+    }
 
-    document.addEventListener('keyup', function(e) {
-        if (e.key === 'PrintScreen' || e.keyCode === 44) {
+    document.addEventListener('keydown', handleScreenshotKey, true);
+    window.addEventListener('keydown', handleScreenshotKey, true);
+
+    function handleScreenshotKeyUp(e) {
+        const key = (e.key || '').toLowerCase();
+        const code = e.code || '';
+        const keyCode = e.keyCode || e.which || 0;
+        const isPrintScreen = e.key === 'PrintScreen' || keyCode === 44 || code === 'PrintScreen';
+        const isKeyS = (key === 's' || keyCode === 83 || code === 'KeyS');
+        const isCtrlShiftS = (e.ctrlKey || e.metaKey || e.shiftKey) && isKeyS;
+
+        if (isPrintScreen || isCtrlShiftS) {
             if (!window.QMathSecurity.isAntiScreenshotActive()) {
                 return true;
             }
             document.body.classList.add('qmath-screenshot-blocked');
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText('').catch(function() {});
+                }
+            } catch (_) {}
             e.preventDefault();
             e.stopPropagation();
-            triggerViolationAlert('Hệ thống đã chặn thao tác chụp màn hình (PrintScreen). Nội dung được bảo vệ bản quyền!');
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            triggerViolationAlert('Hệ thống đã chặn thao tác phím chụp màn hình. Nội dung được bảo vệ bản quyền!');
         }
-    }, true);
+    }
+
+    document.addEventListener('keyup', handleScreenshotKeyUp, true);
+    window.addEventListener('keyup', handleScreenshotKeyUp, true);
 
     // 5. CHẶN CỬ CHỈ VUỐT 3 NGÓN TAY CHỤP MÀN HÌNH TRÊN ĐIỆN THOẠI (Bắt tức thì 0ms)
     window.addEventListener('touchstart', function(e) {

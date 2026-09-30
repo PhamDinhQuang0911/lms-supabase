@@ -169,6 +169,23 @@
         .sidebar-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); z-index: 45; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
         .sidebar-backdrop.show { opacity: 1; pointer-events: auto; }
 
+        /* NÚT BẮT ĐẦU LÀM BÀI: TƯƠI SÁNG, NỔI BẬT MẶC ĐỊNH */
+        .btn-start-exam-ready {
+            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 10px 25px -4px rgba(37, 99, 235, 0.45), 0 4px 10px -2px rgba(37, 99, 235, 0.3) !important;
+            cursor: pointer !important;
+            opacity: 1 !important;
+        }
+        .btn-start-exam-ready:hover {
+            background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%) !important;
+            box-shadow: 0 14px 30px -4px rgba(37, 99, 235, 0.6), 0 6px 14px -2px rgba(37, 99, 235, 0.4) !important;
+            transform: translateY(-1px) scale(1.01);
+        }
+        .btn-start-exam-ready:active {
+            transform: translateY(0) scale(0.99);
+        }
+
         /* CSS NÚT CÂU HỎI TRANG NHÃ - TÔNG XANH KHOA HỌC */
         .q-btn { 
             width: 100%; aspect-ratio: 1; 
@@ -620,8 +637,8 @@
                 </div>
             </div>
             
-            <button id="btnStartExam" onclick="requestStart()" disabled class="relative z-10 group w-full py-4 bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 cursor-not-allowed overflow-hidden">
-                <span class="relative z-10 flex items-center gap-2"><i class="fa-solid fa-play group-hover:scale-110 transition-transform"></i> Bắt đầu làm bài</span>
+            <button id="btnStartExam" onclick="requestStart()" disabled class="relative z-10 group w-full py-4 bg-slate-200 text-slate-400 font-black text-lg rounded-2xl transition-all flex items-center justify-center gap-2 cursor-not-allowed overflow-hidden">
+                <span class="relative z-10 flex items-center gap-2"><i class="fa-solid fa-play"></i> Bắt đầu làm bài</span>
             </button>
             <button id="btnLobbyLeaderboard" onclick="window.openExamLeaderboard()" class="hidden relative z-10 w-full mt-3 py-3.5 bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 text-amber-800 border border-amber-200 font-bold rounded-2xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm transform active:scale-95">
                 <i class="fa-solid fa-trophy text-amber-500"></i> Xem Bảng Xếp Hạng Đề Thi
@@ -1481,25 +1498,40 @@
                 if (btnStart) {
                     if (ok) {
                         btnStart.disabled = false;
-                        btnStart.classList.remove('bg-gray-300', 'cursor-not-allowed', 'text-gray-500');
+                        btnStart.classList.remove('bg-slate-300', 'bg-slate-200', 'bg-gray-300', 'cursor-not-allowed', 'text-gray-500', 'text-slate-400');
+                        btnStart.classList.add('cursor-pointer');
                         
                         if (isHomeworkOrMixed && att > 0) {
-                            btnStart.innerHTML = window.isEditMode ? '<i class="fa-solid fa-pen"></i> Cập nhật bài làm' : '<i class="fa-solid fa-eye"></i> Xem lại bài';
-                            btnStart.classList.add('bg-orange-500', 'text-white', 'shadow-lg', 'hover:bg-orange-600');
+                            btnStart.className = "relative z-10 group w-full py-4 text-white font-black text-lg rounded-2xl transition-all shadow-lg shadow-orange-500/35 flex items-center justify-center gap-2 cursor-pointer overflow-hidden active:scale-[0.99]";
+                            btnStart.style.background = "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)";
+                            btnStart.style.color = "#ffffff";
+                            btnStart.style.boxShadow = "0 10px 25px -4px rgba(234, 88, 12, 0.4)";
+                            btnStart.innerHTML = window.isEditMode 
+                                ? '<span class="relative z-10 flex items-center gap-2"><i class="fa-solid fa-pen"></i> Cập nhật bài làm</span>' 
+                                : '<span class="relative z-10 flex items-center gap-2"><i class="fa-solid fa-eye"></i> Xem lại bài</span>';
                             btnStart.onclick = () => requestStart(false); 
                         } else if (hasDraft) {
-                            btnStart.innerHTML = '<i class="fa-solid fa-play"></i> Tiếp tục làm bài';
-                            btnStart.classList.add('bg-yellow-600', 'text-white', 'shadow-lg', 'hover:bg-yellow-700');
+                            btnStart.className = "relative z-10 group w-full py-4 text-white font-black text-lg rounded-2xl transition-all shadow-lg shadow-amber-500/35 flex items-center justify-center gap-2 cursor-pointer overflow-hidden active:scale-[0.99]";
+                            btnStart.style.background = "linear-gradient(135deg, #d97706 0%, #b45309 100%)";
+                            btnStart.style.color = "#ffffff";
+                            btnStart.style.boxShadow = "0 10px 25px -4px rgba(217, 119, 6, 0.4)";
+                            btnStart.innerHTML = '<span class="relative z-10 flex items-center gap-2"><i class="fa-solid fa-play group-hover:scale-110 transition-transform"></i> Tiếp tục làm bài</span>';
                             btnStart.onclick = () => requestStart(true); 
                         } else {
-                            btnStart.classList.add('bg-[#0F766E]', 'text-white', 'shadow-lg', 'hover:bg-teal-700'); 
-                            btnStart.innerHTML = '<i class="fa-solid fa-play"></i> Bắt đầu làm bài'; 
+                            btnStart.className = "relative z-10 group w-full py-4 text-white font-black text-lg rounded-2xl transition-all shadow-lg shadow-blue-500/40 flex items-center justify-center gap-2 cursor-pointer overflow-hidden active:scale-[0.99] btn-start-exam-ready";
+                            btnStart.style.background = "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)";
+                            btnStart.style.color = "#ffffff";
+                            btnStart.style.boxShadow = "0 10px 25px -4px rgba(37, 99, 235, 0.45), 0 4px 10px -2px rgba(37, 99, 235, 0.3)";
+                            btnStart.innerHTML = '<span class="relative z-10 flex items-center gap-2"><i class="fa-solid fa-play group-hover:scale-110 transition-transform text-white"></i> Bắt đầu làm bài</span>'; 
                             btnStart.onclick = () => requestStart(false); 
                         }
                     } else {
                         btnStart.disabled = true;
-                        btnStart.classList.add('bg-gray-300', 'cursor-not-allowed', 'text-gray-500');
-                        btnStart.innerHTML = `<i class="fa-solid fa-ban"></i> ${msg}`;
+                        btnStart.className = "relative z-10 group w-full py-4 bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 font-black text-lg rounded-2xl transition-all flex items-center justify-center gap-2 cursor-not-allowed overflow-hidden";
+                        btnStart.style.background = "";
+                        btnStart.style.color = "";
+                        btnStart.style.boxShadow = "";
+                        btnStart.innerHTML = `<span class="relative z-10 flex items-center gap-2"><i class="fa-solid fa-ban"></i> ${msg}</span>`;
                     }
                 }
 
