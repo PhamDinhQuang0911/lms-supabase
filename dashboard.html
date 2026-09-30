@@ -5895,8 +5895,8 @@ async function loadFileManager(forceRefresh = false) {
             }
             
             // Cập nhật lại mảng và Cache gọn nhẹ
-            folderData = newFolderData; 
-            examData = newExamData;
+            folderData = typeof window.sanitizeFolders === 'function' ? window.sanitizeFolders(newFolderData) : newFolderData; 
+            examData = (newExamData || []).filter(e => e && e.id && !e.isDeleted && e.title && e.title !== 'null');
             tagData = newTagData;
             saveBankCache();
             
@@ -5939,21 +5939,48 @@ function renderTagFilterUI() {
     });
     select.innerHTML = html;
 }
-        function getValidFolderIds(folders) {
-            const validIds = new Set();
-            let added = true;
-            while (added) {
-                added = false;
-                folders.forEach(f => {
-                    if (!validIds.has(f.id)) {
-                        if (!f.parentId || f.parentId === 'root' || f.parentId === 'null' || f.parentId === 'undefined' || validIds.has(f.parentId)) {
-                            validIds.add(f.id);
-                            added = true;
+        function sanitizeFolders(rawFolders) {
+            if (!Array.isArray(rawFolders)) return [];
+            const validFolderMap = new Map();
+            rawFolders.forEach(f => {
+                if (!f || !f.id || f.isDeleted === true) return;
+                const rawName = String(f.name || f.title || '').trim();
+                // Loại bỏ thư mục rác, thư mục null, undefined
+                if (!rawName || rawName.toLowerCase() === 'null' || rawName.toLowerCase() === 'undefined') return;
+                
+                let normalizedParentId = f.parentId;
+                if (!normalizedParentId || normalizedParentId === 'root' || normalizedParentId === 'null' || normalizedParentId === 'undefined') {
+                    normalizedParentId = null;
+                }
+                validFolderMap.set(f.id, {
+                    ...f,
+                    name: rawName,
+                    parentId: normalizedParentId
+                });
+            });
+
+            // Chỉ giữ lại các thư mục có chuỗi cha hợp lệ liên kết về gốc (loại bỏ thư mục mồ côi)
+            const reachableIds = new Set();
+            let progress = true;
+            while (progress) {
+                progress = false;
+                validFolderMap.forEach((f, id) => {
+                    if (!reachableIds.has(id)) {
+                        if (!f.parentId || reachableIds.has(f.parentId)) {
+                            reachableIds.add(id);
+                            progress = true;
                         }
                     }
                 });
             }
-            return validIds;
+
+            return Array.from(validFolderMap.values()).filter(f => reachableIds.has(f.id));
+        }
+        window.sanitizeFolders = sanitizeFolders;
+
+        function getValidFolderIds(folders) {
+            const clean = sanitizeFolders(folders);
+            return new Set(clean.map(f => f.id));
         }
         
         window.currentExamSort = localStorage.getItem('lms_exam_sort') || 'newest';
@@ -5969,11 +5996,11 @@ function renderTagFilterUI() {
             const container = document.getElementById('explorerGrid'); 
             container.innerHTML = ''; 
             
-            // Tự động dọn dẹp các thư mục mồ côi/đã bị xóa cha ra khỏi bộ nhớ
+            // Tự động dọn dẹp các thư mục rác, null, mồ côi ra khỏi bộ nhớ
             if (folderData && folderData.length > 0) {
-                const validIds = getValidFolderIds(folderData);
-                folderData = folderData.filter(f => validIds.has(f.id));
-                examData = examData.filter(e => !e.folderId || e.folderId === 'root' || e.folderId === 'null' || e.folderId === 'undefined' || validIds.has(e.folderId));
+                folderData = sanitizeFolders(folderData);
+                const validIds = new Set(folderData.map(f => f.id));
+                examData = examData.filter(e => e && e.id && !e.isDeleted && e.title && e.title !== 'null' && (!e.folderId || e.folderId === 'root' || e.folderId === 'null' || e.folderId === 'undefined' || validIds.has(e.folderId)));
             }
             
             // Lọc dữ liệu thư mục và đề thi hiện tại
@@ -6216,37 +6243,266 @@ function renderTagFilterUI() {
             }
         };
 
-        window.promptAssignExamToAnyClass = async (examId) => {
+        // =========================================================================
+        // NÂNG CẤP: MODAL GIAO ĐỀ NHANH CHO LỚP HỌC (THEO NĂM HỌC & LỚP TƯƠNG ỨNG)
+        // =========================================================================
+        window.currentQuickAssignExamId = null;
+        window.quickAssignSelectedYear = null;
+
+        window.openQuickAssignExamModal = async (examId) => {
             if (!window.requirePermission('exams.assign', 'giao bài tập')) return;
+            window.currentQuickAssignExamId = examId;
+
+            // Đảm bảo dữ liệu lớp học đã được tải
             if (!window.allClassesData || window.allClassesData.length === 0) {
-                window.showNotification("Thầy/Cô chưa có lớp học nào. Hãy tạo lớp trước!", "warning");
-                return;
+                try {
+                    const snap = await getDocs(collection(db, "classes"));
+                    window.allClassesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                } catch(e) {
+                    console.warn("Lỗi nạp danh sách lớp:", e);
+                }
             }
-            const currentYear = window.getCurrentAcademicYear();
+
+            // Tìm thông tin đề thi
+            let examObj = (examData || []).find(e => e.id === examId);
+            if (!examObj) {
+                try {
+                    const snapEx = await getDoc(doc(db, "exams", examId));
+                    if (snapEx.exists()) {
+                        examObj = { id: snapEx.id, ...snapEx.data() };
+                    }
+                } catch(e) {}
+            }
+
+            const modal = document.getElementById('quickAssignExamModal');
+            if (!modal) return;
+
+            const examTitleEl = document.getElementById('quickAssignExamTitle');
+            if (examTitleEl) {
+                examTitleEl.textContent = examObj ? (examObj.title || 'Đề thi') : 'Đề thi';
+            }
+
+            // Đặt năm học mặc định là năm hiện tại hoặc năm đầu tiên tìm thấy
+            const curYear = window.getCurrentAcademicYear ? window.getCurrentAcademicYear() : '2026-2027';
+            window.quickAssignSelectedYear = window.quickAssignSelectedYear || curYear;
+
+            const searchInput = document.getElementById('quickAssignClassSearch');
+            if (searchInput) searchInput.value = '';
+
+            modal.classList.remove('hidden');
+            window.renderQuickAssignModal();
+        };
+
+        window.promptAssignExamToAnyClass = window.openQuickAssignExamModal;
+
+        window.closeQuickAssignExamModal = () => {
+            const modal = document.getElementById('quickAssignExamModal');
+            if (modal) modal.classList.add('hidden');
+            window.currentQuickAssignExamId = null;
+        };
+
+        window.setQuickAssignYear = (year) => {
+            window.quickAssignSelectedYear = year;
+            window.renderQuickAssignModal();
+        };
+
+        window.renderQuickAssignModal = () => {
+            const examId = window.currentQuickAssignExamId;
+            if (!examId) return;
+
+            const examObj = (examData || []).find(e => e.id === examId) || {};
+            const allowedClassIds = Array.isArray(examObj.allowedClassIds) ? examObj.allowedClassIds : [];
+
             const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
-            const myClasses = window.allClassesData.filter(c => (c.academicYear || '2025-2026') === currentYear && (c.teacherId === currentUserUid || isSuper));
-            if (myClasses.length === 0) {
-                window.showNotification("Không tìm thấy lớp học phù hợp trong năm học hiện tại.", "warning");
+            const myClasses = (window.allClassesData || []).filter(c => c && (c.teacherId === currentUserUid || isSuper || !c.teacherId));
+
+            // Thu thập tất cả các năm học có trong lớp
+            const yearSet = new Set();
+            myClasses.forEach(c => {
+                if (c.academicYear) yearSet.add(c.academicYear);
+            });
+            yearSet.add('2026-2027');
+            yearSet.add('2025-2026');
+
+            const allYears = Array.from(yearSet).sort((a, b) => b.localeCompare(a));
+            if (!allYears.includes(window.quickAssignSelectedYear)) {
+                window.quickAssignSelectedYear = allYears[0];
+            }
+
+            // 1. Render Tabs Năm học
+            const yearTabsEl = document.getElementById('quickAssignYearTabs');
+            if (yearTabsEl) {
+                yearTabsEl.innerHTML = allYears.map(y => {
+                    const countInYear = myClasses.filter(c => (c.academicYear || '2025-2026') === y).length;
+                    const isActive = y === window.quickAssignSelectedYear;
+                    return `
+                        <button onclick="window.setQuickAssignYear('${y}')" class="px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${isActive ? 'bg-primary-600 text-white shadow-sm shadow-primary-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}">
+                            <i class="fa-regular fa-calendar-days text-[11px]"></i>
+                            <span>Năm ${y}</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'} font-mono">${countInYear}</span>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            // 2. Lọc danh sách lớp học trong năm đã chọn & theo từ khóa tìm kiếm
+            const searchQuery = (document.getElementById('quickAssignClassSearch')?.value || '').trim().toLowerCase();
+            const classesInYear = myClasses.filter(c => (c.academicYear || '2025-2026') === window.quickAssignSelectedYear);
+            const filteredClasses = classesInYear.filter(c => {
+                if (!searchQuery) return true;
+                return (c.name || '').toLowerCase().includes(searchQuery);
+            });
+
+            // 3. Render Thanh công cụ Bulk Action (Giao cho tất cả các lớp trong năm)
+            const bulkBarEl = document.getElementById('quickAssignBulkBar');
+            if (bulkBarEl) {
+                const unassignedCount = classesInYear.filter(c => !allowedClassIds.includes(c.id)).length;
+                if (classesInYear.length > 0) {
+                    bulkBarEl.innerHTML = `
+                        <div class="flex items-center justify-between py-1 text-xs">
+                            <span class="text-gray-500 font-medium">Tổng số: <strong>${classesInYear.length}</strong> lớp (${classesInYear.length - unassignedCount} đã giao)</span>
+                            ${unassignedCount > 0 ? `
+                                <button onclick="window.quickAssignExamToAll('${examId}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-xs transition flex items-center gap-1 cursor-pointer">
+                                    <i class="fa-solid fa-paper-plane text-[10px]"></i> Giao cho tất cả ${unassignedCount} lớp còn lại
+                                </button>
+                            ` : `
+                                <span class="text-emerald-600 font-bold flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Đã giao cho toàn bộ lớp trong năm</span>
+                            `}
+                        </div>
+                    `;
+                } else {
+                    bulkBarEl.innerHTML = '';
+                }
+            }
+
+            // 4. Render Danh sách lớp học
+            const listEl = document.getElementById('quickAssignClassList');
+            if (!listEl) return;
+
+            if (filteredClasses.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-10 text-gray-400">
+                        <i class="fa-solid fa-graduation-cap text-3xl mb-2 text-gray-300 block"></i>
+                        <p class="text-xs sm:text-sm font-medium">Không tìm thấy lớp học nào trong năm học ${window.quickAssignSelectedYear}${searchQuery ? ` khớp với "${searchQuery}"` : ''}.</p>
+                    </div>
+                `;
                 return;
             }
-            const classOptions = myClasses.map((c, i) => `${i + 1}. ${c.name}`).join('\n');
-            const choice = await window.customPrompt(`Chọn lớp muốn giao bài tập:\n${classOptions}\n\nNhập số thứ tự của lớp (VD: 1):`, "1");
-            if (!choice) return;
-            const idx = parseInt(choice) - 1;
-            if (isNaN(idx) || idx < 0 || idx >= myClasses.length) {
-                window.showNotification("Lựa chọn không hợp lệ!", "error");
-                return;
-            }
-            const selectedClass = myClasses[idx];
+
+            listEl.innerHTML = filteredClasses.map(c => {
+                const isAssigned = allowedClassIds.includes(c.id);
+                const stCount = Array.isArray(c.students) ? c.students.length : (c.studentCount || 0);
+
+                let actionHtml = '';
+                if (isAssigned) {
+                    actionHtml = `
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="px-2.5 sm:px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold rounded-lg text-xs flex items-center gap-1 shadow-xs">
+                                <i class="fa-solid fa-check text-[11px]"></i> Đã giao
+                            </span>
+                            <button onclick="window.quickUnassignExam('${examId}', '${c.id}')" class="p-1 sm:px-2 sm:py-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition cursor-pointer" title="Hủy giao đề cho lớp này">
+                                <i class="fa-solid fa-trash-can sm:mr-1"></i><span class="hidden sm:inline">Hủy</span>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    actionHtml = `
+                        <button onclick="window.quickAssignExam('${examId}', '${c.id}')" class="px-3 sm:px-4 py-1.5 bg-primary-600 hover:bg-primary-700 active:scale-95 text-white font-bold rounded-lg text-xs shadow-xs hover:shadow transition flex items-center gap-1.5 cursor-pointer shrink-0">
+                            <i class="fa-solid fa-paper-plane text-[10px]"></i> Giao đề
+                        </button>
+                    `;
+                }
+
+                return `
+                    <div class="flex items-center justify-between p-3 bg-white rounded-xl border ${isAssigned ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-200'} hover:border-primary-300 hover:shadow-xs transition group">
+                        <div class="flex items-center gap-3 min-w-0 mr-2">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${isAssigned ? 'bg-emerald-100 text-emerald-600' : 'bg-primary-50 text-primary-600'} flex items-center justify-center font-bold text-base shrink-0 group-hover:scale-105 transition-transform">
+                                <i class="fa-solid fa-chalkboard-user"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-gray-800 text-xs sm:text-sm truncate group-hover:text-primary-700 transition-colors">
+                                    ${c.name}
+                                </div>
+                                <div class="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
+                                    <span><i class="fa-solid fa-users text-[10px] mr-1"></i>${stCount} học sinh</span>
+                                    <span>•</span>
+                                    <span>Năm ${c.academicYear || '2025-2026'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        ${actionHtml}
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.quickAssignExam = async (examId, classId) => {
             try {
                 await updateDoc(doc(db, "exams", examId), {
                     accessType: 'class',
-                    allowedClassIds: arrayUnion(selectedClass.id)
+                    allowedClassIds: arrayUnion(classId)
                 });
-                window.showNotification(`Đã giao bài tập thành công cho lớp "${selectedClass.name}"!`, "success");
+                // Cập nhật in-memory
+                const ex = (examData || []).find(e => e.id === examId);
+                if (ex) {
+                    ex.allowedClassIds = ex.allowedClassIds || [];
+                    if (!ex.allowedClassIds.includes(classId)) ex.allowedClassIds.push(classId);
+                }
+                const cls = (window.allClassesData || []).find(c => c.id === classId);
+                window.showNotification(`Đã giao đề cho lớp "${cls?.name || 'Lớp'}" thành công!`, "success");
+                window.renderQuickAssignModal();
             } catch(e) {
                 console.error(e);
                 window.showNotification("Lỗi giao bài: " + e.message, "error");
+            }
+        };
+
+        window.quickUnassignExam = async (examId, classId) => {
+            const cls = (window.allClassesData || []).find(c => c.id === classId);
+            if (!await window.customConfirm(`Hủy giao đề thi này cho lớp "${cls?.name || 'Lớp'}"?`)) return;
+            try {
+                await updateDoc(doc(db, "exams", examId), {
+                    allowedClassIds: arrayRemove(classId)
+                });
+                // Cập nhật in-memory
+                const ex = (examData || []).find(e => e.id === examId);
+                if (ex && ex.allowedClassIds) {
+                    ex.allowedClassIds = ex.allowedClassIds.filter(id => id !== classId);
+                }
+                window.showNotification(`Đã hủy giao đề cho lớp "${cls?.name || 'Lớp'}"!`, "info");
+                window.renderQuickAssignModal();
+            } catch(e) {
+                console.error(e);
+                window.showNotification("Lỗi hủy giao bài: " + e.message, "error");
+            }
+        };
+
+        window.quickAssignExamToAll = async (examId) => {
+            const examObj = (examData || []).find(e => e.id === examId) || {};
+            const allowedClassIds = Array.isArray(examObj.allowedClassIds) ? examObj.allowedClassIds : [];
+            const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
+            const myClasses = (window.allClassesData || []).filter(c => c && (c.teacherId === currentUserUid || isSuper || !c.teacherId));
+            const classesInYear = myClasses.filter(c => (c.academicYear || '2025-2026') === window.quickAssignSelectedYear);
+            const unassigned = classesInYear.filter(c => !allowedClassIds.includes(c.id));
+            if (unassigned.length === 0) return;
+
+            if (!await window.customConfirm(`Thầy/Cô có chắc chắn muốn giao đề cho TẤT CẢ ${unassigned.length} lớp trong năm học ${window.quickAssignSelectedYear}?`)) return;
+
+            try {
+                const idsToAdd = unassigned.map(c => c.id);
+                await updateDoc(doc(db, "exams", examId), {
+                    accessType: 'class',
+                    allowedClassIds: arrayUnion(...idsToAdd)
+                });
+                // Cập nhật in-memory
+                if (examObj) {
+                    examObj.allowedClassIds = Array.from(new Set([...allowedClassIds, ...idsToAdd]));
+                }
+                window.showNotification(`Đã giao đề cho tất cả các lớp trong năm ${window.quickAssignSelectedYear}!`, "success");
+                window.renderQuickAssignModal();
+            } catch(e) {
+                console.error(e);
+                window.showNotification("Lỗi giao hàng loạt: " + e.message, "error");
             }
         };
         window.handleDragStart = (e, id, type) => { e.dataTransfer.setData("text/plain", JSON.stringify({id, type})); e.target.classList.add('dragging'); e.stopPropagation(); }
@@ -7398,6 +7654,12 @@ function renderTagFilterUI() {
                 window.assignModalFolderId = null;
         window.assignModalFolders = [];
         window.assignableExams = [];
+        window.assignExamSort = localStorage.getItem('lms_assign_exam_sort') || 'newest';
+        window.changeAssignExamSort = (val) => {
+            window.assignExamSort = val;
+            try { localStorage.setItem('lms_assign_exam_sort', val); } catch(e) {}
+            window.renderAssignModalExplorer();
+        };
 
         window.openAssignExamModal = async (classId) => {
             if (!window.requirePermission('exams.assign', 'giao bài tập')) return;
@@ -7412,10 +7674,13 @@ function renderTagFilterUI() {
             const clearBtn = document.getElementById('clearSearchAssignExam');
             if (clearBtn) clearBtn.classList.add('hidden');
 
+            const sortSelect = document.getElementById('assignExamSortSelect');
+            if (sortSelect) sortSelect.value = window.assignExamSort || 'newest';
+
             // Hiển thị tên lớp
             const classNameEl = document.getElementById('assignExamClassName');
             if (classNameEl) {
-                const cls = (window.classesData || []).find(c => c.id === classId) || { name: 'Lớp học' };
+                const cls = (window.allClassesData || window.classesData || []).find(c => c.id === classId) || { name: 'Lớp học' };
                 classNameEl.textContent = cls.name || 'Lớp học';
             }
 
@@ -7423,19 +7688,20 @@ function renderTagFilterUI() {
             listEl.innerHTML = '<div class="text-center py-12"><i class="fa-solid fa-spinner fa-spin text-3xl text-primary-500 mb-3"></i><p class="text-xs sm:text-sm text-gray-500 font-medium">Đang tải cấu trúc thư mục & ngân hàng đề...</p></div>';
 
             try {
-                // Đảm bảo dữ liệu ngân hàng đã được nạp
-                if ((!folderData || folderData.length === 0) && (!examData || examData.length === 0)) {
-                    await loadFileManager(false);
-                }
+                // Luôn làm mới ngân hàng đề từ server để các thư mục đã xóa trước đây (he0, heo, null...) biến mất hoàn toàn
+                await loadFileManager(true);
 
                 const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
                 const canUseShared = isSuper || window.hasPermission('bank.use_shared');
 
-                // Sao chép danh sách thư mục
-                window.assignModalFolders = (folderData || []).map(f => ({ ...f }));
+                // Lọc sạch danh sách thư mục bằng sanitizeFolders
+                window.assignModalFolders = typeof window.sanitizeFolders === 'function' ? window.sanitizeFolders(folderData || []) : (folderData || []);
 
-                // Khởi tạo danh sách đề từ examData
-                window.assignableExams = (examData || []).map(e => ({ ...e }));
+                // Khởi tạo danh sách đề từ examData, loại bỏ đề rác
+                window.assignableExams = (examData || []).filter(e => e && e.id && !e.isDeleted && e.title && e.title !== 'null').map(e => ({
+                    ...e,
+                    folderId: (!e.folderId || e.folderId === 'root' || e.folderId === 'null' || e.folderId === 'undefined') ? null : e.folderId
+                }));
 
                 // Tải thêm đề hệ thống dùng chung nếu có quyền bank.use_shared
                 if (canUseShared) {
@@ -7446,7 +7712,7 @@ function renderTagFilterUI() {
                                 const ex = d.data();
                                 const qCount = Array.isArray(ex.questions) ? ex.questions.length : (ex.questionCount || 0);
                                 delete ex.questions;
-                                window.assignableExams.push({ id: d.id, isSystem: true, ...ex, questionCount: qCount });
+                                window.assignableExams.push({ id: d.id, isSystem: true, ...ex, questionCount: qCount, folderId: (!ex.folderId || ex.folderId === 'root' || ex.folderId === 'null') ? null : ex.folderId });
                             }
                         });
                     } catch(errSys) {
@@ -7539,21 +7805,61 @@ function renderTagFilterUI() {
             const allExams = window.assignableExams || [];
             const allFolders = window.assignModalFolders || [];
 
+            // Helper phân loại sắp xếp
+            const sortMode = window.assignExamSort || 'newest';
+            const getSortTime = (item) => {
+                if (!item) return 0;
+                const v = item.createdAt || item.updatedAt;
+                if (!v) return 0;
+                if (typeof v === 'number') return v;
+                if (v.seconds) return v.seconds * 1000;
+                if (typeof v === 'string') {
+                    const p = Date.parse(v);
+                    return isNaN(p) ? 0 : p;
+                }
+                if (v instanceof Date) return v.getTime();
+                return 0;
+            };
+
+            const sortFolderList = (list) => {
+                return list.slice().sort((a, b) => {
+                    if (sortMode === 'az') return (a.name || '').localeCompare(b.name || '', 'vi', { sensitivity: 'base' });
+                    if (sortMode === 'za') return (b.name || '').localeCompare(a.name || '', 'vi', { sensitivity: 'base' });
+                    if (sortMode === 'oldest') return getSortTime(a) - getSortTime(b);
+                    if (sortMode === 'questions') {
+                        const countA = allExams.filter(e => e.folderId === a.id).length;
+                        const countB = allExams.filter(e => e.folderId === b.id).length;
+                        return countB - countA;
+                    }
+                    return getSortTime(b) - getSortTime(a);
+                });
+            };
+
+            const sortExamList = (list) => {
+                return list.slice().sort((a, b) => {
+                    if (sortMode === 'az') return (a.title || '').localeCompare(b.title || '', 'vi', { sensitivity: 'base' });
+                    if (sortMode === 'za') return (b.title || '').localeCompare(a.title || '', 'vi', { sensitivity: 'base' });
+                    if (sortMode === 'oldest') return getSortTime(a) - getSortTime(b);
+                    if (sortMode === 'questions') return (b.questionCount || 0) - (a.questionCount || 0);
+                    return getSortTime(b) - getSortTime(a);
+                });
+            };
+
             // 1. CHẾ ĐỘ TÌM KIẾM THEO TỪ KHÓA
             if (searchTerm.length > 0) {
                 breadcrumbEl.innerHTML = `
                     <span class="font-bold text-primary-700 flex items-center gap-1.5">
-                        <i class="fa-solid fa-magnifying-glass text-xs"></i> Kết quả tìm kiếm cho: "${searchTerm}"
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i> Kết quả tìm kiếm: "${searchTerm}"
                     </span>
                 `;
                 backContainer.innerHTML = `
-                    <button onclick="document.getElementById('searchAssignExam').value=''; window.filterAssignExams();" class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold text-gray-700 flex items-center gap-1 transition-all">
+                    <button onclick="document.getElementById('searchAssignExam').value=''; window.filterAssignExams();" class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold text-gray-700 flex items-center gap-1 transition-all cursor-pointer">
                         <i class="fa-solid fa-xmark"></i> Xóa tìm kiếm
                     </button>
                 `;
 
-                const matchedFolders = allFolders.filter(f => (f.name || '').toLowerCase().includes(searchTerm));
-                const matchedExams = allExams.filter(e => (e.title || '').toLowerCase().includes(searchTerm));
+                const matchedFolders = sortFolderList(allFolders.filter(f => (f.name || '').toLowerCase().includes(searchTerm)));
+                const matchedExams = sortExamList(allExams.filter(e => (e.title || '').toLowerCase().includes(searchTerm)));
 
                 if (matchedFolders.length === 0 && matchedExams.length === 0) {
                     listEl.innerHTML = `
@@ -7571,7 +7877,7 @@ function renderTagFilterUI() {
                 matchedFolders.forEach(f => {
                     const examCount = allExams.filter(e => e.folderId === f.id).length;
                     html += `
-                        <div onclick="window.assignModalNavigate('${f.id}')" class="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-amber-400 hover:bg-amber-50/20 cursor-pointer hover:shadow-sm transition-all group">
+                        <div onclick="window.assignModalNavigate('${f.id}')" class="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-amber-400 hover:bg-amber-50/20 cursor-pointer hover:shadow-xs transition-all group">
                             <div class="flex items-center gap-3 min-w-0">
                                 <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                                     <i class="fa-solid fa-folder"></i>
@@ -7621,7 +7927,7 @@ function renderTagFilterUI() {
                     </span>
                 `;
                 backContainer.innerHTML = `
-                    <button onclick="window.assignModalBack()" class="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-primary-50 hover:text-primary-600 font-semibold text-gray-700 flex items-center gap-1 transition-all shadow-sm">
+                    <button onclick="window.assignModalBack()" class="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-primary-50 hover:text-primary-600 font-semibold text-gray-700 flex items-center gap-1 transition-all shadow-xs cursor-pointer">
                         <i class="fa-solid fa-arrow-left"></i> Quay lại
                     </button>
                 `;
@@ -7659,7 +7965,7 @@ function renderTagFilterUI() {
                 });
                 breadcrumbEl.innerHTML = breadcrumbHtml;
                 backContainer.innerHTML = `
-                    <button onclick="window.assignModalBack()" class="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-primary-50 hover:text-primary-600 font-semibold text-gray-700 flex items-center gap-1 transition-all shadow-sm">
+                    <button onclick="window.assignModalBack()" class="text-xs px-2.5 py-1 rounded-lg bg-white border border-gray-200 hover:bg-primary-50 hover:text-primary-600 font-semibold text-gray-700 flex items-center gap-1 transition-all shadow-xs cursor-pointer">
                         <i class="fa-solid fa-arrow-left"></i> Quay lại
                     </button>
                 `;
@@ -7684,13 +7990,17 @@ function renderTagFilterUI() {
                 currentExams = allExams.filter(e => e.folderId === window.assignModalFolderId);
             }
 
+            // Áp dụng sắp xếp
+            currentFolders = sortFolderList(currentFolders);
+            currentExams = sortExamList(currentExams);
+
             // C. Kết xuất giao diện
             let html = '';
 
             // Nếu ở thư mục gốc và có đề từ khóa học -> Hiển thị thư mục ảo "Đề từ khóa học"
             if (window.assignModalFolderId === null && courseExams.length > 0) {
                 html += `
-                    <div onclick="window.assignModalNavigate('__course_exams__')" class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50/70 to-indigo-50/50 rounded-xl border border-purple-200 hover:border-purple-400 hover:shadow-sm cursor-pointer transition-all group">
+                    <div onclick="window.assignModalNavigate('__course_exams__')" class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50/70 to-indigo-50/50 rounded-xl border border-purple-200 hover:border-purple-400 hover:shadow-xs cursor-pointer transition-all group">
                         <div class="flex items-center gap-3 min-w-0">
                             <div class="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                                 <i class="fa-solid fa-graduation-cap"></i>
@@ -7724,7 +8034,7 @@ function renderTagFilterUI() {
                     : '';
 
                 html += `
-                    <div onclick="window.assignModalNavigate('${f.id}')" class="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-amber-400 hover:bg-amber-50/20 cursor-pointer hover:shadow-sm transition-all group">
+                    <div onclick="window.assignModalNavigate('${f.id}')" class="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 hover:border-amber-400 hover:bg-amber-50/20 cursor-pointer hover:shadow-xs transition-all group">
                         <div class="flex items-center gap-3 min-w-0">
                             <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
                                 <i class="fa-solid fa-folder"></i>
@@ -7802,18 +8112,18 @@ function renderTagFilterUI() {
             if (isAssigned) {
                 actionBtn = `<span class="px-3.5 py-1.5 bg-gray-100 text-gray-400 font-bold rounded-lg text-xs flex items-center gap-1 select-none"><i class="fa-solid fa-check"></i> Đã giao</span>`;
             } else {
-                actionBtn = `<button onclick="window.assignExamToClass('${ex.id}')" class="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-plus"></i> Chọn</button>`;
+                actionBtn = `<button onclick="window.assignExamToClass('${ex.id}')" class="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg text-xs shadow-xs hover:shadow transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"><i class="fa-solid fa-plus"></i> Chọn</button>`;
             }
 
             return `
-                <div class="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-200 hover:border-primary-400 hover:shadow-sm transition-all group">
+                <div class="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-200 hover:border-primary-400 hover:shadow-xs transition-all group">
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center text-lg shrink-0">
                             <i class="${examIcon}"></i>
                         </div>
                         <div class="min-w-0">
                             <div class="font-bold text-gray-800 text-sm group-hover:text-primary-600 transition-colors flex items-center gap-1.5 flex-wrap">
-                                <span class="truncate max-w-[280px] sm:max-w-md">${ex.title}</span>
+                                <span class="truncate max-w-[200px] sm:max-w-md lg:max-w-xl">${ex.title}</span>
                                 ${badgeHtml}
                             </div>
                             <div class="text-xs text-gray-400 mt-0.5 flex items-center gap-2 flex-wrap">
@@ -11435,25 +11745,36 @@ window.deleteTag = async (id) => {
             </div>
         </div>
     </div>
-        <div id="assignExamModal" class="hidden fixed inset-0 z-[160] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[85vh] flex flex-col border border-gray-200 overflow-hidden">
+        <!-- Modal Giao Đề Từ Ngân Hàng Cho Lớp (Mở rộng cho PC & Tối ưu Mobile) -->
+        <div id="assignExamModal" class="hidden fixed inset-0 z-[160] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-6 animate-fade-in">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[94vh] sm:h-[88vh] flex flex-col border border-gray-200 overflow-hidden">
             <!-- Header -->
-            <div class="p-4 sm:p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 rounded-t-2xl shrink-0">
-                <div>
-                    <h3 class="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
+            <div class="p-3.5 sm:p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 rounded-t-2xl shrink-0">
+                <div class="min-w-0 mr-2">
+                    <h3 class="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2 truncate">
                         <i class="fa-solid fa-folder-tree text-primary-600"></i> Chọn đề thi từ Ngân hàng
                     </h3>
-                    <p class="text-xs text-gray-500 mt-0.5">Giao bài tập cho lớp: <span id="assignExamClassName" class="font-bold text-primary-700"></span></p>
+                    <p class="text-xs text-gray-500 mt-0.5 truncate">Giao bài tập cho lớp: <span id="assignExamClassName" class="font-bold text-primary-700"></span></p>
                 </div>
-                <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center shadow-sm transition-all"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center shadow-xs transition shrink-0 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <!-- Ô tìm kiếm -->
-            <div class="p-3 sm:p-4 border-b border-gray-100 bg-white shrink-0">
-                <div class="relative">
-                    <i class="fa-solid fa-search absolute left-3.5 top-3 text-gray-400"></i>
-                    <input type="text" id="searchAssignExam" oninput="window.filterAssignExams()" placeholder="Tìm kiếm nhanh tên đề thi hoặc thư mục..." class="w-full pl-10 pr-9 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-200 text-xs sm:text-sm transition-all">
-                    <button id="clearSearchAssignExam" onclick="document.getElementById('searchAssignExam').value=''; window.filterAssignExams();" class="hidden absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 w-5 h-5 flex items-center justify-center rounded-full"><i class="fa-solid fa-xmark text-xs"></i></button>
+            <!-- Ô tìm kiếm & Sắp xếp -->
+            <div class="p-3 sm:p-4 border-b border-gray-100 bg-white shrink-0 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-search absolute left-3.5 top-2.5 sm:top-3 text-gray-400 text-xs sm:text-sm"></i>
+                    <input type="text" id="searchAssignExam" oninput="window.filterAssignExams()" placeholder="Tìm kiếm nhanh tên đề thi hoặc thư mục..." class="w-full pl-9 sm:pl-10 pr-9 py-2 sm:py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-200 text-xs sm:text-sm transition-all">
+                    <button id="clearSearchAssignExam" onclick="document.getElementById('searchAssignExam').value=''; window.filterAssignExams();" class="hidden absolute right-3 top-2 sm:top-2.5 text-gray-400 hover:text-gray-600 w-5 h-5 flex items-center justify-center rounded-full cursor-pointer"><i class="fa-solid fa-xmark text-xs"></i></button>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <label class="text-xs text-gray-500 font-medium hidden sm:inline"><i class="fa-solid fa-arrow-down-short-wide mr-1"></i>Sắp xếp:</label>
+                    <select id="assignExamSortSelect" onchange="window.changeAssignExamSort(this.value)" class="w-full sm:w-auto bg-gray-50 border border-gray-200 text-gray-700 text-xs sm:text-sm font-semibold rounded-xl py-2 sm:py-2.5 px-3 outline-none focus:ring-2 focus:ring-primary-200 cursor-pointer transition-all">
+                        <option value="newest">🕒 Mới nhất</option>
+                        <option value="oldest">🕰️ Cũ nhất</option>
+                        <option value="az">🔤 Tên A-Z</option>
+                        <option value="za">🔠 Tên Z-A</option>
+                        <option value="questions">📝 Số câu nhiều nhất</option>
+                    </select>
                 </div>
             </div>
 
@@ -11468,12 +11789,55 @@ window.deleteTag = async (id) => {
             </div>
 
             <!-- Danh sách thư mục & đề thi -->
-            <div id="assignExamList" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 custom-scrollbar bg-gray-50/40"></div>
+            <div id="assignExamList" class="flex-1 overflow-y-auto p-3 sm:p-5 space-y-2 custom-scrollbar bg-gray-50/40"></div>
             
             <!-- Chân modal -->
             <div class="p-3 sm:p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-between items-center shrink-0">
-                <div id="assignExamFooterInfo" class="text-xs text-gray-400"></div>
-                <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="px-5 py-2 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 text-xs sm:text-sm transition-colors">Đóng</button>
+                <div id="assignExamFooterInfo" class="text-xs text-gray-400 font-medium"></div>
+                <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="px-5 py-2 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 text-xs sm:text-sm transition-colors cursor-pointer">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Giao Đề Nhanh Cho Lớp Học (Theo Năm Học & Danh Sách Lớp) -->
+    <div id="quickAssignExamModal" class="hidden fixed inset-0 z-[160] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col border border-gray-200 overflow-hidden">
+            <!-- Header -->
+            <div class="p-4 sm:p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl shrink-0">
+                <div class="flex items-center gap-3 min-w-0 mr-2">
+                    <div class="w-10 h-10 rounded-xl bg-primary-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
+                        <i class="fa-solid fa-share-from-square"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-800 truncate">Giao đề nhanh cho lớp học</h3>
+                        <p class="text-xs text-gray-500 truncate mt-0.5">Đề thi: <span id="quickAssignExamTitle" class="font-bold text-primary-700"></span></p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.closeQuickAssignExamModal()" class="w-8 h-8 rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center shadow-xs transition shrink-0 cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Tabs Năm Học & Tìm Kiếm -->
+            <div class="p-3 sm:p-4 border-b border-gray-100 bg-white space-y-2.5 shrink-0">
+                <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar py-0.5" id="quickAssignYearTabs">
+                    <!-- Dynamic Year Tabs -->
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                    <input type="text" id="quickAssignClassSearch" oninput="window.renderQuickAssignModal()" placeholder="Tìm kiếm lớp học trong năm này..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary-200 transition">
+                </div>
+                <div id="quickAssignBulkBar"></div>
+            </div>
+
+            <!-- Danh sách lớp học -->
+            <div id="quickAssignClassList" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 custom-scrollbar bg-gray-50/40">
+                <!-- Dynamic Classes -->
+            </div>
+
+            <!-- Footer -->
+            <div class="p-3 sm:p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-end shrink-0">
+                <button type="button" onclick="window.closeQuickAssignExamModal()" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl text-xs sm:text-sm transition cursor-pointer">Đóng</button>
             </div>
         </div>
     </div>

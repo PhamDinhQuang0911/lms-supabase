@@ -647,28 +647,32 @@
         </div>
     </div>
 
-    <header id="examHeader" class="bg-white shadow-sm z-20 shrink-0 h-16 flex items-center justify-between px-4 lg:px-8 hidden">
-        <div class="flex items-center gap-4">
-            <button type="button" onclick="window.handleExamHeaderBack()" class="w-9 h-9 -ml-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full flex items-center justify-center text-base cursor-pointer active:scale-90 transition shrink-0" title="Quay lại">
+    <header id="examHeader" class="bg-white shadow-sm z-20 shrink-0 h-16 flex items-center justify-between px-2.5 sm:px-4 lg:px-8 hidden">
+        <div class="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1 mr-2">
+            <button type="button" onclick="window.handleExamHeaderBack()" class="w-8 h-8 sm:w-9 sm:h-9 -ml-0.5 sm:-ml-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full flex items-center justify-center text-sm sm:text-base cursor-pointer active:scale-90 transition shrink-0" title="Quay lại">
                 <i class="fa-solid fa-arrow-left"></i>
             </button>
-            <div id="headerLogoContainer" class="w-10 h-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center font-bold overflow-hidden shrink-0">
+            <div id="headerLogoContainer" class="w-9 h-9 sm:w-10 sm:h-10 bg-orange-100 text-orange-600 rounded-lg hidden sm:flex items-center justify-center font-bold overflow-hidden shrink-0">
                 <i class="fa-solid fa-pen-nib"></i>
             </div>
-            <div>
-                <h1 id="examTitle" class="text-sm md:text-lg font-bold text-gray-800 leading-tight truncate max-w-[150px] md:max-w-xs">Bài thi</h1>
-                <p class="text-[10px] md:text-xs text-gray-500 flex items-center gap-1.5">
+            <div class="min-w-0 flex-1">
+                <h1 id="examTitle" class="text-xs sm:text-sm md:text-lg font-bold text-gray-800 leading-tight truncate" title="Bài thi">Bài thi</h1>
+                <p class="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1.5 truncate">
                     <span>Mã đề: <span id="examIdDisplay">---</span></span>
                     <span id="headerBookOrderBadge" class="hidden bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0.5 rounded font-bold border border-amber-200"><i class="fa-solid fa-book-open mr-0.5"></i> Sách in</span>
                 </p>
             </div>
         </div>
-        <div class="flex items-center gap-3 md:gap-6">
-            <div id="cheatWarning" class="hidden flex items-center gap-1 text-red-500 bg-red-50 px-3 py-1 rounded-full text-xs font-bold border border-red-100 animate-pulse"><i class="fa-solid fa-triangle-exclamation"></i> <span id="cheatCount">0</span> vi phạm</div>
+        <div class="flex items-center gap-1.5 sm:gap-3 md:gap-6 shrink-0">
+            <div id="cheatWarning" class="hidden flex items-center gap-1 text-red-600 bg-red-50 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold border border-red-200 animate-pulse shrink-0" title="Số lần vi phạm rời màn hình">
+                <i class="fa-solid fa-triangle-exclamation text-red-500 text-xs"></i>
+                <span id="cheatCount" class="font-black text-red-600">0</span>
+                <span class="hidden md:inline font-semibold text-[11px]">vi phạm</span>
+            </div>
             
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl shadow-md shadow-blue-500/20 border border-blue-400/30 flex items-center gap-2">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-2.5 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl shadow-md shadow-blue-500/20 border border-blue-400/30 flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <i class="fa-regular fa-clock text-xs sm:text-sm text-blue-200"></i>
-                <span id="timer" class="font-mono font-black text-base sm:text-lg tracking-wider">00:00</span>
+                <span id="timer" class="font-mono font-black text-sm sm:text-base md:text-lg tracking-wider">00:00</span>
             </div>
             
             <button id="togglePdfViewBtn" onclick="togglePdfView()" class="hidden md:flex px-4 py-2 bg-white text-primary-600 border border-primary-200 hover:bg-primary-50 font-bold rounded-lg transition-all shadow-sm items-center gap-2">
