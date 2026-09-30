@@ -449,6 +449,7 @@ function unwrapRecord(r) {
     if (r.status !== undefined) res.status = r.status;
     if (r.anti_screenshot !== undefined) res.antiScreenshot = r.anti_screenshot;
     if (r.folder_id !== undefined) res.folderId = r.folder_id;
+    if (r.parent_id !== undefined) res.parentId = r.parent_id;
     if (r.teacher_id !== undefined) res.teacherId = r.teacher_id;
     if (r.question_count !== undefined) res.questionCount = r.question_count;
     if (r.pass_score !== undefined) res.passScore = r.pass_score;

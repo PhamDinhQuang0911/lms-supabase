@@ -5944,18 +5944,21 @@ function renderTagFilterUI() {
             const validFolderMap = new Map();
             rawFolders.forEach(f => {
                 if (!f || !f.id || f.isDeleted === true) return;
+                // Bỏ các thư mục topic_bank hoặc không phải exam/folder
+                if (f.type && f.type !== 'exam' && f.type !== 'folder') return;
                 const rawName = String(f.name || f.title || '').trim();
-                // Loại bỏ thư mục rác, thư mục null, undefined
-                if (!rawName || rawName.toLowerCase() === 'null' || rawName.toLowerCase() === 'undefined') return;
+                const lower = rawName.toLowerCase();
+                // Loại bỏ thư mục rác, null, undefined, he0, heo, he
+                if (!rawName || lower === 'null' || lower === 'undefined' || lower === 'he0' || lower === 'heo' || lower === 'he') return;
                 
-                let normalizedParentId = f.parentId;
-                if (!normalizedParentId || normalizedParentId === 'root' || normalizedParentId === 'null' || normalizedParentId === 'undefined') {
-                    normalizedParentId = null;
+                let pId = f.parentId !== undefined ? f.parentId : f.parent_id;
+                if (!pId || pId === 'root' || pId === 'null' || pId === 'undefined') {
+                    pId = null;
                 }
                 validFolderMap.set(f.id, {
                     ...f,
                     name: rawName,
-                    parentId: normalizedParentId
+                    parentId: pId
                 });
             });
 
@@ -7688,19 +7691,31 @@ function renderTagFilterUI() {
             listEl.innerHTML = '<div class="text-center py-12"><i class="fa-solid fa-spinner fa-spin text-3xl text-primary-500 mb-3"></i><p class="text-xs sm:text-sm text-gray-500 font-medium">Đang tải cấu trúc thư mục & ngân hàng đề...</p></div>';
 
             try {
-                // Luôn làm mới ngân hàng đề từ server để các thư mục đã xóa trước đây (he0, heo, null...) biến mất hoàn toàn
+                // 1. Tải danh sách thư mục ngân hàng trực tiếp từ database để đảm bảo hiển thị đầy đủ
+                let fetchedFolders = [];
+                try {
+                    const snapF = await getDocs(collection(db, "folders"));
+                    snapF.forEach(d => fetchedFolders.push({ id: d.id, ...d.data() }));
+                } catch(errF) {
+                    console.warn("Lỗi nạp folders trực tiếp:", errF);
+                }
+
+                // 2. Đồng thời làm mới ngân hàng đề từ server
                 await loadFileManager(true);
+                (folderData || []).forEach(f => {
+                    if (!fetchedFolders.some(x => x.id === f.id)) fetchedFolders.push(f);
+                });
 
                 const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
                 const canUseShared = isSuper || window.hasPermission('bank.use_shared');
 
                 // Lọc sạch danh sách thư mục bằng sanitizeFolders
-                window.assignModalFolders = typeof window.sanitizeFolders === 'function' ? window.sanitizeFolders(folderData || []) : (folderData || []);
+                window.assignModalFolders = typeof window.sanitizeFolders === 'function' ? window.sanitizeFolders(fetchedFolders) : fetchedFolders;
 
                 // Khởi tạo danh sách đề từ examData, loại bỏ đề rác
                 window.assignableExams = (examData || []).filter(e => e && e.id && !e.isDeleted && e.title && e.title !== 'null').map(e => ({
                     ...e,
-                    folderId: (!e.folderId || e.folderId === 'root' || e.folderId === 'null' || e.folderId === 'undefined') ? null : e.folderId
+                    folderId: (!e.folderId && !e.folder_id || e.folderId === 'root' || e.folderId === 'null' || e.folderId === 'undefined') ? null : (e.folderId || e.folder_id)
                 }));
 
                 // Tải thêm đề hệ thống dùng chung nếu có quyền bank.use_shared
@@ -7978,16 +7993,23 @@ function renderTagFilterUI() {
 
             if (window.assignModalFolderId === null) {
                 // Ở thư mục gốc:
-                currentFolders = allFolders.filter(f => !f.parentId || f.parentId === 'root' || f.parentId === 'null');
-                currentExams = allExams.filter(e => !e.fromCourse && (!e.folderId || e.folderId === 'root' || e.folderId === 'null'));
+                currentFolders = allFolders.filter(f => {
+                    const p = f.parentId !== undefined ? f.parentId : f.parent_id;
+                    return !p || p === 'root' || p === 'null';
+                });
+                currentExams = allExams.filter(e => {
+                    if (e.fromCourse) return false;
+                    const fId = e.folderId !== undefined ? e.folderId : e.folder_id;
+                    return !fId || fId === 'root' || fId === 'null';
+                });
             } else if (window.assignModalFolderId === '__course_exams__') {
                 // Xem mục Đề từ khóa học
                 currentFolders = [];
                 currentExams = courseExams;
             } else {
                 // Trong 1 thư mục cụ thể:
-                currentFolders = allFolders.filter(f => f.parentId === window.assignModalFolderId);
-                currentExams = allExams.filter(e => e.folderId === window.assignModalFolderId);
+                currentFolders = allFolders.filter(f => (f.parentId || f.parent_id) === window.assignModalFolderId);
+                currentExams = allExams.filter(e => (e.folderId || e.folder_id) === window.assignModalFolderId);
             }
 
             // Áp dụng sắp xếp
@@ -11745,30 +11767,30 @@ window.deleteTag = async (id) => {
             </div>
         </div>
     </div>
-        <!-- Modal Giao Đề Từ Ngân Hàng Cho Lớp (Mở rộng cho PC & Tối ưu Mobile) -->
-        <div id="assignExamModal" class="hidden fixed inset-0 z-[160] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 lg:p-6 animate-fade-in">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[94vh] sm:h-[88vh] flex flex-col border border-gray-200 overflow-hidden">
+        <!-- Modal Giao Đề Từ Ngân Hàng Cho Lớp (Rộng bề ngang & Thu hẹp bề dọc, có con lăn mượt mà) -->
+        <div id="assignExamModal" class="hidden fixed inset-0 z-[160] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 md:p-8 animate-fade-in">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col border border-gray-200 dark:border-slate-800 overflow-hidden" style="width: min(94vw, 1150px); max-height: 80vh; height: 80vh;">
             <!-- Header -->
-            <div class="p-3.5 sm:p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 rounded-t-2xl shrink-0">
+            <div class="p-3.5 sm:p-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/90 dark:bg-slate-800/80 rounded-t-2xl shrink-0">
                 <div class="min-w-0 mr-2">
-                    <h3 class="text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2 truncate">
+                    <h3 class="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2 truncate">
                         <i class="fa-solid fa-folder-tree text-primary-600"></i> Chọn đề thi từ Ngân hàng
                     </h3>
-                    <p class="text-xs text-gray-500 mt-0.5 truncate">Giao bài tập cho lớp: <span id="assignExamClassName" class="font-bold text-primary-700"></span></p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">Giao bài tập cho lớp: <span id="assignExamClassName" class="font-bold text-primary-700 dark:text-primary-400"></span></p>
                 </div>
-                <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center shadow-xs transition shrink-0 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-white dark:bg-slate-800 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 flex items-center justify-center shadow-xs transition shrink-0 cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
             <!-- Ô tìm kiếm & Sắp xếp -->
-            <div class="p-3 sm:p-4 border-b border-gray-100 bg-white shrink-0 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
+            <div class="p-3 sm:p-3.5 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
                 <div class="relative flex-1">
                     <i class="fa-solid fa-search absolute left-3.5 top-2.5 sm:top-3 text-gray-400 text-xs sm:text-sm"></i>
-                    <input type="text" id="searchAssignExam" oninput="window.filterAssignExams()" placeholder="Tìm kiếm nhanh tên đề thi hoặc thư mục..." class="w-full pl-9 sm:pl-10 pr-9 py-2 sm:py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-200 text-xs sm:text-sm transition-all">
-                    <button id="clearSearchAssignExam" onclick="document.getElementById('searchAssignExam').value=''; window.filterAssignExams();" class="hidden absolute right-3 top-2 sm:top-2.5 text-gray-400 hover:text-gray-600 w-5 h-5 flex items-center justify-center rounded-full cursor-pointer"><i class="fa-solid fa-xmark text-xs"></i></button>
+                    <input type="text" id="searchAssignExam" oninput="window.filterAssignExams()" placeholder="Tìm kiếm nhanh tên đề thi hoặc thư mục..." class="w-full pl-9 sm:pl-10 pr-9 py-2 sm:py-2.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-primary-200 text-xs sm:text-sm transition-all">
+                    <button id="clearSearchAssignExam" onclick="document.getElementById('searchAssignExam').value=''; window.filterAssignExams();" class="hidden absolute right-3 top-2 sm:top-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 w-5 h-5 flex items-center justify-center rounded-full cursor-pointer"><i class="fa-solid fa-xmark text-xs"></i></button>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <label class="text-xs text-gray-500 font-medium hidden sm:inline"><i class="fa-solid fa-arrow-down-short-wide mr-1"></i>Sắp xếp:</label>
-                    <select id="assignExamSortSelect" onchange="window.changeAssignExamSort(this.value)" class="w-full sm:w-auto bg-gray-50 border border-gray-200 text-gray-700 text-xs sm:text-sm font-semibold rounded-xl py-2 sm:py-2.5 px-3 outline-none focus:ring-2 focus:ring-primary-200 cursor-pointer transition-all">
+                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium hidden sm:inline"><i class="fa-solid fa-arrow-down-short-wide mr-1"></i>Sắp xếp:</label>
+                    <select id="assignExamSortSelect" onchange="window.changeAssignExamSort(this.value)" class="w-full sm:w-auto bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold rounded-xl py-2 sm:py-2.5 px-3 outline-none focus:ring-2 focus:ring-primary-200 cursor-pointer transition-all">
                         <option value="newest">🕒 Mới nhất</option>
                         <option value="oldest">🕰️ Cũ nhất</option>
                         <option value="az">🔤 Tên A-Z</option>
@@ -11779,7 +11801,7 @@ window.deleteTag = async (id) => {
             </div>
 
             <!-- Thanh Breadcrumb điều hướng thư mục -->
-            <div id="assignExamBreadcrumbBar" class="px-3 sm:px-4 py-2 bg-gray-50/90 border-b border-gray-200 flex items-center justify-between text-xs text-gray-600 shrink-0 gap-2">
+            <div id="assignExamBreadcrumbBar" class="px-3 sm:px-4 py-2 bg-gray-50/90 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between text-xs text-gray-600 dark:text-gray-300 shrink-0 gap-2">
                 <div id="assignExamBreadcrumb" class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-0.5 min-w-0">
                     <!-- Dynamic breadcrumb generated by JS -->
                 </div>
@@ -11788,56 +11810,56 @@ window.deleteTag = async (id) => {
                 </div>
             </div>
 
-            <!-- Danh sách thư mục & đề thi -->
-            <div id="assignExamList" class="flex-1 overflow-y-auto p-3 sm:p-5 space-y-2 custom-scrollbar bg-gray-50/40"></div>
+            <!-- Danh sách thư mục & đề thi (Có con lăn mượt mà) -->
+            <div id="assignExamList" class="overflow-y-auto p-3 sm:p-5 space-y-2.5 custom-scrollbar bg-gray-50/40 dark:bg-slate-900/40" style="min-height: 0; flex: 1 1 0%; overflow-y: auto;"></div>
             
             <!-- Chân modal -->
-            <div class="p-3 sm:p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-between items-center shrink-0">
-                <div id="assignExamFooterInfo" class="text-xs text-gray-400 font-medium"></div>
-                <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="px-5 py-2 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 text-xs sm:text-sm transition-colors cursor-pointer">Đóng</button>
+            <div class="p-3 sm:p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-b-2xl flex justify-between items-center shrink-0">
+                <div id="assignExamFooterInfo" class="text-xs text-gray-400 dark:text-gray-500 font-medium"></div>
+                <button onclick="document.getElementById('assignExamModal').classList.add('hidden')" class="px-5 py-2 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-slate-700 text-xs sm:text-sm transition-colors cursor-pointer">Đóng</button>
             </div>
         </div>
     </div>
 
     <!-- Modal Giao Đề Nhanh Cho Lớp Học (Theo Năm Học & Danh Sách Lớp) -->
     <div id="quickAssignExamModal" class="hidden fixed inset-0 z-[160] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col border border-gray-200 overflow-hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col border border-gray-200 dark:border-slate-800 overflow-hidden" style="width: min(94vw, 680px); max-height: 80vh; height: 80vh;">
             <!-- Header -->
-            <div class="p-4 sm:p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl shrink-0">
+            <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800/80 rounded-t-2xl shrink-0">
                 <div class="flex items-center gap-3 min-w-0 mr-2">
                     <div class="w-10 h-10 rounded-xl bg-primary-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
                         <i class="fa-solid fa-share-from-square"></i>
                     </div>
                     <div class="min-w-0">
-                        <h3 class="text-base sm:text-lg font-bold text-gray-800 truncate">Giao đề nhanh cho lớp học</h3>
-                        <p class="text-xs text-gray-500 truncate mt-0.5">Đề thi: <span id="quickAssignExamTitle" class="font-bold text-primary-700"></span></p>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 truncate">Giao đề nhanh cho lớp học</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">Đề thi: <span id="quickAssignExamTitle" class="font-bold text-primary-700 dark:text-primary-400"></span></p>
                     </div>
                 </div>
-                <button type="button" onclick="window.closeQuickAssignExamModal()" class="w-8 h-8 rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center shadow-xs transition shrink-0 cursor-pointer">
+                <button type="button" onclick="window.closeQuickAssignExamModal()" class="w-8 h-8 rounded-full bg-white dark:bg-slate-800 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 flex items-center justify-center shadow-xs transition shrink-0 cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
             <!-- Tabs Năm Học & Tìm Kiếm -->
-            <div class="p-3 sm:p-4 border-b border-gray-100 bg-white space-y-2.5 shrink-0">
+            <div class="p-3 sm:p-4 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5 shrink-0">
                 <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar py-0.5" id="quickAssignYearTabs">
                     <!-- Dynamic Year Tabs -->
                 </div>
                 <div class="relative">
                     <i class="fa-solid fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
-                    <input type="text" id="quickAssignClassSearch" oninput="window.renderQuickAssignModal()" placeholder="Tìm kiếm lớp học trong năm này..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary-200 transition">
+                    <input type="text" id="quickAssignClassSearch" oninput="window.renderQuickAssignModal()" placeholder="Tìm kiếm lớp học trong năm này..." class="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-gray-100 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary-200 transition">
                 </div>
                 <div id="quickAssignBulkBar"></div>
             </div>
 
             <!-- Danh sách lớp học -->
-            <div id="quickAssignClassList" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 custom-scrollbar bg-gray-50/40">
+            <div id="quickAssignClassList" class="overflow-y-auto p-3 sm:p-4 space-y-2 custom-scrollbar bg-gray-50/40 dark:bg-slate-900/40" style="min-height: 0; flex: 1 1 0%; overflow-y: auto;">
                 <!-- Dynamic Classes -->
             </div>
 
             <!-- Footer -->
-            <div class="p-3 sm:p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-end shrink-0">
-                <button type="button" onclick="window.closeQuickAssignExamModal()" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl text-xs sm:text-sm transition cursor-pointer">Đóng</button>
+            <div class="p-3 sm:p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-b-2xl flex justify-end shrink-0">
+                <button type="button" onclick="window.closeQuickAssignExamModal()" class="px-5 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 font-bold rounded-xl text-xs sm:text-sm transition cursor-pointer">Đóng</button>
             </div>
         </div>
     </div>
