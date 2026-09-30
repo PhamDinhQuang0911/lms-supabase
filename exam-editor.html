@@ -4802,6 +4802,7 @@
                     tlSolutionUrl: document.getElementById('settingTlSolutionUrl') ? document.getElementById('settingTlSolutionUrl').value : '',
                     tlScore: parseFloat(document.getElementById('settingTlScore')?.value) || 100,
                     tnScore: parseFloat(document.getElementById('settingTnScore')?.value) || 100,
+                    scoringConfig: window.currentScoringConfig || null,
                     tlDesc: document.getElementById('settingTlDesc') ? document.getElementById('settingTlDesc').value : '',
                     tlQuestions: window.mixedTlQuestions || []
                 };
@@ -5937,6 +5938,17 @@
                 const pInput = document.getElementById('editPoint');
                 if (pInput) pInput.value = window.questions[window.currentQIndex].point;
             }
+
+            // Tự động cập nhật tổng điểm trắc nghiệm vào cấu hình đề
+            const totalTn = parseFloat((tMC + tTF + tShort).toFixed(2));
+            const tnInput = document.getElementById('settingTnScore');
+            if (tnInput && totalTn > 0) {
+                tnInput.value = totalTn;
+            }
+            window.currentScoringConfig = {
+                tMC, tTF, tShort,
+                tEssay: parseFloat(document.getElementById('scoreTotalEssay')?.value) || 0
+            };
 
             closeScoringModal();
             renderPreviewList();

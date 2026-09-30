@@ -176,21 +176,72 @@
         },
 
         /**
+         * Kiểm tra xem MapID có thực sự tồn tại trong Cây MapID hay không
+         */
+        isMapIdInTree(mapId, tree = null) {
+            if (!mapId || !String(mapId).trim()) return false;
+            const targetTree = (Array.isArray(tree) && tree.length > 0) ? tree : (window.globalIdTree || []);
+            const clean = String(mapId).trim().toUpperCase();
+
+            // Format chuẩn: [Grade][Subject][Chapter][Level][Lesson]-[Type]
+            // Hỗ trợ cả 2 hệ ký hiệu: NHVC và YBKGC
+            const m = clean.match(/^(\d+)([A-Z]+)(\d+)([NHVCYBKGC])(\d*)(?:-([A-Za-z0-9]+))?$/i);
+            if (!m) return false;
+
+            const gradeCode = m[1];
+            const subCode = m[2];
+            const chapCode = m[3];
+
+            if (targetTree && targetTree.length > 0) {
+                // Tìm Khối lớp
+                const gNode = targetTree.find(g => g.id === gradeCode || 
+                    (gradeCode === '10' && g.id === '0') || 
+                    (gradeCode === '11' && g.id === '1') || 
+                    (gradeCode === '12' && g.id === '2'));
+                if (!gNode || !Array.isArray(gNode.children)) return false;
+
+                // Tìm Phân môn (D/DS, H/HH, X/XS, G, C...)
+                const sNode = gNode.children.find(s => s.id === subCode || 
+                    (subCode === 'DS' && s.id === 'D') || 
+                    (subCode === 'HH' && s.id === 'H') || 
+                    (subCode === 'XS' && s.id === 'X'));
+                if (!sNode || !Array.isArray(sNode.children)) return false;
+
+                // Tìm Chương
+                const cNode = sNode.children.find(c => String(c.id) === String(chapCode));
+                if (!cNode) return false;
+
+                return true;
+            }
+
+            // Fallback nếu chưa tải xong cây MapID: kiểm tra bảng chương hợp lệ cơ bản
+            // Khối 9 Hình học chỉ có các chương 4, 5, 9, 0, 7
+            if (gradeCode === '9' && (subCode === 'H' || subCode === 'HH')) {
+                return ['4', '5', '9', '0', '7'].includes(chapCode);
+            }
+            if (gradeCode === '9' && (subCode === 'D' || subCode === 'DS')) {
+                return ['1', '2', '3', '4', '5', '6', '7'].includes(chapCode);
+            }
+
+            return true;
+        },
+
+        /**
          * Phân tích môn học, mức độ, màu sắc từ MapID
          */
-        analyzeMapId(mapId) {
+        analyzeMapId(mapId, tree = null) {
             let subject = "Toán";
-            let level = "Thông hiểu";
-            let levelColor = "blue";
+            let level = null; // Mặc định null, chỉ gán khi tìm thấy hợp lệ
+            let levelColor = "gray";
+            let inMapId = false;
 
-            if (!mapId) return { subject, level, levelColor };
+            if (!mapId || !String(mapId).trim()) {
+                return { subject, level: null, levelColor: "gray", inMapId: false };
+            }
             const clean = String(mapId).toUpperCase().trim();
 
-            // 1. Phân tích theo cấu trúc chuẩn MapID: [Khối][Môn][Chương][Mức độ][Bài]-[Dạng]
-            // Ví dụ: 9H0H1-7 -> Môn H (Hình học), Mức độ H (Thông hiểu), Dạng 7
-            // 9D1N1-1 -> Môn D (Đại số), Mức độ N (Nhận biết)
-            // 9D1V3-X -> Môn D (Đại số), Mức độ V (Vận dụng), Dạng X
-            const m = clean.match(/^(\d+)([A-Z]+)(\d+)([NHVC])(\d*)(?:-([A-Za-z0-9]+))?$/);
+            // 1. Phân tích theo cấu trúc chuẩn MapID (Hỗ trợ cả NHVC và YBKGC)
+            const m = clean.match(/^(\d+)([A-Z]+)(\d+)([NHVCYBKGC])(\d*)(?:-([A-Za-z0-9]+))?$/i);
             if (m) {
                 const subCode = m[2];
                 const lvCode = m[4];
@@ -200,12 +251,19 @@
                 else if (subCode === 'X' || subCode === 'XS') subject = "Xác suất";
                 else if (subCode === 'G') subject = "Giải tích";
 
-                if (lvCode === 'N') { level = "Nhận biết"; levelColor = "green"; }
-                else if (lvCode === 'H') { level = "Thông hiểu"; levelColor = "blue"; }
-                else if (lvCode === 'V') { level = "Vận dụng"; levelColor = "orange"; }
-                else if (lvCode === 'C') { level = "Vận dụng cao"; levelColor = "red"; }
+                if (lvCode === 'N' || lvCode === 'Y') { level = "Nhận biết"; levelColor = "green"; }
+                else if (lvCode === 'H' || lvCode === 'B') { level = "Thông hiểu"; levelColor = "blue"; }
+                else if (lvCode === 'V' || lvCode === 'K') { level = "Vận dụng"; levelColor = "orange"; }
+                else if (lvCode === 'C' || lvCode === 'G') { level = "Vận dụng cao"; levelColor = "red"; }
 
-                return { subject, level, levelColor };
+                inMapId = this.isMapIdInTree(mapId, tree);
+                // Nếu gán ID nhưng không có trong map ID -> Không có
+                if (!inMapId) {
+                    level = null;
+                    levelColor = "gray";
+                }
+
+                return { subject, level, levelColor, inMapId };
             }
 
             // 2. Fallback cho các định dạng MapID linh hoạt khác
@@ -214,16 +272,16 @@
             else if (clean.includes('XS') || clean.startsWith('9X') || clean.includes('THỐNG')) subject = "Xác suất";
 
             if (clean.includes('VDC') || clean.includes('C1') || clean.includes('C2') || clean.includes('CAO')) {
-                level = "Vận dụng cao"; levelColor = "red";
+                level = "Vận dụng cao"; levelColor = "red"; inMapId = true;
             } else if (clean.includes('VD') || clean.includes('V1') || clean.includes('V2') || clean.includes('VẬN DỤNG')) {
-                level = "Vận dụng"; levelColor = "orange";
+                level = "Vận dụng"; levelColor = "orange"; inMapId = true;
             } else if (clean.includes('NB') || clean.includes('N1') || clean.includes('N2') || clean.includes('NHẬN BIẾT')) {
-                level = "Nhận biết"; levelColor = "green";
+                level = "Nhận biết"; levelColor = "green"; inMapId = true;
             } else if (clean.includes('TH') || clean.includes('H1') || clean.includes('H2') || clean.includes('THÔNG HIỂU')) {
-                level = "Thông hiểu"; levelColor = "blue";
+                level = "Thông hiểu"; levelColor = "blue"; inMapId = true;
             }
 
-            return { subject, level, levelColor };
+            return { subject, level, levelColor, inMapId };
         },
 
         /**
@@ -260,6 +318,10 @@
                 bookMapId: rawQ.bookMapId || "",             // Mã sách (nếu nạp từ sách)
                 topicId: rawQ.topicId || "",                 // Mã chuyên đề (nếu từ xưởng chuyên đề)
                 examId: rawQ.examId || "",                   // Mã đề thi (nếu từ đề thi)
+                isMaster: !!rawQ.isMaster,                   // True nếu là câu hỏi gốc đại diện
+                isDuplicate: !!rawQ.isDuplicate,             // True nếu là câu trùng/alias
+                masterId: rawQ.masterId || null,             // ID câu gốc nếu đây là câu trùng
+                aliases: Array.isArray(rawQ.aliases) ? rawQ.aliases : [], // Danh sách mã trùng đã gộp vào câu này
                 updatedAt: new Date().toISOString()
             };
         },
@@ -365,6 +427,8 @@
             if (!id) return null;
             const queryId = String(id).trim();
 
+            let target = null;
+
             // 1. Kiểm tra trong cache cục bộ
             if (!forceRemote) {
                 try {
@@ -373,27 +437,51 @@
                         const list = JSON.parse(cached);
                         if (Array.isArray(list)) {
                             const found = list.find(q => String(q.id) === queryId || String(q.cccd) === queryId);
-                            if (found && found.content) return found;
+                            if (found && found.content) target = found;
                         }
                     }
                 } catch(e) {}
             }
 
-            // 2. Fetch từ Cloudflare R2 qua Worker
-            try {
-                const res = await fetch(`${WORKER_BANK_URL}?id=${encodeURIComponent(queryId)}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && (data.id || data.content)) {
-                        this.updateLocalBankCache([data]);
-                        return data;
+            // 2. Fetch từ Cloudflare R2 qua Worker nếu chưa có
+            if (!target) {
+                try {
+                    const res = await fetch(`${WORKER_BANK_URL}?id=${encodeURIComponent(queryId)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && (data.id || data.content)) {
+                            this.updateLocalBankCache([data]);
+                            target = data;
+                        }
                     }
+                } catch(e) {
+                    console.warn(`Lỗi fetch câu hỏi ${queryId} từ R2:`, e);
                 }
-            } catch(e) {
-                console.warn(`Lỗi fetch câu hỏi ${queryId} từ R2:`, e);
             }
 
-            return null;
+            if (!target) return null;
+
+            // 3. Nếu câu này là câu trùng (Duplicate/Alias) trỏ về câu gốc (Master)
+            // Tra cứu trong sách giấy hoặc tra cứu CCCD vẫn hoạt động 100%, tự động trả về nội dung câu gốc
+            if (target.isDuplicate && target.masterId && String(target.masterId) !== queryId) {
+                try {
+                    const masterQ = await this.getQuestionById(target.masterId, forceRemote);
+                    if (masterQ) {
+                        return {
+                            ...masterQ,
+                            displayCccd: queryId,
+                            requestedId: queryId,
+                            masterCccd: target.masterId,
+                            isMergedAlias: true,
+                            originalSource: target.source || masterQ.source
+                        };
+                    }
+                } catch(err) {
+                    console.warn(`Không thể nạp câu gốc ${target.masterId} cho alias ${queryId}:`, err);
+                }
+            }
+
+            return target;
         },
 
         /**
@@ -435,11 +523,16 @@
                             id: String(nq.id),
                             cccd: String(nq.cccd || nq.id),
                             mapId: String(nq.mapId || ''),
-                            level: nq.level || 'Thông hiểu',
-                            levelColor: nq.levelColor || 'blue',
+                            level: nq.level || null,
+                            levelColor: nq.levelColor || 'gray',
                             subject: nq.subject || 'Khác',
                             type: nq.type || 'mc',
                             source: nq.source || '',
+                            isMaster: !!nq.isMaster,
+                            isDuplicate: !!nq.isDuplicate,
+                            masterId: nq.masterId || null,
+                            aliases: Array.isArray(nq.aliases) ? nq.aliases : [],
+                            aliasCount: Array.isArray(nq.aliases) ? nq.aliases.length : 0,
                             uploadedAt: nq.updatedAt || new Date().toISOString()
                         };
                         if (idx !== -1) {
@@ -475,11 +568,16 @@
                             id: String(nq.id),
                             cccd: String(nq.cccd || nq.id),
                             mapId: String(nq.mapId || ''),
-                            level: nq.level || cur.level || 'Thông hiểu',
-                            levelColor: nq.levelColor || cur.levelColor || 'blue',
+                            level: nq.level || cur.level || null,
+                            levelColor: nq.levelColor || cur.levelColor || 'gray',
                             subject: nq.subject || cur.subject || 'Khác',
                             type: nq.type || cur.type || 'mc',
                             source: nq.source || cur.source || '',
+                            isMaster: nq.isMaster !== undefined ? !!nq.isMaster : (cur.isMaster || false),
+                            isDuplicate: nq.isDuplicate !== undefined ? !!nq.isDuplicate : (cur.isDuplicate || false),
+                            masterId: nq.masterId !== undefined ? nq.masterId : (cur.masterId || null),
+                            aliases: Array.isArray(nq.aliases) ? nq.aliases : (cur.aliases || []),
+                            aliasCount: Array.isArray(nq.aliases) ? nq.aliases.length : (cur.aliasCount || 0),
                             uploadedAt: nq.updatedAt || new Date().toISOString()
                         });
                     });

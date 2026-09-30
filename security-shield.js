@@ -167,8 +167,8 @@
 
             // C. Lời giải chi tiết
             const solView = document.getElementById('solutionView');
-            const isSolVisible = solView && !solView.classList.contains('hidden');
-            if (isSolVisible) {
+            const isSolVisible = solView && !solView.classList.contains('hidden') && solView.style.display !== 'none';
+            if (isSolVisible || this.currentContext.zone === 'solution') {
                 if (this.config.zones.solution === false) return false;
                 // Nếu đề thi cụ thể cho phép chụp ảnh -> Không chặn
                 if (this.currentContext.antiScreenshot === false) return false;
@@ -268,7 +268,6 @@
             body.qmath-screenshot-blocked #solutionView,
             body.qmath-screenshot-blocked .exam-content,
             body.qmath-screenshot-blocked #questionContent,
-            body.qmath-screenshot-blocked #examLeaderboardBox,
             body.qmath-screenshot-blocked #lookupModalBody,
             body.qmath-screenshot-blocked .study-area,
             body.qmath-screenshot-blocked main {
@@ -332,10 +331,10 @@
         // Content blanking NGAY LẬP TỨC (0ms) để triệt tiêu mọi nội dung đề thi phía sau
         document.body.classList.add('qmath-screenshot-blocked');
 
-        // Xóa clipboard ngay lập tức
+        // Xóa clipboard ngay lập tức (bọc catch để tránh NotAllowedError khi tài liệu chưa focus)
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText('');
+                navigator.clipboard.writeText('').catch(function() {});
             }
         } catch (_) {}
 
@@ -432,39 +431,41 @@
         }
     }, { capture: true, passive: false });
 
-    // 6. THEO DÕI HÀNH VI RỜI KHỎI TRÌNH DUYỆT KHI ĐANG MỞ VÙNG BẢO VỆ
+    // 6. THEO DÕI HÀNH VI RỜI KHỎI TRÌNH DUYỆT & CHỤP MÀN HÌNH
     function isInsideProtectedZoneDOM() {
-        const lbModal = document.getElementById('examLeaderboardModal');
-        if (lbModal && !lbModal.classList.contains('hidden') && !lbModal.classList.contains('opacity-0')) return true;
-
         const lookupModal = document.getElementById('studentQuestionLookupModal');
         if (lookupModal && !lookupModal.classList.contains('pointer-events-none') && !lookupModal.classList.contains('opacity-0')) return true;
 
         const solView = document.getElementById('solutionView');
-        if (solView && !solView.classList.contains('hidden')) return true;
+        if (solView && !solView.classList.contains('hidden') && solView.style.display !== 'none') return true;
+
+        if (window.QMathSecurity && window.QMathSecurity.currentContext && window.QMathSecurity.currentContext.zone === 'solution') return true;
 
         return false;
     }
 
     let leaveTimestamp = 0;
+    let hasHiddenInProtectedZone = false;
+
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'hidden') {
             if (window.QMathSecurity.isAntiScreenshotActive() && isInsideProtectedZoneDOM()) {
+                document.body.classList.add('qmath-screenshot-blocked');
+                hasHiddenInProtectedZone = true;
                 leaveTimestamp = Date.now();
             }
         } else if (document.visibilityState === 'visible') {
-            if (leaveTimestamp > 0) {
-                const elapsed = Date.now() - leaveTimestamp;
-                leaveTimestamp = 0;
-                if (elapsed >= 250 && elapsed <= 4000) {
-                    if (window.QMathSecurity.isAntiScreenshotActive()) {
-                        triggerViolationAlert('Hệ thống phát hiện hành vi rời màn hình hoặc chụp ảnh phím cứng trong khu vực được bảo vệ!');
-                    }
+            if (hasHiddenInProtectedZone && isInsideProtectedZoneDOM()) {
+                hasHiddenInProtectedZone = false;
+                triggerViolationAlert('Hệ thống phát hiện hành vi chụp màn hình hoặc rời màn hình khi đang xem lời giải chi tiết!');
+            } else {
+                // Tự động gỡ bỏ che màn hình nếu không có vi phạm
+                if (!isModalOpen) {
+                    document.body.classList.remove('qmath-screenshot-blocked');
                 }
             }
         }
     });
-
     // 7. CHỐNG CHUỘT PHẢI VÀ CHỐNG COPY TRONG VÙNG BẢO MẬT
     document.addEventListener('contextmenu', function(e) {
         const tag = e.target ? e.target.tagName : '';

@@ -101,6 +101,7 @@
     <script src="mapid-picker.js"></script>
     <script src="question-importer.js"></script>
     <script src="bank-service.js?v=20260927-hotswap"></script>
+    <script src="bank-deduplicator.js?v=20260930"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
     window.MathJax = {
@@ -889,6 +890,9 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <span id="bankCount" class="bg-primary-100 text-primary-700 px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm">0 câu</span>
+                            <button onclick="window.openDeduplicateModal()" class="h-10 px-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:from-amber-600 hover:to-orange-700 transition-all shrink-0" title="Quét và xử lý câu hỏi trùng lặp trong ngân hàng">
+                                <i class="fa-solid fa-clone"></i> Lọc câu trùng
+                            </button>
                             <button onclick="window.location.href='book-manager.html'" class="h-10 px-3.5 rounded-xl bg-gradient-to-r from-teal-600 to-indigo-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:from-teal-700 hover:to-indigo-700 transition-all shrink-0" title="Số hóa sách: Gán mã CCCD số và xuất file TeX">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i> Số Hóa Sách (Sách ID)
                             </button>
@@ -939,6 +943,10 @@
                     <button id="btnBulkDelete" onclick="window.deleteSelectedQuestions()" class="hidden bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold border border-red-200 hover:bg-red-600 hover:text-white transition-colors">
                         <i class="fa-solid fa-trash-can mr-1"></i> Xóa đã chọn
                     </button>
+                    <label class="flex items-center gap-1.5 cursor-pointer text-xs md:text-sm text-gray-700 font-semibold bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-100 transition-colors select-none" title="Khi bật, hệ thống chỉ hiển thị câu gốc (Master) và ẩn các câu trùng/mã phụ (Alias)">
+                        <input type="checkbox" id="filterHideDuplicates" onchange="window.applyBankFilters()" checked class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer">
+                        <span>Ẩn câu trùng</span>
+                    </label>
                 </div>
                 <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
                     <button onclick="window.toggleBankView('grid')" id="btnViewGrid" class="w-8 h-8 rounded-lg bg-white text-primary-600 shadow-sm flex items-center justify-center transition-all"><i class="fa-solid fa-table-cells-large"></i></button>
@@ -1169,13 +1177,132 @@
                 </div>
                 <div class="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-between items-center shrink-0">
                     <button id="btnDeleteQuestion" class="px-4 py-2 bg-white text-red-600 border border-red-200 hover:bg-red-50 font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"><i class="fa-solid fa-trash-can"></i> Xóa</button>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 items-center flex-wrap">
+                        <button id="btnPasteBankImage" onclick="window.triggerBankImageUploadPrompt()" class="px-4 py-2 bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 text-xs md:text-sm" title="Dán ảnh từ Clipboard (Ctrl+V) hoặc Chọn tệp ảnh để chèn/thay thế">
+                            <i class="fa-solid fa-clipboard"></i> Chèn / Dán ảnh (Ctrl+V)
+                        </button>
+                        <input type="file" id="bankInlineImageFileInput" accept="image/*" class="hidden" onchange="window.handleBankInlineImageFile(this)">
                         <button id="btnEditQuestion" class="px-6 py-2 bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-600 hover:text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"><i class="fa-solid fa-pen"></i> Sửa</button>
                         <button onclick="window.closeQuestionPreviewModal()" class="px-6 py-2 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 shadow-md shadow-primary-200 transition-all">Đóng</button>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Modal Lọc & Xử lý Câu hỏi Trùng lặp (Master - Alias Engine) -->
+        <div id="bankDeduplicateModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[100] flex items-center justify-center bg-gray-900 bg-opacity-60 px-3 md:px-4 backdrop-blur-sm">
+            <div class="modal-content bg-white w-full max-w-5xl rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh]">
+                <!-- Header -->
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-amber-50 to-orange-50 rounded-t-2xl shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center text-lg shadow-sm shrink-0">
+                            <i class="fa-solid fa-clone"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-lg md:text-xl text-gray-800 flex items-center gap-2">
+                                Bộ lọc & Xử lý Câu hỏi Trùng lặp
+                            </h3>
+                            <p class="text-xs text-gray-500 font-medium mt-0.5">
+                                AI so khớp công thức Toán & hoán vị đáp án • Bảo toàn mã CCCD tra cứu sách giấy
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="window.closeDeduplicateModal()" class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Toolbar controls -->
+                <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                            <label class="text-xs font-bold text-gray-600">Độ tương đồng:</label>
+                            <select id="dedupeThresholdSelect" class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 outline-none">
+                                <option value="80">≥ 80% (Quét rộng)</option>
+                                <option value="85" selected>≥ 85% (Tiêu chuẩn)</option>
+                                <option value="90">≥ 90% (Khớp cao)</option>
+                                <option value="95">≥ 95% (Gần như tuyệt đối)</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
+                            <label class="text-xs font-bold text-gray-600">Phạm vi:</label>
+                            <select id="dedupeScopeSelect" class="text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 outline-none">
+                                <option value="all" selected>Toàn bộ ngân hàng</option>
+                                <option value="current">Theo bộ lọc hiện tại</option>
+                            </select>
+                        </div>
+
+                        <button id="btnStartDedupeScan" onclick="window.runDeduplicateScan()" class="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-xs rounded-xl hover:from-amber-700 hover:to-orange-700 transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-radar"></i> Bắt đầu quét trùng
+                        </button>
+                    </div>
+
+                    <div id="dedupeBatchActionContainer" class="hidden flex items-center gap-2">
+                        <button id="btnAutoMergeAll" onclick="window.autoMergeAllClusters()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Gộp tất cả cụm (≥ 90%)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="dedupeProgressBarContainer" class="hidden px-4 pt-3 pb-1 bg-amber-50/50 border-b border-amber-100">
+                    <div class="flex justify-between items-center text-xs font-bold text-amber-800 mb-1">
+                        <span id="dedupeProgressText"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i>Đang so khớp câu hỏi...</span>
+                        <span id="dedupeProgressPct">0%</span>
+                    </div>
+                    <div class="w-full bg-amber-100 rounded-full h-2 overflow-hidden">
+                        <div id="dedupeProgressBar" class="bg-gradient-to-r from-amber-500 to-orange-600 h-2 rounded-full transition-all duration-200" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Content Area -->
+                <div id="dedupeModalBody" class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar space-y-6">
+                    <!-- Initial placeholder -->
+                    <div id="dedupeInitialState" class="flex flex-col items-center justify-center py-16 text-center">
+                        <div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mb-4">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <h4 class="text-base font-bold text-gray-800 mb-1">Bộ lọc phát hiện câu hỏi trùng lặp thông minh</h4>
+                        <p class="text-xs text-gray-500 max-w-md leading-relaxed mb-6">
+                            Hệ thống sẽ quét đối chiếu công thức LaTeX, loại bỏ khác biệt về thứ tự đáp án A/B/C/D, nhận diện từ đồng nghĩa và gom các câu trùng lặp thành cụm Master - Alias.
+                        </p>
+                        <button onclick="window.runDeduplicateScan()" class="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-sm rounded-xl hover:from-amber-700 hover:to-orange-700 shadow-md shadow-amber-200 transition-all">
+                            <i class="fa-solid fa-play mr-1.5"></i> Chạy quét ngân hàng ngay
+                        </button>
+                    </div>
+
+                    <!-- Cluster list container -->
+                    <div id="dedupeClustersList" class="hidden space-y-6"></div>
+                </div>
+
+                <!-- Footer -->
+                <div class="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-between items-center shrink-0">
+                    <span id="dedupeSummaryStat" class="text-xs text-gray-500 font-bold"></span>
+                    <button onclick="window.closeDeduplicateModal()" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-all text-xs">Đóng</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Quản lý Mã gộp (Aliases) của câu Master -->
+        <div id="bankManageAliasesModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[105] flex items-center justify-center bg-gray-900 bg-opacity-60 px-4 backdrop-blur-sm">
+            <div class="modal-content bg-white w-full max-w-xl rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh]">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-purple-50 rounded-t-2xl shrink-0">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-link text-purple-600"></i>
+                        <h4 class="font-bold text-gray-800">Danh sách mã CCCD trùng đã gộp</h4>
+                    </div>
+                    <button onclick="window.closeManageAliasesModal()" class="w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
+                <div id="manageAliasesModalBody" class="p-4 overflow-y-auto space-y-3 custom-scrollbar flex-1">
+                    <!-- Populated via JS -->
+                </div>
+                <div class="p-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end shrink-0">
+                    <button onclick="window.closeManageAliasesModal()" class="px-5 py-2 bg-purple-600 text-white font-bold rounded-xl text-xs hover:bg-purple-700 transition-colors">Đóng</button>
+                </div>
+            </div>
 
         </div>
     </main>
@@ -7848,6 +7975,12 @@ function renderTagFilterUI() {
         processed = processed.replace(/\\begin\{nx\}([\s\S]*?)\\end\{nx\}/gi, (match, body) => {
             return `<div class="my-3 p-3.5 border-l-4 border-teal-500 bg-teal-50 text-teal-900 rounded-r-xl shadow-2xs"><strong class="block mb-1 text-teal-800 flex items-center gap-1.5"><i class="fa-solid fa-lightbulb text-teal-600"></i>Nhận xét:</strong>${body}</div>`;
         });
+        processed = processed.replace(/\\begin\{tabular\}\{[^}]*\}([\s\S]*?)\\end\{tabular\}/gi, (match, body) => {
+            const cleanBody = body.replace(/\\hspace\*?\{[^}]*\}/g, ' ')
+                                  .replace(/\\vspace\*?\{[^}]*\}/g, ' ')
+                                  .replace(/&amp;|&/g, ' ');
+            return `<div class="flex flex-wrap items-center justify-around gap-4 my-2">${cleanBody}</div>`;
+        });
         processed = processed.replace(/\\\\(?=\s*(?:<br|\n|$))/g, '<br>');
         processed = processed.replace(/\\\\/g, '<br>');
         processed = processed.replace(/\n/g, '<br/>');
@@ -7861,15 +7994,21 @@ function renderTagFilterUI() {
         if (!Array.isArray(list)) return;
         list.forEach(q => {
             if (q.mapId && window.BankService) {
-                const analysis = window.BankService.analyzeMapId(q.mapId);
+                const analysis = window.BankService.analyzeMapId(q.mapId, window.globalIdTree);
                 if (!q.subject || q.subject === 'Khác' || q.subject === 'Chưa phân loại') {
                     q.subject = analysis.subject;
                 }
-                if (!q.level || q.level === 'Thông hiểu' && analysis.level !== 'Thông hiểu') {
+                if (analysis.inMapId && analysis.level) {
                     q.level = analysis.level;
                     q.levelColor = analysis.levelColor;
+                } else if (!analysis.inMapId) {
+                    q.level = null;
+                    q.levelColor = 'gray';
                 }
-                if (!q.levelColor) q.levelColor = analysis.levelColor;
+                if (!q.levelColor) q.levelColor = analysis.levelColor || 'gray';
+            } else if (!q.mapId) {
+                q.level = null;
+                q.levelColor = 'gray';
             }
         });
     };
@@ -8040,6 +8179,7 @@ function renderTagFilterUI() {
         const l = document.getElementById('f_Lesson').value;
         const lv = document.getElementById('f_Level').value;
         const search = document.getElementById('searchBank').value.toLowerCase();
+        const hideDuplicates = document.getElementById('filterHideDuplicates') ? document.getElementById('filterHideDuplicates').checked : true;
 
         // Tạo tiền tố ID cần lọc (VD: 9D1...)
         let prefix = "";
@@ -8083,10 +8223,23 @@ function renderTagFilterUI() {
                 if (!matchMapId && !matchId && !matchCccd && !matchContent) return false;
             }
 
+            // 5. Lọc ẩn câu trùng (Alias)
+            if (hideDuplicates && item.isDuplicate) return false;
+
             return true;
         });
 
         window.renderBankList(filtered);
+
+        const totalDupes = data.filter(d => d.isDuplicate).length;
+        const countEl = document.getElementById('bankCount');
+        if (countEl) {
+            if (hideDuplicates && totalDupes > 0) {
+                countEl.innerHTML = `${filtered.length} câu <span class="text-[11px] font-normal opacity-80">(Ẩn ${totalDupes} trùng)</span>`;
+            } else {
+                countEl.innerText = `${filtered.length} câu`;
+            }
+        }
     };
 
     // Tra cứu câu hỏi trực tiếp theo ID / CCCD (dành cho Giáo viên)
@@ -8323,14 +8476,14 @@ function renderTagFilterUI() {
             };
             
             // Màu sắc mức độ & Phân môn (Tự động đồng bộ chuẩn theo MapID)
-            let levelColor = q.levelColor || 'blue';
-            let lvText = q.level || '';
+            let levelColor = 'gray';
+            let lvText = '';
             let subjectText = q.subject || 'Khác';
 
             if (q.mapId && window.BankService) {
-                const a = window.BankService.analyzeMapId(q.mapId);
+                const a = window.BankService.analyzeMapId(q.mapId, window.globalIdTree);
                 if (a) {
-                    if (a.level && (!lvText || lvText === 'Thông hiểu' && a.level !== 'Thông hiểu')) {
+                    if (a.inMapId && a.level) {
                         lvText = a.level;
                         levelColor = a.levelColor;
                     }
@@ -8338,12 +8491,23 @@ function renderTagFilterUI() {
                         subjectText = a.subject;
                     }
                 }
+            } else if (q.level && q.level !== 'Thông hiểu') {
+                lvText = q.level;
             }
 
             if(lvText.includes('Nhận biết') || lvText === 'NB') { levelColor = 'green'; lvText = 'Nhận biết'; }
             else if(lvText.includes('Thông hiểu') || lvText === 'TH') { levelColor = 'blue'; lvText = 'Thông hiểu'; }
             else if(lvText.includes('Vận dụng cao') || lvText === 'VDC') { levelColor = 'red'; lvText = 'Vận dụng cao'; }
             else if(lvText.includes('Vận dụng') || lvText === 'VD') { levelColor = 'orange'; lvText = 'Vận dụng'; }
+            else { lvText = ''; levelColor = 'gray'; }
+
+            const levelBadgeListHtml = lvText 
+                ? `<span class="text-xs border border-${levelColor}-200 text-${levelColor}-600 px-2 py-1 rounded bg-${levelColor}-50 font-bold shrink-0 w-24 text-center">${lvText}</span>`
+                : `<span class="text-xs border border-gray-200 text-gray-400 px-2 py-1 rounded bg-gray-50 font-medium shrink-0 w-24 text-center">Không có</span>`;
+
+            const levelBadgeGridHtml = lvText 
+                ? `<span class="text-xs border border-${levelColor}-200 text-${levelColor}-600 px-2 py-1 rounded bg-${levelColor}-50 font-bold whitespace-nowrap">${lvText}</span>`
+                : `<span class="text-xs border border-gray-200 text-gray-400 px-2 py-1 rounded bg-gray-50 font-medium whitespace-nowrap">Không có</span>`;
 
             const mapIdText = q.mapId || (q.id && q.id.includes('_') ? q.id.split('_')[0] : q.id);
             const rawCccd = q.cccd || q.id || '';
@@ -8351,6 +8515,13 @@ function renderTagFilterUI() {
             const cccdBadgeHtml = isNumericCccd
                 ? `<span class="text-[10px] font-mono font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200 inline-flex items-center gap-1 shadow-2xs" title="Mã CCCD Sách & Ngân hàng"><i class="fa-solid fa-id-card text-[9px]"></i>CCCD: ${rawCccd}</span>`
                 : `<span class="text-[10px] font-mono text-gray-400 truncate max-w-[130px] inline-block" title="ID câu hỏi: ${rawCccd}">${rawCccd}</span>`;
+
+            let masterAliasBadgeHtml = '';
+            if (q.isMaster && Array.isArray(q.aliases) && q.aliases.length > 0) {
+                masterAliasBadgeHtml = `<span class="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 inline-flex items-center gap-1 shadow-2xs" title="Đã gộp ${q.aliases.length} mã trùng"><i class="fa-solid fa-link text-[9px]"></i>Gộp ${q.aliases.length}</span>`;
+            } else if (q.isDuplicate && q.masterId) {
+                masterAliasBadgeHtml = `<span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-flex items-center gap-1 shadow-2xs" title="Trùng của #${q.masterId}"><i class="fa-solid fa-copy text-[9px]"></i>Trùng #${q.masterId}</span>`;
+            }
 
             if (isList) {
                 const checkboxHtml = canEdit ? `
@@ -8362,12 +8533,12 @@ function renderTagFilterUI() {
                     ${checkboxHtml}
                     <div class="flex-1 min-w-0 flex items-center gap-3">
                         <div class="font-bold text-gray-800 font-mono shrink-0 w-28 group-hover:text-primary-600 truncate"><i class="fa-solid fa-hashtag text-primary-500 text-xs mr-1"></i>${mapIdText}</div>
-                        <div class="shrink-0">${cccdBadgeHtml}</div>
+                        <div class="shrink-0 flex items-center gap-1.5">${cccdBadgeHtml}${masterAliasBadgeHtml}</div>
                         <div class="hidden md:flex gap-2 shrink-0 w-32">
                             <span class="text-[10px] border border-gray-200 px-2 py-0.5 rounded bg-gray-50 text-gray-600 font-bold truncate"><i class="fa-solid fa-book text-gray-400 mr-1"></i>${subjectText || 'Khác'}</span>
                         </div>
                     </div>
-                    <span class="text-xs border border-${levelColor}-200 text-${levelColor}-600 px-2 py-1 rounded bg-${levelColor}-50 font-bold shrink-0 w-24 text-center">${lvText || 'Chưa rõ'}</span>
+                    ${levelBadgeListHtml}
                     <button class="shrink-0 p-2 text-gray-400 group-hover:text-primary-600 transition-colors"><i class="fa-solid fa-chevron-right"></i></button>
                 `;
             } else {
@@ -8380,10 +8551,10 @@ function renderTagFilterUI() {
                             ${checkboxHtml}
                             <div>
                                 <div class="font-bold text-gray-800 text-lg font-mono group-hover:text-primary-600 transition-colors flex items-center gap-1"><i class="fa-solid fa-hashtag text-primary-500 text-sm"></i>${mapIdText}</div>
-                                <div class="mt-1">${cccdBadgeHtml}</div>
+                                <div class="mt-1 flex items-center gap-1.5 flex-wrap">${cccdBadgeHtml}${masterAliasBadgeHtml}</div>
                             </div>
                         </div>
-                        <span class="text-xs border border-${levelColor}-200 text-${levelColor}-600 px-2 py-1 rounded bg-${levelColor}-50 font-bold whitespace-nowrap">${lvText || 'Chưa rõ'}</span>
+                        ${levelBadgeGridHtml}
                     </div>
                     <div class="flex gap-2 mt-auto pt-2">
                         <span class="text-xs border border-gray-200 px-2 py-1 rounded-lg bg-gray-50 text-gray-600 font-bold"><i class="fa-solid fa-book text-gray-400 mr-1"></i>${subjectText || 'Khác'}</span>
@@ -9468,6 +9639,8 @@ function renderTagFilterUI() {
 
     // 8. Render Preview Content
     window.previewQuestionBank = (q) => {
+        window.currentPreviewQuestion = q;
+        window.activeBankImageTarget = null;
         const content = document.getElementById('questionPreviewContent');
         const contentHtml = window.formatContent ? window.formatContent(q.content) : q.content;
         
@@ -9580,13 +9753,61 @@ function renderTagFilterUI() {
 
         // Badge mức độ
         let levelColor = 'gray';
-        if(q.level && (q.level.includes('Nhận biết') || q.level === 'NB')) levelColor = 'green';
-        else if(q.level && (q.level.includes('Thông hiểu') || q.level === 'TH')) levelColor = 'blue';
-        else if(q.level && (q.level.includes('Vận dụng') && !q.level.includes('cao') || q.level === 'VD')) levelColor = 'orange';
-        else if(q.level && (q.level.includes('cao') || q.level === 'VDC')) levelColor = 'red';
+        let lvText = '';
+        if (q.mapId && window.BankService) {
+            const a = window.BankService.analyzeMapId(q.mapId, window.globalIdTree);
+            if (a && a.inMapId && a.level) {
+                lvText = a.level;
+                levelColor = a.levelColor;
+            }
+        } else if (q.level && q.level !== 'Thông hiểu') {
+            lvText = q.level;
+        }
 
-        const typeLabel = (qType === 'mc' || qType === 'TRAC_NGHIEM') ? 'Trắc nghiệm (4 lựa chọn)' : ((qType === 'tf' || qType === 'DUNG_SAI') ? 'Đúng / Sai' : ((qType === 'short' || qType === 'TRA_LOI_NGAN') ? 'Trả lời ngắn' : 'Tự luận'));
-        const sourceHtml = q.source ? `<span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-200"><i class="fa-solid fa-bookmark text-indigo-400 mr-1"></i>${q.source}</span>` : '';
+        if(lvText.includes('Nhận biết') || lvText === 'NB') { levelColor = 'green'; lvText = 'Nhận biết'; }
+        else if(lvText.includes('Thông hiểu') || lvText === 'TH') { levelColor = 'blue'; lvText = 'Thông hiểu'; }
+        else if(lvText.includes('Vận dụng cao') || lvText === 'VDC') { levelColor = 'red'; lvText = 'Vận dụng cao'; }
+        else if(lvText.includes('Vận dụng') || lvText === 'VD') { levelColor = 'orange'; lvText = 'Vận dụng'; }
+        else { lvText = ''; levelColor = 'gray'; }
+
+        const previewLevelBadgeHtml = lvText 
+            ? `<span class="text-xs font-bold text-${levelColor}-600 bg-${levelColor}-50 px-2 py-1 rounded-md border border-${levelColor}-100 uppercase tracking-wide">${lvText}</span>`
+            : `<span class="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-200">Không có</span>`;
+
+        let masterAliasNoticeHtml = '';
+        if (q.isMergedAlias || (q.isDuplicate && q.masterId)) {
+            const reqId = q.displayCccd || q.requestedId || q.cccd || q.id;
+            const mId = q.masterCccd || q.masterId;
+            masterAliasNoticeHtml = `
+                <div class="mb-5 p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                    <div class="flex items-start gap-2.5">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base mt-0.5 shrink-0"></i>
+                        <div>
+                            <div class="font-bold text-amber-800">Mã tra cứu sách giấy: #${reqId}</div>
+                            <div class="text-amber-700 mt-0.5">Câu hỏi này là <b>Bí danh (Alias)</b> đã được gộp vào <b>Câu gốc (Master: #${mId})</b>. Học sinh quét mã QR hay tra cứu CCCD từ sách vẫn luôn xem được đầy đủ nội dung câu hỏi và lời giải.</div>
+                        </div>
+                    </div>
+                    <button onclick="window.unmergeAliasFromPreview('${reqId}', '${mId}')" class="px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-100 text-amber-800 font-bold rounded-xl text-xs transition-colors shrink-0 shadow-2xs self-end sm:self-center">
+                        <i class="fa-solid fa-unlink mr-1"></i> Hủy gộp mã này
+                    </button>
+                </div>
+            `;
+        } else if (q.isMaster && Array.isArray(q.aliases) && q.aliases.length > 0) {
+            masterAliasNoticeHtml = `
+                <div class="mb-5 p-3.5 bg-purple-50 border border-purple-200 rounded-2xl text-purple-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                    <div class="flex items-start gap-2.5">
+                        <i class="fa-solid fa-link text-purple-600 text-base mt-0.5 shrink-0"></i>
+                        <div>
+                            <div class="font-bold text-purple-800">Câu gốc (Master) — Đã gộp ${q.aliases.length} mã CCCD trùng</div>
+                            <div class="text-purple-700 mt-0.5 font-mono">Mã trùng liên kết: ${q.aliases.map(a => '#' + a).join(', ')}</div>
+                        </div>
+                    </div>
+                    <button onclick="window.openManageAliasesModal('${q.id}')" class="px-3 py-1.5 bg-white border border-purple-300 hover:bg-purple-100 text-purple-800 font-bold rounded-xl text-xs transition-colors shrink-0 shadow-2xs self-end sm:self-center">
+                        <i class="fa-solid fa-list-check mr-1"></i> Quản lý mã gộp
+                    </button>
+                </div>
+            `;
+        }
 
         content.innerHTML = `
             <div class="flex justify-between items-start mb-6 pb-4 border-b border-gray-100">
@@ -9594,7 +9815,7 @@ function renderTagFilterUI() {
                     <h3 class="text-2xl font-black text-primary-700 font-mono tracking-tight">${q.mapId || (q.id && q.id.includes('_') ? q.id.split('_')[0] : q.id)}</h3>
                     <div class="flex items-center gap-2 mt-1 flex-wrap">
                         <span class="text-xs font-mono font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200 uppercase tracking-wide"><i class="fa-solid fa-hashtag text-[11px] mr-1.5"></i>ID: #${q.cccd || q.id}</span>
-                        <span class="text-xs font-bold text-${levelColor}-600 bg-${levelColor}-50 px-2 py-1 rounded-md border border-${levelColor}-100 uppercase tracking-wide">${q.level || 'Chưa rõ'}</span>
+                        ${previewLevelBadgeHtml}
                         <span class="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200 uppercase">${typeLabel}</span>
                         <span class="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md border border-gray-200"><i class="fa-solid fa-book text-gray-400 mr-1"></i>${q.subject || 'Toán'}</span>
                         ${sourceHtml}
@@ -9602,6 +9823,7 @@ function renderTagFilterUI() {
                 </div>
             </div>
             
+            ${masterAliasNoticeHtml}
             <div class="text-gray-900 text-lg leading-loose math-content font-medium text-justify mb-6">
                 ${contentHtml}
             </div>
@@ -9614,11 +9836,850 @@ function renderTagFilterUI() {
             MathJax.typesetPromise([content]).then(() => {
                 if (window.renderTikz) window.renderTikz();
                 if (window.autoScaleTables) window.autoScaleTables();
-            }).catch(() => {});
+                if (window.enhanceBankPreviewImages) window.enhanceBankPreviewImages(q);
+            }).catch(() => {
+                if (window.enhanceBankPreviewImages) window.enhanceBankPreviewImages(q);
+            });
         } else {
             if (window.renderTikz) window.renderTikz();
             if (window.autoScaleTables) window.autoScaleTables();
+            if (window.enhanceBankPreviewImages) window.enhanceBankPreviewImages(q);
         }
+    };
+
+    // =========================================================================
+    // HỆ THỐNG DÁN & THAY THẾ ẢNH TRỰC TIẾP TỪ CLIPBOARD / TỆP VÀO NGÂN HÀNG
+    // =========================================================================
+    window.activeBankImageTarget = null;
+
+    // Helper: Thay thế placeholder div lồng nhau một cách an toàn, không hỏng LaTeX
+    function replaceBankPlaceholderHtml(text, targetId, replacementHtml) {
+        if (!text) return text;
+        let divOpenIdx = -1;
+        if (targetId && text.includes(`data-id="${targetId}"`)) {
+            const startIdx = text.indexOf(`data-id="${targetId}"`);
+            divOpenIdx = text.lastIndexOf('<div', startIdx);
+        } else if (text.includes('image-placeholder')) {
+            const startIdx = text.indexOf('image-placeholder');
+            divOpenIdx = text.lastIndexOf('<div', startIdx);
+        }
+        if (divOpenIdx === -1) return text;
+
+        let depth = 0;
+        let endIdx = -1;
+        let i = divOpenIdx;
+        while (i < text.length) {
+            if (text.substring(i, i + 4) === '<div') {
+                depth++;
+                i += 4;
+            } else if (text.substring(i, i + 6) === '</div>') {
+                depth--;
+                i += 6;
+                if (depth === 0) {
+                    endIdx = i;
+                    break;
+                }
+            } else {
+                i++;
+            }
+        }
+        if (endIdx === -1) return text;
+        return text.substring(0, divOpenIdx) + replacementHtml + text.substring(endIdx);
+    }
+
+    // Tải và thay thế ảnh lên Cloudflare R2
+    window.uploadAndReplaceBankImage = async (file, target = null) => {
+        if (!file) return;
+
+        // Nếu đang ở modal chỉnh sửa mã nguồn (questionEditModal)
+        const editModal = document.getElementById('questionEditModal');
+        const isEditingSource = editModal && !editModal.classList.contains('opacity-0') && !editModal.classList.contains('pointer-events-none');
+
+        let loadingBanner = document.createElement('div');
+        loadingBanner.id = 'bankImageUploadBanner';
+        loadingBanner.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[300] px-5 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold rounded-2xl shadow-2xl flex items-center gap-3 text-sm animate-bounce';
+        loadingBanner.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-lg"></i> Đang nén và tải ảnh lên Cloudflare R2...';
+        document.body.appendChild(loadingBanner);
+
+        try {
+            // 1. Nén ảnh qua Canvas
+            let compressedBlob = file;
+            if (window.compressImage) {
+                try {
+                    compressedBlob = await window.compressImage(file, 0.85, 1400);
+                } catch(ce) {
+                    console.warn("Nén ảnh fallback:", ce);
+                }
+            }
+
+            // 2. Upload lên Cloudflare R2 Worker
+            const formData = new FormData();
+            const fileName = `images/bank_${Date.now()}_${Math.random().toString(36).substr(2, 6)}.jpg`;
+            formData.append('file', compressedBlob, fileName);
+
+            const WORKER_UPLOAD_URL = "https://upload-helper.phamngockhanh-942001.workers.dev/";
+            const res = await fetch(WORKER_UPLOAD_URL, {
+                method: 'PUT',
+                body: formData
+            });
+
+            if (!res.ok) throw new Error(`Lỗi kết nối Server Cloudflare (${res.status})`);
+            const resData = await res.json();
+            const newUrl = resData.url;
+            if (!newUrl) throw new Error("Không nhận được URL ảnh từ Server");
+
+            const simpleImgTag = `<div class="flex justify-center my-1"><img src="${newUrl}" class="rounded-lg shadow-sm max-h-[250px] object-contain mx-auto w-full md:w-auto" loading="lazy"></div>`;
+
+            // Nếu đang trong modal Soạn thảo chi tiết (Textarea)
+            if (isEditingSource) {
+                const activeEl = document.activeElement;
+                const targetArea = (activeEl && (activeEl.id === 'edit_content' || activeEl.id === 'edit_solution')) 
+                    ? activeEl 
+                    : document.getElementById('edit_content');
+                if (targetArea) {
+                    const start = targetArea.selectionStart || targetArea.value.length;
+                    const end = targetArea.selectionEnd || targetArea.value.length;
+                    const val = targetArea.value;
+                    targetArea.value = val.substring(0, start) + '\n' + simpleImgTag + '\n' + val.substring(end);
+                    targetArea.selectionStart = targetArea.selectionEnd = start + simpleImgTag.length + 2;
+                    targetArea.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (window.showNotification) {
+                        window.showNotification("Đã chèn ảnh vào nội dung soạn thảo!", "success");
+                    }
+                }
+                return;
+            }
+
+            // Nếu đang ở modal Xem trước (questionPreviewModal)
+            if (!window.currentPreviewQuestion) {
+                throw new Error("Không tìm thấy câu hỏi đang xem trước");
+            }
+
+            const q = window.currentPreviewQuestion;
+
+            let targetType = target?.type || null;
+            let targetId = target?.dataId || null;
+            let targetSrc = target?.src || null;
+
+            // Tự động nhận diện target nếu chưa chọn
+            if (!targetType) {
+                const hasPh = (q.content || '').includes('image-placeholder') || (q.solution || '').includes('image-placeholder');
+                if (hasPh) {
+                    targetType = 'placeholder';
+                    const mId = (q.content || '').match(/data-id="([^"]+)"/) || (q.solution || '').match(/data-id="([^"]+)"/);
+                    if (mId) targetId = mId[1];
+                }
+            }
+
+            let isReplaced = false;
+
+            // Trường hợp 1: Thay thế khung placeholder
+            if (targetType === 'placeholder' || (!targetType && (q.content || '').includes('image-placeholder'))) {
+                ['content', 'solution'].forEach(field => {
+                    if (q[field] && (targetId ? q[field].includes(targetId) : q[field].includes('image-placeholder'))) {
+                        const newFieldVal = replaceBankPlaceholderHtml(q[field], targetId, simpleImgTag);
+                        if (newFieldVal !== q[field]) {
+                            q[field] = newFieldVal;
+                            isReplaced = true;
+                        }
+                    }
+                });
+            }
+            // Trường hợp 2: Thay thế ảnh hiện có
+            else if (targetType === 'img' && targetSrc) {
+                ['content', 'solution'].forEach(field => {
+                    if (q[field] && q[field].includes(targetSrc)) {
+                        q[field] = q[field].replace(targetSrc, newUrl);
+                        isReplaced = true;
+                    }
+                });
+            }
+
+            // Trường hợp 3: Chèn thêm ảnh vào cuối đề bài
+            if (!isReplaced) {
+                q.content = (q.content || '').trim() + '\n\n' + simpleImgTag + '\n';
+            }
+
+            // Lưu câu hỏi lên Cloudflare R2
+            let saved = false;
+            if (window.BankService) {
+                saved = await window.BankService.saveSingleQuestion(q);
+            } else {
+                const blob = new Blob([JSON.stringify(q, null, 2)], { type: 'application/json' });
+                const fd = new FormData();
+                fd.append('file', blob, `bank/${q.id}.json`);
+                const sRes = await fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: fd });
+                saved = sRes.ok;
+            }
+
+            if (saved) {
+                // Cập nhật globalBankQuestions
+                if (Array.isArray(window.globalBankQuestions)) {
+                    const idx = window.globalBankQuestions.findIndex(x => String(x.id) === String(q.id));
+                    if (idx !== -1) {
+                        window.globalBankQuestions[idx] = Object.assign({}, window.globalBankQuestions[idx], q);
+                    } else {
+                        window.globalBankQuestions.unshift(q);
+                    }
+                    try {
+                        localStorage.setItem('lms_cached_bank', JSON.stringify(window.globalBankQuestions));
+                    } catch(e) {}
+                }
+
+                // Reset target
+                window.activeBankImageTarget = null;
+
+                // Re-render xem trước câu hỏi
+                window.previewQuestionBank(q);
+
+                if (window.showNotification) {
+                    window.showNotification("Đã dán và cập nhật ảnh thành công lên Cloudflare R2!", "success");
+                }
+            } else {
+                throw new Error("Không thể lưu cập nhật câu hỏi lên Cloudflare R2");
+            }
+        } catch(err) {
+            console.error("Lỗi dán/chèn ảnh ngân hàng:", err);
+            if (window.showNotification) window.showNotification("Lỗi chèn ảnh: " + err.message, "error");
+            else alert("Lỗi chèn ảnh: " + err.message);
+        } finally {
+            if (loadingBanner) loadingBanner.remove();
+        }
+    };
+
+    // Nâng cao giao diện tương tác cho ảnh và khung ảnh trong Preview Modal
+    window.enhanceBankPreviewImages = (q) => {
+        const container = document.getElementById('questionPreviewContent');
+        if (!container) return;
+
+        // 1. Tương tác với .image-placeholder
+        const placeholders = container.querySelectorAll('.image-placeholder');
+        placeholders.forEach(ph => {
+            const pId = ph.getAttribute('data-id') || '';
+            ph.title = "Click để chọn rồi bấm Ctrl+V để dán ảnh từ Clipboard • Click đúp để tải ảnh từ máy tính";
+            if (!ph.hasAttribute('tabindex')) ph.setAttribute('tabindex', '0');
+
+            ph.onclick = (e) => {
+                e.stopPropagation();
+                placeholders.forEach(p => p.classList.remove('ring-4', 'ring-amber-500', 'bg-amber-50'));
+                container.querySelectorAll('img').forEach(im => im.classList.remove('ring-4', 'ring-amber-500'));
+                
+                ph.classList.add('ring-4', 'ring-amber-500', 'bg-amber-50');
+                window.activeBankImageTarget = { type: 'placeholder', dataId: pId, el: ph };
+                if (window.showNotification) {
+                    window.showNotification("Đã chọn khung ảnh! Bấm Ctrl + V để dán ảnh từ Clipboard hoặc Click đúp để chọn tệp", "info");
+                }
+            };
+
+            ph.ondblclick = (e) => {
+                e.stopPropagation();
+                window.activeBankImageTarget = { type: 'placeholder', dataId: pId, el: ph };
+                window.triggerBankImageFileSelect();
+            };
+        });
+
+        // 2. Tương tác với các thẻ <img> hiện có
+        const images = container.querySelectorAll('img');
+        images.forEach(img => {
+            if (img.dataset.bankEnhanced) return;
+            img.dataset.bankEnhanced = "true";
+
+            img.classList.add('cursor-pointer', 'transition-all', 'hover:opacity-90');
+            img.title = "Click để chọn ảnh này (rồi bấm Ctrl+V để thay thế) • Click đúp để chọn tệp thay thế";
+
+            const parent = img.parentElement;
+            if (parent && !parent.classList.contains('bank-img-wrapper')) {
+                parent.classList.add('bank-img-wrapper', 'relative', 'group');
+                
+                // Thanh công cụ nhỏ phía trên ảnh khi hover
+                const toolBar = document.createElement('div');
+                toolBar.className = "absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-gray-900/85 backdrop-blur-sm p-1.5 rounded-xl shadow-lg";
+                toolBar.innerHTML = `
+                    <button type="button" class="btn-replace-img px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] rounded-lg shadow-sm flex items-center gap-1 transition-all" title="Bấm Ctrl+V để thay thế hoặc click để chọn tệp">
+                        <i class="fa-solid fa-camera"></i> Thay ảnh (Ctrl+V)
+                    </button>
+                    <button type="button" class="btn-delete-img px-2 py-1 bg-red-500 hover:bg-red-600 text-white font-bold text-[11px] rounded-lg shadow-sm flex items-center gap-1 transition-all" title="Xóa ảnh này khỏi câu hỏi">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                parent.appendChild(toolBar);
+
+                toolBar.querySelector('.btn-replace-img').onclick = (e) => {
+                    e.stopPropagation();
+                    window.activeBankImageTarget = { type: 'img', src: img.src, el: img };
+                    img.classList.add('ring-4', 'ring-amber-500');
+                    window.triggerBankImageFileSelect();
+                };
+
+                toolBar.querySelector('.btn-delete-img').onclick = async (e) => {
+                    e.stopPropagation();
+                    if (!confirm("Bạn có chắc chắn muốn xóa ảnh này khỏi câu hỏi?")) return;
+                    await window.deleteBankImageFromQuestion(img.src);
+                };
+            }
+
+            img.onclick = (e) => {
+                e.stopPropagation();
+                placeholders.forEach(p => p.classList.remove('ring-4', 'ring-amber-500', 'bg-amber-50'));
+                images.forEach(im => im.classList.remove('ring-4', 'ring-amber-500'));
+                
+                img.classList.add('ring-4', 'ring-amber-500');
+                window.activeBankImageTarget = { type: 'img', src: img.src, el: img };
+                if (window.showNotification) {
+                    window.showNotification("Đã chọn ảnh! Bấm Ctrl + V để dán đè ảnh mới từ Clipboard hoặc click đúp để chọn tệp.", "info");
+                }
+            };
+
+            img.ondblclick = (e) => {
+                e.stopPropagation();
+                window.activeBankImageTarget = { type: 'img', src: img.src, el: img };
+                window.triggerBankImageFileSelect();
+            };
+        });
+    };
+
+    // Xóa ảnh khỏi câu hỏi
+    window.deleteBankImageFromQuestion = async (imgSrc) => {
+        if (!imgSrc || !window.currentPreviewQuestion) return;
+        const q = window.currentPreviewQuestion;
+
+        ['content', 'solution'].forEach(field => {
+            if (q[field] && q[field].includes(imgSrc)) {
+                const escaped = imgSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`<div[^>]*class="[^"]*flex justify-center[^"]*"[^>]*>[\\s\\S]*?src="${escaped}"[\\s\\S]*?<\\/div>|<img[^>]*src="${escaped}"[^>]*>`, 'gi');
+                q[field] = q[field].replace(regex, '');
+            }
+        });
+
+        if (window.BankService) {
+            await window.BankService.saveSingleQuestion(q);
+        }
+        window.previewQuestionBank(q);
+        if (window.showNotification) {
+            window.showNotification("Đã xóa ảnh khỏi câu hỏi thành công!", "success");
+        }
+    };
+
+    // Kích hoạt chọn tệp ảnh từ máy
+    window.triggerBankImageFileSelect = () => {
+        let fileInput = document.getElementById('bankInlineImageFileInput');
+        if (!fileInput) {
+            fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'bankInlineImageFileInput';
+            fileInput.accept = 'image/*';
+            fileInput.className = 'hidden';
+            fileInput.onchange = function() {
+                if (this.files && this.files[0]) {
+                    window.uploadAndReplaceBankImage(this.files[0], window.activeBankImageTarget);
+                    this.value = '';
+                }
+            };
+            document.body.appendChild(fileInput);
+        }
+        fileInput.click();
+    };
+
+    window.handleBankInlineImageFile = (input) => {
+        if (input && input.files && input.files[0]) {
+            window.uploadAndReplaceBankImage(input.files[0], window.activeBankImageTarget);
+            input.value = '';
+        }
+    };
+
+    // Kích hoạt từ nút "Chèn / Dán ảnh (Ctrl+V)"
+    window.triggerBankImageUploadPrompt = async () => {
+        // Thử đọc từ Clipboard API nếu được cấp quyền
+        if (navigator.clipboard && navigator.clipboard.read) {
+            try {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    const imageType = item.types.find(t => t.startsWith('image/'));
+                    if (imageType) {
+                        const blob = await item.getType(imageType);
+                        const file = new File([blob], "clipboard_image.png", { type: imageType });
+                        await window.uploadAndReplaceBankImage(file, window.activeBankImageTarget);
+                        return;
+                    }
+                }
+            } catch(clipErr) {
+                console.log("Clipboard API read prompt fallback:", clipErr);
+            }
+        }
+        // Fallback mở file picker
+        window.triggerBankImageFileSelect();
+    };
+
+    // Hỗ trợ hàm ondblclick="triggerBatchUpload('...')" có sẵn trong đề TeX
+    window.triggerBatchUpload = (id) => {
+        window.activeBankImageTarget = { type: 'placeholder', dataId: id };
+        window.triggerBankImageFileSelect();
+    };
+
+    // LẮNG NGHE SỰ KIỆN PASTE (CTRL + V) TOÀN CỤC CHO MODAL XEM TRƯỚC VÀ SOẠN THẢO
+    document.addEventListener('paste', async (e) => {
+        const previewModal = document.getElementById('questionPreviewModal');
+        const editModal = document.getElementById('questionEditModal');
+
+        const isPreviewOpen = previewModal && !previewModal.classList.contains('opacity-0') && !previewModal.classList.contains('pointer-events-none');
+        const isEditOpen = editModal && !editModal.classList.contains('opacity-0') && !editModal.classList.contains('pointer-events-none');
+
+        if (!isPreviewOpen && !isEditOpen) return;
+
+        const clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData || !clipboardData.items) return;
+
+        for (let i = 0; i < clipboardData.items.length; i++) {
+            const item = clipboardData.items[i];
+            if (item.type.indexOf('image') !== -1) {
+                e.preventDefault();
+                const file = item.getAsFile();
+                if (file) {
+                    await window.uploadAndReplaceBankImage(file, window.activeBankImageTarget);
+                    return;
+                }
+            }
+        }
+    });
+
+    // =========================================================================
+    // HỆ THỐNG LỌC & XỬ LÝ CÂU TRÙNG (BANK DEDUPLICATOR ENGINE UI)
+    // =========================================================================
+    window.currentDedupeClusters = [];
+
+    window.openDeduplicateModal = () => {
+        if (!window.canManageQuestionBank || !window.canManageQuestionBank()) {
+            if (window.requirePermission) window.requirePermission('bank.manage_system', 'lọc câu hỏi trùng');
+            return;
+        }
+        const modal = document.getElementById('bankDeduplicateModal');
+        if (!modal) return;
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modal.classList.add('opacity-100', 'pointer-events-auto');
+        modal.querySelector('.modal-content').classList.remove('scale-95');
+        modal.querySelector('.modal-content').classList.add('scale-100');
+
+        // Reset state
+        const initialEl = document.getElementById('dedupeInitialState');
+        const listEl = document.getElementById('dedupeClustersList');
+        const batchBtn = document.getElementById('dedupeBatchActionContainer');
+        const progressContainer = document.getElementById('dedupeProgressBarContainer');
+        const statEl = document.getElementById('dedupeSummaryStat');
+
+        if (initialEl) initialEl.classList.remove('hidden');
+        if (listEl) {
+            listEl.classList.add('hidden');
+            listEl.innerHTML = '';
+        }
+        if (batchBtn) batchBtn.classList.add('hidden');
+        if (progressContainer) progressContainer.classList.add('hidden');
+        if (statEl) statEl.innerText = '';
+    };
+
+    window.closeDeduplicateModal = () => {
+        const modal = document.getElementById('bankDeduplicateModal');
+        if (!modal) return;
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modal.querySelector('.modal-content').classList.remove('scale-100');
+        modal.querySelector('.modal-content').classList.add('scale-95');
+    };
+
+    window.runDeduplicateScan = async () => {
+        if (!window.BankDeduplicator) {
+            alert("Lỗi: Chưa nạp thư viện lọc trùng bank-deduplicator.js!");
+            return;
+        }
+
+        const btn = document.getElementById('btnStartDedupeScan');
+        const oldHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i>Đang quét...';
+            btn.disabled = true;
+        }
+
+        const progressContainer = document.getElementById('dedupeProgressBarContainer');
+        const progressBar = document.getElementById('dedupeProgressBar');
+        const progressPct = document.getElementById('dedupeProgressPct');
+        const progressText = document.getElementById('dedupeProgressText');
+        if (progressContainer) progressContainer.classList.remove('hidden');
+
+        try {
+            const threshold = parseInt(document.getElementById('dedupeThresholdSelect')?.value || '85', 10);
+            const scope = document.getElementById('dedupeScopeSelect')?.value || 'all';
+
+            let candidateQuestions = window.globalBankQuestions || [];
+            if (scope === 'current') {
+                const g = document.getElementById('f_Grade')?.value || 'all';
+                const s = document.getElementById('f_Subject')?.value || 'all';
+                let prefix = "";
+                if (g !== 'all') prefix += g;
+                if (s !== 'all') prefix += s;
+                if (prefix) {
+                    candidateQuestions = candidateQuestions.filter(q => String(q.mapId || '').startsWith(prefix));
+                }
+            }
+
+            // Chỉ quét các câu có nội dung đầy đủ
+            const validCandidates = candidateQuestions.filter(q => q && q.content && q.content.trim().length >= 5);
+
+            if (validCandidates.length < 2) {
+                if (window.showNotification) window.showNotification("Cần ít nhất 2 câu hỏi có nội dung để thực hiện quét trùng.", "warning");
+                else alert("Cần ít nhất 2 câu hỏi có nội dung để thực hiện quét trùng.");
+                return;
+            }
+
+            const clusters = window.BankDeduplicator.findDuplicatesInBank(validCandidates, {
+                threshold: threshold,
+                onProgress: (pct) => {
+                    if (progressBar) progressBar.style.width = pct + '%';
+                    if (progressPct) progressPct.innerText = pct + '%';
+                }
+            });
+
+            window.currentDedupeClusters = clusters;
+            window.renderDeduplicateClusters(clusters);
+
+            if (window.showNotification) {
+                window.showNotification(`Đã hoàn tất quét: Phát hiện ${clusters.length} cụm câu hỏi trùng lặp!`, clusters.length > 0 ? "info" : "success");
+            }
+        } catch(err) {
+            console.error("Lỗi khi quét câu trùng:", err);
+            alert("Lỗi khi quét câu trùng: " + err.message);
+        } finally {
+            if (btn) {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            }
+            if (progressContainer) {
+                setTimeout(() => progressContainer.classList.add('hidden'), 500);
+            }
+        }
+    };
+
+    window.renderDeduplicateClusters = (clusters) => {
+        const initialEl = document.getElementById('dedupeInitialState');
+        const listEl = document.getElementById('dedupeClustersList');
+        const batchBtn = document.getElementById('dedupeBatchActionContainer');
+        const statEl = document.getElementById('dedupeSummaryStat');
+
+        if (!clusters || clusters.length === 0) {
+            if (initialEl) {
+                initialEl.classList.remove('hidden');
+                initialEl.innerHTML = `
+                    <div class="w-16 h-16 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-2xl mb-4 mx-auto">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-gray-800 mb-1">Không phát hiện câu hỏi trùng lặp nào!</h4>
+                    <p class="text-xs text-gray-500 max-w-md leading-relaxed mb-6">
+                        Tất cả các câu hỏi trong phạm vi đã quét đều độc nhất hoặc đã được gom nhóm trước đó.
+                    </p>
+                    <button onclick="window.runDeduplicateScan()" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> Quét lại với ngưỡng khác
+                    </button>
+                `;
+            }
+            if (listEl) listEl.classList.add('hidden');
+            if (batchBtn) batchBtn.classList.add('hidden');
+            if (statEl) statEl.innerText = '0 cụm trùng lặp';
+            return;
+        }
+
+        if (initialEl) initialEl.classList.add('hidden');
+        if (listEl) {
+            listEl.classList.remove('hidden');
+            listEl.innerHTML = '';
+        }
+        if (batchBtn) batchBtn.classList.remove('hidden');
+
+        let totalDupeQuestions = 0;
+        clusters.forEach(c => totalDupeQuestions += (c.duplicates ? c.duplicates.length : 0));
+        if (statEl) {
+            statEl.innerHTML = `Tìm thấy <b class="text-amber-700 font-mono">${clusters.length} cụm trùng</b> (Tổng <b class="text-amber-700 font-mono">${totalDupeQuestions}</b> câu trùng lặp có thể gộp)`;
+        }
+
+        clusters.forEach((cluster, cIdx) => {
+            const clusterCard = document.createElement('div');
+            clusterCard.id = `cluster-card-${cluster.clusterId}`;
+            clusterCard.className = "p-5 bg-white border border-gray-200 hover:border-amber-400 rounded-2xl shadow-sm transition-all";
+
+            const allQuestionsInCluster = [cluster.master, ...cluster.duplicates];
+            const maxScore = cluster.maxScore || 90;
+
+            let questionsHtml = '';
+            allQuestionsInCluster.forEach((q, qIdx) => {
+                const isSelectedMaster = (qIdx === 0);
+                const isMasterCandidate = isSelectedMaster;
+                const matchScoreBadge = (!isMasterCandidate && q.matchScore) 
+                    ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]"><i class="fa-solid fa-chart-pie mr-1"></i>Trùng ${q.matchScore}%</span>`
+                    : '';
+
+                const optListHtml = (Array.isArray(q.options) && q.options.length > 0)
+                    ? `<div class="grid grid-cols-2 gap-1.5 mt-2.5 pt-2.5 border-t border-gray-100 text-xs">
+                        ${q.options.map((opt, oIdx) => `
+                            <div class="p-1.5 rounded bg-gray-50 border border-gray-200 truncate flex items-center gap-1.5">
+                                <span class="font-bold text-gray-500">${String.fromCharCode(65 + oIdx)}.</span>
+                                <span class="math-content truncate">${window.formatContent ? window.formatContent(opt) : opt}</span>
+                            </div>
+                        `).join('')}
+                    </div>`
+                    : '';
+
+                const solBadge = q.solution 
+                    ? `<span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold border border-emerald-200"><i class="fa-solid fa-check text-[9px] mr-1"></i>Có lời giải</span>`
+                    : `<span class="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-200">Chưa có lời giải</span>`;
+
+                questionsHtml += `
+                    <div class="flex-1 min-w-[280px] p-4 rounded-xl border ${isMasterCandidate ? 'border-amber-300 bg-amber-50/20 ring-1 ring-amber-200' : 'border-gray-200 bg-white'} flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-gray-100">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="master_select_${cluster.clusterId}" value="${q.id}" ${isSelectedMaster ? 'checked' : ''} class="w-4 h-4 text-amber-600 focus:ring-amber-500 cursor-pointer" onchange="window.updateClusterMasterSelection('${cluster.clusterId}', '${q.id}')">
+                                    <span class="text-xs font-bold ${isMasterCandidate ? 'text-amber-800' : 'text-gray-700'}">Chọn làm câu gốc (Master)</span>
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    ${matchScoreBadge}
+                                    ${solBadge}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 mb-2 flex-wrap text-xs">
+                                <span class="font-mono font-bold text-gray-800">#${q.cccd || q.id}</span>
+                                <span class="font-mono text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-200">${q.mapId || 'Chưa gán MapID'}</span>
+                                ${q.source ? `<span class="text-gray-500 truncate max-w-[130px]" title="${q.source}"><i class="fa-solid fa-bookmark mr-1"></i>${q.source}</span>` : ''}
+                            </div>
+                            <div class="text-xs leading-relaxed text-gray-800 math-content max-h-36 overflow-y-auto custom-scrollbar">
+                                ${window.formatContent ? window.formatContent(q.content) : q.content}
+                            </div>
+                            ${optListHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            clusterCard.innerHTML = `
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-3 border-b border-gray-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-black text-xs flex items-center justify-center">${cIdx + 1}</span>
+                        <h5 class="font-bold text-gray-800 text-sm">Cụm phát hiện trùng lặp (${allQuestionsInCluster.length} câu)</h5>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${maxScore >= 95 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}">Độ tương đồng cao nhất: ${maxScore}%</span>
+                    </div>
+                    <div class="flex items-center gap-2 self-end sm:self-center">
+                        <button onclick="window.ignoreClusterUI('${cluster.clusterId}')" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold transition-all">
+                            <i class="fa-solid fa-eye-slash mr-1"></i> Bỏ qua
+                        </button>
+                        <button id="btnMergeCluster-${cluster.clusterId}" onclick="window.mergeClusterUI('${cluster.clusterId}')" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-link"></i> Xác nhận gộp cụm này
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${questionsHtml}
+                </div>
+            `;
+
+            listEl.appendChild(clusterCard);
+        });
+
+        // Kích hoạt render MathJax
+        if (window.MathJax && window.MathJax.typesetPromise) {
+            window.MathJax.typesetPromise([listEl]).catch(() => {});
+        }
+    };
+
+    window.updateClusterMasterSelection = (clusterId, selectedMasterId) => {
+        const cluster = window.currentDedupeClusters.find(c => c.clusterId === clusterId);
+        if (!cluster) return;
+
+        const all = [cluster.master, ...cluster.duplicates];
+        const newMaster = all.find(q => String(q.id) === String(selectedMasterId));
+        if (newMaster) {
+            cluster.master = newMaster;
+            cluster.duplicates = all.filter(q => String(q.id) !== String(selectedMasterId));
+        }
+    };
+
+    window.ignoreClusterUI = (clusterId) => {
+        const el = document.getElementById(`cluster-card-${clusterId}`);
+        if (el) {
+            el.classList.add('opacity-40', 'pointer-events-none');
+            setTimeout(() => el.remove(), 250);
+        }
+        window.currentDedupeClusters = window.currentDedupeClusters.filter(c => c.clusterId !== clusterId);
+        const statEl = document.getElementById('dedupeSummaryStat');
+        if (statEl) {
+            statEl.innerText = `${window.currentDedupeClusters.length} cụm trùng lặp còn lại`;
+        }
+    };
+
+    window.mergeClusterUI = async (clusterId) => {
+        const cluster = window.currentDedupeClusters.find(c => c.clusterId === clusterId);
+        if (!cluster) return;
+
+        const btn = document.getElementById(`btnMergeCluster-${clusterId}`);
+        const oldHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang gộp...';
+            btn.disabled = true;
+        }
+
+        try {
+            const masterId = String(cluster.master.id || cluster.master.cccd);
+            const dupeIds = cluster.duplicates.map(d => String(d.id || d.cccd));
+
+            const res = await window.BankDeduplicator.persistMergeToR2(
+                masterId,
+                dupeIds,
+                window.globalBankQuestions,
+                window.BankService
+            );
+
+            if (res.success) {
+                if (window.showNotification) {
+                    window.showNotification(`Đã gộp thành công ${dupeIds.length} mã trùng vào câu Master #${masterId}!`, "success");
+                }
+                window.ignoreClusterUI(clusterId);
+                window.applyBankFilters();
+            } else {
+                throw new Error(res.message || "Thao tác thất bại");
+            }
+        } catch(err) {
+            console.error("Lỗi gộp cụm:", err);
+            alert("Lỗi khi gộp: " + err.message);
+            if (btn) {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            }
+        }
+    };
+
+    window.autoMergeAllClusters = async () => {
+        const highConfidenceClusters = window.currentDedupeClusters.filter(c => (c.maxScore || 0) >= 90);
+        if (highConfidenceClusters.length === 0) {
+            alert("Không có cụm nào đạt độ tương đồng ≥ 90% để gộp tự động.");
+            return;
+        }
+
+        if (!confirm(`Bạn có chắc chắn muốn tự động gộp ${highConfidenceClusters.length} cụm câu hỏi trùng nhau (≥ 90%)? Hệ thống sẽ tự động chọn câu có lời giải đầy đủ nhất làm câu gốc (Master).`)) {
+            return;
+        }
+
+        const btn = document.getElementById('btnAutoMergeAll');
+        const oldHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang gộp toàn bộ...';
+            btn.disabled = true;
+        }
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const cluster of highConfidenceClusters) {
+            try {
+                const masterId = String(cluster.master.id || cluster.master.cccd);
+                const dupeIds = cluster.duplicates.map(d => String(d.id || d.cccd));
+
+                const res = await window.BankDeduplicator.persistMergeToR2(
+                    masterId,
+                    dupeIds,
+                    window.globalBankQuestions,
+                    window.BankService
+                );
+
+                if (res.success) {
+                    successCount++;
+                    window.ignoreClusterUI(cluster.clusterId);
+                } else {
+                    failCount++;
+                }
+            } catch(e) {
+                failCount++;
+            }
+        }
+
+        if (btn) {
+            btn.innerHTML = oldHtml;
+            btn.disabled = false;
+        }
+
+        window.applyBankFilters();
+        if (window.showNotification) {
+            window.showNotification(`Đã tự động gộp thành công ${successCount} cụm trùng.` + (failCount > 0 ? ` (Lỗi ${failCount} cụm)` : ""), successCount > 0 ? "success" : "error");
+        }
+    };
+
+    // Quản lý và hủy gộp Aliases
+    window.openManageAliasesModal = (masterId) => {
+        const master = (window.globalBankQuestions || []).find(q => String(q.id) === String(masterId));
+        if (!master || !Array.isArray(master.aliases) || master.aliases.length === 0) {
+            alert("Câu hỏi này chưa gộp mã trùng nào.");
+            return;
+        }
+
+        const modal = document.getElementById('bankManageAliasesModal');
+        const body = document.getElementById('manageAliasesModalBody');
+        if (!modal || !body) return;
+
+        body.innerHTML = '';
+        master.aliases.forEach(aliasId => {
+            const aliasQ = (window.globalBankQuestions || []).find(q => String(q.id) === String(aliasId));
+            const div = document.createElement('div');
+            div.className = "p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between gap-3";
+            div.innerHTML = `
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="font-mono font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200 text-xs shrink-0">#${aliasId}</span>
+                    <span class="text-xs text-gray-600 truncate">${aliasQ?.source || 'Mã sách/đề thi giấy'}</span>
+                </div>
+                <button onclick="window.unmergeSingleAlias('${aliasId}', '${masterId}')" class="px-2.5 py-1 bg-white border border-red-200 hover:bg-red-50 text-red-600 rounded-lg text-xs font-bold transition-colors shrink-0 flex items-center gap-1 shadow-2xs">
+                    <i class="fa-solid fa-unlink text-[10px]"></i> Hủy gộp
+                </button>
+            `;
+            body.appendChild(div);
+        });
+
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modal.classList.add('opacity-100', 'pointer-events-auto');
+        modal.querySelector('.modal-content').classList.remove('scale-95');
+        modal.querySelector('.modal-content').classList.add('scale-100');
+    };
+
+    window.closeManageAliasesModal = () => {
+        const modal = document.getElementById('bankManageAliasesModal');
+        if (!modal) return;
+        modal.classList.remove('opacity-100', 'pointer-events-auto');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modal.querySelector('.modal-content').classList.remove('scale-100');
+        modal.querySelector('.modal-content').classList.add('scale-95');
+    };
+
+    window.unmergeSingleAlias = async (aliasId, masterId) => {
+        if (!confirm(`Bạn có chắc chắn muốn hủy gộp mã #${aliasId} khỏi câu gốc #${masterId}? Câu này sẽ tách thành 1 câu độc lập trong ngân hàng.`)) {
+            return;
+        }
+
+        try {
+            const res = await window.BankDeduplicator.persistUnmergeToR2(
+                aliasId,
+                masterId,
+                window.globalBankQuestions,
+                window.BankService
+            );
+
+            if (res.success) {
+                if (window.showNotification) window.showNotification(`Đã tách mã #${aliasId} thành câu độc lập thành công!`, "success");
+                window.closeManageAliasesModal();
+                window.applyBankFilters();
+                setTimeout(() => window.fetchAndPreview(masterId), 300);
+            } else {
+                throw new Error(res.message || "Lỗi tách mã");
+            }
+        } catch(err) {
+            console.error("Lỗi hủy gộp:", err);
+            alert("Lỗi hủy gộp: " + err.message);
+        }
+    };
+
+    window.unmergeAliasFromPreview = async (aliasId, masterId) => {
+        window.unmergeSingleAlias(aliasId, masterId);
     };
 
         // ================= CƠ CHẾ API KEY AI CÁ NHÂN (BYOK CHO GIÁO VIÊN) =================
