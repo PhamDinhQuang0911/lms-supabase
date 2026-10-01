@@ -10106,6 +10106,9 @@ function renderTagFilterUI() {
             ? `<span class="text-xs font-bold text-${levelColor}-600 bg-${levelColor}-50 px-2 py-1 rounded-md border border-${levelColor}-100 uppercase tracking-wide">${lvText}</span>`
             : `<span class="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-200">Không có</span>`;
 
+        const typeLabel = (qType === 'mc' || qType === 'TRAC_NGHIEM') ? 'Trắc nghiệm (4 lựa chọn)' : ((qType === 'tf' || qType === 'DUNG_SAI') ? 'Đúng / Sai' : ((qType === 'short' || qType === 'TRA_LOI_NGAN') ? 'Trả lời ngắn' : 'Tự luận'));
+        const sourceHtml = q.source ? `<span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-200"><i class="fa-solid fa-bookmark text-indigo-400 mr-1"></i>${q.source}</span>` : '';
+
         let masterAliasNoticeHtml = '';
         if (q.isMergedAlias || (q.isDuplicate && q.masterId)) {
             const reqId = q.displayCccd || q.requestedId || q.cccd || q.id;
