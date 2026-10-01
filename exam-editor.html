@@ -4092,17 +4092,40 @@
                 const curCount = (window.questions || []).length;
                 const newCount = parsedList.length;
                 let preservedCccdCount = 0;
-                (window.questions || []).forEach(q => {
-                    if (q.cccd || q.bankId) preservedCccdCount++;
+                const existingCccdMap = new Map();
+                (window.questions || []).forEach((q, idx) => {
+                    const c = String(q.cccd || q.bankId || '').trim();
+                    if (c) {
+                        preservedCccdCount++;
+                        existingCccdMap.set(c, { q, idx });
+                    }
                 });
+
+                const matchedCccdList = parsedList.filter(newQ => {
+                    const c = String(newQ.cccd || newQ.bankId || '').trim();
+                    return c && existingCccdMap.has(c);
+                });
+
+                const isSmartCccdMode = matchedCccdList.length > 0;
+                window._isSmartCccdOverwrite = isSmartCccdMode;
+                window._smartCccdMatchedCount = matchedCccdList.length;
 
                 document.getElementById('overwriteCurrentCount').innerText = `${curCount} câu`;
                 document.getElementById('overwriteNewCount').innerText = `${newCount} câu`;
-                document.getElementById('overwritePreservedCccdCount').innerText = `${preservedCccdCount} mã`;
+                document.getElementById('overwritePreservedCccdCount').innerText = isSmartCccdMode 
+                    ? `${matchedCccdList.length}/${newCount} mã CCCD khớp` 
+                    : `${preservedCccdCount} mã`;
 
                 const warningBox = document.getElementById('overwriteWarningDiff');
                 const warningText = document.getElementById('overwriteWarningDiffText');
-                if (curCount !== newCount) {
+                if (isSmartCccdMode) {
+                    warningBox.classList.remove('hidden');
+                    let extraDiff = '';
+                    if (curCount !== newCount) {
+                        extraDiff = ` (Đề hiện tại có ${curCount} câu, file TeX mới có ${newCount} câu).`;
+                    }
+                    warningText.innerHTML = `✨ <b>Chế độ Ghép Mã CCCD & Đổi Thứ Tự:</b> Phát hiện file TeX có <b>${matchedCccdList.length} câu</b> mang mã CCCD khớp với đề. Hệ thống sẽ <b>tìm đúng từng câu theo CCCD để ghi đè vào R2</b>, đồng thời <b>sắp xếp lại thứ tự các câu trong đề</b> theo đúng vị trí mới của file TeX!${extraDiff}`;
+                } else if (curCount !== newCount) {
                     warningBox.classList.remove('hidden');
                     if (newCount < curCount) {
                         warningText.innerHTML = `Đề hiện tại có <b>${curCount}</b> câu nhưng file TeX mới chỉ có <b>${newCount}</b> câu. Hệ thống sẽ ghi đè <b>${newCount}</b> câu đầu tiên, các câu từ <b>${newCount + 1}</b> đến <b>${curCount}</b> sẽ được giữ nguyên.`;
@@ -4142,44 +4165,86 @@
                 // Render bảng so sánh
                 const tbody = document.getElementById('overwriteComparisonTableBody');
                 tbody.innerHTML = '';
-                const maxRows = Math.max(curCount, newCount);
 
-                for (let i = 0; i < maxRows; i++) {
-                    const oldQ = window.questions[i];
-                    const newQ = parsedList[i];
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-amber-50/40 transition-colors";
+                const cleanSnippet = (txt) => {
+                    if (!txt) return '';
+                    return String(txt).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 45) + '...';
+                };
 
-                    const cccdVal = oldQ ? (oldQ.cccd || oldQ.bankId || '') : '';
-                    const cccdBadge = cccdVal
-                        ? `<span class="px-2 py-0.5 bg-teal-50 border border-teal-200 text-teal-700 rounded font-mono font-bold text-[11px] flex items-center gap-1 w-fit" title="Bảo lưu 100% không đổi"><i class="fa-solid fa-shield-halved text-[9px]"></i>#${cccdVal}</span>`
-                        : `<span class="text-[11px] text-gray-400 italic">Chưa cấp</span>`;
+                if (isSmartCccdMode) {
+                    for (let i = 0; i < newCount; i++) {
+                        const newQ = parsedList[i];
+                        const cccdVal = String(newQ.cccd || newQ.bankId || '').trim();
+                        const matchInfo = cccdVal ? existingCccdMap.get(cccdVal) : null;
+                        const oldQ = matchInfo ? matchInfo.q : null;
+                        const oldIdx = matchInfo ? matchInfo.idx : -1;
 
-                    const cleanSnippet = (txt) => {
-                        if (!txt) return '';
-                        return String(txt).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().substring(0, 45) + '...';
-                    };
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-amber-50/40 transition-colors";
 
-                    const oldSnip = oldQ ? cleanSnippet(oldQ.content) : '<span class="text-gray-400 italic">(Chưa có)</span>';
-                    const newSnip = newQ ? cleanSnippet(newQ.content) : '<span class="text-gray-400 italic">(Không có trong TeX)</span>';
+                        let sttHtml = `<div class="font-bold text-gray-700 text-center">${i + 1}</div>`;
+                        if (oldIdx !== -1 && oldIdx !== i) {
+                            sttHtml += `<div class="text-[10px] text-amber-600 font-semibold whitespace-nowrap text-center">Đổi từ Câu ${oldIdx + 1}</div>`;
+                        }
 
-                    const oldMap = oldQ ? (oldQ.mapId || 'No-ID') : '-';
-                    const newMap = newQ ? (newQ.mapId || 'No-ID') : '-';
-                    const newLvl = newQ ? (newQ.level || '') : '';
+                        const cccdBadge = cccdVal
+                            ? `<span class="px-2 py-0.5 bg-teal-50 border border-teal-200 text-teal-700 rounded font-mono font-bold text-[11px] flex items-center gap-1 w-fit" title="Khớp chính xác CCCD #${cccdVal}"><i class="fa-solid fa-link text-[9px]"></i>#${cccdVal}</span>`
+                            : `<span class="text-[11px] text-gray-400 italic">Câu mới</span>`;
 
-                    tr.innerHTML = `
-                        <td class="p-2.5 text-center font-bold text-gray-600">${i + 1}</td>
-                        <td class="p-2.5">${cccdBadge}</td>
-                        <td class="p-2.5">
-                            <div class="text-gray-400 line-through text-[11px]">${oldSnip}</div>
-                            <div class="text-gray-800 font-medium">${newSnip}</div>
-                        </td>
-                        <td class="p-2.5">
-                            <div class="font-mono font-bold text-primary-700">${newMap}</div>
-                            <div class="text-[10px] text-gray-500">${newLvl ? `<span class="px-1.5 py-0.2 bg-gray-100 rounded text-gray-600">${newLvl}</span>` : ''}</div>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
+                        const oldSnip = oldQ ? cleanSnippet(oldQ.content) : '<span class="text-emerald-600 font-bold italic">(Câu mới thêm)</span>';
+                        const newSnip = cleanSnippet(newQ.content);
+
+                        const newMap = newQ.mapId || '-';
+                        const newLvl = newQ.level || '';
+
+                        tr.innerHTML = `
+                            <td class="p-2.5">${sttHtml}</td>
+                            <td class="p-2.5">${cccdBadge}</td>
+                            <td class="p-2.5">
+                                ${oldQ ? `<div class="text-gray-400 line-through text-[11px]">${oldSnip}</div>` : ''}
+                                <div class="text-gray-800 font-medium">${newSnip}</div>
+                            </td>
+                            <td class="p-2.5">
+                                <div class="font-mono font-bold text-primary-700">${newMap}</div>
+                                <div class="text-[10px] text-gray-500">${newLvl ? `<span class="px-1.5 py-0.2 bg-gray-100 rounded text-gray-600">${newLvl}</span>` : ''}</div>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    }
+                } else {
+                    const maxRows = Math.max(curCount, newCount);
+                    for (let i = 0; i < maxRows; i++) {
+                        const oldQ = window.questions[i];
+                        const newQ = parsedList[i];
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-amber-50/40 transition-colors";
+
+                        const cccdVal = oldQ ? (oldQ.cccd || oldQ.bankId || '') : '';
+                        const cccdBadge = cccdVal
+                            ? `<span class="px-2 py-0.5 bg-teal-50 border border-teal-200 text-teal-700 rounded font-mono font-bold text-[11px] flex items-center gap-1 w-fit" title="Bảo lưu 100% không đổi"><i class="fa-solid fa-shield-halved text-[9px]"></i>#${cccdVal}</span>`
+                            : `<span class="text-[11px] text-gray-400 italic">Chưa cấp</span>`;
+
+                        const oldSnip = oldQ ? cleanSnippet(oldQ.content) : '<span class="text-gray-400 italic">(Chưa có)</span>';
+                        const newSnip = newQ ? cleanSnippet(newQ.content) : '<span class="text-gray-400 italic">(Không có trong TeX)</span>';
+
+                        const oldMap = oldQ ? (oldQ.mapId || 'No-ID') : '-';
+                        const newMap = newQ ? (newQ.mapId || 'No-ID') : '-';
+                        const newLvl = newQ ? (newQ.level || '') : '';
+
+                        tr.innerHTML = `
+                            <td class="p-2.5 text-center font-bold text-gray-600">${i + 1}</td>
+                            <td class="p-2.5">${cccdBadge}</td>
+                            <td class="p-2.5">
+                                <div class="text-gray-400 line-through text-[11px]">${oldSnip}</div>
+                                <div class="text-gray-800 font-medium">${newSnip}</div>
+                            </td>
+                            <td class="p-2.5">
+                                <div class="font-mono font-bold text-primary-700">${newMap}</div>
+                                <div class="text-[10px] text-gray-500">${newLvl ? `<span class="px-1.5 py-0.2 bg-gray-100 rounded text-gray-600">${newLvl}</span>` : ''}</div>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    }
                 }
 
                 // Mở modal
@@ -4228,45 +4293,98 @@
                     console.log(`[Cập nhật đè TeX] Đã xóa ${deletedR2Count}/${r2UrlsToDelete.length} ảnh cũ trên R2`);
                 }
 
-                // 2. THỰC HIỆN GHI ĐÈ TỪNG CÂU THEO VỊ TRÍ TƯƠNG ỨNG (BẢO LƯU CCCD TUYỆT ĐỐI)
-                for (let i = 0; i < overwriteCount; i++) {
-                    const targetQ = window.questions[i];
-                    const srcQ = parsedList[i];
+                // 2. THỰC HIỆN GHI ĐÈ & SẮP XẾP LẠI THỨ TỰ CÂU HỎI
+                if (window._isSmartCccdOverwrite) {
+                    // 2A. CHẾ ĐỘ GHÉP NỐI THEO CCCD & ĐỔI THỨ TỰ CÂU THEO FILE TEX
+                    const oldQuestions = window.questions || [];
+                    const oldCccdMap = new Map();
+                    oldQuestions.forEach(q => {
+                        const c = String(q.cccd || q.bankId || '').trim();
+                        if (c) oldCccdMap.set(c, q);
+                    });
 
-                    // BẢO LƯU TUYỆT ĐỐI MÃ CCCD ĐANG CÓ
-                    const preservedCccd = targetQ.cccd || targetQ.bankId;
-                    if (preservedCccd) {
-                        srcQ.cccd = preservedCccd;
-                        srcQ.bankId = preservedCccd;
-                    }
-                    if (targetQ.point && (!srcQ.point || srcQ.point === 0)) {
-                        srcQ.point = targetQ.point;
+                    const finalQuestions = [];
+                    const matchedCccdSet = new Set();
+
+                    for (let i = 0; i < parsedList.length; i++) {
+                        const srcQ = parsedList[i];
+                        const srcCccd = String(srcQ.cccd || srcQ.bankId || '').trim();
+                        const targetQ = srcCccd ? oldCccdMap.get(srcCccd) : null;
+
+                        if (targetQ) {
+                            matchedCccdSet.add(srcCccd);
+
+                            // Cập nhật nội dung & metadata vào targetQ
+                            targetQ.content = srcQ.content;
+                            targetQ.solution = srcQ.solution;
+                            targetQ.type = srcQ.type;
+                            targetQ.options = srcQ.options || [];
+                            targetQ.correct = srcQ.correct;
+                            targetQ.statements = srcQ.statements || [];
+                            targetQ.answer = srcQ.answer || '';
+                            targetQ.mapId = srcQ.mapId || targetQ.mapId || '';
+                            targetQ.subject = srcQ.subject || targetQ.subject || '';
+                            targetQ.level = srcQ.level || targetQ.level || '';
+                            targetQ.levelColor = srcQ.levelColor || targetQ.levelColor || 'gray';
+                            targetQ.env = srcQ.env || targetQ.env;
+                            targetQ.source = srcQ.source || targetQ.source;
+                            if (srcQ.point && srcQ.point > 0) targetQ.point = srcQ.point;
+
+                            finalQuestions.push(targetQ);
+                        } else {
+                            // Câu hỏi mới thêm trong file TeX
+                            finalQuestions.push(srcQ);
+                        }
                     }
 
-                    // Ghi đè toàn bộ nội dung & metadata
-                    targetQ.content = srcQ.content;
-                    targetQ.solution = srcQ.solution;
-                    targetQ.type = srcQ.type;
-                    targetQ.options = srcQ.options || [];
-                    targetQ.correct = srcQ.correct;
-                    targetQ.statements = srcQ.statements || [];
-                    targetQ.answer = srcQ.answer || '';
-                    targetQ.mapId = srcQ.mapId || '';
-                    targetQ.subject = srcQ.subject || '';
-                    targetQ.level = srcQ.level || '';
-                    targetQ.levelColor = srcQ.levelColor || 'gray';
-                    targetQ.env = srcQ.env || targetQ.env;
-                    targetQ.source = srcQ.source || targetQ.source;
-                    if (preservedCccd) {
-                        targetQ.cccd = preservedCccd;
-                        targetQ.bankId = preservedCccd;
+                    // Giữ lại các câu trong đề cũ mà trong file TeX mới không xuất hiện (nếu có)
+                    const retainedOldQs = oldQuestions.filter(q => {
+                        const c = String(q.cccd || q.bankId || '').trim();
+                        return c ? !matchedCccdSet.has(c) : false;
+                    });
+                    if (retainedOldQs.length > 0) {
+                        finalQuestions.push(...retainedOldQs);
                     }
-                }
 
-                // Nếu file TeX có thêm các câu mới dư ra
-                if (newLen > curLen) {
-                    const surplus = parsedList.slice(curLen);
-                    window.questions.push(...surplus);
+                    window.questions = finalQuestions;
+                } else {
+                    // 2B. CHẾ ĐỘ TUẦN TỰ THEO THỨ TỰ CÂU (BẢO LƯU CCCD CHO FILE KHÔNG CÓ MÃ)
+                    for (let i = 0; i < overwriteCount; i++) {
+                        const targetQ = window.questions[i];
+                        const srcQ = parsedList[i];
+
+                        const preservedCccd = targetQ.cccd || targetQ.bankId;
+                        if (preservedCccd) {
+                            srcQ.cccd = preservedCccd;
+                            srcQ.bankId = preservedCccd;
+                        }
+                        if (targetQ.point && (!srcQ.point || srcQ.point === 0)) {
+                            srcQ.point = targetQ.point;
+                        }
+
+                        targetQ.content = srcQ.content;
+                        targetQ.solution = srcQ.solution;
+                        targetQ.type = srcQ.type;
+                        targetQ.options = srcQ.options || [];
+                        targetQ.correct = srcQ.correct;
+                        targetQ.statements = srcQ.statements || [];
+                        targetQ.answer = srcQ.answer || '';
+                        targetQ.mapId = srcQ.mapId || '';
+                        targetQ.subject = srcQ.subject || '';
+                        targetQ.level = srcQ.level || '';
+                        targetQ.levelColor = srcQ.levelColor || 'gray';
+                        targetQ.env = srcQ.env || targetQ.env;
+                        targetQ.source = srcQ.source || targetQ.source;
+                        if (preservedCccd) {
+                            targetQ.cccd = preservedCccd;
+                            targetQ.bankId = preservedCccd;
+                        }
+                    }
+
+                    if (newLen > curLen) {
+                        const surplus = parsedList.slice(curLen);
+                        window.questions.push(...surplus);
+                    }
                 }
 
                 // Cập nhật bản sao lưu câu hỏi gốc
@@ -4281,7 +4399,8 @@
                     syncR2,
                     autoSave,
                     overwriteCount,
-                    deletedImgCount: deletedR2Count
+                    deletedImgCount: deletedR2Count,
+                    isSmartCccd: window._isSmartCccdOverwrite
                 };
 
                 // Đóng modal đối soát ghi đè
