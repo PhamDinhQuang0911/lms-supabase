@@ -8810,17 +8810,15 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
                     .substring(0, 40);
             }
 
-            // 1. Tách rawText thành các khối câu hỏi \begin{ex|bt|vd|vidu} ... \end{...}
+            // 1. Tách rawText thành các khối câu hỏi và các đoạn văn bản xen kẽ (interTexts)
             const blockRegex = /([ \t]*\\begin\{(ex|bt|vd|vidu)\}[\s\S]*?\\end\{\2\})/g;
             const rawBlocks = [];
+            const interTexts = [];
             let match;
-            let firstBlockIndex = -1;
-            let lastBlockEnd = -1;
+            let lastIndex = 0;
 
             while ((match = blockRegex.exec(rawText)) !== null) {
-                if (firstBlockIndex === -1) firstBlockIndex = match.index;
-                lastBlockEnd = match.index + match[0].length;
-
+                interTexts.push(rawText.substring(lastIndex, match.index));
                 const blockContent = match[1];
                 const env = match[2];
 
@@ -8841,22 +8839,21 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
                     cccd,
                     mapId,
                     snippet: getCleanSnippet(blockContent),
-                    used: false
+                    used: false,
+                    origIndex: rawBlocks.length
                 });
+                lastIndex = match.index + match[0].length;
             }
+            // Đoạn văn bản sau khối câu hỏi cuối cùng (chứa \indapan, \Closesolutionfile, \end{document}...)
+            interTexts.push(rawText.substring(lastIndex));
 
             // Nếu không phát hiện được khối câu hỏi nào trong rawText, chuyển sang tạo document đầy đủ
             if (rawBlocks.length === 0) {
                 return generateFullLatexDocument(questions, document.getElementById('settingTitle')?.value || "Đề thi", true);
             }
 
-            let preambleAndHeader = rawText.substring(0, firstBlockIndex);
-            // Dọn dẹp comment thừa %%==============Câu X ở cuối preamble nếu có
-            preambleAndHeader = preambleAndHeader.replace(/[ \t]*%%[= -]*Câu\s*\d+[^\r\n]*\r?\n?$/i, '').trimEnd() + '\n\n';
-            const footer = rawText.substring(lastBlockEnd).trimStart();
-
             // 2. Ghép nối từng câu hỏi trong danh sách questions với rawBlock tương ứng
-            const updatedQuestionBlocks = [];
+            const slotBlocks = [];
 
             for (let qIdx = 0; qIdx < questions.length; qIdx++) {
                 const q = questions[qIdx];
@@ -8903,24 +8900,89 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
 
                     // Thay thế dòng mở đầu \begin{...} bằng header mới chuẩn [CCCD]%[Nguồn]%[MapID]
                     blockCode = blockCode.replace(
-                        /^[ \t]*\\begin\{(?:ex|bt|vd|vidu)\}(?:\[.*?\])*(?:%\[.*?\])*(?:%\[.*?\])*/m,
+                        /^[ \t]*\\begin\{(?:ex|bt|vd|vidu)\}\s*(?:\[.*?\]\s*)*(?:%\[.*?\]\s*)*/m,
                         `\\begin{${targetEnv}}[${targetCccd}]%[${targetSource}]%[${targetMapId}]`
                     );
 
-                    const commentHeader = `%%==============Câu ${qIdx + 1}\n`;
-                    finalBlockText = commentHeader + blockCode.trim();
+                    finalBlockText = blockCode;
                 } else {
                     // Nếu là câu hỏi tạo mới hoàn toàn trên web không có trong rawText
-                    const commentHeader = `%%==============Câu ${qIdx + 1}\n`;
-                    finalBlockText = commentHeader + formatQuestionToLatex(q);
+                    finalBlockText = formatQuestionToLatex(q);
                 }
 
-                updatedQuestionBlocks.push(finalBlockText);
+                slotBlocks.push(finalBlockText);
             }
 
-            // 3. Hợp nhất lại toàn bộ tài liệu TeX
-            const outputBody = updatedQuestionBlocks.join('\n\n');
-            let fullResult = preambleAndHeader + outputBody + '\n\n' + footer;
+            // 3. Hợp nhất lại toàn bộ tài liệu TeX, bảo tồn 100% các đoạn interTexts
+            // (Đặc biệt giữ nguyên các lệnh \subsubsection, \subsection, \Opensolutionfile, \Closesolutionfile giữa các phần)
+            let fullResult = "";
+
+            if (questions.length === rawBlocks.length) {
+                for (let i = 0; i < questions.length; i++) {
+                    let inter = interTexts[i];
+                    // Nếu interText có ghi chú thứ tự câu cũ dạng %%==========Câu 2 thì cập nhật lại số câu mới
+                    if (/%%[= -]*Câu\s*\d+/i.test(inter)) {
+                        inter = inter.replace(/(%%[= -]*Câu\s*)\d+/i, `$1${i + 1}`);
+                    }
+                    fullResult += inter + slotBlocks[i];
+                }
+                fullResult += interTexts[interTexts.length - 1]; // Footer
+            } else {
+                // Trường hợp số lượng câu thay đổi (thêm/bớt câu):
+                // Phân loại các interTexts có chứa command cấu trúc phân chia phần (\subsubsection, \section, \Closesolutionfile...)
+                function hasStructure(txt) {
+                    return /\\(subsubsection|subsection|section|part|Opensolutionfile|Closesolutionfile)\b/i.test(txt);
+                }
+
+                const sectionHeaders = [];
+                for (let k = 1; k < interTexts.length - 1; k++) {
+                    if (hasStructure(interTexts[k])) {
+                        sectionHeaders.push({
+                            origSlot: k,
+                            text: interTexts[k]
+                        });
+                    }
+                }
+
+                // Định vị vị trí mới cho từng sectionHeader dựa trên dạng câu hỏi
+                const firstTfIdx = questions.findIndex(q => q.type === 'tf');
+                const firstShortIdx = questions.findIndex(q => q.type === 'short');
+                const firstEssayIdx = questions.findIndex(q => q.type === 'essay' || q.type === 'tl');
+
+                const headerPlacementMap = new Map();
+
+                sectionHeaders.forEach(sh => {
+                    const t = sh.text;
+                    let targetIdx = -1;
+                    if (/đúng\s*sai|choiceTF/i.test(t) && firstTfIdx !== -1) {
+                        targetIdx = firstTfIdx;
+                    } else if (/trả\s*lời\s*ngắn|điền\s*khuyết|shortans/i.test(t) && firstShortIdx !== -1) {
+                        targetIdx = firstShortIdx;
+                    } else if (/tự\s*luận/i.test(t) && firstEssayIdx !== -1) {
+                        targetIdx = firstEssayIdx;
+                    } else {
+                        targetIdx = Math.min(questions.length - 1, Math.round((sh.origSlot / rawBlocks.length) * questions.length));
+                    }
+
+                    if (targetIdx !== -1) {
+                        const existing = headerPlacementMap.get(targetIdx) || '';
+                        headerPlacementMap.set(targetIdx, existing ? existing + '\n' + t : t);
+                    }
+                });
+
+                fullResult += interTexts[0]; // Preamble + Phần 1
+                for (let i = 0; i < questions.length; i++) {
+                    if (i > 0) {
+                        if (headerPlacementMap.has(i)) {
+                            fullResult += headerPlacementMap.get(i);
+                        } else {
+                            fullResult += '\n\n';
+                        }
+                    }
+                    fullResult += slotBlocks[i];
+                }
+                fullResult += interTexts[interTexts.length - 1]; // Footer
+            }
 
             if (isCRLF) {
                 fullResult = fullResult.replace(/\r?\n/g, '\r\n');
