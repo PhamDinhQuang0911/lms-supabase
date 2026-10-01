@@ -8899,10 +8899,20 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
                     let blockCode = matchedBlock.blockContent;
 
                     // Thay thế dòng mở đầu \begin{...} bằng header mới chuẩn [CCCD]%[Nguồn]%[MapID]
-                    blockCode = blockCode.replace(
-                        /^[ \t]*\\begin\{(?:ex|bt|vd|vidu)\}\s*(?:\[.*?\]\s*)*(?:%\[.*?\]\s*)*/m,
-                        `\\begin{${targetEnv}}[${targetCccd}]%[${targetSource}]%[${targetMapId}]`
-                    );
+                    // [QUAN TRỌNG] Luôn đưa nội dung câu hỏi xuống dòng tiếp theo để không bị dính vào comment % ở cuối header!
+                    const headerRegex = /^[ \t]*\\begin\{(?:ex|bt|vd|vidu)\}(?:[ \t]*\[.*?\])*(?:[ \t]*(?:%%|%)\[.*?\])*[ \t]*/m;
+                    const hMatch = blockCode.match(headerRegex);
+                    if (hMatch) {
+                        let restOfBlock = blockCode.substring(hMatch[0].length);
+                        if (restOfBlock.startsWith('\r\n')) {
+                            restOfBlock = restOfBlock.substring(2);
+                        } else if (restOfBlock.startsWith('\n')) {
+                            restOfBlock = restOfBlock.substring(1);
+                        }
+                        blockCode = `\\begin{${targetEnv}}[${targetCccd}]%[${targetSource}]%[${targetMapId}]\n${restOfBlock}`;
+                    } else {
+                        blockCode = `\\begin{${targetEnv}}[${targetCccd}]%[${targetSource}]%[${targetMapId}]\n` + blockCode.replace(/^[ \t]*\\begin\{(?:ex|bt|vd|vidu)\}[^\r\n]*(?:\r?\n)?/m, '');
+                    }
 
                     finalBlockText = blockCode;
                 } else {
