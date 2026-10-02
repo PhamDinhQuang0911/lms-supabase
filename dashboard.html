@@ -11377,18 +11377,18 @@ function renderTagFilterUI() {
             if (endTikz === -1) break;
             const endTikzAfter = endTikz + '\\end{tikzpicture}'.length;
 
-            // Tìm ngược từ startTikz để bao quát thẻ bọc ngoài: \begin{center}, <div>, <script>, \usetikzlibrary, \tikzset
+            // Tìm ngược từ startTikz để bao quát thẻ bọc ngoài
             let blockStart = startTikz;
             const prefix = str.substring(0, startTikz);
-            const backwardMatch = prefix.match(/(?:\\begin\{center\}\s*)?(?:<\s*div[^>]*>\s*)?(?:<\s*script[^>]*>\s*)?(?:\\usetikzlibrary\{[^}]*\}\s*)?(?:\\tikzset\{[\s\S]*?\}\s*)?$/i);
+            const backwardMatch = prefix.match(/(?:\\begin\{center\}\s*)?(?:<\s*div[^>]*>\s*)?(?:<\s*[s]cript[^>]*>\s*)?(?:\\usetikzlibrary\{[^}]*\}\s*)?(?:\\tikzset\{[\s\S]*?\}\s*)?$/i);
             if (backwardMatch && backwardMatch[0].trim().length > 0) {
                 blockStart = startTikz - backwardMatch[0].length;
             }
 
-            // Tìm xuôi từ endTikzAfter để bao quát thẻ đóng: </script>, </div>, \end{center}
+            // Tìm xuôi từ endTikzAfter để bao quát thẻ đóng (script, div, end-center)
             let blockEnd = endTikzAfter;
             const suffix = str.substring(endTikzAfter);
-            const forwardMatch = suffix.match(/^\s*(?:<\/\s*script>)?(?:\s*<\/\s*div>)?(?:\s*\\end\{center\})?/i);
+            const forwardMatch = suffix.match(/^\s*(?:<\/\s*[s]cript>)?(?:\s*<\/\s*div>)?(?:\s*\\end\{center\})?/i);
             if (forwardMatch && forwardMatch[0].trim().length > 0) {
                 blockEnd = endTikzAfter + forwardMatch[0].length;
             }
