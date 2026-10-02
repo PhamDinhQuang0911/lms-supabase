@@ -67,8 +67,6 @@
     function cleanHtmlToLatex(text) {
         if (!text) return "";
         let s = String(text);
-        // Bỏ các placeholder ảnh
-        s = s.replace(/<div[^>]*class="[^"]*image-placeholder[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '');
         // Thay thẻ img thành \begin{center}\includegraphics[width=0.7\linewidth]{url}\end{center}
         s = s.replace(/<div[^>]*>\s*<img[^>]*src="([^"]+)"[^>]*>\s*<\/div>/gi, '\n\\begin{center}\n\\includegraphics[width=0.7\\linewidth]{$1}\n\\end{center}\n');
         s = s.replace(/<img[^>]*src="([^"]+)"[^>]*>/gi, '\n\\begin{center}\n\\includegraphics[width=0.7\\linewidth]{$1}\n\\end{center}\n');
@@ -179,24 +177,29 @@ ${qBlocks}
 `;
     }
 
-    // 5. Cập nhật mã nguồn TeX gốc với CCCD và bảo toàn 100% cấu trúc liên kết
+    // 5. Cập nhật mã nguồn TeX gốc với CCCD và bảo toàn 100% hình ảnh, cấu trúc (\immini, \begin{center}, TikZ)
     function updateOriginalLatexWithCccd(rawText, questions) {
         if (!rawText || !Array.isArray(questions) || questions.length === 0) return rawText;
 
         const isCRLF = rawText.includes('\r\n');
 
+        // Hàm trích xuất text thuần Việt chuẩn để so khớp snippet, loại bỏ triệt để mọi môi trường hình ảnh/lệnh TeX/HTML
         function getCleanSnippet(text) {
             if (!text) return '';
             return text
-                .replace(/\\begin\{(?:ex|bt|vd|vidu)\}(?:\[.*?\])*(?:%\[.*?\])*/g, '')
+                .replace(/\\begin\{[^}]*\}|\\end\{[^}]*\}/g, '')
+                .replace(/\\immini\b(?:\s*\[[^\]]*\])?/g, '')
                 .replace(/\\(choice|choiceTF|shortans|loigiai)[\s\S]*/g, '')
+                .replace(/\\includegraphics(?:\[[^\]]*\])?\{[^}]*\}/g, '')
                 .replace(/<[^>]*>/g, '')
                 .replace(/(?<!\\)%.*/g, '')
+                .replace(/\\[a-zA-Z]+/g, '')
                 .replace(/[^a-zA-Z0-9\u00C0-\u1EF9]/g, '')
                 .toLowerCase()
-                .substring(0, 40);
+                .substring(0, 35);
         }
 
+        // 1. Tách rawText thành các khối câu hỏi (\begin{ex|bt|vd|vidu} ... \end{...})
         const blockRegex = /([ \t]*\\begin\{(ex|bt|vd|vidu)\}[\s\S]*?\\end\{\2\})/g;
         const rawBlocks = [];
         const interTexts = [];
@@ -234,46 +237,84 @@ ${qBlocks}
             return generateFullLatexDocument(questions, "Đề thi", true);
         }
 
-        const slotBlocks = [];
-        for (let qIdx = 0; qIdx < questions.length; qIdx++) {
-            const q = questions[qIdx];
+        // 2. So khớp questions với rawBlocks theo 4 cấp độ ưu tiên
+        // Reset trạng thái matching tạm thời
+        questions.forEach(q => { delete q._matchedBlock; });
+
+        // BƯỚC 2.1: So khớp ưu tiên 1: Theo CCCD trùng khớp chính xác
+        questions.forEach(q => {
+            const targetCccd = String(q.cccd || q.bankId || '').trim();
+            if (targetCccd) {
+                const b = rawBlocks.find(rb => !rb.used && rb.cccd === targetCccd);
+                if (b) {
+                    b.used = true;
+                    q._matchedBlock = b;
+                }
+            }
+        });
+
+        // BƯỚC 2.2: So khớp ưu tiên 2: Theo MapID (nếu có và duy nhất trong các block chưa dùng)
+        questions.forEach(q => {
+            if (q._matchedBlock) return;
+            const targetMapId = String(q.mapId || '').trim();
+            if (targetMapId) {
+                const matchingBlocks = rawBlocks.filter(rb => !rb.used && rb.mapId === targetMapId);
+                if (matchingBlocks.length === 1) {
+                    matchingBlocks[0].used = true;
+                    q._matchedBlock = matchingBlocks[0];
+                }
+            }
+        });
+
+        // BƯỚC 2.3: So khớp ưu tiên 3: Theo nội dung văn bản (clean Vietnamese snippet)
+        questions.forEach(q => {
+            if (q._matchedBlock) return;
+            const qSnip = getCleanSnippet(q.content);
+            if (qSnip && qSnip.length >= 8) {
+                const b = rawBlocks.find(rb => {
+                    if (rb.used || !rb.snippet || rb.snippet.length < 8) return false;
+                    const matchLen = Math.min(15, Math.min(qSnip.length, rb.snippet.length));
+                    return qSnip.substring(0, matchLen) === rb.snippet.substring(0, matchLen);
+                });
+                if (b) {
+                    b.used = true;
+                    q._matchedBlock = b;
+                }
+            }
+        });
+
+        // BƯỚC 2.4: So khớp ưu tiên 4: Khớp tuần tự theo vị trí (TUYỆT ĐỐI BẢO ĐẢM KHÔNG BỎ RƠI BẤT KỲ BLOCK GỐC NÀO)
+        questions.forEach((q, qIdx) => {
+            if (q._matchedBlock) return;
+            if (rawBlocks[qIdx] && !rawBlocks[qIdx].used) {
+                rawBlocks[qIdx].used = true;
+                q._matchedBlock = rawBlocks[qIdx];
+            } else {
+                const firstUnused = rawBlocks.find(rb => !rb.used);
+                if (firstUnused) {
+                    firstUnused.used = true;
+                    q._matchedBlock = firstUnused;
+                }
+            }
+        });
+
+        // 3. Cập nhật header cho từng question block
+        // [QUY TẮC CỐT LÕI]: GIỮ NGUYÊN 100% THÂN CÂU HỎI (immini, center, tikz, includegraphics, loigiai...)
+        // CHỈ THAY ĐỔI DÒNG HEADER MỞ ĐẦU \begin{env}[CCCD]%[Nguồn]%[MapID]
+        const slotBlocks = questions.map((q, qIdx) => {
             const targetCccd = String(q.cccd || q.bankId || '').trim();
             const targetMapId = String(q.mapId || '').trim();
             const targetSource = String(q.source || '').trim();
-            const targetEnv = q.env || 'ex';
-            const qSnip = getCleanSnippet(q.content);
+            const matched = q._matchedBlock;
 
-            let matchedBlock = null;
+            if (matched) {
+                // Bảo lưu đúng môi trường gốc của block (ex, bt, vd, vidu)
+                const targetEnv = matched.env || q.env || 'ex';
+                let blockCode = matched.blockContent;
 
-            if (targetCccd) {
-                matchedBlock = rawBlocks.find(b => !b.used && b.cccd === targetCccd);
-            }
-            if (!matchedBlock && qSnip && qSnip.length >= 8) {
-                matchedBlock = rawBlocks.find(b => {
-                    if (b.used || !b.snippet || b.snippet.length < 8) return false;
-                    const matchLen = Math.min(15, Math.min(qSnip.length, b.snippet.length));
-                    return qSnip.substring(0, matchLen) === b.snippet.substring(0, matchLen);
-                });
-            }
-            if (!matchedBlock && targetMapId) {
-                matchedBlock = rawBlocks.find(b => !b.used && b.mapId === targetMapId);
-            }
-            if (!matchedBlock) {
-                if (rawBlocks[qIdx] && !rawBlocks[qIdx].used && !rawBlocks[qIdx].cccd) {
-                    matchedBlock = rawBlocks[qIdx];
-                } else {
-                    matchedBlock = rawBlocks.find(b => !b.used && !b.cccd);
-                }
-            }
-
-            let finalBlockText = "";
-            if (matchedBlock) {
-                matchedBlock.used = true;
-                let blockCode = matchedBlock.blockContent;
-
-                // Thay thế dòng mở đầu \begin{...} và luôn ngắt dòng để tránh đề bài bị dính vào comment %
-                const headerRegex = /^[ \t]*\\begin\{(?:ex|bt|vd|vidu)\}(?:[ \t]*\[.*?\])*(?:[ \t]*(?:%%|%)\[.*?\])*[ \t]*/m;
+                const headerRegex = /^[ \t]*\\begin\{(?:ex|bt|vd|vidu)\}(?:[ \t]*\[[^\]]*\])*(?:[ \t]*(?:%%|%)\[[^\]]*\])*(?:[ \t]*(?:%%|%)[^\r\n]*)?/m;
                 const hMatch = blockCode.match(headerRegex);
+
                 if (hMatch) {
                     let restOfBlock = blockCode.substring(hMatch[0].length);
                     if (restOfBlock.startsWith('\r\n')) {
@@ -281,19 +322,17 @@ ${qBlocks}
                     } else if (restOfBlock.startsWith('\n')) {
                         restOfBlock = restOfBlock.substring(1);
                     }
-                    blockCode = `\\begin{${targetEnv}}[${targetCccd}]%[${targetSource}]%[${targetMapId}]\n${restOfBlock}`;
+                    return `\\begin{${targetEnv}}[${targetCccd}]%[${targetSource}]%[${targetMapId}]\n${restOfBlock}`;
                 } else {
-                    blockCode = `\\begin{${targetEnv}}[${targetCccd}]%[${targetSource}]%[${targetMapId}]\n` + blockCode.replace(/^[ \t]*\\begin\{(?:ex|bt|vd|vidu)\}[^\r\n]*(?:\r?\n)?/m, '');
+                    return `\\begin{${targetEnv}}[${targetCccd}]%[${targetSource}]%[${targetMapId}]\n` + blockCode.replace(/^[ \t]*\\begin\{(?:ex|bt|vd|vidu)\}[^\r\n]*(?:\r?\n)?/m, '');
                 }
-
-                finalBlockText = blockCode;
             } else {
-                finalBlockText = formatQuestionToLatex(q);
+                // Chỉ câu hỏi tạo mới từ web chưa từng có trong file TeX gốc mới định dạng lại
+                return formatQuestionToLatex(q);
             }
+        });
 
-            slotBlocks.push(finalBlockText);
-        }
-
+        // 4. Ghép nối lại tài liệu bảo toàn 100% cấu trúc interTexts (Preamble, Sections, Comments, Footers)
         let fullResult = "";
 
         if (questions.length === rawBlocks.length) {
@@ -306,51 +345,10 @@ ${qBlocks}
             }
             fullResult += interTexts[interTexts.length - 1];
         } else {
-            function hasStructure(txt) {
-                return /\\(subsubsection|subsection|section|part|Opensolutionfile|Closesolutionfile)\b/i.test(txt);
-            }
-
-            const sectionHeaders = [];
-            for (let k = 1; k < interTexts.length - 1; k++) {
-                if (hasStructure(interTexts[k])) {
-                    sectionHeaders.push({ origSlot: k, text: interTexts[k] });
-                }
-            }
-
-            const firstTfIdx = questions.findIndex(q => q.type === 'tf');
-            const firstShortIdx = questions.findIndex(q => q.type === 'short');
-            const firstEssayIdx = questions.findIndex(q => q.type === 'essay' || q.type === 'tl');
-
-            const headerPlacementMap = new Map();
-
-            sectionHeaders.forEach(sh => {
-                const t = sh.text;
-                let targetIdx = -1;
-                if (/đúng\s*sai|choiceTF/i.test(t) && firstTfIdx !== -1) {
-                    targetIdx = firstTfIdx;
-                } else if (/trả\s*lời\s*ngắn|điền\s*khuyết|shortans/i.test(t) && firstShortIdx !== -1) {
-                    targetIdx = firstShortIdx;
-                } else if (/tự\s*luận/i.test(t) && firstEssayIdx !== -1) {
-                    targetIdx = firstEssayIdx;
-                } else {
-                    targetIdx = Math.min(questions.length - 1, Math.round((sh.origSlot / rawBlocks.length) * questions.length));
-                }
-
-                if (targetIdx !== -1) {
-                    const existing = headerPlacementMap.get(targetIdx) || '';
-                    headerPlacementMap.set(targetIdx, existing ? existing + '\n' + t : t);
-                }
-            });
-
+            // Khi số câu thay đổi: bảo toàn Preamble (interTexts[0]) và Footer (interTexts[last])
             fullResult += interTexts[0];
             for (let i = 0; i < questions.length; i++) {
-                if (i > 0) {
-                    if (headerPlacementMap.has(i)) {
-                        fullResult += headerPlacementMap.get(i);
-                    } else {
-                        fullResult += '\n\n';
-                    }
-                }
+                if (i > 0) fullResult += '\n\n';
                 fullResult += slotBlocks[i];
             }
             fullResult += interTexts[interTexts.length - 1];
@@ -368,7 +366,7 @@ ${qBlocks}
         if (!examObj) return "";
         const title = (examObj.title || "De_Thi").trim();
         const questions = Array.isArray(examObj.questions) ? examObj.questions : [];
-        const rawTex = examObj.rawTex || "";
+        const rawTex = examObj.rawTex || examObj.latexContent || "";
         const origin = window.location.origin || "https://qmath.io.vn";
         const examLink = `${origin}/exam.html?id=${examObj.id}`;
 
