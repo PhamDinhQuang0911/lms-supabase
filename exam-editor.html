@@ -625,8 +625,9 @@
                         <button onclick="document.getElementById('texInput').click()" class="px-2.5 py-1.5 bg-green-100 text-green-700 rounded text-xs font-bold hover:bg-green-200" title="Nhập đề từ file LaTeX (.tex)"><i class="fa-solid fa-file-import mr-1"></i> Nhập TeX</button>
                         <input type="file" id="texInput" accept=".tex,.txt" class="hidden" onchange="handleTexUpload(this)">
                         <button onclick="window.openExportLatexModal()" class="px-2.5 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 shadow-xs flex items-center gap-1.5 transition" title="Xuất lại file .tex chuẩn kèm mã CCCD / ID để biên dịch sách in"><i class="fa-solid fa-file-export"></i> Xuất TeX</button>
-                        <button onclick="window.triggerOverwriteFromTex()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold shadow-xs flex items-center gap-1.5 transition" title="Cập nhật đè toàn bộ câu hỏi từ file TeX theo đúng vị trí tương ứng, BẢO LƯU tuyệt đối mã CCCD hiện có"><i class="fa-solid fa-arrows-rotate"></i> Cập nhật đè TeX</button>
+                        <button onclick="window.triggerOverwriteFromTex()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold shadow-xs flex items-center gap-1.5 transition cursor-pointer" title="Cập nhật đè toàn bộ câu hỏi từ file TeX theo đúng vị trí tương ứng, BẢO LƯU tuyệt đối mã CCCD hiện có"><i class="fa-solid fa-arrows-rotate"></i> Cập nhật đè TeX</button>
                         <input type="file" id="overwriteTexInput" accept=".tex,.txt" class="hidden" onchange="window.handleOverwriteTexFile(this)">
+                        <button onclick="window.saveExam((window.examData && window.examData.status) ? window.examData.status : 'draft')" class="px-2.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded text-xs font-bold shadow-xs flex items-center gap-1.5 transition cursor-pointer" title="Lưu lại toàn bộ đề thi"><i class="fa-solid fa-floppy-disk"></i> Lưu đề</button>
                         <div class="inline-flex rounded-lg shadow-2xs overflow-hidden border border-blue-200">
                             <button onclick="document.getElementById('wordInput').click()" class="px-2.5 py-1.5 bg-blue-100 text-blue-700 text-xs font-bold hover:bg-blue-200 transition flex items-center gap-1" title="Nhập đề từ file Word (.docx)"><i class="fa-solid fa-file-word"></i> Word</button>
                             <button onclick="window.openWordGuideModal()" class="px-2 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 border-l border-blue-200 transition" title="Xem hướng dẫn cấu trúc file Word (.docx) chuẩn để nạp"><i class="fa-solid fa-circle-question"></i></button>
@@ -653,8 +654,7 @@
                         <button onclick="addNewQuestion('short')" class="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 text-xs font-bold">+Điền</button>
                         <button onclick="addNewQuestion('essay')" class="p-1.5 bg-purple-50 text-purple-600 rounded hover:bg-purple-100 text-xs font-bold">+TL</button>
                         <div class="w-[1px] h-6 bg-gray-200 mx-1"></div>
-                         <button onclick="document.getElementById('imgUploadInput').click()" class="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 text-xs font-bold" title="Chèn ảnh"><i class="fa-regular fa-image"></i> Ảnh</button>
-                        <input type="file" id="imgUploadInput" accept="image/*" class="hidden">
+                        <button onclick="window.insertImagePlaceholder('editContent')" class="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 text-xs font-bold cursor-pointer" title="Tạo ô chờ chèn ảnh"><i class="fa-regular fa-image"></i> Ảnh</button>
                         <div class="w-[1px] h-6 bg-gray-200 mx-1"></div>                                             
                         <button onclick="deleteCurrentQuestion()" class="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 text-xs" title="Xóa câu hiện tại"><i class="fa-solid fa-trash"></i></button>
                         <button onclick="deleteAllQuestions()" class="p-1.5 ml-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs shadow-sm" title="Xóa TOÀN BỘ câu hỏi"><i class="fa-solid fa-dumpster-fire"></i> Xóa hết</button>
@@ -1717,45 +1717,223 @@
                 });
             }
             document.getElementById('imgUploadInput').addEventListener('change', (e) => { if(e.target.files.length > 0) handleImageUpload(e.target.files[0]); });
-            document.body.addEventListener('paste', (e) => {
-                const isSol = (e.target.id === 'editSolution' || (e.target.closest && e.target.closest('#solLivePreview')));
-                const isContent = (e.target.id === 'editContent' || (e.target.closest && e.target.closest('#contentLivePreview')));
-                if (isSol || isContent) {
-                    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                    for (let index in items) {
-                        const item = items[index];
-                        if (item.kind === 'file' && item.type.includes('image/')) {
-                            e.preventDefault(); 
-                            const blob = item.getAsFile(); 
-                            handleImageUpload(blob, isSol ? 'editSolution' : 'editContent'); 
+        });
+
+        // --- HÀM TẠO KHUNG CHỜ ẢNH TƯƠNG TÁC (PLACEHOLDER) ---
+        function getPlaceholderHTML(id, note = "Vị trí ảnh") {
+            return `
+            <div class="image-placeholder my-3 p-4 bg-gradient-to-b from-indigo-50/60 to-blue-50/30 border-2 border-dashed border-indigo-300 hover:border-indigo-500 rounded-2xl text-center flex flex-col items-center justify-center select-none cursor-pointer hover:bg-indigo-50/80 transition-all group relative outline-none shadow-xs" 
+                data-id="${id}" 
+                tabindex="0"
+                onclick="event.stopPropagation(); this.focus();" 
+                title="Bấm để chọn ô, sau đó bấm Ctrl+V để dán trực tiếp hoặc bấm nút chọn ảnh từ máy">
+                
+                <button type="button" onclick="event.stopPropagation(); window.removeImagePlaceholder('${id}');" class="absolute top-2 right-2 w-6 h-6 rounded-full bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 flex items-center justify-center text-xs transition border border-gray-200 shadow-2xs cursor-pointer" title="Hủy ô chờ này">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl mb-2 group-focus:scale-110 group-focus:bg-indigo-600 group-focus:text-white transition-all shadow-xs">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+                <div class="text-xs font-bold text-indigo-900 mb-1">${note}</div>
+                <div class="text-[11px] text-gray-500 mb-3">
+                    Dán trực tiếp <kbd class="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-gray-700 font-mono font-bold text-[10px] shadow-2xs">Ctrl + V</kbd> hoặc chọn ảnh từ máy tính
+                </div>
+                <div class="flex items-center gap-2 flex-wrap justify-center">
+                    <label class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-file-arrow-up"></i> <span>Chọn từ máy</span>
+                        <input type="file" accept="image/*" class="hidden" onchange="window.handlePlaceholderFileSelect(event, '${id}')">
+                    </label>
+                    <button type="button" onclick="event.stopPropagation(); window.pasteClipboardIntoPlaceholder('${id}');" class="px-3 py-1.5 bg-white hover:bg-indigo-50 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
+                        <i class="fa-solid fa-paste"></i> <span>Dán ảnh (Ctrl+V)</span>
+                    </button>
+                </div>
+            </div>`;
+        }
+
+        window.insertImagePlaceholder = (targetId = 'editContent') => {
+            const isSol = (targetId === 'editSolution');
+            const phId = `ph_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+            const note = isSol ? "Ô chờ ảnh Lời giải" : "Ô chờ ảnh Nội dung câu hỏi";
+            const phHtml = getPlaceholderHTML(phId, note);
+
+            const textarea = document.getElementById(targetId);
+            if (!textarea) return;
+
+            if (isSol) {
+                // Lời giải: Chèn ô chờ lên BÊN TRÊN lời giải theo mong muốn
+                const currentVal = textarea.value.trim();
+                textarea.value = currentVal ? (phHtml + '\n\n' + currentVal) : phHtml;
+            } else {
+                insertAtCursor('\n' + phHtml + '\n', targetId);
+            }
+
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            autoSaveMemory();
+
+            setTimeout(() => {
+                const phEl = document.querySelector(`[data-id="${phId}"]`);
+                if (phEl) {
+                    phEl.focus();
+                    phEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }, 150);
+
+            if (window.showToast) window.showToast('Đã tạo ô chờ ảnh. Bấm Ctrl+V hoặc chọn ảnh từ máy để chèn!', 'info');
+        };
+
+        window.removeImagePlaceholder = (id) => {
+            ['editContent', 'editSolution'].forEach(targetId => {
+                const textarea = document.getElementById(targetId);
+                if (textarea && textarea.value.includes(id)) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = textarea.value;
+                    const ph = tempDiv.querySelector(`[data-id="${id}"]`);
+                    if (ph) {
+                        ph.remove();
+                        textarea.value = tempDiv.innerHTML.trim();
+                        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                        autoSaveMemory();
+                    }
+                }
+            });
+            if (window.showToast) window.showToast('Đã hủy ô chờ ảnh!', 'info');
+        };
+
+        window.handlePlaceholderFileSelect = async (event, id) => {
+            const file = event.target?.files?.[0];
+            if (!file) return;
+            try {
+                const phEl = document.querySelector(`[data-id="${id}"]`);
+                if (phEl) phEl.innerHTML = '<div class="animate-bounce text-indigo-600"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="text-xs mt-2 font-bold">Đang tải ảnh lên...</p></div>';
+                await uploadAndReplaceImage(file, id);
+                if (window.showToast) window.showToast("Chèn ảnh thành công!", "success");
+            } catch (err) {
+                console.error("Lỗi thay thế ô chờ:", err);
+                if (window.showToast) window.showToast("Lỗi chèn ảnh: " + err.message, "error");
+            } finally {
+                if (event.target) event.target.value = '';
+            }
+        };
+
+        window.pasteClipboardIntoPlaceholder = async (id) => {
+            try {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    for (const type of item.types) {
+                        if (type.startsWith('image/')) {
+                            const blob = await item.getType(type);
+                            const phEl = document.querySelector(`[data-id="${id}"]`);
+                            if (phEl) phEl.innerHTML = '<div class="animate-bounce text-indigo-600"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="text-xs mt-2 font-bold">Đang tải ảnh lên...</p></div>';
+                            await uploadAndReplaceImage(blob, id);
+                            if (window.showToast) window.showToast("Dán ảnh thành công!", "success");
                             return;
                         }
                     }
                 }
-            });
-        });
+                if (window.showToast) window.showToast("Không tìm thấy ảnh trong bộ nhớ tạm (Clipboard)!", "warning");
+            } catch (err) {
+                const phEl = document.querySelector(`[data-id="${id}"]`);
+                if (phEl) phEl.focus();
+                if (window.showToast) window.showToast("Hãy bấm Ctrl+V trên bàn phím để dán trực tiếp!", "info");
+            }
+        };
 
-        let pendingImageUploads = []; 
-        let currentBatchUploadId = null;
+        // --- BỘ LẮNG NGHE SỰ KIỆN PASTE THỐNG NHẤT (CHỐNG DÁN TRÙNG LẶP 2 ẢNH) ---
+        let isPastingImageLock = false;
 
-        function getPlaceholderHTML(id, note = "Vị trí ảnh") {
-            return `
-            <div class="image-placeholder my-3 p-4 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl text-center flex flex-col items-center justify-center select-none cursor-pointer hover:bg-gray-100 transition-all group relative outline-none" 
-                data-id="${id}" 
-                tabindex="0"
-                onclick="event.stopPropagation(); this.focus();" 
-                ondblclick="triggerBatchUpload('${id}')"
-                title="Click để chọn (rồi bấm Ctrl+V), Click đúp để tải file">
-                
-                <div class="text-gray-400 group-focus:text-primary-600 text-3xl mb-2 transition-colors">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                </div>
-                <div class="text-xs font-bold text-gray-500 group-focus:text-primary-700 uppercase mb-1">${note}</div>
-                <div class="text-[10px] text-gray-400 group-focus:text-primary-500">
-                    Click đúp để tải file<br>hoặc <b>Ctrl + V</b> để dán ảnh
-                </div>
-            </div>`;
-        }
+        document.addEventListener('paste', async (e) => {
+            if (isPastingImageLock) return;
+
+            const clipboardData = e.clipboardData || window.clipboardData;
+            if (!clipboardData || !clipboardData.items) return;
+
+            let imageFile = null;
+            for (let i = 0; i < clipboardData.items.length; i++) {
+                const it = clipboardData.items[i];
+                if (it.type && it.type.startsWith('image/')) {
+                    imageFile = it.getAsFile();
+                    break;
+                }
+            }
+            if (!imageFile) return;
+
+            // ĐÃ PHÁT HIỆN ẢNH -> Chặn mặc định và chặn lan truyền để không bao giờ bị dán 2 ảnh
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
+            isPastingImageLock = true;
+            setTimeout(() => { isPastingImageLock = false; }, 1200);
+
+            // Ưu tiên 1: Đang chọn ảnh qua MathPalette để thay thế
+            if (window.MathPalette?.selectedImageElement && window.MathPalette?.selectedImageTargetTextarea) {
+                try {
+                    await window.MathPalette.executeImageReplacement(
+                        window.MathPalette.selectedImageElement,
+                        window.MathPalette.selectedImageTargetTextarea,
+                        imageFile
+                    );
+                } catch (err) {
+                    console.error("Lỗi thay thế ảnh:", err);
+                } finally {
+                    isPastingImageLock = false;
+                }
+                return;
+            }
+
+            // Ưu tiên 2: Đang focus hoặc click vào ô chờ ảnh (.image-placeholder)
+            const targetEl = e.target;
+            const activeEl = document.activeElement;
+            const placeholderEl = targetEl?.closest?.('.image-placeholder') || (activeEl?.classList?.contains('image-placeholder') ? activeEl : null);
+
+            if (placeholderEl) {
+                const id = placeholderEl.getAttribute('data-id');
+                if (id) {
+                    const originalContent = placeholderEl.innerHTML;
+                    placeholderEl.innerHTML = '<div class="animate-bounce text-indigo-600"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="text-xs mt-2 font-bold">Đang tải và chèn ảnh...</p></div>';
+                    try {
+                        if (window.showToast) window.showToast("Đang tải ảnh từ bộ nhớ tạm...", "info");
+                        await uploadAndReplaceImage(imageFile, id);
+                        if (window.showToast) window.showToast("Dán ảnh thành công!", "success");
+                    } catch (err) {
+                        console.error("Lỗi upload ô chờ:", err);
+                        placeholderEl.innerHTML = originalContent;
+                        if (window.showToast) window.showToast("Lỗi dán ảnh: " + err.message, "error");
+                    } finally {
+                        isPastingImageLock = false;
+                    }
+                    return;
+                }
+            }
+
+            // Ưu tiên 3: Lời giải (editSolution hoặc #solLivePreview)
+            const isSol = (targetEl?.id === 'editSolution' || targetEl?.closest?.('#solLivePreview') || activeEl?.id === 'editSolution');
+            if (isSol) {
+                try {
+                    await handleImageUpload(imageFile, 'editSolution');
+                } catch(err) {
+                    console.error(err);
+                } finally {
+                    isPastingImageLock = false;
+                }
+                return;
+            }
+
+            // Ưu tiên 4: Đề bài (editContent hoặc #contentLivePreview) hoặc con trỏ đang trong vùng soạn thảo
+            const isContent = (targetEl?.id === 'editContent' || targetEl?.closest?.('#contentLivePreview') || activeEl?.id === 'editContent');
+            if (isContent || (!activeEl || activeEl === document.body)) {
+                try {
+                    await handleImageUpload(imageFile, 'editContent');
+                } catch(err) {
+                    console.error(err);
+                } finally {
+                    isPastingImageLock = false;
+                }
+                return;
+            }
+
+            isPastingImageLock = false;
+        }, true);
 
         function processLatexImagesWithDetection(text, questionIndex, isSolution = false) {
             if (!text) return "";
@@ -2754,19 +2932,40 @@
         };
 
         window.saveCurrentQuestionToMemory = () => { 
-            if (window.currentQIndex === -1) return;
-            const q = window.currentQListType === 'mixed-tl' ? window.mixedTlQuestions[window.currentQIndex] : window.questions[window.currentQIndex];
-            if (!q) return;
-            const contentEl = document.getElementById('editContent'); if (!contentEl) return; 
-            q.content = contentEl.value;
-            const solEl = document.getElementById('editSolution'); if(solEl) q.solution = solEl.value;
-            const pointEl = document.getElementById('editPoint'); if(pointEl) q.point = parseFloat(pointEl.value) || 0;
-            const envEl = document.getElementById('editEnv'); if(envEl) q.env = envEl.value.trim();
-            const mapIdEl = document.getElementById('editMapId'); if(mapIdEl) q.mapId = mapIdEl.value.trim();
-            const sourceEl = document.getElementById('editSource'); if(sourceEl) q.source = sourceEl.value.trim();
-            if (q.type === 'mc') { const optInputs = document.querySelectorAll('.mc-option'); q.options = Array.from(optInputs).map(i => i.value); } 
-            else if (q.type === 'tf') { const rows = document.querySelectorAll('#editorArea .tf-row'); q.statements = []; rows.forEach(row => { const text = row.querySelector('.tf-text').value; const isTrue = row.querySelector('.tf-check').checked; q.statements.push({text, isTrue}); }); } 
-            else if (q.type === 'short') { const ansEl = document.getElementById('editShortAns'); if(ansEl) q.answer = ansEl.value; }
+            try {
+                if (window.currentQIndex === -1) return;
+                const q = window.currentQListType === 'mixed-tl' 
+                    ? (window.mixedTlQuestions && window.mixedTlQuestions[window.currentQIndex]) 
+                    : (window.questions && window.questions[window.currentQIndex]);
+                if (!q) return;
+                const contentEl = document.getElementById('editContent'); if (contentEl) q.content = contentEl.value; 
+                const solEl = document.getElementById('editSolution'); if (solEl) q.solution = solEl.value;
+                const pointEl = document.getElementById('editPoint'); if (pointEl) q.point = parseFloat(pointEl.value) || 0;
+                const envEl = document.getElementById('editEnv'); if (envEl) q.env = envEl.value.trim();
+                const mapIdEl = document.getElementById('editMapId'); if (mapIdEl) q.mapId = mapIdEl.value.trim();
+                const sourceEl = document.getElementById('editSource'); if (sourceEl) q.source = sourceEl.value.trim();
+                if (q.type === 'mc') { 
+                    const optInputs = document.querySelectorAll('.mc-option'); 
+                    if (optInputs.length > 0) q.options = Array.from(optInputs).map(i => i.value); 
+                } 
+                else if (q.type === 'tf') { 
+                    const rows = document.querySelectorAll('#editorArea .tf-row'); 
+                    if (rows.length > 0) {
+                        q.statements = []; 
+                        rows.forEach(row => { 
+                            const text = row.querySelector('.tf-text')?.value || ''; 
+                            const isTrue = row.querySelector('.tf-check')?.checked || false; 
+                            q.statements.push({text, isTrue}); 
+                        }); 
+                    }
+                } 
+                else if (q.type === 'short') { 
+                    const ansEl = document.getElementById('editShortAns'); 
+                    if (ansEl) q.answer = ansEl.value; 
+                }
+            } catch (err) {
+                console.warn("Lỗi saveCurrentQuestionToMemory:", err);
+            }
         };
 
         window.loadQuestionToEditor = (index, listType = 'normal') => { 
@@ -2867,10 +3066,9 @@
                             <button type="button" onclick="window.MathPalette.openFormulaDialog('editContent')" class="btn-editor-action btn-editor-mathtype" title="Mở bảng soạn công thức MathType trực quan">
                                 <i class="fa-solid fa-square-root-variable"></i> <span>MathType</span>
                             </button>
-                            <label class="btn-editor-action btn-editor-image" title="Tải & chèn ảnh mới từ máy">
+                            <button type="button" onclick="window.insertImagePlaceholder('editContent')" class="btn-editor-action btn-editor-image cursor-pointer" title="Tạo ô chờ chèn ảnh vào đề bài (chọn từ máy hoặc Ctrl+V)">
                                 <i class="fa-solid fa-image"></i> <span>Ảnh</span>
-                                <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, 'editContent')">
-                            </label>
+                            </button>
                             <button type="button" id="btnToggleLatexContent" onclick="window.toggleLatexEditor('editContent', 'btnToggleLatexContent')" class="btn-editor-action btn-editor-latex" title="Mở / Thu gọn ô nhập mã LaTeX">
                                 <i class="fa-solid fa-code"></i> <span>LaTeX</span>
                             </button>
@@ -2973,10 +3171,9 @@
                             <button type="button" onclick="window.MathPalette.openFormulaDialog('editSolution')" class="btn-editor-action btn-editor-mathtype" title="Mở bảng soạn công thức MathType trực quan">
                                 <i class="fa-solid fa-square-root-variable"></i> <span>MathType</span>
                             </button>
-                            <label class="btn-editor-action btn-editor-image" title="Tải & chèn ảnh mới vào lời giải">
+                            <button type="button" onclick="window.insertImagePlaceholder('editSolution')" class="btn-editor-action btn-editor-image cursor-pointer" title="Tạo ô chờ chèn ảnh vào lời giải (hiển thị trên đầu)">
                                 <i class="fa-solid fa-image"></i> <span>Ảnh</span>
-                                <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, 'editSolution')">
-                            </label>
+                            </button>
                             <button type="button" id="btnToggleLatexSolution" onclick="window.toggleLatexEditor('editSolution', 'btnToggleLatexSolution')" class="btn-editor-action btn-editor-latex" title="Mở / Thu gọn ô nhập mã LaTeX">
                                 <i class="fa-solid fa-code"></i> <span>LaTeX</span>
                             </button>
@@ -3571,6 +3768,7 @@
         window.handleTexUpload = async (input) => {
             const file = input.files[0]; 
             if (!file) return;
+            input.value = ''; // Reset input để cho phép chọn lại cùng file
             
             window.showToast("Đang phân tích file LaTeX...", "info");
 
@@ -4086,6 +4284,7 @@
         window.handleOverwriteTexFile = async (input) => {
             const file = input.files[0];
             if (!file) return;
+            input.value = ''; // Reset input để cho phép chọn lại cùng file
 
             if (window.currentQIndex !== -1 && typeof saveCurrentQuestionToMemory === 'function') {
                 saveCurrentQuestionToMemory();
@@ -4931,63 +5130,87 @@
             return str.match(regex) || [];
         }
 
-        // --- HÀM LƯU ĐỀ THI (CHUẨN HÓA LOGIC THAM CHIẾU) ---
+        // --- HÀM LƯU ĐỀ THI (CHUẨN HÓA LOGIC THAM CHIẾU & TOÀN DIỆN CHỐNG ĐƠ NÚT LƯU) ---
         window.saveExam = async function(status) { 
-            if (window.currentQIndex !== -1) saveCurrentQuestionToMemory(); 
+            try {
+                if (window.currentQIndex !== -1 && typeof saveCurrentQuestionToMemory === 'function') {
+                    saveCurrentQuestionToMemory(); 
+                }
+            } catch(memErr) {
+                console.warn("Lỗi lưu câu hỏi hiện tại vào RAM:", memErr);
+            }
             
-            const title = document.getElementById('settingTitle').value.trim();
-            if(!title) return window.customAlert("Vui lòng nhập tên đề thi!", "error");
+            const titleInput = document.getElementById('settingTitle');
+            let title = titleInput?.value?.trim() || window.examData?.title || window.examData?.name || '';
+            if (!title) {
+                const sbTitle = document.getElementById('sidebarExamTitle')?.textContent?.trim();
+                title = sbTitle && sbTitle !== 'Đề thi mới' ? sbTitle : 'Đề thi';
+            }
+            if (titleInput && !titleInput.value) {
+                titleInput.value = title;
+            }
             
-            const btn = status === 'published' ? document.getElementById('btnPublish') : document.getElementById('btnSaveDraft');
-            const originalText = btn.innerHTML; 
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...'; 
-            btn.disabled = true;
+            const btn = (status === 'published' ? document.getElementById('btnPublish') : document.getElementById('btnSaveDraft'))
+                     || document.getElementById('btnSaveDraft') 
+                     || document.getElementById('btnPublish');
+            const originalText = btn ? btn.innerHTML : ''; 
+            if (btn) {
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...'; 
+                btn.disabled = true;
+            }
 
             try {
-                // 1. Thu thập cấu hình
-                const accessType = document.querySelector('input[name="settingAccess"]:checked').value;
+                // 1. Thu thập cấu hình an toàn với fallback
+                const accessRadio = document.querySelector('input[name="settingAccess"]:checked');
+                const accessType = accessRadio ? accessRadio.value : (window.examData?.accessType || 'public');
                 
                 // Lấy danh sách lớp được chọn (Chỉ lấy nếu chọn chế độ "Lớp học")
                 let selectedClassIds = [];
                 if (accessType === 'class') {
                     const classCheckboxes = Array.from(document.querySelectorAll('.class-checkbox'));
-                    if (classCheckboxes.length === 0) {
-                        throw new Error("Danh sách lớp chưa tải xong. Vui lòng chờ vài giây rồi lưu lại.");
-                    }
                     selectedClassIds = classCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
+                    if (selectedClassIds.length === 0 && Array.isArray(window.examData?.allowedClassIds)) {
+                        selectedClassIds = window.examData.allowedClassIds;
+                    }
                     if (status === 'published' && selectedClassIds.length === 0) {
                         throw new Error("Vui lòng chọn ít nhất một lớp học để giao bài!");
                     }
                 }
 
+                const showScoreRadio = document.querySelector('input[name="settingShowScore"]:checked');
+                const showScore = showScoreRadio ? showScoreRadio.value : (window.examData?.showScore || 'immediate');
+
+                const showResultRadio = document.querySelector('input[name="settingShowResult"]:checked');
+                const showResult = showResultRadio ? showResultRadio.value : (window.examData?.showResult || 'immediate');
+
                 const settings = {
                     title: title, 
                     name: title,
-                    type: document.getElementById('settingType').value || 'exam',
-                    fileUrl: document.getElementById('settingFileUrl').value,
-                    solutionUrl: document.getElementById('settingSolutionUrl') ? document.getElementById('settingSolutionUrl').value : "",
-                    description: document.getElementById('settingHwDesc').value,
-                    bannerUrl: document.getElementById('settingBannerUrl').value,
-                    grade: document.getElementById('settingGrade').value, 
-                    subject: document.getElementById('settingSubject').value,
-                    duration: parseInt(document.getElementById('settingDuration').value) || 0, 
-                    purpose: document.getElementById('settingPurpose').value,
-                    startTime: document.getElementById('settingStartTime').value ? new Date(document.getElementById('settingStartTime').value).toISOString() : null, 
-                    endTime: document.getElementById('settingEndTime').value ? new Date(document.getElementById('settingEndTime').value).toISOString() : null,
-                    password: document.getElementById('settingPassword').value, 
-                    attempts: parseInt(document.getElementById('settingAttempts').value) || 0,
-                    proctoring: document.getElementById('settingProctoring').checked, 
-                    antiScreenshot: document.getElementById('settingAntiScreenshot') ? document.getElementById('settingAntiScreenshot').checked : true,
+                    type: document.getElementById('settingType')?.value || window.examData?.type || 'exam',
+                    fileUrl: document.getElementById('settingFileUrl')?.value || window.examData?.fileUrl || '',
+                    solutionUrl: document.getElementById('settingSolutionUrl')?.value || window.examData?.solutionUrl || '',
+                    description: document.getElementById('settingHwDesc')?.value || window.examData?.description || '',
+                    bannerUrl: document.getElementById('settingBannerUrl')?.value || window.examData?.bannerUrl || '',
+                    grade: document.getElementById('settingGrade')?.value || window.examData?.grade || '', 
+                    subject: document.getElementById('settingSubject')?.value || window.examData?.subject || '',
+                    duration: parseInt(document.getElementById('settingDuration')?.value) || window.examData?.duration || 0, 
+                    purpose: document.getElementById('settingPurpose')?.value || window.examData?.purpose || '',
+                    startTime: document.getElementById('settingStartTime')?.value ? new Date(document.getElementById('settingStartTime').value).toISOString() : (window.examData?.startTime || null), 
+                    endTime: document.getElementById('settingEndTime')?.value ? new Date(document.getElementById('settingEndTime').value).toISOString() : (window.examData?.endTime || null),
+                    password: document.getElementById('settingPassword')?.value || window.examData?.password || '', 
+                    attempts: parseInt(document.getElementById('settingAttempts')?.value) ?? (window.examData?.attempts ?? 1),
+                    proctoring: document.getElementById('settingProctoring') ? document.getElementById('settingProctoring').checked : (window.examData?.proctoring || false), 
+                    antiScreenshot: document.getElementById('settingAntiScreenshot') ? document.getElementById('settingAntiScreenshot').checked : (window.examData?.antiScreenshot !== false),
                     keepOriginalOrder: (window.isKeepOriginalOrder ? window.isKeepOriginalOrder() : false),
-                    shuffle: (window.isKeepOriginalOrder && window.isKeepOriginalOrder()) ? false : document.getElementById('settingShuffle').checked,
-                    remindDays: parseInt(document.getElementById('settingRemindDays').value) || 0,
-                    autoSendResult: document.getElementById('settingAutoSendResult').checked,
-                    briefNote: document.getElementById('settingBriefNote').checked,
-                    allowDeleteHistory: document.getElementById('settingAllowDeleteHistory').checked,
-                    showScore: document.querySelector('input[name="settingShowScore"]:checked').value, 
-                    showResult: document.querySelector('input[name="settingShowResult"]:checked').value,
-                    passScore: parseFloat(document.getElementById('settingPassScoreInput').value) || 5,
-                    feeQpoint: parseInt(document.getElementById('settingFeeQpointInput').value) || 0,
+                    shuffle: (window.isKeepOriginalOrder && window.isKeepOriginalOrder()) ? false : (document.getElementById('settingShuffle') ? document.getElementById('settingShuffle').checked : (window.examData?.shuffle !== false)),
+                    remindDays: parseInt(document.getElementById('settingRemindDays')?.value) || window.examData?.remindDays || 0,
+                    autoSendResult: document.getElementById('settingAutoSendResult') ? document.getElementById('settingAutoSendResult').checked : (window.examData?.autoSendResult || false),
+                    briefNote: document.getElementById('settingBriefNote') ? document.getElementById('settingBriefNote').checked : (window.examData?.briefNote || false),
+                    allowDeleteHistory: document.getElementById('settingAllowDeleteHistory') ? document.getElementById('settingAllowDeleteHistory').checked : (window.examData?.allowDeleteHistory || false),
+                    showScore: showScore, 
+                    showResult: showResult,
+                    passScore: parseFloat(document.getElementById('settingPassScoreInput')?.value) || window.examData?.passScore || 5,
+                    feeQpoint: parseInt(document.getElementById('settingFeeQpointInput')?.value) || window.examData?.feeQpoint || 0,
                     
                     // Lấy danh sách thẻ được chọn
                     tagIds: Array.from(document.querySelectorAll('#settingTagsContainer .tag-checkbox:checked')).map(cb => cb.value),
@@ -4997,17 +5220,16 @@
                     allowedClassIds: selectedClassIds,
 
                     // Dữ liệu cho loại bài Hỗn hợp (mixed)
-                    tlFileUrl: document.getElementById('settingTlFileUrl') ? document.getElementById('settingTlFileUrl').value : '',
-                    tlSolutionUrl: document.getElementById('settingTlSolutionUrl') ? document.getElementById('settingTlSolutionUrl').value : '',
-                    tlScore: parseFloat(document.getElementById('settingTlScore')?.value) || 100,
-                    tnScore: parseFloat(document.getElementById('settingTnScore')?.value) || 100,
-                    scoringConfig: window.currentScoringConfig || null,
-                    tlDesc: document.getElementById('settingTlDesc') ? document.getElementById('settingTlDesc').value : '',
-                    tlQuestions: window.mixedTlQuestions || []
+                    tlFileUrl: document.getElementById('settingTlFileUrl')?.value || window.examData?.tlFileUrl || '',
+                    tlSolutionUrl: document.getElementById('settingTlSolutionUrl')?.value || window.examData?.tlSolutionUrl || '',
+                    tlScore: parseFloat(document.getElementById('settingTlScore')?.value) || window.examData?.tlScore || 100,
+                    tnScore: parseFloat(document.getElementById('settingTnScore')?.value) || window.examData?.tnScore || 100,
+                    scoringConfig: window.currentScoringConfig || window.examData?.scoringConfig || null,
+                    tlDesc: document.getElementById('settingTlDesc')?.value || window.examData?.tlDesc || '',
+                    tlQuestions: window.mixedTlQuestions || window.examData?.tlQuestions || []
                 };
 
-
-                // 2. Xử lý ảnh rác (Giữ nguyên logic cũ của bạn)
+                // 2. Xử lý ảnh rác (Giữ nguyên logic cũ)
                 if (currentExamId && window.originalQuestionsData.length > 0) {
                     const oldImages = getAllImageUrls(window.originalQuestionsData);
                     const newImages = getAllImageUrls(window.questions);
@@ -5054,10 +5276,12 @@
                     ? (window.examData?.folderId !== undefined ? window.examData.folderId : (assignedFolderId || null))
                     : (assignedFolderId || null);
 
+                const teacherUid = currentUser?.uid || window.currentUserUid || window.examData?.teacherId || 'anonymous';
+
                 await setDoc(examRef, { 
                     ...settings, 
                     n8nWebhooks: webhooksConfig,
-                    teacherId: currentUser.uid, 
+                    teacherId: teacherUid, 
                     questions: window.questions, 
                     questionCount: window.questions.length, 
                     status: status, 
@@ -5078,15 +5302,20 @@
                 }
 
                 currentExamId = examRef.id; window.currentExamId = currentExamId;
-                document.getElementById('sidebarExamTitle').textContent = title;
+                const sbTitleEl = document.getElementById('sidebarExamTitle');
+                if (sbTitleEl) sbTitleEl.textContent = title;
 
                 // 4. Hoàn tất
                 window.updateExamStatusUI(status, currentExamId);
                 const link = window.getCurrentExamShareUrl(currentExamId);
                 if (status === 'published') {
-                    document.getElementById('shareLinkInput').value = link; 
-                    document.getElementById('shareModal').classList.remove('opacity-0', 'pointer-events-none');
-                    document.getElementById('shareModal').querySelector('div').classList.add('scale-100');
+                    const shareInput = document.getElementById('shareLinkInput');
+                    if (shareInput) shareInput.value = link; 
+                    const shareModal = document.getElementById('shareModal');
+                    if (shareModal) {
+                        shareModal.classList.remove('opacity-0', 'pointer-events-none');
+                        shareModal.querySelector('div')?.classList.add('scale-100');
+                    }
                     
                     // Thông báo rõ ràng về việc giao bài
                     if(accessType === 'class') {
@@ -5104,8 +5333,14 @@
                 console.error(e); 
                 window.customAlert("Lỗi lưu đề thi: " + e.message, "error"); 
             } finally { 
-                btn.innerHTML = originalText; 
-                btn.disabled = false; 
+                if (btn) {
+                    btn.innerHTML = originalText; 
+                    btn.disabled = false; 
+                }
+                const bDraft = document.getElementById('btnSaveDraft');
+                if (bDraft) bDraft.disabled = false;
+                const bPub = document.getElementById('btnPublish');
+                if (bPub) bPub.disabled = false;
             }
         };
 
@@ -6496,33 +6731,6 @@
             window.autoScaleTables();
         });
         
-        document.addEventListener('paste', async (e) => {
-            const activeEl = document.activeElement;
-            if (!activeEl || !activeEl.classList.contains('image-placeholder')) return;
-
-            const id = activeEl.getAttribute('data-id');
-            if (!id) return;
-
-            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            for (const item of items) {
-                if (item.type.indexOf('image') !== -1) {
-                    e.preventDefault(); 
-                    const file = item.getAsFile();
-                    const originalContent = activeEl.innerHTML;
-                    activeEl.innerHTML = '<div class="animate-bounce text-primary-600"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="text-xs mt-2 font-bold">Đang xử lý ảnh...</p></div>';
-                    try {
-                        window.showToast("Đang tải ảnh từ bộ nhớ tạm...", "info");
-                        await uploadAndReplaceImage(file, id);
-                        window.showToast("Dán ảnh thành công!", "success");
-                    } catch (err) {
-                        console.error(err);
-                        activeEl.innerHTML = originalContent; 
-                        window.showToast("Lỗi dán ảnh: " + err.message, "error");
-                    }
-                    return; 
-                }
-            }
-        });
     // --- LOGIC CHẤM THI (GRADING) ---
         let currentGradingAttempt = null;
         window.currentGradingCanvases = [];

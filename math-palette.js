@@ -688,6 +688,10 @@
                     <input type="file" id="fileInputReplaceImage" accept="image/*" class="hidden">
                 </label>
                 <span class="text-gray-500">|</span>
+                <button type="button" id="btnDeleteSelectedImage" class="hover:text-red-400 text-red-300 flex items-center gap-1 font-bold transition cursor-pointer" title="Xóa hình ảnh này">
+                    <i class="fa-solid fa-trash-can"></i> Xóa ảnh
+                </button>
+                <span class="text-gray-500">|</span>
                 <button type="button" id="btnCancelReplaceImage" class="text-gray-400 hover:text-red-400 transition" title="Bỏ chọn">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
@@ -695,7 +699,7 @@
 
             const rect = imgEl.getBoundingClientRect();
             document.body.appendChild(toolbar);
-            const tbWidth = toolbar.offsetWidth || 260;
+            const tbWidth = toolbar.offsetWidth || 340;
             const topPos = Math.max(10, rect.top + window.scrollY - 42);
             const leftPos = Math.max(10, Math.min(window.innerWidth - tbWidth - 10, rect.left + window.scrollX));
             toolbar.style.top = topPos + 'px';
@@ -731,10 +735,79 @@
                 }
             });
 
+            toolbar.querySelector('#btnDeleteSelectedImage')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteSelectedImage();
+            });
+
             toolbar.querySelector('#btnCancelReplaceImage').addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.clearImageSelection();
             });
+        },
+
+        /**
+         * Xóa ảnh đang được chọn khỏi textarea và DOM xem trước
+         */
+        deleteSelectedImage() {
+            if (!this.selectedImageElement) return;
+            const imgEl = this.selectedImageElement;
+            const targetTextareaEl = this.selectedImageTargetTextarea;
+            const imgSrc = imgEl.getAttribute('src');
+
+            if (targetTextareaEl && imgSrc) {
+                let content = targetTextareaEl.value;
+                const decodedSrc = decodeURIComponent(imgSrc);
+                const escapedSrc = imgSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const escapedDecodedSrc = decodedSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                // 1. Thử xóa khối bao quanh (div flex justify-center ...)
+                const divRegex = new RegExp(`\\s*<div[^>]*>\\s*<img[^>]*src=["'](?:${escapedSrc}|${escapedDecodedSrc})["'][^>]*>\\s*<\\/div>\\s*`, 'gi');
+                let newContent = content.replace(divRegex, '\n');
+
+                // 2. Thử xóa thẻ <img> đơn lẻ
+                if (newContent === content) {
+                    const imgTagRegex = new RegExp(`\\s*<img[^>]*src=["'](?:${escapedSrc}|${escapedDecodedSrc})["'][^>]*>\\s*`, 'gi');
+                    newContent = newContent.replace(imgTagRegex, '\n');
+                }
+
+                // 3. Thử xóa khối LaTeX \begin{center} ... \includegraphics{...} ... \end{center}
+                if (newContent === content) {
+                    const latexCenterRegex = new RegExp(`\\s*\\\\begin\\{center\\}[\\s\\S]*?\\\\includegraphics(?:\\[[^\\]]*\\])?\\{(?:${escapedSrc}|${escapedDecodedSrc})\\}[\\s\\S]*?\\\\end\\{center\\}\\s*`, 'gi');
+                    newContent = newContent.replace(latexCenterRegex, '\n');
+                }
+
+                // 4. Thử xóa \includegraphics đơn lẻ
+                if (newContent === content) {
+                    const latexIgRegex = new RegExp(`\\s*\\\\includegraphics(?:\\[[^\\]]*\\])?\\{(?:${escapedSrc}|${escapedDecodedSrc})\\}\\s*`, 'gi');
+                    newContent = newContent.replace(latexIgRegex, '\n');
+                }
+
+                // 5. Fallback xóa chuỗi URL trực tiếp nếu còn sót
+                if (newContent === content) {
+                    newContent = newContent.split(imgSrc).join('').split(decodedSrc).join('');
+                }
+
+                // Dọn dẹp dòng trống thừa
+                newContent = newContent.replace(/\n{3,}/g, '\n\n').trim();
+
+                targetTextareaEl.value = newContent;
+                targetTextareaEl.dispatchEvent(new Event('input', { bubbles: true }));
+                if (typeof window.autoSaveMemory === 'function') window.autoSaveMemory();
+            }
+
+            // Xóa khỏi preview DOM
+            const wrapperDiv = imgEl.closest('.flex.justify-center');
+            if (wrapperDiv && wrapperDiv.contains(imgEl)) {
+                wrapperDiv.remove();
+            } else {
+                imgEl.remove();
+            }
+
+            this.clearImageSelection();
+
+            if (window.showToast) window.showToast('Đã xóa ảnh thành công!', 'success');
+            else if (window.showNotification) window.showNotification('Đã xóa ảnh thành công!', 'success');
         },
 
         /**
@@ -801,10 +874,9 @@
                     <button type="button" class="btn-editor-action btn-editor-mathtype px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer" onclick="window.MathPalette.openFormulaDialog('${typeof targetTextarea === 'string' ? targetTextarea : ''}')">
                         <i class="fa-solid fa-square-root-variable"></i> MathType
                     </button>
-                    <label class="btn-editor-action btn-editor-image px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Chèn ảnh từ máy tính">
+                    <button type="button" class="btn-editor-action btn-editor-image px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer" onclick="if(window.insertImagePlaceholder){ window.insertImagePlaceholder('${typeof targetTextarea === 'string' ? targetTextarea : ''}'); } else { window.MathPalette.handleDirectImageUpload(event, '${typeof targetTextarea === 'string' ? targetTextarea : ''}'); }" title="Tạo ô chờ chèn ảnh">
                         <i class="fa-solid fa-image"></i> Ảnh
-                        <input type="file" accept="image/*" class="hidden" onchange="window.MathPalette.handleDirectImageUpload(event, '${typeof targetTextarea === 'string' ? targetTextarea : ''}')">
-                    </label>
+                    </button>
                 </div>
             `;
             return containerEl;
@@ -869,6 +941,22 @@
     // Bấm ra ngoài thì bỏ chọn ảnh
     window.addEventListener('click', (e) => {
         if (!e.target.closest('.active-replacing-image') && !e.target.closest('#imageReplacementToolbar')) {
+            MathPalette.clearImageSelection();
+        }
+    });
+
+    // Lắng nghe phím Delete hoặc Backspace khi đang chọn ảnh để xóa nhanh
+    window.addEventListener('keydown', (e) => {
+        if (!MathPalette.selectedImageElement) return;
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && !active.classList.contains('hidden')) {
+            return;
+        }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            e.preventDefault();
+            e.stopPropagation();
+            MathPalette.deleteSelectedImage();
+        } else if (e.key === 'Escape') {
             MathPalette.clearImageSelection();
         }
     });
