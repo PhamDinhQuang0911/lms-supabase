@@ -4381,10 +4381,9 @@
                         name: window._pendingOverwriteFileName || 'De_Thi.tex',
                         rawText: window._pendingOverwriteRawText
                     };
-                    if (window.examData) {
-                        window.examData.rawTex = window._pendingOverwriteRawText;
-                        window.examData.rawTexName = window._pendingOverwriteFileName;
-                    }
+                    if (!window.examData) window.examData = {};
+                    window.examData.rawTex = window._pendingOverwriteRawText;
+                    window.examData.rawTexName = window._pendingOverwriteFileName;
                 }
 
                 // Cập nhật bản sao lưu câu hỏi gốc
@@ -4399,7 +4398,7 @@
                     syncR2,
                     autoSave,
                     overwriteCount,
-                    deletedImgCount: deletedR2Count,
+                    deletedImgCount: 0,
                     isSmartCccd: window._isSmartCccdOverwrite
                 };
 
