@@ -581,9 +581,21 @@
 
             try {
                 const url = await this.uploadImageToCloudflare(file);
-                const latexImg = `\n\\begin{center}\n\\includegraphics[width=0.6\\linewidth]{${url}}\n\\end{center}\n`;
+                const latexImg = `\\begin{center}\n\\includegraphics[width=0.6\\linewidth]{${url}}\n\\end{center}\n`;
                 
-                this.insertTemplate(latexImg, 0, targetEl);
+                const isSolutionEl = (targetEl.id === 'editSolution' || targetEl.id === 'edit_solution' || targetInputOrId === 'editSolution' || targetInputOrId === 'edit_solution');
+                if (isSolutionEl) {
+                    // Đối với phần lời giải: Chèn ảnh lên BÊN TRÊN lời giải theo yêu cầu
+                    const currentVal = (targetEl.value || '').trim();
+                    if (currentVal.length > 0) {
+                        targetEl.value = latexImg + '\n' + currentVal;
+                    } else {
+                        targetEl.value = latexImg;
+                    }
+                    targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+                } else {
+                    this.insertTemplate('\n' + latexImg, 0, targetEl);
+                }
                 notify('Chèn ảnh thành công!', 'success');
             } catch(e) {
                 console.error("Lỗi upload ảnh:", e);

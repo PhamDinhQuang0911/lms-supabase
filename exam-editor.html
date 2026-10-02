@@ -1660,7 +1660,7 @@
             });
         }
 
-        async function handleImageUpload(file) {
+        async function handleImageUpload(file, targetId = 'editContent') {
             if (!file) return;
             window.showToast("Đang tải ảnh lên Cloudflare...", "info");
             try {
@@ -1679,7 +1679,7 @@
                 const data = await response.json();
                 sessionUploadedFiles.push(data.key); 
 
-                insertAtCursor(`\n<div class="flex justify-center"><img src="${data.url}" class="max-w-full h-auto rounded-lg shadow-sm" style="max-height:300px;"></div>\n`);
+                insertAtCursor(`\n<div class="flex justify-center"><img src="${data.url}" class="max-w-full h-auto rounded-lg shadow-sm" style="max-height:300px;"></div>\n`, targetId);
                 autoSaveMemory(); 
                 window.showToast("Đã chèn ảnh thành công!", "success");
             } catch (error) { 
@@ -1688,12 +1688,19 @@
             }
         }
 
-        function insertAtCursor(text) {
-            const textarea = document.getElementById('editContent');
+        function insertAtCursor(text, targetId = 'editContent') {
+            const textarea = document.getElementById(targetId);
             if (!textarea) return;
+            if (targetId === 'editSolution') {
+                const currentVal = textarea.value.trim();
+                textarea.value = text.trim() + (currentVal ? '\n' + currentVal : '');
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                return;
+            }
             const start = textarea.selectionStart; const end = textarea.selectionEnd; const value = textarea.value;
             textarea.value = value.substring(0, start) + text + value.substring(end);
             textarea.selectionStart = textarea.selectionEnd = start + text.length; textarea.focus();
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1711,12 +1718,17 @@
             }
             document.getElementById('imgUploadInput').addEventListener('change', (e) => { if(e.target.files.length > 0) handleImageUpload(e.target.files[0]); });
             document.body.addEventListener('paste', (e) => {
-                if (e.target.id === 'editContent') {
+                const isSol = (e.target.id === 'editSolution' || (e.target.closest && e.target.closest('#solLivePreview')));
+                const isContent = (e.target.id === 'editContent' || (e.target.closest && e.target.closest('#contentLivePreview')));
+                if (isSol || isContent) {
                     const items = (e.clipboardData || e.originalEvent.clipboardData).items;
                     for (let index in items) {
                         const item = items[index];
                         if (item.kind === 'file' && item.type.includes('image/')) {
-                            e.preventDefault(); const blob = item.getAsFile(); handleImageUpload(blob); return;
+                            e.preventDefault(); 
+                            const blob = item.getAsFile(); 
+                            handleImageUpload(blob, isSol ? 'editSolution' : 'editContent'); 
+                            return;
                         }
                     }
                 }
@@ -1745,7 +1757,7 @@
             </div>`;
         }
 
-        function processLatexImagesWithDetection(text, questionIndex) {
+        function processLatexImagesWithDetection(text, questionIndex, isSolution = false) {
             if (!text) return "";
             let processed = String(text);
             
@@ -1786,8 +1798,13 @@
                 const contentText = arg1.content; 
                 const match = contentText.match(/\\(choice|choiceTF|shortans)/); 
                 let newContent = "";
-                if (match && match.index !== undefined) newContent = contentText.substring(0, match.index) + '\n\n' + ph + '\n\n' + contentText.substring(match.index); 
-                else newContent = contentText + '\n\n' + ph;
+                if (match && match.index !== undefined) {
+                    newContent = contentText.substring(0, match.index) + '\n\n' + ph + '\n\n' + contentText.substring(match.index); 
+                } else if (isSolution) {
+                    newContent = ph + '\n\n' + contentText;
+                } else {
+                    newContent = contentText + '\n\n' + ph;
+                }
                 processed = before + newContent + arg2.remaining;
             }
 
@@ -3673,7 +3690,7 @@
                              }
                              if(end !== -1) {
                                  const solContent = solPart.substring(start+1, end);
-                                 qData.solution = processLatexImagesWithDetection(cleanTikzCode(solContent), count).replace(/(?<!\\)%.*/g, '');
+                                 qData.solution = processLatexImagesWithDetection(cleanTikzCode(solContent), count, true).replace(/(?<!\\)%.*/g, '');
                              }
                         }
                     }
@@ -3969,7 +3986,7 @@
                              }
                              if(end !== -1) {
                                  const solContent = solPart.substring(start+1, end);
-                                 qData.solution = processLatexImagesWithDetection(cleanTikzCode(solContent), count).replace(/(?<!\\)%.*/g, '');
+                                 qData.solution = processLatexImagesWithDetection(cleanTikzCode(solContent), count, true).replace(/(?<!\\)%.*/g, '');
                              }
                         }
                     }
