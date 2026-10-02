@@ -1233,11 +1233,17 @@
                             <i class="fa-solid fa-clipboard"></i> Chèn / Dán ảnh (Ctrl+V)
                         </button>
                         <input type="file" id="bankInlineImageFileInput" accept="image/*" class="hidden" onchange="window.handleBankInlineImageFile(this)">
-                        <button id="btnOverwriteQuestionTex" onclick="window.openOverwriteQuestionModal()" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important; color: #ffffff !important;" class="px-4 py-2 font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 text-xs md:text-sm text-white hover:opacity-90 cursor-pointer" title="Dán mã TeX chuẩn CCCD để thay thế và ghi đè toàn bộ nội dung câu hỏi này">
+                        <button id="btnCheckQuestionUsage" onclick="window.checkQuestionUsage()" class="px-3.5 py-2 bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white border border-sky-200 font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 text-xs md:text-sm cursor-pointer" title="Xem câu hỏi này đang nằm trong những đề thi, chuyên đề, khóa học nào">
+                            <i class="fa-solid fa-sitemap"></i> Tra cứu sử dụng
+                        </button>
+                        <button id="btnExportQuestionTex" onclick="window.exportSingleQuestionTex()" class="px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-200 font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 text-xs md:text-sm cursor-pointer" title="Xuất mã nguồn TeX chuẩn của câu hỏi này để chỉnh sửa trên máy">
+                            <i class="fa-solid fa-file-code"></i> Xuất mã TeX
+                        </button>
+                        <button id="btnOverwriteQuestionTex" onclick="window.openOverwriteQuestionModal()" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important; color: #ffffff !important;" class="px-3.5 py-2 font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 text-xs md:text-sm text-white hover:opacity-90 cursor-pointer" title="Dán mã TeX chuẩn CCCD để thay thế và ghi đè toàn bộ nội dung câu hỏi này">
                             <i class="fa-solid fa-code-compare"></i> Ghi đè bằng mã TeX
                         </button>
-                        <button id="btnEditQuestion" class="px-6 py-2 bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-600 hover:text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"><i class="fa-solid fa-pen"></i> Sửa</button>
-                        <button onclick="window.closeQuestionPreviewModal()" class="px-6 py-2 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 shadow-md shadow-primary-200 transition-all">Đóng</button>
+                        <button id="btnEditQuestion" class="px-5 py-2 bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-600 hover:text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"><i class="fa-solid fa-pen"></i> Sửa</button>
+                        <button onclick="window.closeQuestionPreviewModal()" class="px-5 py-2 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 shadow-md shadow-primary-200 transition-all">Đóng</button>
                     </div>
                 </div>
             </div>
@@ -1340,6 +1346,108 @@
                     <button type="button" id="btnConfirmOverwrite" disabled onclick="window.executeQuestionOverwrite()" style="background-color: #9ca3af !important; color: #ffffff !important;" class="px-6 py-2.5 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-not-allowed shadow-md">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                         <span>Tiến hành ghi đè & Biên dịch</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Xuất mã nguồn TeX từng câu hỏi (Chuẩn CCCD + Nguồn + MapID) -->
+        <div id="singleQuestionTexModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[125] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4 backdrop-blur-sm transition-all duration-300">
+            <div class="modal-content bg-white w-full max-w-3xl rounded-3xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh] border border-gray-100 overflow-hidden">
+                <!-- Header -->
+                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center text-lg shadow-md shadow-emerald-200 shrink-0">
+                            <i class="fa-solid fa-file-code"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-lg md:text-xl text-gray-800 flex items-center gap-2">
+                                Xuất mã nguồn TeX câu hỏi
+                            </h3>
+                            <p class="text-xs text-gray-500 font-bold mt-0.5" id="exportTexModalSubtitle">
+                                Mã LaTeX chuẩn hóa • Sẵn sàng chỉnh sửa trên máy & nạp ngược lại
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="window.closeSingleQuestionTexModal()" class="w-9 h-9 rounded-2xl bg-white/80 hover:bg-red-50 text-gray-400 hover:text-red-500 border border-gray-200 flex items-center justify-center transition-all cursor-pointer shadow-sm">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar flex flex-col gap-4">
+                    <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-900 text-xs flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span>Bản mã chuẩn kèm mã <b>CCCD</b>, <b>Nguồn</b> và <b>MapID</b>. Bạn có thể sao chép hoặc tải tệp về để biên tập.</span>
+                        </div>
+                        <span id="texCharCount" class="font-mono font-bold text-emerald-700 text-[11px] shrink-0">... ký tự</span>
+                    </div>
+
+                    <div class="relative flex-1">
+                        <textarea id="singleQuestionTexArea" readonly class="w-full h-80 p-4 font-mono text-xs md:text-sm text-slate-100 bg-slate-900 rounded-2xl border border-slate-700 outline-none resize-none focus:ring-2 focus:ring-emerald-400 custom-scrollbar leading-relaxed"></textarea>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="p-4 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex justify-between items-center gap-3 shrink-0 flex-wrap">
+                    <button onclick="window.openOverwriteFromExportModal()" class="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 font-bold rounded-xl text-xs md:text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm" title="Mở hộp thoại ghi đè để dán lại mã sau khi chỉnh sửa">
+                        <i class="fa-solid fa-code-compare"></i> Ghi đè bằng mã TeX
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button id="btnCopySingleTex" onclick="window.copySingleQuestionTex()" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs md:text-sm transition-all shadow-md shadow-emerald-200 flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-copy"></i> Sao chép mã TeX
+                        </button>
+                        <button onclick="window.downloadSingleQuestionTexFile()" class="px-4 py-2 bg-white text-gray-700 hover:text-emerald-700 border border-gray-200 hover:border-emerald-300 font-bold rounded-xl text-xs md:text-sm transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-download"></i> Tải tệp .tex
+                        </button>
+                        <button onclick="window.closeSingleQuestionTexModal()" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-xl text-xs md:text-sm hover:bg-gray-300 transition-all cursor-pointer">
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Tra cứu nơi sử dụng câu hỏi (Đề thi / Chuyên đề / Khóa học) -->
+        <div id="questionUsageModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[125] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4 backdrop-blur-sm transition-all duration-300">
+            <div class="modal-content bg-white w-full max-w-4xl rounded-3xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh] border border-gray-100 overflow-hidden">
+                <!-- Header -->
+                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-sky-50 via-indigo-50 to-purple-50 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-600 to-indigo-600 text-white flex items-center justify-center text-lg shadow-md shadow-sky-200 shrink-0">
+                            <i class="fa-solid fa-sitemap"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-lg md:text-xl text-gray-800 flex items-center gap-2">
+                                Tra cứu nơi sử dụng câu hỏi
+                            </h3>
+                            <p class="text-xs text-gray-500 font-bold mt-0.5" id="usageModalSubtitle">
+                                ID: ... • Kiểm tra liên kết trong Đề thi, Chuyên đề & Khóa học
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="window.closeQuestionUsageModal()" class="w-9 h-9 rounded-2xl bg-white/80 hover:bg-red-50 text-gray-400 hover:text-red-500 border border-gray-200 flex items-center justify-center transition-all cursor-pointer shadow-sm">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar" id="usageModalContent">
+                    <!-- Loading state -->
+                    <div class="flex flex-col items-center justify-center py-20 text-sky-600 gap-3">
+                        <i class="fa-solid fa-circle-notch fa-spin text-4xl"></i>
+                        <p class="font-bold text-sm text-gray-600">Đang quét Đề thi, Chuyên đề và Khóa học...</p>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="p-4 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex justify-between items-center gap-3 shrink-0">
+                    <div class="text-xs text-gray-500 font-medium" id="usageScanStats">
+                        Đang quét...
+                    </div>
+                    <button onclick="window.closeQuestionUsageModal()" class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs md:text-sm shadow-md shadow-primary-200 transition-all cursor-pointer">
+                        Đóng
                     </button>
                 </div>
             </div>
@@ -9372,6 +9480,10 @@ function renderTagFilterUI() {
                         </div>
                     </div>
                     ${levelBadgeListHtml}
+                    <div class="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="event.stopPropagation(); window.exportSingleQuestionTexById('${q.id}')" class="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer text-xs" title="Xuất mã TeX câu hỏi"><i class="fa-solid fa-file-code"></i></button>
+                        <button onclick="event.stopPropagation(); window.checkQuestionUsageById('${q.id}')" class="p-1.5 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer text-xs" title="Tra cứu nơi sử dụng (Đề thi / Chuyên đề / Khóa học)"><i class="fa-solid fa-sitemap"></i></button>
+                    </div>
                     <button class="shrink-0 p-2 text-gray-400 group-hover:text-primary-600 transition-colors"><i class="fa-solid fa-chevron-right"></i></button>
                 `;
             } else {
@@ -9389,8 +9501,12 @@ function renderTagFilterUI() {
                         </div>
                         ${levelBadgeGridHtml}
                     </div>
-                    <div class="flex gap-2 mt-auto pt-2">
+                    <div class="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-gray-50">
                         <span class="text-xs border border-gray-200 px-2 py-1 rounded-lg bg-gray-50 text-gray-600 font-bold"><i class="fa-solid fa-book text-gray-400 mr-1"></i>${subjectText || 'Khác'}</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="event.stopPropagation(); window.exportSingleQuestionTexById('${q.id}')" class="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer text-xs" title="Xuất mã TeX câu hỏi"><i class="fa-solid fa-file-code"></i></button>
+                            <button onclick="event.stopPropagation(); window.checkQuestionUsageById('${q.id}')" class="p-1.5 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer text-xs" title="Tra cứu nơi sử dụng"><i class="fa-solid fa-sitemap"></i></button>
+                        </div>
                     </div>
                 `;
             }
@@ -11442,6 +11558,576 @@ function renderTagFilterUI() {
             if (btn) btn.disabled = false;
         }
     };
+
+    // =========================================================================
+    // TÍNH NĂNG: XUẤT MÃ NGUỒN TEX TỪNG CÂU HỎI (CHUẨN CCCD + NGUỒN + MAPID)
+    // =========================================================================
+    window.currentExportingQuestion = null;
+
+    window.openSingleQuestionTexModal = (targetQ = null) => {
+        const q = targetQ || window.currentPreviewQuestion || window.currentEditingQuestion;
+        if (!q) {
+            if (window.showNotification) window.showNotification("Không tìm thấy thông tin câu hỏi để xuất TeX", "warning");
+            return;
+        }
+        window.currentExportingQuestion = q;
+
+        const cccd = q.cccd || q.bankId || q.id || '';
+        const mapId = q.mapId || (q.id && q.id.includes('_') ? q.id.split('_')[0] : q.id);
+
+        let texCode = "";
+        if (typeof window.formatQuestionToLatex === 'function') {
+            texCode = window.formatQuestionToLatex(q);
+        } else {
+            const env = q.env || (q.type === 'essay' || q.type === 'tl' ? 'bt' : 'ex');
+            texCode = `\\begin{${env}}[${cccd}]%[${q.source || ''}]%[${mapId || ''}]\n${(q.content || '').trim()}\n\\loigiai{\n${(q.solution || '').trim()}\n}\n\\end{${env}}`;
+        }
+
+        const area = document.getElementById('singleQuestionTexArea');
+        const subtitle = document.getElementById('exportTexModalSubtitle');
+        const charCount = document.getElementById('texCharCount');
+
+        if (area) area.value = texCode;
+        if (subtitle) subtitle.textContent = `CCCD / ID: #${cccd} • MapID: ${mapId || 'Chưa gán'}`;
+        if (charCount) charCount.textContent = `${texCode.length} ký tự • ${texCode.split('\n').length} dòng`;
+
+        const modal = document.getElementById('singleQuestionTexModal');
+        if (modal) {
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100', 'pointer-events-auto');
+            modal.querySelector('.modal-content')?.classList.remove('scale-95');
+            modal.querySelector('.modal-content')?.classList.add('scale-100');
+        }
+    };
+
+    window.exportSingleQuestionTex = (targetQ = null) => {
+        window.openSingleQuestionTexModal(targetQ);
+    };
+
+    window.exportSingleQuestionTexById = async (id) => {
+        let q = (window.globalBankQuestions || []).find(item => item.id === id || item.cccd === id);
+        if (!q) {
+            if (window.BankService) {
+                try {
+                    q = await window.BankService.getQuestionById(id, false);
+                } catch(e) {}
+            }
+            if (!q) {
+                try {
+                    const res = await fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/bank?id=${encodeURIComponent(id)}`);
+                    if (res.ok) q = await res.json();
+                } catch(e) {}
+            }
+        }
+        if (q) {
+            window.openSingleQuestionTexModal(q);
+        } else {
+            if (window.showNotification) window.showNotification("Không thể tải thông tin câu hỏi!", "error");
+        }
+    };
+
+    window.closeSingleQuestionTexModal = () => {
+        const modal = document.getElementById('singleQuestionTexModal');
+        if (modal) {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.classList.remove('opacity-100', 'pointer-events-auto');
+            modal.querySelector('.modal-content')?.classList.add('scale-95');
+            modal.querySelector('.modal-content')?.classList.remove('scale-100');
+        }
+    };
+
+    window.copySingleQuestionTex = async () => {
+        const area = document.getElementById('singleQuestionTexArea');
+        if (!area || !area.value) return;
+        try {
+            await navigator.clipboard.writeText(area.value);
+            const btn = document.getElementById('btnCopySingleTex');
+            if (btn) {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã sao chép!';
+                btn.classList.add('bg-emerald-700');
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('bg-emerald-700');
+                }, 2000);
+            }
+            if (window.showNotification) window.showNotification("Đã sao chép mã TeX vào Clipboard thành công!", "success");
+        } catch(err) {
+            area.select();
+            document.execCommand('copy');
+            if (window.showNotification) window.showNotification("Đã chọn toàn bộ mã TeX (Ctrl+C để chép)", "info");
+        }
+    };
+
+    window.downloadSingleQuestionTexFile = () => {
+        const area = document.getElementById('singleQuestionTexArea');
+        if (!area || !area.value) return;
+        const q = window.currentExportingQuestion;
+        const cccd = q?.cccd || q?.bankId || q?.id || 'cau_hoi';
+        const blob = new Blob([area.value], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cau_hoi_${cccd}.tex`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        if (window.showNotification) window.showNotification(`Đã tải về tệp cau_hoi_${cccd}.tex`, "success");
+    };
+
+    window.openOverwriteFromExportModal = () => {
+        const q = window.currentExportingQuestion;
+        window.closeSingleQuestionTexModal();
+        if (q) {
+            setTimeout(() => window.openOverwriteQuestionModal(q), 250);
+        }
+    };
+
+    // =========================================================================
+    // TÍNH NĂNG: TRA CỨU NƠI SỬ DỤNG CÂU HỎI (ĐỀ THI / CHUYÊN ĐỀ / KHÓA HỌC)
+    // =========================================================================
+    window.currentUsageQuestion = null;
+
+    window.openQuestionUsageModal = async (targetQ = null) => {
+        const q = targetQ || window.currentPreviewQuestion || window.currentEditingQuestion;
+        if (!q) {
+            if (window.showNotification) window.showNotification("Không tìm thấy thông tin câu hỏi để tra cứu", "warning");
+            return;
+        }
+        window.currentUsageQuestion = q;
+
+        const targetCccd = String(q.cccd || q.bankId || q.id || '').trim();
+        const targetId = String(q.id || '').trim();
+        const targetMapId = String(q.mapId || '').trim();
+        const targetAliases = Array.isArray(q.aliases) ? q.aliases.map(a => String(a).trim()) : [];
+        const targetMaster = q.masterCccd || q.masterId ? String(q.masterCccd || q.masterId).trim() : '';
+
+        const modal = document.getElementById('questionUsageModal');
+        const content = document.getElementById('usageModalContent');
+        const subtitle = document.getElementById('usageModalSubtitle');
+        const stats = document.getElementById('usageScanStats');
+
+        if (subtitle) {
+            subtitle.textContent = `ID / CCCD: #${targetCccd} • MapID: ${targetMapId || 'Chưa gán'}`;
+        }
+        if (stats) stats.textContent = 'Đang quét toàn hệ thống...';
+
+        if (content) {
+            content.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-20 text-sky-600 gap-3">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl"></i>
+                    <p class="font-bold text-sm text-gray-700">Đang quét Đề thi, Chuyên đề và Khóa học...</p>
+                    <p class="text-xs text-gray-400">Đang so khớp CCCD #${targetCccd} trên toàn bộ cơ sở dữ liệu...</p>
+                </div>
+            `;
+        }
+
+        if (modal) {
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100', 'pointer-events-auto');
+            modal.querySelector('.modal-content')?.classList.remove('scale-95');
+            modal.querySelector('.modal-content')?.classList.add('scale-100');
+        }
+
+        try {
+            // Quét song song 3 nguồn dữ liệu: Đề thi, Chuyên đề, Khóa học
+            const [matchedExams, matchedTopics, matchedCourses] = await Promise.all([
+                scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster),
+                scanQuestionInTopics(targetCccd, targetId, targetMapId, targetAliases),
+                scanQuestionInCourses(targetCccd, targetId)
+            ]);
+
+            // Liên kết thêm các khóa học chứa các đề thi vừa tìm được
+            if (matchedExams.length > 0) {
+                const examIdsSet = new Set(matchedExams.map(e => e.id));
+                const allCourses = window.allPublicCoursesCache || [];
+                allCourses.forEach(c => {
+                    if (matchedCourses.some(mc => mc.id === c.id)) return;
+                    let hasExam = false;
+                    let examName = '';
+                    if (Array.isArray(c.curriculum)) {
+                        for (const chap of c.curriculum) {
+                            if (Array.isArray(chap.lessons)) {
+                                for (const les of chap.lessons) {
+                                    if (Array.isArray(les.items)) {
+                                        for (const it of les.items) {
+                                            if (it.type === 'quiz' && it.examId && examIdsSet.has(it.examId)) {
+                                                hasExam = true;
+                                                examName = it.title || 'Bài tập trắc nghiệm';
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (hasExam) break;
+                                }
+                            }
+                            if (hasExam) break;
+                        }
+                    }
+                    if (hasExam) {
+                        matchedCourses.push({
+                            id: c.id,
+                            title: c.title || 'Khóa học',
+                            reason: `Chứa đề thi: ${examName}`,
+                            tag: c.tag || 'Khóa học',
+                            price: c.price || 0
+                        });
+                    }
+                });
+            }
+
+            renderQuestionUsageResults(q, matchedExams, matchedTopics, matchedCourses);
+            if (stats) {
+                stats.textContent = `Tìm thấy: ${matchedExams.length} đề thi • ${matchedTopics.length} chuyên đề • ${matchedCourses.length} khóa học`;
+            }
+        } catch(err) {
+            console.error("Lỗi quét nơi sử dụng câu hỏi:", err);
+            if (content) {
+                content.innerHTML = `
+                    <div class="p-6 text-center text-red-500 space-y-2">
+                        <i class="fa-solid fa-triangle-exclamation text-3xl text-red-400"></i>
+                        <p class="font-bold">Có lỗi xảy ra khi quét dữ liệu: ${err.message || err}</p>
+                    </div>
+                `;
+            }
+            if (stats) stats.textContent = 'Lỗi tra cứu';
+        }
+    };
+
+    window.checkQuestionUsage = (targetQ = null) => {
+        window.openQuestionUsageModal(targetQ);
+    };
+
+    window.checkQuestionUsageById = async (id) => {
+        let q = (window.globalBankQuestions || []).find(item => item.id === id || item.cccd === id);
+        if (!q) {
+            if (window.BankService) {
+                try {
+                    q = await window.BankService.getQuestionById(id, false);
+                } catch(e) {}
+            }
+            if (!q) {
+                try {
+                    const res = await fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/bank?id=${encodeURIComponent(id)}`);
+                    if (res.ok) q = await res.json();
+                } catch(e) {}
+            }
+        }
+        if (q) {
+            window.openQuestionUsageModal(q);
+        } else {
+            if (window.showNotification) window.showNotification("Không thể tải thông tin câu hỏi!", "error");
+        }
+    };
+
+    window.closeQuestionUsageModal = () => {
+        const modal = document.getElementById('questionUsageModal');
+        if (modal) {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.classList.remove('opacity-100', 'pointer-events-auto');
+            modal.querySelector('.modal-content')?.classList.add('scale-95');
+            modal.querySelector('.modal-content')?.classList.remove('scale-100');
+        }
+    };
+
+    // Helper: Quét Đề thi
+    async function scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster) {
+        const matched = [];
+        try {
+            let snap;
+            if (isSuper) {
+                snap = await getDocs(query(collection(db, "exams"), limit(300)));
+            } else {
+                snap = await getDocs(query(collection(db, "exams"), where("teacherId", "==", currentUserUid), limit(300)));
+            }
+            snap.forEach(docSnap => {
+                const ex = docSnap.data();
+                if (Array.isArray(ex.questions) && ex.questions.length > 0) {
+                    const hasMatch = ex.questions.some(item => {
+                        const qC = String(item.cccd || '').trim();
+                        const qI = String(item.id || '').trim();
+                        const qB = String(item.bankId || '').trim();
+                        if (targetCccd && (qC === targetCccd || qI === targetCccd || qB === targetCccd)) return true;
+                        if (targetId && (qC === targetId || qI === targetId || qB === targetId)) return true;
+                        if (targetAliases.length > 0 && (targetAliases.includes(qC) || targetAliases.includes(qI))) return true;
+                        if (targetMaster && (qC === targetMaster || qI === targetMaster)) return true;
+                        return false;
+                    });
+                    if (hasMatch) {
+                        matched.push({
+                            id: docSnap.id,
+                            title: ex.title || ex.name || 'Đề thi không tiêu đề',
+                            questionCount: ex.questions.length,
+                            duration: ex.duration || 45,
+                            code: ex.code || docSnap.id.substring(0, 8),
+                            createdAt: ex.createdAt,
+                            updatedAt: ex.updatedAt
+                        });
+                    }
+                }
+            });
+        } catch(err) {
+            console.warn("Lỗi quét exams:", err);
+        }
+        return matched;
+    }
+
+    // Helper: Quét Chuyên đề (custom_topics & digitized_books)
+    async function scanQuestionInTopics(targetCccd, targetId, targetMapId, targetAliases) {
+        const matched = [];
+        // 1. Quét custom_topics
+        try {
+            let snapT;
+            if (isSuper) {
+                snapT = await getDocs(query(collection(db, "custom_topics"), limit(100)));
+            } else {
+                snapT = await getDocs(query(collection(db, "custom_topics"), where("teacherId", "==", currentUserUid), limit(100)));
+            }
+            snapT.forEach(docSnap => {
+                const top = docSnap.data();
+                let found = false;
+                if (Array.isArray(top.outline)) {
+                    for (const chap of top.outline) {
+                        if (Array.isArray(chap.children)) {
+                            for (const les of chap.children) {
+                                if (Array.isArray(les.items)) {
+                                    for (const it of les.items) {
+                                        if (it.type === 'question') {
+                                            const itId = String(it.qId || it.id || '').trim();
+                                            if (itId === targetId || itId === targetCccd || targetAliases.includes(itId)) {
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                if (found) break;
+                            }
+                        }
+                        if (found) break;
+                    }
+                }
+                if (found) {
+                    matched.push({
+                        id: docSnap.id,
+                        title: top.title || 'Chuyên đề tự biên soạn',
+                        desc: top.desc || 'Chuyên đề ôn luyện',
+                        type: 'custom_topic',
+                        url: `topic-builder.html?id=${docSnap.id}`
+                    });
+                }
+            });
+        } catch(e) {
+            console.warn("Lỗi quét custom_topics:", e);
+        }
+
+        // 2. Quét Sách số hóa theo MapID (digitized_books)
+        try {
+            const books = JSON.parse(localStorage.getItem('digitized_books') || '[]');
+            if (Array.isArray(books) && targetMapId) {
+                const cleanTargetMapId = targetMapId.toUpperCase();
+                books.forEach(b => {
+                    const bMapId = String(b.mapId || '').toUpperCase();
+                    if (bMapId && (cleanTargetMapId.startsWith(bMapId) || bMapId.startsWith(cleanTargetMapId))) {
+                        matched.push({
+                            id: b.mapId,
+                            title: b.title || `Sách ID: ${b.mapId}`,
+                            desc: `Mã định danh MapID: ${b.mapId}`,
+                            type: 'digitized_book',
+                            mapId: b.mapId,
+                            url: b.url || '#'
+                        });
+                    }
+                });
+            }
+        } catch(e) {}
+
+        return matched;
+    }
+
+    // Helper: Quét Khóa học
+    async function scanQuestionInCourses(targetCccd, targetId) {
+        const matched = [];
+        try {
+            let courses = window.allPublicCoursesCache;
+            if (!courses || courses.length === 0) {
+                const snap = await getDocs(collection(db, "public_courses"));
+                courses = [];
+                snap.forEach(d => courses.push({ id: d.id, ...d.data() }));
+                window.allPublicCoursesCache = courses;
+            }
+        } catch(e) {
+            console.warn("Lỗi quét courses:", e);
+        }
+        return matched;
+    }
+
+    // Helper: Render giao diện kết quả tra cứu
+    function renderQuestionUsageResults(q, exams, topics, courses) {
+        const content = document.getElementById('usageModalContent');
+        if (!content) return;
+
+        const totalUsages = exams.length + topics.length + courses.length;
+
+        let summaryHtml = `
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                <div class="p-4 rounded-2xl bg-sky-50 border border-sky-200 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center text-lg shrink-0 shadow-sm">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-sky-700 uppercase">Đề thi</div>
+                        <div class="text-xl font-black text-sky-950">${exams.length} <span class="text-xs font-normal text-sky-600">đề đang dùng</span></div>
+                    </div>
+                </div>
+                <div class="p-4 rounded-2xl bg-teal-50 border border-teal-200 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg shrink-0 shadow-sm">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-teal-700 uppercase">Chuyên đề / Sách</div>
+                        <div class="text-xl font-black text-teal-950">${topics.length} <span class="text-xs font-normal text-teal-600">chuyên đề</span></div>
+                    </div>
+                </div>
+                <div class="p-4 rounded-2xl bg-purple-50 border border-purple-200 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center text-lg shrink-0 shadow-sm">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-purple-700 uppercase">Khóa học</div>
+                        <div class="text-xl font-black text-purple-950">${courses.length} <span class="text-xs font-normal text-purple-600">khóa học</span></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (totalUsages === 0) {
+            content.innerHTML = `
+                ${summaryHtml}
+                <div class="p-10 text-center rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50/50 flex flex-col items-center justify-center gap-3">
+                    <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-2xl">
+                        <i class="fa-solid fa-inbox"></i>
+                    </div>
+                    <div class="max-w-md">
+                        <h4 class="font-bold text-gray-800 text-base">Câu hỏi này hiện chưa được gán vào đâu</h4>
+                        <p class="text-xs text-gray-500 mt-1">Câu hỏi vẫn an toàn trong Ngân hàng câu hỏi. Bạn có thể chèn câu hỏi này vào đề thi, chuyên đề hoặc bài giảng bất cứ lúc nào.</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        // 1. Nhóm Đề thi
+        let examsHtml = '';
+        if (exams.length > 0) {
+            examsHtml = `
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-sm font-black text-gray-800 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs"><i class="fa-solid fa-file-lines"></i></span>
+                            Các đề thi đang sử dụng (${exams.length})
+                        </h4>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${exams.map(ex => `
+                            <div class="p-4 rounded-2xl bg-white border border-gray-200 hover:border-sky-300 hover:shadow-md transition-all flex flex-col justify-between gap-3 group">
+                                <div>
+                                    <div class="flex items-start justify-between gap-2">
+                                        <h5 class="font-bold text-gray-900 group-hover:text-sky-600 transition-colors text-sm line-clamp-2">${ex.title}</h5>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-gray-100 text-gray-600 shrink-0">#${ex.code}</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 mt-2 text-xs text-gray-500 font-medium">
+                                        <span><i class="fa-solid fa-list-check mr-1 text-sky-500"></i>${ex.questionCount} câu</span>
+                                        <span><i class="fa-regular fa-clock mr-1 text-sky-500"></i>${ex.duration} phút</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
+                                    <a href="exam-editor.html?id=${ex.id}" target="_blank" class="flex-1 py-1.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-600 hover:text-white text-sky-700 font-bold text-xs text-center transition-all flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-pen-to-square"></i> Mở sửa đề
+                                    </a>
+                                    <a href="exam.html?id=${ex.id}" target="_blank" class="py-1.5 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs text-center transition-all flex items-center justify-center gap-1.5" title="Mở trang làm bài online">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Thi online
+                                    </a>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 2. Nhóm Chuyên đề / Sách
+        let topicsHtml = '';
+        if (topics.length > 0) {
+            topicsHtml = `
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-sm font-black text-gray-800 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center text-xs"><i class="fa-solid fa-book-bookmark"></i></span>
+                            Chuyên đề số hóa & Sách ID (${topics.length})
+                        </h4>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${topics.map(tp => `
+                            <div class="p-4 rounded-2xl bg-white border border-gray-200 hover:border-teal-300 hover:shadow-md transition-all flex flex-col justify-between gap-3 group">
+                                <div>
+                                    <div class="flex items-start justify-between gap-2">
+                                        <h5 class="font-bold text-gray-900 group-hover:text-teal-600 transition-colors text-sm line-clamp-2">${tp.title}</h5>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${tp.type === 'custom_topic' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'} shrink-0">
+                                            ${tp.type === 'custom_topic' ? 'Chuyên đề' : 'Sách ID'}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1 line-clamp-2">${tp.desc}</p>
+                                </div>
+                                <div class="pt-2 border-t border-gray-100">
+                                    <a href="${tp.type === 'custom_topic' ? `topic-builder.html?id=${tp.id}` : `book-manager.html`}" target="_blank" class="w-full py-1.5 px-3 rounded-xl bg-teal-50 hover:bg-teal-600 hover:text-white text-teal-700 font-bold text-xs text-center transition-all flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-up-right-from-square"></i> Mở xem chuyên đề
+                                    </a>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 3. Nhóm Khóa học
+        let coursesHtml = '';
+        if (courses.length > 0) {
+            coursesHtml = `
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-sm font-black text-gray-800 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs"><i class="fa-solid fa-graduation-cap"></i></span>
+                            Khóa học liên kết (${courses.length})
+                        </h4>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        ${courses.map(cs => `
+                            <div class="p-4 rounded-2xl bg-white border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all flex flex-col justify-between gap-3 group">
+                                <div>
+                                    <div class="flex items-start justify-between gap-2">
+                                        <h5 class="font-bold text-gray-900 group-hover:text-purple-600 transition-colors text-sm line-clamp-2">${cs.title}</h5>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0">${cs.tag || 'Khóa học'}</span>
+                                    </div>
+                                    <p class="text-xs text-purple-600 font-medium mt-1"><i class="fa-solid fa-link mr-1"></i>${cs.reason || 'Khóa học hệ thống'}</p>
+                                </div>
+                                <div class="pt-2 border-t border-gray-100 flex items-center justify-between">
+                                    <span class="text-xs font-bold text-gray-700">${cs.price ? Number(cs.price).toLocaleString('vi-VN') + ' đ' : 'Miễn phí'}</span>
+                                    <a href="courses.html?id=${cs.id}" target="_blank" class="py-1 px-3 rounded-lg bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-700 font-bold text-xs transition-all flex items-center gap-1">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Xem khóa học
+                                    </a>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        content.innerHTML = summaryHtml + examsHtml + topicsHtml + coursesHtml;
+    }
 
     // LẮNG NGHE SỰ KIỆN PASTE (CTRL + V) TOÀN CỤC CHO MODAL XEM TRƯỚC VÀ SOẠN THẢO
     document.addEventListener('paste', async (e) => {

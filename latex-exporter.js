@@ -63,33 +63,71 @@
         return content;
     }
 
+    // 2.5 Làm sạch HTML sang LaTeX khi xuất câu hỏi
+    function cleanHtmlToLatex(text) {
+        if (!text) return "";
+        let s = String(text);
+        // Bỏ các placeholder ảnh
+        s = s.replace(/<div[^>]*class="[^"]*image-placeholder[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '');
+        // Thay thẻ img thành \begin{center}\includegraphics[width=0.7\linewidth]{url}\end{center}
+        s = s.replace(/<div[^>]*>\s*<img[^>]*src="([^"]+)"[^>]*>\s*<\/div>/gi, '\n\\begin{center}\n\\includegraphics[width=0.7\\linewidth]{$1}\n\\end{center}\n');
+        s = s.replace(/<img[^>]*src="([^"]+)"[^>]*>/gi, '\n\\begin{center}\n\\includegraphics[width=0.7\\linewidth]{$1}\n\\end{center}\n');
+        s = s.replace(/<br\s*\/?>/gi, '\n');
+        s = s.replace(/<p>([\s\S]*?)<\/p>/gi, '$1\n\n');
+        s = s.replace(/<b>(.*?)<\/b>/gi, '\\textbf{$1}');
+        s = s.replace(/<strong>(.*?)<\/strong>/gi, '\\textbf{$1}');
+        s = s.replace(/<i>(.*?)<\/i>/gi, '\\textit{$1}');
+        s = s.replace(/<em>(.*?)<\/em>/gi, '\\textit{$1}');
+        s = s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+        // Xóa các tag div, span thừa nếu có
+        s = s.replace(/<\/?(?:div|span)[^>]*>/gi, '');
+        return s.trim();
+    }
+
     // 3. Format câu hỏi thành khối LaTeX chuẩn nếu câu đó chưa có trong rawText
     function formatQuestionToLatex(q) {
+        if (!q) return "";
         const env = q.env || (q.type === 'essay' || q.type === 'tl' ? 'bt' : 'ex');
-        const cccd = q.cccd || q.bankId || '';
+        const cccd = q.cccd || q.bankId || q.id || '';
         const source = q.source || '';
         const mapId = q.mapId || '';
 
         let out = `\\begin{${env}}[${cccd}]%[${source}]%[${mapId}]\n`;
-        out += (q.content || '').trim() + '\n';
+        out += cleanHtmlToLatex(q.content) + '\n';
 
-        if (q.type === 'mc' && Array.isArray(q.options) && q.options.length > 0) {
+        const detectType = () => {
+            if (q.type) return q.type;
+            if (Array.isArray(q.statements) && q.statements.length > 0) return 'tf';
+            if (Array.isArray(q.options) && q.options.length > 0) return 'mc';
+            if (q.answer !== undefined && q.answer !== null && String(q.answer).trim() !== '') return 'short';
+            return 'essay';
+        };
+        const qType = detectType();
+
+        if (qType === 'mc' && Array.isArray(q.options) && q.options.length > 0) {
+            const correctIdx = typeof q.correct === 'number' ? q.correct : (q.correctAnswer ? ['A','B','C','D'].indexOf(String(q.correctAnswer).trim().toUpperCase()) : -1);
             const choiceItems = q.options.map((opt, i) => {
-                const isCorrect = (i === q.correct);
-                return `\t{${isCorrect ? '\\True ' : ''}${(opt || '').trim()}}`;
+                const isCorrect = (i === correctIdx);
+                return `\t{${isCorrect ? '\\True ' : ''}${cleanHtmlToLatex(opt)}}`;
             }).join('\n');
             out += `\\choice\n${choiceItems}\n`;
-        } else if (q.type === 'tf' && Array.isArray(q.statements) && q.statements.length > 0) {
-            const tfItems = q.statements.map(stmt => {
-                const isTrue = stmt.isTrue || stmt.correct === true;
-                return `\t{${isTrue ? '\\True ' : ''}${(stmt.text || stmt.content || '').trim()}}`;
-            }).join('\n');
-            out += `\\choiceTF\n${tfItems}\n`;
-        } else if (q.type === 'short' && (q.answer !== undefined && q.answer !== null && String(q.answer).trim() !== '')) {
-            out += `\\shortans{${String(q.answer).trim()}}\n`;
+        } else if (qType === 'tf') {
+            const stmts = (Array.isArray(q.statements) && q.statements.length > 0) ? q.statements : (Array.isArray(q.options) ? q.options.map((t, idx) => ({ text: t, isTrue: (q.correctAnswer || '').split(',')[idx] === 'D' || (q.correctAnswer || '').split(',')[idx] === 'Đ' })) : []);
+            if (stmts.length > 0) {
+                const tfItems = stmts.map(stmt => {
+                    const isTrue = stmt.isTrue === true || stmt.correct === true || stmt.isCorrect === true || stmt.isTrue === 'true';
+                    return `\t{${isTrue ? '\\True ' : ''}${cleanHtmlToLatex(stmt.text || stmt.content || '')}}`;
+                }).join('\n');
+                out += `\\choiceTF\n${tfItems}\n`;
+            }
+        } else if (qType === 'short') {
+            const ans = String(q.answer !== undefined && q.answer !== null ? q.answer : (q.correctAnswer || '')).trim();
+            if (ans) {
+                out += `\\shortans{${cleanHtmlToLatex(ans)}}\n`;
+            }
         }
 
-        const solText = (q.solution || '').trim();
+        const solText = cleanHtmlToLatex(q.solution);
         out += `\\loigiai{\n${solText}\n}\n`;
         out += `\\end{${env}}`;
         return out;

@@ -594,6 +594,8 @@ export const formatContent = (text) => {
     processed = processed.replace(/\\widearc\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
     processed = processed.replace(/\\cung\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
     processed = processed.replace(/\\(h|v)space\*?\{[^}]+\}/g, '').replace(/\\(no)?indent/g, '');
+    processed = processed.replace(/\\begin\{center\}\s*\\includegraphics(?:\[.*?\])?\{(https?:\/\/[^}]+)\}\s*\\end\{center\}/g, '<div class="flex justify-center my-3"><img src="$1" class="max-h-[350px] object-contain rounded-lg shadow-sm" loading="lazy"></div>');
+    processed = processed.replace(/\\includegraphics(?:\[.*?\])?\{(https?:\/\/[^}]+)\}/g, '<div class="flex justify-center my-3"><img src="$1" class="max-h-[350px] object-contain rounded-lg shadow-sm" loading="lazy"></div>');
 
     // 2. Structure
     processed = convertArrayToMatrix(processed);
