@@ -4144,9 +4144,31 @@
                 // Phát hiện TikZ, hình ảnh thư mục và số ảnh R2 cũ sẽ dọn dẹp
                 const tikzCount = pendingImageUploads.filter(i => i.type === 'tikz').length;
                 const normalCount = pendingImageUploads.filter(i => i.type === 'normal').length;
-                const oldOverwrittenQs = window.questions.slice(0, Math.min(curCount, newCount));
+                let oldOverwrittenQs = [];
+                let retainedQs = [];
+                if (isSmartCccdMode) {
+                    const oldCccdMap = new Map();
+                    (window.questions || []).forEach(q => {
+                        const c = String(q.cccd || q.bankId || '').trim();
+                        if (c) oldCccdMap.set(c, q);
+                    });
+                    const matchedCccdSet = new Set();
+                    parsedList.forEach(srcQ => {
+                        const c = String(srcQ.cccd || srcQ.bankId || '').trim();
+                        if (c && oldCccdMap.has(c)) {
+                            oldOverwrittenQs.push(oldCccdMap.get(c));
+                            matchedCccdSet.add(c);
+                        }
+                    });
+                    retainedQs = (window.questions || []).filter(q => {
+                        const c = String(q.cccd || q.bankId || '').trim();
+                        return c ? !matchedCccdSet.has(c) : false;
+                    });
+                } else {
+                    oldOverwrittenQs = (window.questions || []).slice(0, Math.min(curCount, newCount));
+                    retainedQs = curCount > newCount ? (window.questions || []).slice(newCount) : [];
+                }
                 const oldR2Urls = extractR2ImageUrls(oldOverwrittenQs);
-                const retainedQs = curCount > newCount ? window.questions.slice(newCount) : [];
                 const retainedR2Urls = new Set(extractR2ImageUrls(retainedQs));
                 const newR2Urls = new Set(extractR2ImageUrls(parsedList));
                 const willDeleteCount = oldR2Urls.filter(u => !retainedR2Urls.has(u) && !newR2Urls.has(u)).length;
@@ -4279,7 +4301,49 @@
                 const newLen = parsedList.length;
                 const overwriteCount = Math.min(curLen, newLen);
 
-                // 1. Bảo tồn 100% kho ảnh và câu hỏi trên R2 (không tự động xóa ảnh R2 cũ để tránh làm hỏng ngân hàng)
+                // 1. TỰ ĐỘNG XÓA ẢNH CỦA ĐỀ CŨ TRÊN KHO R2 (CLOUDFLARE) ĐỐI VỚI CÁC CÂU BỊ GHI ĐÈ
+                let overwrittenOldQs = [];
+                let retainedOldQs = [];
+
+                if (window._isSmartCccdOverwrite) {
+                    const oldQuestions = window.questions || [];
+                    const oldCccdMap = new Map();
+                    oldQuestions.forEach(q => {
+                        const c = String(q.cccd || q.bankId || '').trim();
+                        if (c) oldCccdMap.set(c, q);
+                    });
+                    const matchedCccdSet = new Set();
+                    parsedList.forEach(srcQ => {
+                        const c = String(srcQ.cccd || srcQ.bankId || '').trim();
+                        if (c && oldCccdMap.has(c)) {
+                            overwrittenOldQs.push(oldCccdMap.get(c));
+                            matchedCccdSet.add(c);
+                        }
+                    });
+                    retainedOldQs = oldQuestions.filter(q => {
+                        const c = String(q.cccd || q.bankId || '').trim();
+                        return c ? !matchedCccdSet.has(c) : false;
+                    });
+                } else {
+                    overwrittenOldQs = (window.questions || []).slice(0, overwriteCount);
+                    retainedOldQs = curLen > overwriteCount ? (window.questions || []).slice(overwriteCount) : [];
+                }
+
+                const oldR2Urls = extractR2ImageUrls(overwrittenOldQs);
+                const retainedR2Urls = new Set(extractR2ImageUrls(retainedOldQs));
+                const newR2Urls = new Set(extractR2ImageUrls(parsedList));
+
+                // Chỉ xóa những ảnh R2 cũ mà câu mới không còn giữ và câu giữ lại không dùng
+                const r2UrlsToDelete = oldR2Urls.filter(u => !retainedR2Urls.has(u) && !newR2Urls.has(u));
+
+                let deletedR2Count = 0;
+                if (r2UrlsToDelete.length > 0) {
+                    if (window.showToast) window.showToast(`Đang dọn dẹp ${r2UrlsToDelete.length} ảnh cũ trên kho R2...`, "info");
+                    const deleteFn = window.deleteR2Image || deleteR2Image;
+                    const delResults = await Promise.allSettled(r2UrlsToDelete.map(u => deleteFn(u)));
+                    deletedR2Count = delResults.filter(r => r.status === 'fulfilled').length;
+                    console.log(`[Cập nhật đè TeX] Đã xóa ${deletedR2Count}/${r2UrlsToDelete.length} ảnh cũ trên R2`);
+                }
 
                 // 2. THỰC HIỆN GHI ĐÈ & SẮP XẾP LẠI THỨ TỰ CÂU HỎI
                 if (window._isSmartCccdOverwrite) {
@@ -4398,7 +4462,7 @@
                     syncR2,
                     autoSave,
                     overwriteCount,
-                    deletedImgCount: 0,
+                    deletedImgCount: deletedR2Count,
                     isSmartCccd: window._isSmartCccdOverwrite
                 };
 
