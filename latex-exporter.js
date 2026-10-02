@@ -79,8 +79,8 @@
         s = s.replace(/<i>(.*?)<\/i>/gi, '\\textit{$1}');
         s = s.replace(/<em>(.*?)<\/em>/gi, '\\textit{$1}');
         s = s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-        // Xóa các tag div, span thừa nếu có
-        s = s.replace(/<\/?(?:div|span)[^>]*>/gi, '');
+        // Xóa các tag div, span, script thừa nếu có
+        s = s.replace(/<\/?(?:div|span|script)[^>]*>/gi, '');
         return s.trim();
     }
 

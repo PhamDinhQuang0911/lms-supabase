@@ -6,6 +6,8 @@
  * utils.js - Phiên bản "Strict Timeout"
  */
 export const getTikzApiUrl = () => {
+    if (typeof localStorage === 'undefined') return "https://api.qmath.io.vn/compile";
+
     // Tự động nâng cấp URL cũ trong máy người dùng lên tên miền HTTPS mới
     if (localStorage.getItem('tikzVpsUrl') === 'http://42.96.4.216:3000') {
         localStorage.setItem('tikzVpsUrl', 'https://api.qmath.io.vn');
@@ -19,7 +21,7 @@ export const getTikzApiUrl = () => {
         const baseUrl = customUrl.replace(/\/+$/, '');
         
         // Sửa lỗi Mixed Content trên Github Pages
-        if (window.location.protocol === 'https:' && baseUrl.startsWith('http://')) {
+        if (typeof window !== 'undefined' && window.location && window.location.protocol === 'https:' && baseUrl.startsWith('http://')) {
             console.warn("Trình duyệt chặn kết nối HTTP từ trang HTTPS (Mixed Content). Tạm thời chuyển sang server Free.");
             if (window.showToast) window.showToast("Trình duyệt chặn HTTP từ trang HTTPS. Tạm thời chuyển sang server Free.", "error");
             return "https://compile.qmath.io.vn/compile"; // Fallback
@@ -31,54 +33,121 @@ export const getTikzApiUrl = () => {
     return "https://compile.qmath.io.vn/compile"; // Free tier
 };
 
+export const prepareTikzForCompilation = (rawCode) => {
+    let cleanCode = String(rawCode || '')
+        .replace(/<\/?(?:div|script|span|p)[^>]*>/gi, '')
+        .replace(/AMP_PLACEHOLDER/g, '&')
+        .replace(/\\widecheck/g, '\\widehat');
+
+    const defaultLibs = "\\usetikzlibrary{calc,arrows.meta,angles,quotes,intersections,patterns,shapes,positioning,decorations.markings,backgrounds}\n";
+    const defaultStyles = "\\tikzset{\n" +
+        "  circle line/.style={draw},\n" +
+        "  construction/.style={draw},\n" +
+        "  marked point/.style={circle, fill, inner sep=1.2pt},\n" +
+        "  point label/.style={},\n" +
+        "  figure label/.style={},\n" +
+        "  line/.style={draw},\n" +
+        "  point/.style={circle, fill, inner sep=1pt},\n" +
+        "  dot/.style={circle, fill, inner sep=1pt}\n" +
+        "}\n";
+
+    if (!cleanCode.includes("\\usetikzlibrary")) {
+        cleanCode = defaultLibs + cleanCode;
+    }
+    if (!cleanCode.includes("circle line/.style")) {
+        cleanCode = defaultStyles + cleanCode;
+    }
+    return cleanCode;
+};
+
 export const compileTikZToImage = async (tikzCode) => {
     // THỜI GIAN TỐI ĐA CHO PHÉP: 60 Giây
-    // Nếu VPS làm xong mà Cloudflare không trả về trong 60s -> CẮT
     const TIMEOUT_MS = 60000;
 
     const controller = new AbortController();
     
-    // 1. Lệnh ngắt kết nối (Bom hẹn giờ)
+    let timeoutId = null;
+    // 1. Lệnh ngắt kết nối
     const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-            controller.abort(); // Ngắt kết nối vật lý
-            reject(new Error("TIMEOUT_FORCE")); // Báo lỗi logic
+        timeoutId = setTimeout(() => {
+            controller.abort();
+            reject(new Error("TIMEOUT_FORCE"));
         }, TIMEOUT_MS);
     });
 
-    // 2. Lệnh gửi đi thực tế
+    // 2. Lệnh gửi đi thực tế có tự động khắc phục lỗi pgfkeys
     const requestPromise = async () => {
-        try {
-            const apiUrl = getTikzApiUrl();
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: tikzCode }),
-                signal: controller.signal
-            });
+        const apiUrl = getTikzApiUrl();
+        let currentCode = prepareTikzForCompilation(tikzCode);
+        let attempts = 0;
 
-            if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
-            
-            const text = await response.text();
-            if (!text || text.trim() === "") throw new Error("Empty Response");
+        while (attempts < 3) {
+            attempts++;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: currentCode }),
+                    signal: controller.signal
+                });
 
-            return JSON.parse(text).url;
-        } catch (err) {
-            throw err;
+                if (response.ok) {
+                    const text = await response.text();
+                    if (!text || text.trim() === "") throw new Error("Empty Response");
+                    const data = JSON.parse(text);
+                    if (data.url && !data.url.includes("Image+Error")) {
+                        return data.url;
+                    }
+                }
+
+                // Nếu có lỗi, kiểm tra chi tiết lỗi từ server để tự khắc phục
+                const errText = await response.text();
+                let errJson = null;
+                try { errJson = JSON.parse(errText); } catch(e) {}
+                const details = errJson?.details || errText;
+
+                // Tự động phát hiện thiếu pgfkeys (ví dụ: circle line, marked point, ...)
+                const missingKeys = new Set();
+                const regex = /Package pgfkeys Error: I do not know the key '(?:(?:\/tikz\/|\/pgf\/))?([^']+)'/g;
+                let m;
+                while ((m = regex.exec(details)) !== null) {
+                    missingKeys.add(m[1].trim());
+                }
+
+                if (missingKeys.size > 0 && attempts < 3) {
+                    const defs = Array.from(missingKeys).map(k => {
+                        if (/line|construction|edge/i.test(k)) return `  ${k}/.style={draw},`;
+                        if (/point|dot/i.test(k)) return `  ${k}/.style={circle, fill, inner sep=1.2pt},`;
+                        return `  ${k}/.style={},`;
+                    }).join('\n');
+                    currentCode = `\\tikzset{\n${defs}\n}\n` + currentCode;
+                    continue;
+                }
+
+                throw new Error(errJson?.error ? `${errJson.error}: ${details.substring(0, 250)}` : `HTTP Error ${response.status}`);
+            } catch (err) {
+                if (attempts >= 3 || err.name === 'AbortError') throw err;
+            }
         }
+        throw new Error("Không thể biên dịch TikZ sau nhiều lần thử");
     };
 
     // 3. Cuộc đua: Ai xong trước thì lấy kết quả người đó
-    return Promise.race([requestPromise(), timeoutPromise]);
+    try {
+        return await Promise.race([requestPromise(), timeoutPromise]);
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
 };
 
 // --- HÀM MỚI: BIÊN DỊCH BATCH (Nhiều hình 1 lúc) ---
 export const compileTikZBatch = async (codesArray) => {
     const TIMEOUT_MS = 120000; // Tăng lên 120 giây
     const controller = new AbortController();
+    let batchTimeoutId = null;
     
     const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
+        batchTimeoutId = setTimeout(() => {
             controller.abort();
             reject(new Error("TIMEOUT_FORCE"));
         }, TIMEOUT_MS);
@@ -89,10 +158,12 @@ export const compileTikZBatch = async (codesArray) => {
             const baseUrl = getTikzApiUrl().replace(/\/compile$/, '');
             const apiUrl = `${baseUrl}/compile-batch`;
             
+            const preprocessed = codesArray.map(c => prepareTikzForCompilation(c));
+
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codes: codesArray }),
+                body: JSON.stringify({ codes: preprocessed }),
                 signal: controller.signal
             });
 
@@ -107,7 +178,11 @@ export const compileTikZBatch = async (codesArray) => {
         }
     };
 
-    return Promise.race([requestPromise(), timeoutPromise]);
+    try {
+        return await Promise.race([requestPromise(), timeoutPromise]);
+    } finally {
+        if (batchTimeoutId) clearTimeout(batchTimeoutId);
+    }
 };
 
 // --- HÀM BIÊN DỊCH BẰNG TIKZJAX (SỬ DỤNG IFRAME CÁCH LY ĐỂ TRÁNH XUNG ĐỘT MATHJAX) ---
@@ -296,6 +371,11 @@ export function cleanTikzCode(code) {
     cleaned = cleaned.replace(/\\emoji(?:\[[^\]]*\])?\{[^}]*\}/g, '');
     cleaned = cleaned.replace(/\\faIcon(?:\[[^\]]*\])?\{[^}]*\}/g, '');
     cleaned = cleaned.replace(/\\textSFx(?:\[[^\]]*\])?\{[^}]*\}/g, '');
+
+    // 6. Xóa các thẻ HTML bao bọc nếu có và khôi phục ký tự
+    cleaned = cleaned.replace(/<\/?(?:div|script|span|p)[^>]*>/gi, '');
+    cleaned = cleaned.replace(/AMP_PLACEHOLDER/g, '&');
+    cleaned = cleaned.replace(/\\widecheck/g, '\\widehat');
 
     return cleaned;
 }
