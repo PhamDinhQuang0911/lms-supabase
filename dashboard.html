@@ -103,6 +103,8 @@
     <script src="bank-service.js?v=20260927-hotswap"></script>
     <script src="bank-deduplicator.js?v=20260930"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="latex-exporter.js?v=20261002"></script>
     <script>
     window.MathJax = {
         loader: { load: ['[tex]/noerrors'] },
@@ -865,6 +867,7 @@
                         <button onclick="window.pasteExplorerItem()" id="btnPasteItem" class="p-2 md:px-3 md:py-2 bg-primary-100 text-primary-700 hover:bg-primary-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0 hidden" title="Dán (Paste)"><i class="fa-solid fa-paste"></i><span class="hidden sm:inline ml-1.5">Dán</span></button>
                         <button onclick="window.createNewFolder()" class="p-2 md:px-3 md:py-2 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0" title="Tạo thư mục"><i class="fa-solid fa-folder-plus"></i><span class="hidden sm:inline ml-1.5">Tạo thư mục</span></button>
                         <button id="btnCreateContent" onclick="window.openCreateExam()" class="p-2 md:px-3 md:py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0" title="Soạn đề mới"><i class="fa-solid fa-file-circle-plus"></i><span class="hidden sm:inline ml-1.5">Soạn đề mới</span></button>
+                        <button onclick="window.toggleSelectAllExams()" id="btnToggleSelectMode" class="p-2 md:px-3 md:py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0 cursor-pointer" title="Chọn nhiều đề thi để xuất mã nguồn ZIP"><i class="fa-solid fa-square-check"></i><span class="hidden sm:inline ml-1.5">Chọn nhiều</span></button>
                     </div>
                 </div>
                 <!-- Dòng 2: Breadcrumb (chỉ hiện trên desktop) -->
@@ -872,6 +875,27 @@
                     <button onclick="window.navigateFolder('root')" class="hover:text-primary-600 font-bold flex items-center gap-1" title="Về thư mục gốc"><i class="fa-solid fa-house"></i></button>
                     <button onclick="window.navigateUpFolder()" class="hover:text-primary-600 font-bold flex items-center gap-1 ml-2" title="Quay lại"><i class="fa-solid fa-arrow-left"></i></button>
                     <span id="breadcrumbContainer" class="flex items-center ml-1"></span>
+                </div>
+                <!-- Dòng Thanh thao tác chọn nhiều đề thi & Xuất ZIP -->
+                <div id="bulkExamActionBar" class="hidden bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-t border-b border-emerald-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm shadow-sm transition-all shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-black text-xs shadow-sm" id="selectedExamCountBadge">0</span>
+                        <span class="font-bold text-gray-800">Đã chọn <span id="selectedExamCountText" class="text-emerald-700 font-black">0</span> đề thi</span>
+                        <span class="text-gray-300">|</span>
+                        <button onclick="window.selectAllExamsInCurrentFolder()" class="text-emerald-700 hover:text-emerald-900 font-bold hover:underline flex items-center gap-1 cursor-pointer">
+                            <i class="fa-solid fa-check-double text-xs"></i> Chọn tất cả (<span id="totalExamsInFolderCount">0</span>)
+                        </button>
+                        <span class="text-gray-300">|</span>
+                        <button onclick="window.clearSelectedExams()" class="text-gray-500 hover:text-rose-600 font-bold hover:underline flex items-center gap-1 cursor-pointer">
+                            <i class="fa-solid fa-xmark text-xs"></i> Bỏ chọn
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="window.exportBulkLatexExams()" id="btnBulkExportLatex" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-xs md:text-sm active:scale-95 cursor-pointer">
+                            <i class="fa-solid fa-file-zipper text-emerald-200 text-sm md:text-base"></i>
+                            <span>Xuất mã nguồn TeX (.ZIP)</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50" id="fileExplorerArea">
@@ -2281,6 +2305,30 @@
                     <span>Lưu Tài Khoản & Phân Quyền</span>
                 </button>
             </div>
+    <!-- Modal Tiến trình xuất TeX hàng loạt (ZIP) -->
+    <div id="modalBulkExportProgress" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4 hidden animate-fade-in">
+        <div class="bg-white dark:bg-[#1f1d2b] rounded-3xl max-w-md w-full shadow-2xl p-6 border border-gray-100 dark:border-gray-800 flex flex-col items-center text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white text-2xl shadow-lg shadow-emerald-200 dark:shadow-none mb-4 animate-bounce">
+                <i class="fa-solid fa-file-zipper"></i>
+            </div>
+            <h3 class="text-base md:text-lg font-black text-gray-800 dark:text-white" id="bulkExportTitle">Đang xuất mã nguồn TeX...</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-4" id="bulkExportDesc">Hệ thống đang trích xuất câu hỏi, mã CCCD và đóng gói file ZIP...</p>
+            
+            <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 mb-2 overflow-hidden border border-gray-200 dark:border-gray-700 p-0.5">
+                <div id="bulkExportProgressBar" class="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            
+            <div class="flex items-center justify-between w-full text-xs font-bold text-gray-500 dark:text-gray-400 px-1 mb-3">
+                <span id="bulkExportCurrentExamText">Đang chuẩn bị...</span>
+                <span id="bulkExportPercentText">0%</span>
+            </div>
+
+            <div class="w-full max-h-36 overflow-y-auto text-left text-[11px] bg-gray-50 dark:bg-[#14121e] rounded-xl p-3 border border-gray-200 dark:border-gray-800 space-y-1 font-mono text-gray-600 dark:text-gray-300 mb-4" id="bulkExportLogList">
+            </div>
+
+            <button id="btnCancelBulkExport" onclick="window.cancelBulkExport()" class="px-5 py-2 text-xs font-bold text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors cursor-pointer">
+                Hủy thao tác
+            </button>
         </div>
     </div>
 
@@ -6025,6 +6073,11 @@ function renderTagFilterUI() {
                 return tabMatch;
             });
 
+            // Lưu danh sách đề thi đang hiển thị và cập nhật số lượng
+            window.currentVisibleExams = currentExams;
+            const totalInFolderEl = document.getElementById('totalExamsInFolderCount');
+            if (totalInFolderEl) totalInFolderEl.textContent = currentExams.length;
+
             // Đồng bộ trạng thái vào dropdown sắp xếp
             const sortSelectEl = document.getElementById('explorerSortSelect');
             if (sortSelectEl && sortSelectEl.value !== (window.currentExamSort || 'newest')) {
@@ -6066,6 +6119,7 @@ function renderTagFilterUI() {
                 }
             });
 
+            window.currentVisibleExams = currentExams || [];
             
             // Xử lý thông báo trống
             if (currentFolders.length === 0 && currentExams.length === 0) {
@@ -6155,9 +6209,10 @@ function renderTagFilterUI() {
                 const isSharedExam = exam.isSystem === true || (exam.teacherId && exam.teacherId !== currentUserUid);
                 const canManageExam = isSuper || (!isSharedExam && window.hasPermission('exams.manage_own'));
                 const canDeleteExam = isSuper || (!isSharedExam && (window.hasPermission('exams.delete_own') || window.hasPermission('exams.delete')));
+                const isSelected = window.selectedExamIds && window.selectedExamIds.has(exam.id);
 
                 div.onclick = (e) => { 
-                    if (!e.target.closest('button')) {
+                    if (!e.target.closest('button') && !e.target.closest('input')) {
                         if (isSharedExam && !isSuper) {
                             window.showExamInfo(exam.id);
                         } else {
@@ -6178,9 +6233,10 @@ function renderTagFilterUI() {
 
                 if (currentExplorerView === 'list') {
                     // Giao diện LIST cho Exam
-                    div.className = "explorer-item bg-white px-2 py-2 md:px-4 md:py-3 rounded-xl border border-gray-200 flex items-center justify-between hover:bg-primary-50 group gap-1 md:gap-2 overflow-hidden";
+                    div.className = `explorer-item bg-white px-2 py-2 md:px-4 md:py-3 rounded-xl border ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-400/50 bg-emerald-50/40' : 'border-gray-200 hover:bg-primary-50'} flex items-center justify-between group gap-1 md:gap-2 overflow-hidden transition-all`;
                     div.innerHTML = `
                         <div class="flex items-center gap-1.5 md:gap-2.5 overflow-hidden flex-1 min-w-0">
+                            <input type="checkbox" data-exam-id="${exam.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleSelectExam('${exam.id}')" class="exam-select-checkbox w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer shrink-0 transition-all" title="Tích chọn đề này để xuất ZIP">
                             <div class="text-base md:text-xl text-primary-500 shrink-0"><i class="fa-regular fa-file-lines"></i></div>
                             <div class="flex flex-col overflow-hidden min-w-0 flex-1 pointer-events-none">
                                 <div class="flex items-center gap-1.5">
@@ -6193,6 +6249,7 @@ function renderTagFilterUI() {
                         </div>
                         <div class="flex items-center gap-0.5 md:gap-1.5 shrink-0">
                             ${superSysBtn}
+                            <button onclick="event.stopPropagation(); window.quickExportSingleLatex('${exam.id}')" class="p-1 md:p-2 text-teal-600 hover:bg-teal-100 rounded-lg transition-colors" title="Xuất mã nguồn TeX đề này"><i class="fa-solid fa-file-code text-[11px] md:text-sm"></i></button>
                             ${canManageExam ? `<button onclick="event.stopPropagation(); window.toggleExamAntiScreenshot('${exam.id}')" class="p-1 md:p-2 ${exam.antiScreenshot === false ? 'text-gray-400 dark:text-gray-500 hover:text-rose-600 hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'} rounded-lg transition-colors" title="${exam.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh đề & giải (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình đề & giải (Bấm để cho phép)'}"><i class="fa-solid ${exam.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'} text-[11px] md:text-sm"></i></button>` : ''}
                             <button onclick="event.stopPropagation(); window.showExamInfo('${exam.id}')" class="p-1 md:p-2 text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors" title="Thông tin đề thi"><i class="fa-solid fa-circle-info text-[11px] md:text-sm"></i></button>
                             <button onclick="event.stopPropagation(); window.promptAssignExamToAnyClass('${exam.id}')" class="p-1 md:p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="Giao đề này cho lớp"><i class="fa-solid fa-share-from-square text-[11px] md:text-sm"></i></button>
@@ -6204,13 +6261,17 @@ function renderTagFilterUI() {
                     `;
                 } else {
                     // Giao diện GRID cho Exam
-                    div.className = "explorer-item bg-white p-4 rounded-xl border border-gray-200 relative group flex flex-col items-center justify-center aspect-square md:aspect-auto";
+                    div.className = `explorer-item bg-white p-4 rounded-xl border ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-400/50 bg-emerald-50/40' : 'border-gray-200'} relative group flex flex-col items-center justify-center aspect-square md:aspect-auto transition-all`;
                     div.innerHTML = `
+                        <div class="absolute top-2 left-2 z-10">
+                            <input type="checkbox" data-exam-id="${exam.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleSelectExam('${exam.id}')" class="exam-select-checkbox w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer shadow-sm transition-all" title="Tích chọn đề này để xuất ZIP">
+                        </div>
                         <div class="text-4xl text-primary-500 mb-2 pointer-events-none"><i class="fa-regular fa-file-lines"></i></div>
                         <p class="text-xs md:text-sm font-bold text-gray-700 text-center truncate w-full px-1 pointer-events-none" title="${exam.title}">${exam.title}</p>
                         <div class="pointer-events-none mt-1">${examBadge} ${getTagsHtml(exam)}</div>
                         <div class="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-white/95 shadow-sm px-1 py-0.5 rounded-lg border border-gray-200">
                             ${superSysBtn}
+                            <button onclick="event.stopPropagation(); window.quickExportSingleLatex('${exam.id}')" class="p-1 text-teal-600 hover:bg-teal-50 rounded" title="Xuất mã nguồn TeX đề này"><i class="fa-solid fa-file-code text-xs"></i></button>
                             ${canManageExam ? `<button onclick="event.stopPropagation(); window.toggleExamAntiScreenshot('${exam.id}')" class="p-1 ${exam.antiScreenshot === false ? 'text-gray-400 dark:text-gray-500 hover:text-rose-600 hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'} rounded transition-colors" title="${exam.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh đề & giải (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình đề & giải (Bấm để cho phép)'}"><i class="fa-solid ${exam.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'} text-xs"></i></button>` : ''}
                             <button onclick="event.stopPropagation(); window.showExamInfo('${exam.id}')" class="p-1 text-cyan-600 hover:bg-cyan-50 rounded" title="Thông tin đề thi"><i class="fa-solid fa-circle-info text-xs"></i></button>
                             <button onclick="event.stopPropagation(); window.promptAssignExamToAnyClass('${exam.id}')" class="p-1 text-primary-600 hover:bg-primary-50 rounded" title="Giao đề này cho lớp"><i class="fa-solid fa-share-from-square text-xs"></i></button>
@@ -6225,6 +6286,9 @@ function renderTagFilterUI() {
             }); 
             
             renderBreadcrumb(); 
+            if (typeof window.updateBulkExamUI === 'function') {
+                window.updateBulkExamUI();
+            }
         }
 
         // --- HỖ TRỢ NGÂN HÀNG HỆ THỐNG VÀ GIAO BÀI TRỰC TIẾP TỪ KHO ĐỀ ---
@@ -6702,6 +6766,299 @@ function renderTagFilterUI() {
             document.getElementById('dynamicContent').innerHTML = infoHtml;
             window.toggleModal('actionModal', true);
         };
+
+        // ==========================================
+        // TÍNH NĂNG CHỌN NHIỀU ĐỀ & XUẤT MÃ NGUỒN TEX (.ZIP / ĐƠN LẺ)
+        // ==========================================
+        window.selectedExamIds = window.selectedExamIds || new Set();
+        window.bulkExportCancelled = false;
+
+        function downloadBlobFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
+
+        async function fetchFullExamDoc(examId) {
+            const memExam = (examData || []).find(e => e.id === examId);
+            if (memExam && Array.isArray(memExam.questions) && memExam.questions.length > 0 && (memExam.rawTex || memExam.latexContent)) {
+                return memExam;
+            }
+            try {
+                const snap = await getDoc(doc(db, "exams", examId));
+                if (snap.exists()) {
+                    return { id: snap.id, ...snap.data() };
+                }
+            } catch (err) {
+                console.warn(`Lỗi nạp chi tiết đề thi ${examId}:`, err);
+            }
+            return memExam || null;
+        }
+
+        window.updateBulkExamUI = () => {
+            const count = window.selectedExamIds ? window.selectedExamIds.size : 0;
+            const bar = document.getElementById('bulkExamActionBar');
+            const countBadge = document.getElementById('selectedExamCountBadge');
+            const countText = document.getElementById('selectedExamCountText');
+            const totalText = document.getElementById('totalExamsInFolderCount');
+            const btnToggle = document.getElementById('btnToggleSelectMode');
+
+            const currentVisible = window.currentVisibleExams || [];
+            if (totalText) totalText.textContent = currentVisible.length;
+
+            if (count > 0) {
+                if (bar) bar.classList.remove('hidden');
+                if (countBadge) countBadge.textContent = count;
+                if (countText) countText.textContent = count;
+                if (btnToggle) {
+                    btnToggle.classList.remove('bg-emerald-50', 'text-emerald-700');
+                    btnToggle.classList.add('bg-emerald-600', 'text-white', 'shadow-xs');
+                }
+            } else {
+                if (bar) bar.classList.add('hidden');
+                if (countBadge) countBadge.textContent = '0';
+                if (countText) countText.textContent = '0';
+                if (btnToggle) {
+                    btnToggle.classList.remove('bg-emerald-600', 'text-white', 'shadow-xs');
+                    btnToggle.classList.add('bg-emerald-50', 'text-emerald-700');
+                }
+            }
+
+            // Đồng bộ trạng thái checkbox và viền active trên tất cả item trong explorer
+            const checkboxes = document.querySelectorAll('.exam-select-checkbox');
+            checkboxes.forEach(cb => {
+                const eid = cb.dataset.examId;
+                const isSelected = window.selectedExamIds.has(eid);
+                cb.checked = isSelected;
+                const card = cb.closest('.explorer-item');
+                if (card) {
+                    if (isSelected) {
+                        card.classList.add('border-emerald-500', 'ring-2', 'ring-emerald-400/50', 'bg-emerald-50/40');
+                        card.classList.remove('border-gray-200');
+                    } else {
+                        card.classList.remove('border-emerald-500', 'ring-2', 'ring-emerald-400/50', 'bg-emerald-50/40');
+                        card.classList.add('border-gray-200');
+                    }
+                }
+            });
+        };
+
+        window.toggleSelectExam = (examId) => {
+            if (!window.selectedExamIds) window.selectedExamIds = new Set();
+            if (window.selectedExamIds.has(examId)) {
+                window.selectedExamIds.delete(examId);
+            } else {
+                window.selectedExamIds.add(examId);
+            }
+            window.updateBulkExamUI();
+        };
+
+        window.selectAllExamsInCurrentFolder = () => {
+            if (!window.selectedExamIds) window.selectedExamIds = new Set();
+            const currentVisible = window.currentVisibleExams || [];
+            if (currentVisible.length === 0) {
+                window.showNotification("Không có đề thi nào trong thư mục hiện tại!", "warning");
+                return;
+            }
+            currentVisible.forEach(ex => {
+                if (ex && ex.id) window.selectedExamIds.add(ex.id);
+            });
+            window.updateBulkExamUI();
+            window.showNotification(`Đã chọn toàn bộ ${currentVisible.length} đề thi trong thư mục hiện tại!`, "info");
+        };
+
+        window.clearSelectedExams = () => {
+            if (!window.selectedExamIds) window.selectedExamIds = new Set();
+            window.selectedExamIds.clear();
+            window.updateBulkExamUI();
+        };
+
+        window.toggleSelectAllExams = () => {
+            if (!window.selectedExamIds) window.selectedExamIds = new Set();
+            const currentVisible = window.currentVisibleExams || [];
+            if (currentVisible.length === 0) {
+                window.showNotification("Không có đề thi nào trong thư mục hiện tại!", "warning");
+                return;
+            }
+            const allVisibleSelected = currentVisible.every(ex => window.selectedExamIds.has(ex.id));
+            if (allVisibleSelected) {
+                currentVisible.forEach(ex => window.selectedExamIds.delete(ex.id));
+                window.updateBulkExamUI();
+            } else {
+                window.selectAllExamsInCurrentFolder();
+            }
+        };
+
+        // Xuất nhanh 1 đề thi sang file .tex
+        window.quickExportSingleLatex = async (examId) => {
+            if (typeof window.generateLatexForExam !== 'function') {
+                window.showNotification("Chưa nạp module xuất LaTeX (latex-exporter.js)!", "error");
+                return;
+            }
+            try {
+                window.showNotification("Đang trích xuất mã nguồn TeX...", "info");
+                const exam = await fetchFullExamDoc(examId);
+                if (!exam) {
+                    window.showNotification("Không tìm thấy thông tin đề thi!", "error");
+                    return;
+                }
+                const texContent = window.generateLatexForExam(exam);
+                const safeTitle = (exam.title || 'De_Thi').replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, ' ').trim().slice(0, 80) || 'De_Thi';
+                const fileName = `${safeTitle}.tex`;
+                const blob = new Blob([texContent], { type: 'text/plain;charset=utf-8' });
+                downloadBlobFile(blob, fileName);
+                window.showNotification(`Đã xuất mã nguồn TeX cho "${exam.title}"!`, "success");
+            } catch (err) {
+                console.error("Lỗi xuất TeX đơn lẻ:", err);
+                window.showNotification("Có lỗi xảy ra khi xuất TeX: " + (err.message || err), "error");
+            }
+        };
+
+        // Hủy quá trình xuất ZIP
+        window.cancelBulkExport = () => {
+            window.bulkExportCancelled = true;
+            const modal = document.getElementById('modalBulkExportProgress');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        // Xuất hàng loạt các đề đã chọn thành file nén .ZIP
+        window.exportBulkLatexExams = async () => {
+            if (!window.selectedExamIds || window.selectedExamIds.size === 0) {
+                window.showNotification("Vui lòng tích chọn ít nhất 1 đề thi để xuất mã nguồn!", "warning");
+                return;
+            }
+            if (typeof JSZip === 'undefined') {
+                window.showNotification("Thư viện JSZip chưa sẵn sàng, vui lòng tải lại trang!", "error");
+                return;
+            }
+            if (typeof window.generateLatexForExam !== 'function') {
+                window.showNotification("Chưa nạp module xuất LaTeX (latex-exporter.js)!", "error");
+                return;
+            }
+
+            const modal = document.getElementById('modalBulkExportProgress');
+            const pBar = document.getElementById('bulkExportProgressBar');
+            const currText = document.getElementById('bulkExportCurrentExamText');
+            const percText = document.getElementById('bulkExportPercentText');
+            const logList = document.getElementById('bulkExportLogList');
+            const titleEl = document.getElementById('bulkExportTitle');
+
+            if (modal) modal.classList.remove('hidden');
+            if (titleEl) titleEl.textContent = 'Đang xuất mã nguồn TeX hàng loạt...';
+            if (pBar) pBar.style.width = '0%';
+            if (percText) percText.textContent = '0%';
+            if (currText) currText.textContent = 'Bắt đầu khởi tạo...';
+            if (logList) logList.innerHTML = '';
+
+            window.bulkExportCancelled = false;
+
+            const appendLog = (msg, colorClass = 'text-gray-600 dark:text-gray-300') => {
+                if (!logList) return;
+                const p = document.createElement('div');
+                p.className = `leading-relaxed truncate ${colorClass}`;
+                p.innerHTML = `<span class="opacity-50 mr-1.5">${new Date().toLocaleTimeString('vi-VN')}</span> ${msg}`;
+                logList.appendChild(p);
+                logList.scrollTop = logList.scrollHeight;
+            };
+
+            const selectedList = Array.from(window.selectedExamIds);
+            const total = selectedList.length;
+            appendLog(`Khởi tạo đóng gói ${total} đề thi...`, 'text-emerald-600 font-bold');
+
+            const zip = new JSZip();
+            const usedNames = new Set();
+            let successCount = 0;
+
+            for (let i = 0; i < total; i++) {
+                if (window.bulkExportCancelled) {
+                    appendLog('Người dùng đã hủy quá trình.', 'text-amber-600 font-bold');
+                    window.showNotification("Đã hủy quá trình xuất ZIP hàng loạt.", "warning");
+                    break;
+                }
+
+                const eid = selectedList[i];
+                let examObj = (examData || []).find(e => e.id === eid);
+                const examTitle = examObj?.title || `Đề thi #${eid.slice(-6)}`;
+                
+                const percent = Math.round((i / total) * 100);
+                if (pBar) pBar.style.width = `${percent}%`;
+                if (percText) percText.textContent = `${percent}%`;
+                if (currText) currText.textContent = `[${i + 1}/${total}] ${examTitle}`;
+                appendLog(`[${i + 1}/${total}] Đang trích xuất: ${examTitle}...`);
+
+                try {
+                    examObj = await fetchFullExamDoc(eid);
+                    if (!examObj) {
+                        appendLog(`⚠️ Bỏ qua: Không tìm thấy dữ liệu đề ${eid}`, 'text-amber-500');
+                        continue;
+                    }
+
+                    const texContent = window.generateLatexForExam(examObj);
+                    let safeTitle = (examObj.title || 'De_Thi').replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, ' ').trim().slice(0, 70) || 'De_Thi';
+                    let fileName = `${safeTitle}.tex`;
+                    let dupIndex = 1;
+                    while (usedNames.has(fileName.toLowerCase())) {
+                        dupIndex++;
+                        fileName = `${safeTitle}_(${dupIndex}).tex`;
+                    }
+                    usedNames.add(fileName.toLowerCase());
+                    zip.file(fileName, texContent);
+                    successCount++;
+                    appendLog(`✓ Thành công: ${fileName}`, 'text-emerald-500');
+                } catch (exErr) {
+                    console.error(`Lỗi xuất TeX đề ${eid}:`, exErr);
+                    appendLog(`❌ Thất bại: ${examTitle} (${exErr.message || 'Lỗi'})`, 'text-rose-500');
+                }
+
+                // Nhường luồng cho UI vẽ mượt
+                await new Promise(r => setTimeout(r, 40));
+            }
+
+            if (!window.bulkExportCancelled && successCount > 0) {
+                if (currText) currText.textContent = "Đang nén file ZIP...";
+                if (pBar) pBar.style.width = '100%';
+                if (percText) percText.textContent = '100%';
+                appendLog(`Đang nén ${successCount} file TeX vào tệp lưu trữ .ZIP...`, 'text-teal-600 font-bold');
+
+                try {
+                    const zipBlob = await zip.generateAsync({
+                        type: "blob",
+                        compression: "DEFLATE",
+                        compressionOptions: { level: 6 }
+                    }, (metadata) => {
+                        if (percText) percText.textContent = `${Math.round(metadata.percent)}%`;
+                        if (currText) currText.textContent = `Nén dữ liệu: ${Math.round(metadata.percent)}%`;
+                    });
+
+                    const d = new Date();
+                    const dateTag = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}_${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+                    const zipFileName = `Bo_De_Thi_TeX_${dateTag}_(${successCount}_de).zip`;
+
+                    downloadBlobFile(zipBlob, zipFileName);
+                    appendLog(`✓ Đã tạo xong: ${zipFileName}`, 'text-emerald-600 font-bold');
+                    
+                    await new Promise(r => setTimeout(r, 600));
+                    if (modal) modal.classList.add('hidden');
+                    window.showNotification(`Đã xuất nén thành công ${successCount} đề thi vào "${zipFileName}"!`, "success");
+                    if (typeof confetti === 'function') {
+                        confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
+                    }
+                } catch (zipErr) {
+                    console.error("Lỗi nén ZIP:", zipErr);
+                    appendLog(`❌ Lỗi nén ZIP: ${zipErr.message}`, 'text-rose-600 font-bold');
+                    window.showNotification("Có lỗi khi nén file ZIP: " + zipErr.message, "error");
+                }
+            } else {
+                await new Promise(r => setTimeout(r, 800));
+                if (modal) modal.classList.add('hidden');
+            }
+        };
+
         window.openActionDirect = (action, id, type, name) => {
             currentActionItem = {id, type, name};
             const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
