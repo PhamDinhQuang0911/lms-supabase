@@ -1192,9 +1192,14 @@
                             <p id="editModalSubtitle" class="text-xs text-gray-500 font-bold mt-1">ID: ...</p>
                         </div>
                     </div>
-                    <button onclick="window.closeQuestionEditModal()" class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="window.openOverwriteQuestionModal(currentEditingQuestion)" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer" title="Dán mã TeX chuẩn CCCD để ghi đè lại toàn bộ câu hỏi này">
+                            <i class="fa-solid fa-code-compare"></i> Ghi đè bằng mã TeX
+                        </button>
+                        <button onclick="window.closeQuestionEditModal()" class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-200 transition-all shadow-sm">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
                 </div>
                 <div id="editQuestionContainer" class="flex-1 overflow-y-auto p-6 bg-gray-50 flex flex-col gap-6">
                     <!-- Dynamic content rendered via JS -->
@@ -1228,9 +1233,114 @@
                             <i class="fa-solid fa-clipboard"></i> Chèn / Dán ảnh (Ctrl+V)
                         </button>
                         <input type="file" id="bankInlineImageFileInput" accept="image/*" class="hidden" onchange="window.handleBankInlineImageFile(this)">
+                        <button id="btnOverwriteQuestionTex" onclick="window.openOverwriteQuestionModal()" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important; color: #ffffff !important;" class="px-4 py-2 font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 text-xs md:text-sm text-white hover:opacity-90 cursor-pointer" title="Dán mã TeX chuẩn CCCD để thay thế và ghi đè toàn bộ nội dung câu hỏi này">
+                            <i class="fa-solid fa-code-compare"></i> Ghi đè bằng mã TeX
+                        </button>
                         <button id="btnEditQuestion" class="px-6 py-2 bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-600 hover:text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"><i class="fa-solid fa-pen"></i> Sửa</button>
                         <button onclick="window.closeQuestionPreviewModal()" class="px-6 py-2 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 shadow-md shadow-primary-200 transition-all">Đóng</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Ghi đè câu hỏi bằng mã TeX (Chuẩn CCCD + Tự động dịch TikZ + Dọn ảnh cũ) -->
+        <div id="overwriteQuestionModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[120] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4 backdrop-blur-sm transition-all duration-300">
+            <div class="modal-content bg-white w-full max-w-3xl rounded-3xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh] border border-gray-100 overflow-hidden">
+                <!-- Header -->
+                <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-200 shrink-0">
+                            <i class="fa-solid fa-code-compare"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-lg md:text-xl text-gray-800 flex items-center gap-2">
+                                Ghi đè câu hỏi bằng mã TeX
+                            </h3>
+                            <p class="text-xs text-gray-500 font-bold mt-0.5" id="overwriteModalSubtitle">
+                                Khớp mã CCCD • Tự động biên dịch TikZ • Xóa ảnh cũ tiết kiệm R2
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="window.closeOverwriteQuestionModal()" class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-200 transition-all shadow-sm cursor-pointer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="flex-1 overflow-y-auto p-5 md:p-6 space-y-4 custom-scrollbar bg-slate-50/50">
+                    <!-- Thẻ thông tin câu hỏi đích cần ghi đè -->
+                    <div class="p-4 bg-white rounded-2xl border border-indigo-100 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm shrink-0 border border-indigo-200">
+                                <i class="fa-solid fa-bullseye"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">Câu hỏi đích (Đang xem)</span>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="font-mono font-black text-base md:text-lg text-indigo-700" id="overwriteTargetCccdText">#...</span>
+                                    <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-gray-100 text-gray-700" id="overwriteTargetMapIdBadge">MapID: ...</span>
+                                    <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 text-purple-700" id="overwriteTargetTypeBadge">Trắc nghiệm</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right text-[11px] text-gray-500 font-semibold" id="overwriteTargetImageStats">
+                            <i class="fa-regular fa-images text-indigo-500 mr-1"></i> Đang có <span class="font-bold text-gray-700" id="overwriteOldImagesCount">0</span> ảnh cũ
+                        </div>
+                    </div>
+
+                    <!-- Khung dán mã TeX -->
+                    <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-black uppercase text-gray-700 flex items-center gap-1.5">
+                                <i class="fa-solid fa-terminal text-indigo-600"></i> Dán mã câu hỏi TeX mới:
+                            </label>
+                            <span class="text-[11px] text-gray-400 font-mono">Hỗ trợ \begin{ex}, TikZ, \choice, \loigiai</span>
+                        </div>
+                        <textarea id="overwriteTexInput" oninput="window.validateOverwriteTexMatch()" rows="8" placeholder="Dán mã câu hỏi TeX vào đây...&#10;Ví dụ:&#10;\begin{ex}%[10000995]%[SGK]%[0D1B2-1]&#10;Dung dịch có môi trường axit khi độ $\text{pH} < 7$...&#10;\choice&#10;{A}&#10;{B}&#10;{C}&#10;{D}&#10;\loigiai{&#10;Lời giải chi tiết...&#10;}&#10;\end{ex}" class="w-full p-3.5 border border-indigo-200 rounded-xl font-mono text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 leading-relaxed bg-slate-50/30 text-gray-800 outline-none transition-all"></textarea>
+                    </div>
+
+                    <!-- Banner trạng thái so khớp CCCD theo thời gian thực -->
+                    <div id="overwriteStatusBanner" class="p-4 rounded-2xl border transition-all flex items-start gap-3 bg-amber-50 border-amber-200 text-amber-900">
+                        <div class="text-xl shrink-0 mt-0.5" id="overwriteStatusIcon">
+                            <i class="fa-solid fa-circle-info text-amber-500"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-black text-sm" id="overwriteStatusTitle">Vui lòng dán mã TeX</h4>
+                            <p class="text-xs mt-1 leading-relaxed text-opacity-90" id="overwriteStatusDesc">
+                                Hệ thống sẽ tự động quét mã CCCD trong nội dung TeX để so khớp với câu hỏi hiện tại trước khi cho phép ghi đè.
+                            </p>
+                            <!-- Tùy chọn ép buộc ghi đè khi không khớp -->
+                            <div id="overwriteForceBox" class="mt-2.5 pt-2 border-t border-amber-200/60 hidden">
+                                <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-900">
+                                    <input type="checkbox" id="chkForceOverwrite" onchange="window.handleForceOverwriteToggle(this.checked)" class="rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer">
+                                    <span>Xác nhận cưỡng bức: Tôi muốn dùng mã TeX này để ghi đè vào CCCD mục tiêu.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tiến trình xử lý ghi đè (Ẩn mặc định, hiện khi bấm) -->
+                    <div id="overwriteProgressBox" class="hidden p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2 animate-fade-in">
+                        <div class="flex items-center justify-between text-xs font-bold text-indigo-900">
+                            <span id="overwriteProgressStepText"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Đang chuẩn bị...</span>
+                            <span id="overwriteProgressPercent">0%</span>
+                        </div>
+                        <div class="w-full bg-indigo-100 rounded-full h-2 overflow-hidden">
+                            <div id="overwriteProgressBar" class="bg-gradient-to-r from-indigo-600 to-purple-600 h-full rounded-full transition-all duration-300" style="width: 10%"></div>
+                        </div>
+                        <div class="text-[11px] font-mono text-indigo-700 truncate" id="overwriteProgressLog">Bắt đầu tiến trình...</div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="p-4 border-t border-gray-100 bg-white rounded-b-3xl flex justify-between items-center gap-3 shrink-0">
+                    <button type="button" onclick="window.closeOverwriteQuestionModal()" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer">
+                        Hủy bỏ
+                    </button>
+                    <button type="button" id="btnConfirmOverwrite" disabled onclick="window.executeQuestionOverwrite()" style="background-color: #9ca3af !important; color: #ffffff !important;" class="px-6 py-2.5 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-not-allowed shadow-md">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Tiến hành ghi đè & Biên dịch</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -2355,10 +2465,12 @@
     </div>
 
     <script type="module">
-        import { formatContent, autoScaleTables, renderTikz } from "./utils.js";
+        import { formatContent, autoScaleTables, renderTikz, compileTikZToImage, compileTikZBatch } from "./utils.js";
         window.formatContent = formatContent;
         window.autoScaleTables = autoScaleTables;
         window.renderTikz = renderTikz;
+        window.compileTikZToImage = compileTikZToImage;
+        window.compileTikZBatch = compileTikZBatch;
 
         import { 
             initializeApp, deleteApp, getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, updatePassword,
@@ -7127,6 +7239,7 @@ function renderTagFilterUI() {
             window.triggerAction(action);
         };
         async function deleteR2Image(fileKeyOrUrl) { if (!fileKeyOrUrl) return; try { let keyName = fileKeyOrUrl; if (fileKeyOrUrl.startsWith('http')) { try { const urlObj = new URL(fileKeyOrUrl); keyName = urlObj.pathname.substring(1); keyName = decodeURIComponent(keyName); } catch(e) { console.warn("Không parse được URL:", fileKeyOrUrl); } } return fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/?key=${encodeURIComponent(keyName)}`, { method: 'DELETE', keepalive: true }); } catch (e) { console.error("Lỗi xóa R2:", e); } }
+        window.deleteR2Image = deleteR2Image;
         window.triggerAction = async (action) => { const container = document.getElementById('subActionContent'); if (container) container.innerHTML = ''; if (action === 'rename') { container.innerHTML = `<label class="block text-xs md:text-sm font-bold text-gray-700 mb-1.5">Tên mới</label><div class="flex gap-2"><input type="text" id="renameInput" value="${currentActionItem.name}" class="flex-1 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none"><button onclick="window.commitRename()" class="bg-primary-600 hover:bg-primary-700 text-white px-3 md:px-4 py-1.5 rounded-lg font-bold text-xs md:text-sm shrink-0 flex items-center gap-1 shadow-sm"><i class="fa-solid fa-check"></i> Lưu</button></div>`; } 
         else if (action === 'assignTag') {
             const itemObj = currentActionItem.type === 'folder' ? folderData.find(f => f.id === currentActionItem.id) : examData.find(e => e.id === currentActionItem.id);
@@ -10937,6 +11050,397 @@ function renderTagFilterUI() {
     window.triggerBatchUpload = (id) => {
         window.activeBankImageTarget = { type: 'placeholder', dataId: id };
         window.triggerBankImageFileSelect();
+    };
+
+    // =========================================================================
+    // TÍNH NĂNG: GHI ĐÈ CÂU HỎI BẰNG MÃ TEX (SO KHỚP CCCD + DỊCH TIKZ + DỌN ẢNH CŨ)
+    // =========================================================================
+    window.targetOverwriteQuestion = null;
+
+    // Trích xuất tất cả URL ảnh từ một câu hỏi (content, solution, options...)
+    window.extractImagesFromQuestion = (q) => {
+        if (!q) return [];
+        const images = new Set();
+        const str = JSON.stringify(q);
+        const regex = /(https:\/\/[^"'\s\)<>]+\.(?:r2\.dev|workers\.dev|firebasestorage\.googleapis\.com)[^"'\s\)<>]*)/gi;
+        let m;
+        while ((m = regex.exec(str)) !== null) {
+            images.add(m[1]);
+        }
+        return Array.from(images);
+    };
+
+    // Trích xuất mã CCCD từ văn bản TeX
+    function extractCccdFromTex(tex) {
+        if (!tex) return null;
+        const bracketMatch = tex.match(/\[(\d{5,10})\]/);
+        if (bracketMatch) return bracketMatch[1];
+        const idMatch = tex.match(/(?:CCCD|ID|Mã|\bID\s*\/\s*CCCD\b)[\s:#=\/]*#?\s*(\d{5,10})/i);
+        if (idMatch) return idMatch[1];
+        return null;
+    }
+
+    // Biên dịch toàn bộ các khối TikZ trong chuỗi thành ảnh và trả về chuỗi đã thay thế thẻ <img>
+    async function compileAllTikzInString(str, onLog = null) {
+        if (!str || !str.includes('\\begin{tikzpicture}')) return str;
+        const tikzRegex = /\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g;
+        const matches = str.match(tikzRegex);
+        if (!matches || matches.length === 0) return str;
+
+        let result = str;
+        let idx = 0;
+        for (const code of matches) {
+            idx++;
+            if (onLog) onLog(`Đang biên dịch hình TikZ [${idx}/${matches.length}]...`);
+            try {
+                if (typeof window.compileTikZToImage === 'function') {
+                    const url = await window.compileTikZToImage(code);
+                    if (url && !url.includes('Image+Error')) {
+                        const imgHtml = `<div class="flex justify-center my-3"><img src="${url}" class="max-h-[350px] object-contain rounded-lg shadow-sm" loading="lazy"></div>`;
+                        result = result.replace(code, imgHtml);
+                    }
+                }
+            } catch (err) {
+                console.warn(`Lỗi biên dịch TikZ:`, err);
+            }
+        }
+        result = result.replace(/\\begin\{center\}\s*(<div[\s\S]*?<\/div>)\s*\\end\{center\}/g, '$1');
+        return result;
+    }
+
+    // Đồng bộ câu hỏi mới vào tất cả các đề thi đang chứa CCCD này để link thi online không bị ảnh hưởng
+    async function syncUpdatedQuestionToAllExams(targetCccd, updatedQ) {
+        if (!targetCccd) return 0;
+        let count = 0;
+        try {
+            const snap = await getDocs(query(collection(db, "exams"), where("teacherId", "==", currentUserUid)));
+            for (const docSnap of snap.docs) {
+                const exData = docSnap.data();
+                if (Array.isArray(exData.questions) && exData.questions.length > 0) {
+                    let hasMatch = false;
+                    const newQuestions = exData.questions.map(q => {
+                        const qCccd = String(q.cccd || q.id || q.bankId || '').trim();
+                        if (qCccd === String(targetCccd).trim()) {
+                            hasMatch = true;
+                            return {
+                                ...q,
+                                content: updatedQ.content,
+                                solution: updatedQ.solution,
+                                options: updatedQ.options || q.options || [],
+                                statements: updatedQ.statements || q.statements || [],
+                                answer: updatedQ.answer !== undefined ? updatedQ.answer : q.answer,
+                                type: updatedQ.type || q.type,
+                                mapId: updatedQ.mapId || q.mapId,
+                                level: updatedQ.level || q.level,
+                                subject: updatedQ.subject || q.subject,
+                                updatedAt: new Date().toISOString()
+                            };
+                        }
+                        return q;
+                    });
+
+                    if (hasMatch) {
+                        await updateDoc(doc(db, "exams", docSnap.id), {
+                            questions: newQuestions,
+                            updatedAt: new Date().toISOString()
+                        });
+                        count++;
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn("Lỗi đồng bộ đề thi:", err);
+        }
+        return count;
+    }
+
+    // Mở modal ghi đè câu hỏi
+    window.openOverwriteQuestionModal = (targetQ = null) => {
+        const q = targetQ || window.currentPreviewQuestion || window.currentEditingQuestion;
+        if (!q) {
+            if (window.showNotification) window.showNotification("Không tìm thấy câu hỏi đang xem!", "warning");
+            return;
+        }
+
+        window.targetOverwriteQuestion = q;
+        const targetCccd = String(q.cccd || q.id || '').trim();
+        const oldImages = window.extractImagesFromQuestion(q);
+
+        const modal = document.getElementById('overwriteQuestionModal');
+        const cccdText = document.getElementById('overwriteTargetCccdText');
+        const mapIdBadge = document.getElementById('overwriteTargetMapIdBadge');
+        const typeBadge = document.getElementById('overwriteTargetTypeBadge');
+        const oldImgsCount = document.getElementById('overwriteOldImagesCount');
+        const texInput = document.getElementById('overwriteTexInput');
+        const chkForce = document.getElementById('chkForceOverwrite');
+        const forceBox = document.getElementById('overwriteForceBox');
+        const progressBox = document.getElementById('overwriteProgressBox');
+
+        if (cccdText) cccdText.textContent = `#${targetCccd || 'N/A'}`;
+        if (mapIdBadge) mapIdBadge.textContent = `MapID: ${q.mapId || 'Chưa có'}`;
+        
+        let typeName = 'Trắc nghiệm 4 lựa chọn';
+        if (q.type === 'tf') typeName = 'Đúng / Sai 4 ý';
+        else if (q.type === 'short') typeName = 'Trả lời ngắn / Điền số';
+        else if (q.type === 'essay') typeName = 'Tự luận';
+        if (typeBadge) typeBadge.textContent = typeName;
+
+        if (oldImgsCount) oldImgsCount.textContent = oldImages.length;
+        if (texInput) texInput.value = '';
+        if (chkForce) chkForce.checked = false;
+        if (forceBox) forceBox.classList.add('hidden');
+        if (progressBox) progressBox.classList.add('hidden');
+
+        window.validateOverwriteTexMatch();
+
+        if (modal) {
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100', 'pointer-events-auto');
+            modal.querySelector('.modal-content')?.classList.remove('scale-95');
+            modal.querySelector('.modal-content')?.classList.add('scale-100');
+        }
+    };
+
+    // Đóng modal ghi đè
+    window.closeOverwriteQuestionModal = () => {
+        const modal = document.getElementById('overwriteQuestionModal');
+        if (modal) {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.classList.remove('opacity-100', 'pointer-events-auto');
+            modal.querySelector('.modal-content')?.classList.add('scale-95');
+            modal.querySelector('.modal-content')?.classList.remove('scale-100');
+        }
+    };
+
+    // Kiểm tra so khớp mã CCCD theo thời gian thực khi người dùng dán hoặc gõ
+    window.validateOverwriteTexMatch = () => {
+        const texInput = document.getElementById('overwriteTexInput');
+        const banner = document.getElementById('overwriteStatusBanner');
+        const icon = document.getElementById('overwriteStatusIcon');
+        const title = document.getElementById('overwriteStatusTitle');
+        const desc = document.getElementById('overwriteStatusDesc');
+        const forceBox = document.getElementById('overwriteForceBox');
+        const chkForce = document.getElementById('chkForceOverwrite');
+        const btn = document.getElementById('btnConfirmOverwrite');
+
+        const text = (texInput?.value || '').trim();
+        const targetCccd = String(window.targetOverwriteQuestion?.cccd || window.targetOverwriteQuestion?.id || '').trim();
+
+        if (!text) {
+            if (banner) {
+                banner.className = 'p-4 rounded-2xl border transition-all flex items-start gap-3 bg-slate-50 border-gray-200 text-gray-700';
+            }
+            if (icon) icon.innerHTML = '<i class="fa-solid fa-circle-info text-gray-400"></i>';
+            if (title) title.textContent = 'Vui lòng dán mã TeX câu hỏi mới';
+            if (desc) desc.textContent = `Hệ thống sẽ tự động quét mã CCCD trong nội dung TeX để so khớp với #${targetCccd} trước khi cho phép ghi đè.`;
+            if (forceBox) forceBox.classList.add('hidden');
+            if (btn) {
+                btn.disabled = true;
+                btn.style.setProperty('background-color', '#9ca3af', 'important');
+                btn.classList.add('cursor-not-allowed');
+                btn.classList.remove('cursor-pointer');
+            }
+            return;
+        }
+
+        const foundCccd = extractCccdFromTex(text);
+        const isMatch = foundCccd && String(foundCccd).trim() === targetCccd;
+
+        if (isMatch) {
+            if (banner) {
+                banner.className = 'p-4 rounded-2xl border transition-all flex items-start gap-3 bg-emerald-50 border-emerald-300 text-emerald-900';
+            }
+            if (icon) icon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>';
+            if (title) title.innerHTML = `MÃ CCCD TRÙNG KHỚP (<strong>#${foundCccd}</strong>)! ĐỦ ĐIỀU KIỆN ĐỂ GHI ĐÈ`;
+            if (desc) desc.textContent = `Nội dung TeX đã khớp chính xác với câu hỏi hiện tại. Khi bấm nút, hệ thống sẽ tự động biên dịch hình TikZ (nếu có), dọn dẹp các ảnh cũ khỏi Cloudflare R2 và ghi đè câu hỏi an toàn.`;
+            if (forceBox) forceBox.classList.add('hidden');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.setProperty('background', 'linear-gradient(135deg, #059669 0%, #0d9488 100%)', 'important');
+                btn.style.setProperty('background-color', '#059669', 'important');
+                btn.classList.remove('cursor-not-allowed');
+                btn.classList.add('cursor-pointer');
+            }
+        } else {
+            if (banner) {
+                banner.className = 'p-4 rounded-2xl border transition-all flex items-start gap-3 bg-rose-50 border-rose-300 text-rose-900';
+            }
+            if (icon) icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-rose-600 text-lg"></i>';
+            if (title) title.textContent = 'MÃ CCCD KHÔNG KHỚP HOẶC CHƯA CÓ TRONG MÃ TEX!';
+            if (desc) desc.innerHTML = `Mã CCCD tìm thấy trong TeX: <strong class="underline">${foundCccd ? '#' + foundCccd : 'Không tìm thấy'}</strong>, trong khi câu hỏi hiện tại có CCCD: <strong>#${targetCccd}</strong>. Vui lòng kiểm tra lại để tránh ghi đè nhầm câu hỏi!`;
+            if (forceBox) forceBox.classList.remove('hidden');
+
+            const isForceAllowed = chkForce && chkForce.checked;
+            if (btn) {
+                btn.disabled = !isForceAllowed;
+                if (isForceAllowed) {
+                    btn.style.setProperty('background', 'linear-gradient(135deg, #ea580c 0%, #d97706 100%)', 'important');
+                    btn.style.setProperty('background-color', '#ea580c', 'important');
+                    btn.classList.remove('cursor-not-allowed');
+                    btn.classList.add('cursor-pointer');
+                } else {
+                    btn.style.setProperty('background-color', '#9ca3af', 'important');
+                    btn.classList.add('cursor-not-allowed');
+                    btn.classList.remove('cursor-pointer');
+                }
+            }
+        }
+    };
+
+    window.handleForceOverwriteToggle = (isChecked) => {
+        window.validateOverwriteTexMatch();
+    };
+
+    // Thực thi ghi đè câu hỏi
+    window.executeQuestionOverwrite = async () => {
+        const texInput = document.getElementById('overwriteTexInput');
+        const text = (texInput?.value || '').trim();
+        if (!text) return;
+
+        const targetQ = window.targetOverwriteQuestion;
+        if (!targetQ) return;
+        const targetCccd = String(targetQ.cccd || targetQ.id || '').trim();
+
+        const progressBox = document.getElementById('overwriteProgressBox');
+        const pStep = document.getElementById('overwriteProgressStepText');
+        const pBar = document.getElementById('overwriteProgressBar');
+        const pPerc = document.getElementById('overwriteProgressPercent');
+        const pLog = document.getElementById('overwriteProgressLog');
+        const btn = document.getElementById('btnConfirmOverwrite');
+
+        if (progressBox) progressBox.classList.remove('hidden');
+        if (btn) btn.disabled = true;
+
+        const updateProgress = (step, perc, log) => {
+            if (pStep) pStep.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> ${step}`;
+            if (pBar) pBar.style.width = `${perc}%`;
+            if (pPerc) pPerc.textContent = `${perc}%`;
+            if (pLog) pLog.textContent = log;
+        };
+
+        try {
+            // Bước 1: Phân tích mã TeX
+            updateProgress("Đang phân tích cú pháp LaTeX...", 20, "Phân tích thẻ câu hỏi và nội dung...");
+            let rawTex = text;
+            if (!rawTex.startsWith('\\begin{')) {
+                rawTex = `\\begin{ex}\n${rawTex}\n\\end{ex}`;
+            }
+
+            if (typeof window.QuestionImporter?.parseLatexExamString !== 'function') {
+                throw new Error("Chưa nạp module QuestionImporter!");
+            }
+
+            const parsedList = window.QuestionImporter.parseLatexExamString(rawTex);
+            if (!parsedList || parsedList.length === 0) {
+                throw new Error("Không tìm thấy câu hỏi hợp lệ trong mã TeX!");
+            }
+            const newQ = parsedList[0];
+
+            // Bước 2: Quét và biên dịch TikZ
+            updateProgress("Đang quét và biên dịch hình vẽ TikZ...", 40, "Đang xử lý hình vẽ TikZ...");
+            newQ.content = await compileAllTikzInString(newQ.content, (msg) => updateProgress(msg, 45, msg));
+            if (newQ.solution) {
+                newQ.solution = await compileAllTikzInString(newQ.solution, (msg) => updateProgress(msg, 55, msg));
+            }
+            if (Array.isArray(newQ.options)) {
+                for (let oIdx = 0; oIdx < newQ.options.length; oIdx++) {
+                    newQ.options[oIdx] = await compileAllTikzInString(newQ.options[oIdx]);
+                }
+            }
+
+            // Bước 3: Dọn dẹp ảnh cũ
+            updateProgress("Đang dọn dẹp ảnh cũ khỏi Cloudflare R2...", 70, "Kiểm tra ảnh cũ không còn dùng...");
+            const oldImages = window.extractImagesFromQuestion(targetQ);
+            const newImages = new Set(window.extractImagesFromQuestion(newQ));
+            const imagesToDelete = oldImages.filter(u => !newImages.has(u));
+
+            let deletedImgCount = 0;
+            if (imagesToDelete.length > 0 && typeof window.deleteR2Image === 'function') {
+                for (const imgUrl of imagesToDelete) {
+                    try {
+                        await window.deleteR2Image(imgUrl);
+                        deletedImgCount++;
+                    } catch (e) {
+                        console.warn("Lỗi xóa ảnh cũ:", imgUrl, e);
+                    }
+                }
+            }
+
+            // Bước 4: Lưu câu hỏi vào Ngân hàng R2
+            updateProgress("Đang lưu câu hỏi ghi đè vào Ngân hàng R2...", 85, `Lưu mã CCCD #${targetCccd}...`);
+            newQ.id = targetCccd;
+            newQ.cccd = targetCccd;
+            newQ.updatedAt = new Date().toISOString();
+
+            if (window.BankService) {
+                await window.BankService.saveSingleQuestion(newQ);
+            }
+
+            // Bước 5: Cập nhật vào danh sách RAM
+            if (Array.isArray(window.globalBankQuestions)) {
+                const bIdx = window.globalBankQuestions.findIndex(q => String(q.id) === targetCccd || String(q.cccd) === targetCccd);
+                if (bIdx !== -1) {
+                    window.globalBankQuestions[bIdx] = Object.assign({}, window.globalBankQuestions[bIdx], newQ);
+                    try {
+                        localStorage.setItem('lms_cached_bank', JSON.stringify(window.globalBankQuestions));
+                    } catch (e) {}
+                }
+            }
+
+            // Bước 6: Đồng bộ cập nhật vào tất cả các đề thi có chứa câu này
+            updateProgress("Đang đồng bộ cập nhật vào các đề thi...", 95, "Cập nhật bài thi online (giữ nguyên link)...");
+            const updatedExamsCount = await syncUpdatedQuestionToAllExams(targetCccd, newQ);
+
+            // Bước 7: Cập nhật giao diện Preview & Edit
+            updateProgress("Hoàn tất!", 100, "Đã cập nhật câu hỏi thành công!");
+            await new Promise(r => setTimeout(r, 400));
+
+            window.currentPreviewQuestion = newQ;
+            if (typeof window.previewQuestionBank === 'function') {
+                window.previewQuestionBank(newQ);
+            }
+
+            // Nếu modal Sửa câu hỏi đang mở thì cập nhật lại form
+            if (window.currentEditingQuestion && String(window.currentEditingQuestion.id || window.currentEditingQuestion.cccd) === targetCccd) {
+                window.currentEditingQuestion = newQ;
+                const cInput = document.getElementById('edit_content');
+                const sInput = document.getElementById('edit_solution');
+                const mInput = document.getElementById('edit_mapId');
+                if (cInput) {
+                    cInput.value = newQ.content || '';
+                    const cPrev = document.getElementById('bankEditContentLivePreview');
+                    if (cPrev) cPrev.innerHTML = window.formatContent ? window.formatContent(newQ.content || '') : newQ.content;
+                }
+                if (sInput) {
+                    sInput.value = newQ.solution || '';
+                    const sPrev = document.getElementById('bankEditSolutionLivePreview');
+                    if (sPrev) sPrev.innerHTML = window.formatContent ? window.formatContent(newQ.solution || '') : newQ.solution;
+                }
+                if (mInput && newQ.mapId) mInput.value = newQ.mapId;
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    MathJax.typesetPromise([
+                        document.getElementById('bankEditContentLivePreview'),
+                        document.getElementById('bankEditSolutionLivePreview')
+                    ]).catch(()=>{});
+                }
+            }
+
+            window.closeOverwriteQuestionModal();
+
+            if (window.showNotification) {
+                window.showNotification(`Đã ghi đè thành công câu hỏi #${targetCccd}! Dọn dẹp ${deletedImgCount} ảnh cũ, đồng bộ ${updatedExamsCount} đề thi.`, "success");
+            }
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+            }
+        } catch (err) {
+            console.error("Lỗi khi ghi đè câu hỏi:", err);
+            updateProgress("Thất bại!", 100, `Lỗi: ${err.message || err}`);
+            if (window.showNotification) {
+                window.showNotification(`Có lỗi xảy ra khi ghi đè: ${err.message || err}`, "error");
+            }
+            if (btn) btn.disabled = false;
+        }
     };
 
     // LẮNG NGHE SỰ KIỆN PASTE (CTRL + V) TOÀN CỤC CHO MODAL XEM TRƯỚC VÀ SOẠN THẢO

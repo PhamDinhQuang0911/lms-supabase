@@ -127,8 +127,9 @@
             let source = "";
             let tags = { subject: 'Chưa phân loại', level: '', levelColor: 'gray' };
 
-            const firstNewline = fullBody.indexOf('\n');
-            const firstLine = firstNewline !== -1 ? fullBody.substring(0, firstNewline) : fullBody;
+            const trimmedBody = fullBody.trimStart();
+            const firstNewline = trimmedBody.indexOf('\n');
+            const firstLine = firstNewline !== -1 ? trimmedBody.substring(0, firstNewline) : trimmedBody;
             const bracketMatches = Array.from(firstLine.matchAll(/\[(.*?)\]/g)).map(m => m[1].trim());
 
             if (bracketMatches.length >= 3) {
@@ -166,9 +167,9 @@
             if (questionID) tags = parseQuestionID(questionID);
 
             if (firstNewline !== -1 && (bracketMatches.length > 0 || firstLine.trim().startsWith('%'))) {
-                fullBody = fullBody.substring(firstNewline + 1);
+                fullBody = trimmedBody.substring(firstNewline + 1);
             } else {
-                fullBody = fullBody.replace(/^\s*\[.*?\](?:%\[.*?\])*/, '');
+                fullBody = trimmedBody.replace(/^\s*\[.*?\](?:%\[.*?\])*/, '');
             }
             fullBody = fullBody.replace(/(?:%%|%)\s*\[[a-zA-Z0-9\-_.]+\]/g, '');
             fullBody = fullBody.replace(/(?<!\\)%.*/g, '');

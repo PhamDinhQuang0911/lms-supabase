@@ -588,7 +588,6 @@ export const formatContent = (text) => {
 
     // 1. Clean Text (Math-safe replacements)
     processed = processed.replace(/\\centering/g, "");
-    processed = processed.replace(/\\%/g, "%");
     processed = processed.replace(/\\allowdisplaybreaks(\[.*?\])?/g, "");
     processed = processed.replace(/\\lq\\lq/g, '"').replace(/\\rq\\rq/g, '"').replace(/\\lq/g, '"').replace(/\\rq/g, '"');
     processed = processed.replace(/\\wideparen\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
@@ -634,6 +633,7 @@ export const formatContent = (text) => {
             return part; // Giữ nguyên tag HTML
         } else {
             let cleanPart = part.replace(/</g, '&lt;'); // Mã hóa text thường trước
+            cleanPart = cleanPart.replace(/\\%/g, '%'); // Chỉ unescape \% thành % khi ở ngoài công thức toán MathJax
             cleanPart = cleanPart.replace(/\\textbf\{([^}]+)\}/g, '<b class="font-bold">$1</b>');
             cleanPart = cleanPart.replace(/\\textit\{([^}]+)\}/g, '<i class="italic">$1</i>');
             cleanPart = cleanPart.replace(/\\hfill/g, '<span style="display:inline-block; width: 2rem;"></span>');
