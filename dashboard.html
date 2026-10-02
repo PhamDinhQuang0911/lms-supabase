@@ -1379,7 +1379,7 @@
         </div>
 
         <!-- Modal Ghi đè câu hỏi bằng mã TeX (Chuẩn CCCD + Tự động dịch TikZ + Dọn ảnh cũ) -->
-        <div id="overwriteQuestionModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[120] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4 backdrop-blur-sm transition-all duration-300">
+        <div id="overwriteQuestionModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[200] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4 backdrop-blur-sm transition-all duration-300" style="z-index: 200;">
             <div class="modal-content bg-white w-full max-w-3xl rounded-3xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh] border border-gray-100 overflow-hidden">
                 <!-- Header -->
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 shrink-0">
@@ -1481,7 +1481,7 @@
         </div>
 
         <!-- Modal Xuất mã nguồn TeX từng câu hỏi (Chuẩn CCCD + Nguồn + MapID) -->
-        <div id="singleQuestionTexModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[125] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4 backdrop-blur-sm transition-all duration-300">
+        <div id="singleQuestionTexModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[200] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4 backdrop-blur-sm transition-all duration-300" style="z-index: 200;">
             <div class="modal-content bg-white w-full max-w-3xl rounded-3xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh] border border-gray-100 overflow-hidden">
                 <!-- Header -->
                 <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 shrink-0">
@@ -1543,7 +1543,7 @@
         </div>
 
         <!-- Modal Tra cứu nơi sử dụng câu hỏi (Đề thi / Chuyên đề / Khóa học) -->
-        <div id="questionUsageModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[125] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4 backdrop-blur-sm transition-all duration-300">
+        <div id="questionUsageModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[200] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4 backdrop-blur-sm transition-all duration-300" style="z-index: 200;">
             <div class="modal-content bg-white w-full max-w-2xl rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[85vh] border border-gray-100 overflow-hidden">
                 <!-- Header -->
                 <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-sky-50 via-indigo-50 to-purple-50 shrink-0">
@@ -11836,6 +11836,9 @@ function renderTagFilterUI() {
         const targetMapId = String(q.mapId || '').trim();
         const targetAliases = Array.isArray(q.aliases) ? q.aliases.map(a => String(a).trim()) : [];
         const targetMaster = q.masterCccd || q.masterId ? String(q.masterCccd || q.masterId).trim() : '';
+        const targetContent = q.content || '';
+        const targetExamId = q.examId || '';
+        const targetSource = q.source || '';
 
         const modal = document.getElementById('questionUsageModal');
         const content = document.getElementById('usageModalContent');
@@ -11852,7 +11855,7 @@ function renderTagFilterUI() {
                 <div class="flex flex-col items-center justify-center py-12 text-sky-600 gap-2">
                     <i class="fa-solid fa-circle-notch fa-spin text-3xl"></i>
                     <p class="font-bold text-xs text-gray-700">Đang quét Đề thi và Khóa học...</p>
-                    <p class="text-[11px] text-gray-400">Đang so khớp CCCD #${targetCccd}...</p>
+                    <p class="text-[11px] text-gray-400">Đang so khớp CCCD #${targetCccd} & MapID ${targetMapId || ''}...</p>
                 </div>
             `;
         }
@@ -11867,7 +11870,7 @@ function renderTagFilterUI() {
         try {
             // Quét song song 3 nguồn dữ liệu: Đề thi, Sách ID, Khóa học
             const [matchedExams, matchedTopics, matchedCourses] = await Promise.all([
-                scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster),
+                scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster, targetMapId, targetContent, targetExamId, targetSource),
                 scanQuestionInTopics(targetCccd, targetId, targetMapId, targetAliases),
                 scanQuestionInCourses(targetCccd, targetId)
             ]);
@@ -11982,40 +11985,104 @@ function renderTagFilterUI() {
         return false;
     }
 
-    // Helper: Quét Đề thi
-    async function scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster) {
+    // Helper: Quét Đề thi (So khớp đa tầng: CCCD, ID, MapID, Mã đề, Nội dung câu hỏi)
+    async function scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster, targetMapId = '', targetContent = '', targetExamId = '', targetSource = '') {
         const matched = [];
         try {
-            const isSuper = checkIsSuperAdminUser();
-            const teacherUid = (typeof currentUserUid !== 'undefined' && currentUserUid) ? currentUserUid : (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.uid : '');
-            let snap;
-            if (isSuper || !teacherUid) {
-                snap = await getDocs(query(collection(db, "exams"), limit(300)));
-            } else {
-                snap = await getDocs(query(collection(db, "exams"), where("teacherId", "==", teacherUid), limit(300)));
-            }
+            const cleanCccd = String(targetCccd || '').trim();
+            const cleanId = String(targetId || '').trim();
+            const cleanMapId = String(targetMapId || '').trim().toUpperCase();
+            const cleanAliases = Array.isArray(targetAliases) ? targetAliases.map(a => String(a).trim()) : [];
+            const cleanMaster = String(targetMaster || '').trim();
+            const cleanExamId = String(targetExamId || '').trim();
+            const cleanSource = String(targetSource || '').trim().toLowerCase();
+
+            // Chuẩn hóa một đoạn trích văn bản câu hỏi (25-60 ký tự) để so khớp nội dung
+            const normalizeSnippet = (text) => {
+                if (!text) return '';
+                return text.replace(/<[^>]+>/g, '')
+                           .replace(/\$+/g, '')
+                           .replace(/\\(text|textbf|textit|mathrm)\{([^}]*)\}/g, '$2')
+                           .replace(/\s+/g, ' ')
+                           .trim()
+                           .toLowerCase()
+                           .slice(0, 60);
+            };
+            const snippet = normalizeSnippet(targetContent);
+
+            // Quét toàn bộ đề thi trong hệ thống (không lọc theo giáo viên để tìm thấy tất cả nơi sử dụng)
+            const snap = await getDocs(query(collection(db, "exams"), limit(500)));
+
             snap.forEach(docSnap => {
                 const ex = docSnap.data();
+                const examId = docSnap.id;
+                const examTitle = ex.title || ex.name || 'Đề thi không tiêu đề';
+
+                // 1. Khớp trực tiếp examId nguồn
+                if (cleanExamId && examId === cleanExamId) {
+                    matched.push({
+                        id: examId,
+                        title: examTitle,
+                        questionCount: Array.isArray(ex.questions) ? ex.questions.length : (ex.questionCount || 0),
+                        duration: ex.duration || 45,
+                        code: ex.code || examId.substring(0, 8),
+                        matchedQIndex: null,
+                        reason: 'Nguồn đề ban đầu'
+                    });
+                    return;
+                }
+
                 if (Array.isArray(ex.questions) && ex.questions.length > 0) {
-                    const hasMatch = ex.questions.some(item => {
+                    let matchedQIndex = -1;
+                    const hasMatch = ex.questions.some((item, qIdx) => {
                         const qC = String(item.cccd || '').trim();
                         const qI = String(item.id || '').trim();
                         const qB = String(item.bankId || '').trim();
-                        if (targetCccd && (qC === targetCccd || qI === targetCccd || qB === targetCccd)) return true;
-                        if (targetId && (qC === targetId || qI === targetId || qB === targetId)) return true;
-                        if (targetAliases.length > 0 && (targetAliases.includes(qC) || targetAliases.includes(qI))) return true;
-                        if (targetMaster && (qC === targetMaster || qI === targetMaster)) return true;
+                        const qM = String(item.mapId || '').trim().toUpperCase();
+
+                        // 1. So khớp CCCD / BankId / ID trực tiếp
+                        if (cleanCccd && (qC === cleanCccd || qI === cleanCccd || qB === cleanCccd)) {
+                            matchedQIndex = qIdx; return true;
+                        }
+                        if (cleanId && (qC === cleanId || qI === cleanId || qB === cleanId)) {
+                            matchedQIndex = qIdx; return true;
+                        }
+                        if (cleanAliases.length > 0 && (cleanAliases.includes(qC) || cleanAliases.includes(qI) || cleanAliases.includes(qB))) {
+                            matchedQIndex = qIdx; return true;
+                        }
+                        if (cleanMaster && (qC === cleanMaster || qI === cleanMaster)) {
+                            matchedQIndex = qIdx; return true;
+                        }
+
+                        // 2. So khớp theo MapID hợp lệ (VD: 9H4V2-5, 9D3C3-9)
+                        if (cleanMapId && cleanMapId !== 'ID' && cleanMapId.length >= 3) {
+                            if (qM === cleanMapId) {
+                                matchedQIndex = qIdx; return true;
+                            }
+                            if (qC.toUpperCase().startsWith(cleanMapId + '_') || qB.toUpperCase().startsWith(cleanMapId + '_')) {
+                                matchedQIndex = qIdx; return true;
+                            }
+                        }
+
+                        // 3. So khớp theo trích đoạn nội dung câu hỏi (ít nhất 25 ký tự)
+                        if (snippet.length >= 25 && item.content) {
+                            const itemSnippet = normalizeSnippet(item.content);
+                            if (itemSnippet && (itemSnippet.includes(snippet) || snippet.includes(itemSnippet))) {
+                                matchedQIndex = qIdx; return true;
+                            }
+                        }
+
                         return false;
                     });
+
                     if (hasMatch) {
                         matched.push({
-                            id: docSnap.id,
-                            title: ex.title || ex.name || 'Đề thi không tiêu đề',
+                            id: examId,
+                            title: examTitle,
                             questionCount: ex.questions.length,
                             duration: ex.duration || 45,
-                            code: ex.code || docSnap.id.substring(0, 8),
-                            createdAt: ex.createdAt,
-                            updatedAt: ex.updatedAt
+                            code: ex.code || examId.substring(0, 8),
+                            matchedQIndex: matchedQIndex >= 0 ? (matchedQIndex + 1) : null
                         });
                     }
                 }
@@ -12107,6 +12174,8 @@ function renderTagFilterUI() {
                             <span class="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-[10px] text-gray-600 font-bold">#${ex.code}</span>
                             <span>• ${ex.questionCount} câu</span>
                             <span>• ${ex.duration} phút</span>
+                            ${ex.matchedQIndex ? `<span class="text-sky-600 font-bold">• Câu ${ex.matchedQIndex}</span>` : ''}
+                            ${ex.reason ? `<span class="text-indigo-600 font-bold">• ${ex.reason}</span>` : ''}
                         </div>
                     </td>
                     <td class="py-3 px-4 align-middle text-right whitespace-nowrap">
