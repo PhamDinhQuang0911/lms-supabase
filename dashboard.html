@@ -240,6 +240,108 @@
             border-color: #38344D !important;
         }
 
+        /* ========================================================= */
+        /* STYLES CHO CÁC NÚT THAO TÁC MODAL XEM TRƯỚC CÂU HỎI */
+        /* ========================================================= */
+        .btn-preview-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+            font-weight: 700;
+            border-radius: 0.75rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-preview-action:active {
+            transform: scale(0.96);
+        }
+        /* Nút Tra cứu sử dụng (màu xanh dương đậm, chữ trắng, không bao giờ bị mờ) */
+        .btn-preview-usage {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid #0284c7 !important;
+        }
+        .btn-preview-usage:hover {
+            background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4) !important;
+            transform: translateY(-1px);
+        }
+        /* Nút Xuất mã TeX (màu xanh ngọc emerald, chữ trắng) */
+        .btn-preview-export {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid #059669 !important;
+        }
+        .btn-preview-export:hover {
+            background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 10px rgba(5, 150, 105, 0.4) !important;
+            transform: translateY(-1px);
+        }
+        /* Nút Chèn / Dán ảnh (màu xanh teal) */
+        .btn-preview-paste {
+            background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid #0d9488 !important;
+        }
+        .btn-preview-paste:hover {
+            background: linear-gradient(135deg, #0f766e 0%, #115e59 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.4) !important;
+            transform: translateY(-1px);
+        }
+        /* Nút Ghi đè TeX (màu tím indigo) */
+        .btn-preview-overwrite {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid #4f46e5 !important;
+        }
+        .btn-preview-overwrite:hover {
+            background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4) !important;
+            transform: translateY(-1px);
+        }
+        /* Nút Sửa (màu cam) */
+        .btn-preview-edit {
+            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%) !important;
+            color: #ffffff !important;
+            border: 1px solid #ea580c !important;
+        }
+        .btn-preview-edit:hover {
+            background: linear-gradient(135deg, #c2410c 0%, #9a3412 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 10px rgba(234, 88, 12, 0.4) !important;
+            transform: translateY(-1px);
+        }
+        /* Nút Đóng (màu xám / dark) */
+        .btn-preview-close {
+            background: #475569 !important;
+            color: #ffffff !important;
+            border: 1px solid #334155 !important;
+        }
+        .btn-preview-close:hover {
+            background: #334155 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 10px rgba(71, 85, 105, 0.4) !important;
+            transform: translateY(-1px);
+        }
+        /* Nút Xóa (màu trắng viền đỏ) */
+        .btn-preview-delete {
+            background: #ffffff !important;
+            color: #dc2626 !important;
+            border: 1px solid #fecaca !important;
+        }
+        .btn-preview-delete:hover {
+            background: #fef2f2 !important;
+            border-color: #f87171 !important;
+            color: #b91c1c !important;
+        }
+
         /* Thẻ thống kê 3 ô trong adminRoleModal */
         .admin-stat-card {
             transition: all 0.2s ease;
@@ -1226,24 +1328,51 @@
                 <div class="flex-1 overflow-y-auto p-6 custom-scrollbar" id="questionPreviewContent">
                     <div class="flex justify-center py-10"><i class="fa-solid fa-spinner fa-spin text-3xl text-primary-500"></i></div>
                 </div>
-                <div class="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-between items-center shrink-0">
-                    <button id="btnDeleteQuestion" class="px-4 py-2 bg-white text-red-600 border border-red-200 hover:bg-red-50 font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"><i class="fa-solid fa-trash-can"></i> Xóa</button>
-                    <div class="flex gap-2 items-center flex-wrap">
-                        <button id="btnPasteBankImage" onclick="window.triggerBankImageUploadPrompt()" class="px-4 py-2 bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-700 hover:to-indigo-700 text-white font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 text-xs md:text-sm" title="Dán ảnh từ Clipboard (Ctrl+V) hoặc Chọn tệp ảnh để chèn/thay thế">
-                            <i class="fa-solid fa-clipboard"></i> Chèn / Dán ảnh (Ctrl+V)
+                <div class="p-3 md:p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-between items-center shrink-0 gap-1.5 md:gap-2">
+                    <!-- Nút Xóa (bên trái) -->
+                    <button id="btnDeleteQuestion" class="btn-preview-action btn-preview-delete px-2.5 py-2 md:px-4 md:py-2 text-xs md:text-sm shrink-0" title="Xóa câu hỏi này">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span class="hidden md:inline">Xóa</span>
+                    </button>
+
+                    <!-- Các nút thao tác (bên phải): Trên mobile chỉ hiện icon, desktop hiện cả icon và chữ -->
+                    <div class="flex gap-1.5 md:gap-2 items-center flex-wrap justify-end">
+                        <!-- 1. Tra cứu nơi sử dụng -->
+                        <button id="btnCheckQuestionUsage" onclick="window.checkQuestionUsage()" class="btn-preview-action btn-preview-usage px-2.5 py-2 md:px-3.5 md:py-2 text-xs md:text-sm shrink-0" title="Tra cứu nơi sử dụng (Đề thi / Chuyên đề / Khóa học)">
+                            <i class="fa-solid fa-sitemap"></i>
+                            <span class="hidden md:inline">Tra cứu sử dụng</span>
+                        </button>
+
+                        <!-- 2. Xuất mã TeX -->
+                        <button id="btnExportQuestionTex" onclick="window.exportSingleQuestionTex()" class="btn-preview-action btn-preview-export px-2.5 py-2 md:px-3.5 md:py-2 text-xs md:text-sm shrink-0" title="Xuất mã nguồn TeX chuẩn của câu hỏi này">
+                            <i class="fa-solid fa-file-code"></i>
+                            <span class="hidden md:inline">Xuất mã TeX</span>
+                        </button>
+
+                        <!-- 3. Chèn / Dán ảnh -->
+                        <button id="btnPasteBankImage" onclick="window.triggerBankImageUploadPrompt()" class="btn-preview-action btn-preview-paste px-2.5 py-2 md:px-3.5 md:py-2 text-xs md:text-sm shrink-0" title="Dán ảnh từ Clipboard (Ctrl+V) hoặc Chọn tệp ảnh để chèn/thay thế">
+                            <i class="fa-solid fa-image"></i>
+                            <span class="hidden md:inline">Chèn ảnh</span>
                         </button>
                         <input type="file" id="bankInlineImageFileInput" accept="image/*" class="hidden" onchange="window.handleBankInlineImageFile(this)">
-                        <button id="btnCheckQuestionUsage" onclick="window.checkQuestionUsage()" class="px-3.5 py-2 bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white border border-sky-200 font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 text-xs md:text-sm cursor-pointer" title="Xem câu hỏi này đang nằm trong những đề thi, chuyên đề, khóa học nào">
-                            <i class="fa-solid fa-sitemap"></i> Tra cứu sử dụng
+
+                        <!-- 4. Ghi đè bằng mã TeX -->
+                        <button id="btnOverwriteQuestionTex" onclick="window.openOverwriteQuestionModal()" class="btn-preview-action btn-preview-overwrite px-2.5 py-2 md:px-3.5 md:py-2 text-xs md:text-sm shrink-0" title="Dán mã TeX chuẩn CCCD để thay thế và ghi đè toàn bộ nội dung câu hỏi này">
+                            <i class="fa-solid fa-code-compare"></i>
+                            <span class="hidden md:inline">Ghi đè TeX</span>
                         </button>
-                        <button id="btnExportQuestionTex" onclick="window.exportSingleQuestionTex()" class="px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-200 font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 text-xs md:text-sm cursor-pointer" title="Xuất mã nguồn TeX chuẩn của câu hỏi này để chỉnh sửa trên máy">
-                            <i class="fa-solid fa-file-code"></i> Xuất mã TeX
+
+                        <!-- 5. Sửa -->
+                        <button id="btnEditQuestion" class="btn-preview-action btn-preview-edit px-2.5 py-2 md:px-4 md:py-2 text-xs md:text-sm shrink-0" title="Chỉnh sửa nội dung câu hỏi">
+                            <i class="fa-solid fa-pen"></i>
+                            <span class="hidden md:inline">Sửa</span>
                         </button>
-                        <button id="btnOverwriteQuestionTex" onclick="window.openOverwriteQuestionModal()" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important; color: #ffffff !important;" class="px-3.5 py-2 font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 text-xs md:text-sm text-white hover:opacity-90 cursor-pointer" title="Dán mã TeX chuẩn CCCD để thay thế và ghi đè toàn bộ nội dung câu hỏi này">
-                            <i class="fa-solid fa-code-compare"></i> Ghi đè bằng mã TeX
+
+                        <!-- 6. Đóng -->
+                        <button onclick="window.closeQuestionPreviewModal()" class="btn-preview-action btn-preview-close px-2.5 py-2 md:px-4 md:py-2 text-xs md:text-sm shrink-0" title="Đóng cửa sổ xem trước">
+                            <i class="fa-solid fa-xmark"></i>
+                            <span class="hidden md:inline">Đóng</span>
                         </button>
-                        <button id="btnEditQuestion" class="px-5 py-2 bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-600 hover:text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2"><i class="fa-solid fa-pen"></i> Sửa</button>
-                        <button onclick="window.closeQuestionPreviewModal()" class="px-5 py-2 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 shadow-md shadow-primary-200 transition-all">Đóng</button>
                     </div>
                 </div>
             </div>
@@ -1390,19 +1519,23 @@
                 </div>
 
                 <!-- Footer -->
-                <div class="p-4 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex justify-between items-center gap-3 shrink-0 flex-wrap">
-                    <button onclick="window.openOverwriteFromExportModal()" class="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 font-bold rounded-xl text-xs md:text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm" title="Mở hộp thoại ghi đè để dán lại mã sau khi chỉnh sửa">
-                        <i class="fa-solid fa-code-compare"></i> Ghi đè bằng mã TeX
+                <div class="p-3 md:p-4 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex justify-between items-center gap-2 shrink-0 flex-wrap">
+                    <button onclick="window.openOverwriteFromExportModal()" class="btn-preview-action btn-preview-overwrite px-2.5 py-2 md:px-4 md:py-2 text-xs md:text-sm" title="Mở hộp thoại ghi đè để dán lại mã sau khi chỉnh sửa">
+                        <i class="fa-solid fa-code-compare"></i>
+                        <span class="hidden md:inline">Ghi đè bằng TeX</span>
                     </button>
-                    <div class="flex items-center gap-2">
-                        <button id="btnCopySingleTex" onclick="window.copySingleQuestionTex()" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs md:text-sm transition-all shadow-md shadow-emerald-200 flex items-center gap-1.5 cursor-pointer">
-                            <i class="fa-solid fa-copy"></i> Sao chép mã TeX
+                    <div class="flex items-center gap-1.5 md:gap-2">
+                        <button id="btnCopySingleTex" onclick="window.copySingleQuestionTex()" class="btn-preview-action btn-preview-export px-2.5 py-2 md:px-4 md:py-2 text-xs md:text-sm" title="Sao chép mã TeX vào Clipboard">
+                            <i class="fa-solid fa-copy"></i>
+                            <span class="hidden md:inline">Sao chép</span>
                         </button>
-                        <button onclick="window.downloadSingleQuestionTexFile()" class="px-4 py-2 bg-white text-gray-700 hover:text-emerald-700 border border-gray-200 hover:border-emerald-300 font-bold rounded-xl text-xs md:text-sm transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
-                            <i class="fa-solid fa-download"></i> Tải tệp .tex
+                        <button onclick="window.downloadSingleQuestionTexFile()" class="btn-preview-action px-2.5 py-2 md:px-4 md:py-2 bg-white text-gray-700 hover:text-emerald-700 border border-gray-200 hover:border-emerald-300 text-xs md:text-sm" title="Tải tệp .tex về máy">
+                            <i class="fa-solid fa-download"></i>
+                            <span class="hidden md:inline">Tải .tex</span>
                         </button>
-                        <button onclick="window.closeSingleQuestionTexModal()" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-xl text-xs md:text-sm hover:bg-gray-300 transition-all cursor-pointer">
-                            Đóng
+                        <button onclick="window.closeSingleQuestionTexModal()" class="btn-preview-action btn-preview-close px-2.5 py-2 md:px-4 md:py-2 text-xs md:text-sm" title="Đóng">
+                            <i class="fa-solid fa-xmark"></i>
+                            <span class="hidden md:inline">Đóng</span>
                         </button>
                     </div>
                 </div>
@@ -1446,8 +1579,9 @@
                     <div class="text-xs text-gray-500 font-medium" id="usageScanStats">
                         Đang quét...
                     </div>
-                    <button onclick="window.closeQuestionUsageModal()" class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl text-xs md:text-sm shadow-md shadow-primary-200 transition-all cursor-pointer">
-                        Đóng
+                    <button onclick="window.closeQuestionUsageModal()" class="btn-preview-action btn-preview-close px-4 py-2 md:px-6 md:py-2 text-xs md:text-sm">
+                        <i class="fa-solid fa-xmark"></i>
+                        <span class="hidden sm:inline">Đóng</span>
                     </button>
                 </div>
             </div>
@@ -11831,15 +11965,29 @@ function renderTagFilterUI() {
         }
     };
 
+    // Helper: Kiểm tra quyền Super Admin
+    function checkIsSuperAdminUser() {
+        try {
+            if (window.currentAdminProfile?.role === 'super_admin') return true;
+            const email = ((window.currentAdminProfile?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase();
+            if (typeof ROOT_SUPER_ADMINS !== 'undefined' && Array.isArray(ROOT_SUPER_ADMINS)) {
+                if (ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(email)) return true;
+            }
+        } catch(e) {}
+        return false;
+    }
+
     // Helper: Quét Đề thi
     async function scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster) {
         const matched = [];
         try {
+            const isSuper = checkIsSuperAdminUser();
+            const teacherUid = (typeof currentUserUid !== 'undefined' && currentUserUid) ? currentUserUid : (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.uid : '');
             let snap;
-            if (isSuper) {
+            if (isSuper || !teacherUid) {
                 snap = await getDocs(query(collection(db, "exams"), limit(300)));
             } else {
-                snap = await getDocs(query(collection(db, "exams"), where("teacherId", "==", currentUserUid), limit(300)));
+                snap = await getDocs(query(collection(db, "exams"), where("teacherId", "==", teacherUid), limit(300)));
             }
             snap.forEach(docSnap => {
                 const ex = docSnap.data();
@@ -11878,11 +12026,13 @@ function renderTagFilterUI() {
         const matched = [];
         // 1. Quét custom_topics
         try {
+            const isSuper = checkIsSuperAdminUser();
+            const teacherUid = (typeof currentUserUid !== 'undefined' && currentUserUid) ? currentUserUid : (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.uid : '');
             let snapT;
-            if (isSuper) {
+            if (isSuper || !teacherUid) {
                 snapT = await getDocs(query(collection(db, "custom_topics"), limit(100)));
             } else {
-                snapT = await getDocs(query(collection(db, "custom_topics"), where("teacherId", "==", currentUserUid), limit(100)));
+                snapT = await getDocs(query(collection(db, "custom_topics"), where("teacherId", "==", teacherUid), limit(100)));
             }
             snapT.forEach(docSnap => {
                 const top = docSnap.data();
