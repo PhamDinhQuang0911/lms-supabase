@@ -7535,20 +7535,11 @@ function renderTagFilterUI() {
                 try {
                     const collName = currentActionItem.type === 'folder' ? 'folders' : 'exams';
                     
-                    // 1. NẾU LÀ ĐỀ THI: Dọn dẹp ảnh và các bản sao
+                    // 1. NẾU LÀ ĐỀ THI: Xóa các bản sao đã giao cho lớp
                     if (currentActionItem.type === 'exam') {
-                        // A. Dọn dẹp ảnh trên Cloud (R2)
-                        const docSnap = await getDoc(doc(db, "exams", currentActionItem.id));
-                        if (docSnap.exists()) {
-                            const examData = docSnap.data();
-                            const strData = JSON.stringify(examData);
-                            const regex = /(https:\/\/[^"'\s\\]+\.r2\.dev\/[^"'\s\\]+|https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[^"'\s\\]+)/g;
-                            const images = strData.match(regex) || [];
-                            if (images.length > 0) {
-                                // Chạy xóa ảnh ngầm, không cần await để giao diện mượt hơn
-                                Promise.all(images.map(url => deleteR2Image(url))).catch(err => console.log("Lỗi xóa ảnh rác:", err));
-                            }
-                        }
+                        // [LƯU Ý QUAN TRỌNG]: Tuyệt đối KHÔNG xóa ảnh trên R2 khi xóa đề, vì các câu hỏi trong đề
+                        // có thể đã được lưu vào Ngân hàng câu hỏi R2. Ảnh và câu hỏi trên R2 phải luôn tồn tại
+                        // độc lập và chỉ biến mất khi người dùng chủ động xóa từ Ngân hàng câu hỏi.
 
                         // B. [QUAN TRỌNG] Tìm và xóa các BẢN SAO đã giao cho lớp (Fix lỗi hiển thị bên học sinh)
                         // Tìm các đề có originalId trùng với ID đề đang xóa
@@ -7762,15 +7753,7 @@ function renderTagFilterUI() {
                 // 5. TIẾN HÀNH XÓA
                 window.showNotification(`Đang xóa ${totalTrash} mục rác...`, "warning");
                 
-                // A. Xóa ảnh rác (nếu có)
-                const imageDeletionPromises = [];
-                const regex = /(https:\/\/[^"'\s\\]+\.r2\.dev\/[^"'\s\\]+|https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[^"'\s\\]+)/g;
-                trashExams.forEach(exam => {
-                    const strData = JSON.stringify(exam);
-                    const images = strData.match(regex) || [];
-                    images.forEach(url => imageDeletionPromises.push(deleteR2Image(url)));
-                });
-                Promise.all(imageDeletionPromises).catch(e => console.log("Lỗi xóa ảnh (không quan trọng):", e));
+                // A. Xóa dữ liệu các đề thi và thư mục rác (giữ nguyên kho ảnh R2 và ngân hàng câu hỏi)
 
                 // B. Xóa dữ liệu
                 const deletePromises = [

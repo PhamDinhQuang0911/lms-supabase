@@ -2225,12 +2225,13 @@
                 }
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    window.examData = data;
-                    if (data.rawTex) {
+                    const storedRawTex = data.rawTex || data.latexContent;
+                    if (storedRawTex) {
                         window.lastUploadedTexFile = {
                             name: data.rawTexName || `${data.title || 'De_Thi'}.tex`,
-                            rawText: data.rawTex
+                            rawText: storedRawTex
                         };
+                        window.examData.rawTex = storedRawTex;
                     }
                     if (typeof window.renderExamEditorTags === 'function') window.renderExamEditorTags();
                     const initialExamTitle = data.title || data.name || '';
@@ -4277,24 +4278,7 @@
                 const newLen = parsedList.length;
                 const overwriteCount = Math.min(curLen, newLen);
 
-                // 1. TỰ ĐỘNG XÓA ẢNH CỦA ĐỀ CŨ TRÊN KHO R2 (CLOUDFLARE)
-                const oldOverwrittenQs = window.questions.slice(0, overwriteCount);
-                const oldR2Urls = extractR2ImageUrls(oldOverwrittenQs);
-
-                const retainedQs = curLen > overwriteCount ? window.questions.slice(overwriteCount) : [];
-                const retainedR2Urls = new Set(extractR2ImageUrls(retainedQs));
-                const newR2Urls = new Set(extractR2ImageUrls(parsedList));
-
-                const r2UrlsToDelete = oldR2Urls.filter(u => !retainedR2Urls.has(u) && !newR2Urls.has(u));
-
-                let deletedR2Count = 0;
-                if (r2UrlsToDelete.length > 0) {
-                    if (window.showToast) window.showToast(`Đang xóa ${r2UrlsToDelete.length} ảnh đề cũ trên kho R2...`, "info");
-                    const deleteFn = window.deleteR2Image || deleteR2Image;
-                    const delResults = await Promise.allSettled(r2UrlsToDelete.map(u => deleteFn(u)));
-                    deletedR2Count = delResults.filter(r => r.status === 'fulfilled').length;
-                    console.log(`[Cập nhật đè TeX] Đã xóa ${deletedR2Count}/${r2UrlsToDelete.length} ảnh cũ trên R2`);
-                }
+                // 1. Bảo tồn 100% kho ảnh và câu hỏi trên R2 (không tự động xóa ảnh R2 cũ để tránh làm hỏng ngân hàng)
 
                 // 2. THỰC HIỆN GHI ĐÈ & SẮP XẾP LẠI THỨ TỰ CÂU HỎI
                 if (window._isSmartCccdOverwrite) {
