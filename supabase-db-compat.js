@@ -419,6 +419,9 @@ function mapFieldToColumn(field) {
         'fileUrl': 'file_url',
         'weight': 'weight',
         'isSoldOut': 'is_sold_out',
+        'rawTex': 'raw_tex',
+        'rawTexName': 'raw_tex_name',
+        'latexContent': 'latex_content',
         'createdAt': 'created_at',
         'updatedAt': 'updated_at'
     };
@@ -464,6 +467,9 @@ function unwrapRecord(r) {
     if (r.weight !== undefined) res.weight = r.weight;
     if (r.start_time !== undefined) res.startTime = r.start_time;
     if (r.end_time !== undefined) res.endTime = r.end_time;
+    if (r.raw_tex !== undefined && !res.rawTex) res.rawTex = r.raw_tex;
+    if (r.raw_tex_name !== undefined && !res.rawTexName) res.rawTexName = r.raw_tex_name;
+    if (r.latex_content !== undefined && !res.latexContent) res.latexContent = r.latex_content;
 
     // Unpack public_courses metadata from preview_link (fallback)
     if (r.preview_link && typeof r.preview_link === 'string' && r.preview_link.trim().startsWith('{')) {

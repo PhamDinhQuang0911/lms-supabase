@@ -2224,7 +2224,8 @@
                     catch (_) { docSnap = await getDocFromCache(examRef); }
                 }
                 if (docSnap.exists()) {
-                    const data = docSnap.data();
+                    const data = docSnap.data() || {};
+                    window.examData = data;
                     const storedRawTex = data.rawTex || data.latexContent;
                     if (storedRawTex) {
                         window.lastUploadedTexFile = {
