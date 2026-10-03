@@ -375,6 +375,7 @@ function mapFieldToColumn(field) {
         'endDate': 'end_date',
         'expiryDate': 'end_date',
         'parentId': 'parent_id',
+        'academicYear': 'academic_year',
         'studentCount': 'student_count',
         'studentIds': 'student_ids',
         'zaloGroupUid': 'zalo_group_uid',
@@ -437,6 +438,31 @@ function unwrapRecord(r) {
     const raw = (r.raw_data && typeof r.raw_data === 'object') ? r.raw_data : {};
     const pk = r.id || r.key;
     const res = { ...raw, ...r, id: pk };
+
+    // BẢO VỆ DỮ LIỆU HỌC SINH LỚP HỌC (CLASSES):
+    // Khôi phục mảng học sinh từ raw_data nếu r.students bị null hoặc không phải mảng
+    if ((r.students === null || r.students === undefined || !Array.isArray(r.students) || r.students.length === 0) && Array.isArray(raw.students) && raw.students.length > 0) {
+        res.students = raw.students;
+    }
+    // Khôi phục studentIds từ raw_data nếu cột student_ids bị rỗng/null
+    if ((!r.student_ids || !Array.isArray(r.student_ids) || r.student_ids.length === 0) && Array.isArray(raw.studentIds) && raw.studentIds.length > 0) {
+        res.studentIds = raw.studentIds;
+        res.student_ids = raw.studentIds;
+    }
+    // Đảm bảo studentIds luôn đồng bộ với danh sách học sinh
+    if ((!res.studentIds || res.studentIds.length === 0) && Array.isArray(res.students) && res.students.length > 0) {
+        res.studentIds = res.students.map(s => s.uid).filter(Boolean);
+        res.student_ids = res.studentIds;
+    }
+    // Đảm bảo studentCount luôn chính xác
+    if (Array.isArray(res.students)) {
+        res.studentCount = res.students.length;
+        res.student_count = res.students.length;
+    }
+    if (r.academic_year !== undefined) res.academicYear = r.academic_year;
+    if (r.teacher_id !== undefined) res.teacherId = r.teacher_id;
+    if (r.zalo_group_uid !== undefined) res.zaloGroupUid = r.zalo_group_uid;
+
     if (r.course_id !== undefined) res.courseId = r.course_id;
     if (r.user_id !== undefined) res.userId = r.user_id;
     if (r.user_name !== undefined) res.userName = r.user_name;
@@ -529,9 +555,17 @@ function sanitizeColumnValue(col, v) {
         }
         return null;
     }
+    // CỘT STUDENTS TRONG BẢNG CLASSES LÀ MẢNG JSON, TRONG PUBLIC_COURSES MỚI LÀ SỐ
+    if (col === 'students' && Array.isArray(v)) {
+        return v;
+    }
     if (NUMERIC_COLUMNS.has(col)) {
         if (v === '' || v === null || v === undefined) {
             return null;
+        }
+        // Tuyệt đối không ép kiểu số nếu giá trị là mảng hoặc object
+        if (Array.isArray(v) || (typeof v === 'object' && v !== null)) {
+            return v;
         }
         const num = Number(v);
         return isNaN(num) ? null : num;
