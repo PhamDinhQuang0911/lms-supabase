@@ -511,6 +511,13 @@ export async function sendPasswordResetEmail(auth, email) {
 export class EmailAuthProvider {
     static credential(email, password) { return { email, password }; }
 }
+
+if (typeof window !== 'undefined') {
+    window.EmailAuthProvider = EmailAuthProvider;
+    window.reauthenticateWithCredential = reauthenticateWithCredential;
+    window.updatePassword = updatePassword;
+}
+
 export async function reauthenticateWithCredential(user, cred) {
     if (!user) throw new Error("Chưa đăng nhập!");
     const pass = cred && (cred.password || cred.cleanPass);
@@ -519,23 +526,84 @@ export async function reauthenticateWithCredential(user, cred) {
 
     const userId = user.uid || user.id || '';
     const userEmail = (user.email || '').trim().toLowerCase();
+    const usernamePart = userEmail ? userEmail.split('@')[0] : '';
+    const hocsinhEmail = usernamePart ? `${usernamePart}@hocsinh.com` : '';
 
-    // 1. Kiểm tra mật khẩu trong bảng users
+    // 0. Nếu trong bộ nhớ / session hiện tại đã có mật khẩu, kiểm tra ngay
+    if (user.password && String(user.password).trim() === cleanOld) {
+        return true;
+    }
+
+    // 1. Kiểm tra theo userId cụ thể trong bảng users
+    if (userId) {
+        try {
+            const { data: usersById } = await supabase
+                .from('users')
+                .select('password, raw_data')
+                .eq('id', userId)
+                .limit(1);
+
+            if (usersById && usersById.length > 0) {
+                const expected = usersById[0].password || (usersById[0].raw_data && usersById[0].raw_data.password);
+                if (expected && String(expected).trim() === cleanOld) {
+                    return true;
+                }
+            }
+        } catch (e) {}
+    }
+
+    // 1.1. Kiểm tra theo email trong bảng users
     try {
+        const conds = [];
+        if (userId) conds.push(`id.eq.${userId}`);
+        if (userEmail) conds.push(`email.ilike.${userEmail}`);
+        if (hocsinhEmail && hocsinhEmail !== userEmail) conds.push(`email.ilike.${hocsinhEmail}`);
+        if (usernamePart) conds.push(`id.eq.${usernamePart}`);
+
         const { data: users } = await supabase
             .from('users')
             .select('password, raw_data')
-            .or(`id.eq.${userId},email.ilike.${userEmail}`)
-            .limit(1);
+            .or(conds.join(','))
+            .limit(10);
 
         if (users && users.length > 0) {
-            const expected = users[0].password || (users[0].raw_data && users[0].raw_data.password);
-            if (expected && String(expected).trim() !== cleanOld) {
+            const matched = users.some(u => {
+                const expected = u.password || (u.raw_data && u.raw_data.password);
+                return expected && String(expected).trim() === cleanOld;
+            });
+            if (matched) return true;
+
+            const allHavePass = users.every(u => !!(u.password || (u.raw_data && u.raw_data.password)));
+            if (allHavePass) {
                 const err = new Error("Mật khẩu cũ không chính xác!");
                 err.code = 'auth/wrong-password';
                 throw err;
             }
-            return true;
+        }
+    } catch (e) {
+        if (e.code === 'auth/wrong-password') throw e;
+    }
+
+    // 1.5. Kiểm tra mật khẩu trong bảng classes (nếu là học sinh trong lớp học)
+    try {
+        const { data: classesList } = await supabase
+            .from('classes')
+            .select('students, raw_data');
+        if (classesList && Array.isArray(classesList)) {
+            for (const c of classesList) {
+                const stList = Array.isArray(c.students) ? c.students : (c.raw_data && Array.isArray(c.raw_data.students) ? c.raw_data.students : []);
+                const foundStudent = stList.find(s => {
+                    const matchUid = userId && s.uid === userId;
+                    const matchEmail = userEmail && (s.email || '').toLowerCase() === userEmail;
+                    const matchUsername = (s.username && usernamePart && s.username.toLowerCase() === usernamePart);
+                    return matchUid || matchEmail || matchUsername;
+                });
+                if (foundStudent && foundStudent.password) {
+                    if (String(foundStudent.password).trim() === cleanOld) {
+                        return true;
+                    }
+                }
+            }
         }
     } catch (e) {
         if (e.code === 'auth/wrong-password') throw e;
@@ -551,11 +619,26 @@ export async function reauthenticateWithCredential(user, cred) {
         if (cfgDoc && cfgDoc.raw_data && Array.isArray(cfgDoc.raw_data.accounts)) {
             const found = cfgDoc.raw_data.accounts.find(a => (a.email || '').toLowerCase() === userEmail || (userId && a.id === userId));
             if (found && found.password) {
-                if (String(found.password).trim() !== cleanOld) {
-                    const err = new Error("Mật khẩu cũ không chính xác!");
-                    err.code = 'auth/wrong-password';
-                    throw err;
+                if (String(found.password).trim() === cleanOld) {
+                    return true;
                 }
+            }
+        }
+    } catch (e) {
+        if (e.code === 'auth/wrong-password') throw e;
+    }
+
+    // 2.5. Kiểm tra trong admin_accounts
+    try {
+        const { data: admins } = await supabase
+            .from('admin_accounts')
+            .select('password, raw_data')
+            .or(`id.eq.${userId},email.ilike.${userEmail}`)
+            .limit(1);
+        if (admins && admins.length > 0) {
+            const expected = admins[0].password || (admins[0].raw_data && admins[0].raw_data.password);
+            if (expected && String(expected).trim() === cleanOld) {
+                return true;
             }
         }
     } catch (e) {
@@ -648,6 +731,9 @@ function mapFieldToColumn(field) {
         'passScore': 'pass_score',
         'accessType': 'access_type',
         'allowedClassIds': 'allowed_class_ids',
+        'allowedClassId': 'allowed_class_ids',
+        'assignTo': 'allowed_class_ids',
+        'assignedTo': 'allowed_class_ids',
         'questionCount': 'question_count',
         'tlQuestions': 'tl_questions',
         'n8nWebhooks': 'n8n_webhooks',
@@ -748,7 +834,11 @@ function unwrapRecord(r) {
     if (r.question_count !== undefined) res.questionCount = r.question_count;
     if (r.pass_score !== undefined) res.passScore = r.pass_score;
     if (r.access_type !== undefined) res.accessType = r.access_type;
-    if (r.allowed_class_ids !== undefined) res.allowedClassIds = r.allowed_class_ids;
+    if (r.allowed_class_ids !== undefined) {
+        res.allowedClassIds = r.allowed_class_ids;
+        res.assignTo = r.allowed_class_ids;
+        res.allowedClassId = r.allowed_class_ids;
+    }
     if (r.description !== undefined) res.desc = r.description;
     if (r.original_price !== undefined) res.originalPrice = r.original_price;
     if (r.fake_students !== undefined) res.fakeStudents = r.fake_students;
@@ -823,6 +913,11 @@ function sanitizeColumnValue(col, v) {
     // CỘT STUDENTS TRONG BẢNG CLASSES LÀ MẢNG JSON, TRONG PUBLIC_COURSES MỚI LÀ SỐ
     if (col === 'students' && Array.isArray(v)) {
         return v;
+    }
+    if (col === 'allowed_class_ids') {
+        if (Array.isArray(v)) return v;
+        if (typeof v === 'string' && v.trim()) return [v.trim()];
+        return [];
     }
     if (NUMERIC_COLUMNS.has(col)) {
         if (v === '' || v === null || v === undefined) {
@@ -1089,7 +1184,7 @@ export async function getDocs(queryOrColRef) {
                 if (c.type === 'where') {
                     const val = d[c.field] !== undefined ? d[c.field] : d[mapFieldToColumn(c.field)];
                     if (c.op === '==' || c.op === '===') {
-                        if ((c.field === 'allowedClassId' || c.field === 'allowedClassIds') && Array.isArray(val)) {
+                        if ((c.field === 'allowedClassId' || c.field === 'allowedClassIds' || c.field === 'assignTo' || c.field === 'assignedTo') && Array.isArray(val)) {
                             if (!val.includes(c.value)) return false;
                         } else if (val !== c.value) {
                             return false;

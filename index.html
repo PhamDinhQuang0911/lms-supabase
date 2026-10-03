@@ -311,10 +311,10 @@
                             <label class="block text-xs font-bold text-gray-700 uppercase">Mật khẩu</label>
                             <button type="button" onclick="window.handleForgotPassword()" class="text-xs text-teal-700 hover:text-orange-600 font-bold hover:underline cursor-pointer">Quên mật khẩu?</button>
                         </div>
-                        <div class="relative">
-                            <input type="password" id="passwordInput" placeholder="Nhập mật khẩu" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 focus:border-brand outline-none transition-all pr-11">
-                            <button type="button" onclick="window.togglePasswordVisibility('passwordInput', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-teal-600 transition-colors cursor-pointer" tabindex="-1">
-                                <i class="fa-regular fa-eye"></i>
+                        <div class="relative flex items-center">
+                            <input type="password" id="passwordInput" placeholder="Nhập mật khẩu" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 focus:border-brand outline-none transition-all pr-10">
+                            <button type="button" onclick="window.togglePasswordVisibility('passwordInput', this)" class="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-gray-400 hover:text-teal-600 transition-colors cursor-pointer" tabindex="-1">
+                                <i class="fa-regular fa-eye text-base"></i>
                             </button>
                         </div>
                     </div>
@@ -340,10 +340,10 @@
                         <div><input type="text" id="regName" placeholder="Họ và tên (bắt buộc)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
                         <div><input type="tel" id="regPhone" placeholder="Số điện thoại (bắt buộc)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
                         <div><input type="text" id="regUsername" placeholder="Tên đăng nhập (viết liền không dấu)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm font-bold text-teal-700"></div>
-                        <div class="relative">
-                            <input type="password" id="regPass" placeholder="Mật khẩu (bắt buộc)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm pr-11">
-                            <button type="button" onclick="window.togglePasswordVisibility('regPass', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-teal-600 transition-colors cursor-pointer" tabindex="-1">
-                                <i class="fa-regular fa-eye"></i>
+                        <div class="relative flex items-center">
+                            <input type="password" id="regPass" placeholder="Mật khẩu (bắt buộc)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm pr-10">
+                            <button type="button" onclick="window.togglePasswordVisibility('regPass', this)" class="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-gray-400 hover:text-teal-600 transition-colors cursor-pointer" tabindex="-1">
+                                <i class="fa-regular fa-eye text-base"></i>
                             </button>
                         </div>
                     </div>
@@ -353,10 +353,10 @@
                          <div><input list="cities" type="text" id="regCity" placeholder="Tỉnh/Thành phố..." class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"><datalist id="cities"><option value="Hà Nội"><option value="Hồ Chí Minh"><option value="Hải Phòng"><option value="Hưng Yên"><option value="Hải Dương"><option value="Bắc Ninh"></datalist></div>
                          <div><input type="email" id="regEmail" placeholder="Email (tùy chọn)" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
                          <div><input type="tel" id="regParentPhone" placeholder="SĐT Phụ huynh" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
-                        <div class="relative">
-                            <input type="password" id="regRePass" placeholder="Nhập lại mật khẩu" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm pr-11">
-                            <button type="button" onclick="window.togglePasswordVisibility('regRePass', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-teal-600 transition-colors cursor-pointer" tabindex="-1">
-                                <i class="fa-regular fa-eye"></i>
+                        <div class="relative flex items-center">
+                            <input type="password" id="regRePass" placeholder="Nhập lại mật khẩu" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm pr-10">
+                            <button type="button" onclick="window.togglePasswordVisibility('regRePass', this)" class="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-gray-400 hover:text-teal-600 transition-colors cursor-pointer" tabindex="-1">
+                                <i class="fa-regular fa-eye text-base"></i>
                             </button>
                         </div>
                     </div>
@@ -813,7 +813,7 @@
         import { 
             supabase, initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile, onAuthStateChanged, sendPasswordResetEmail,
             getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, onSnapshot, increment
-        } from "./supabase-db-compat.js?v=24";
+        } from "./supabase-db-compat.js?v=25";
 
         // Khởi tạo Supabase
         let app = initializeApp({});
