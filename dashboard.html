@@ -203,7 +203,10 @@
         }
         /* Dark Mode Overrides */
         .dark body, .dark main, .dark aside { background-color: #1E1B29 !important; color: #F1F5F9 !important; border-color: #2D2A3D !important; }
-        .dark .bg-white, .dark .bg-gray-50 { background-color: #262335 !important; border-color: #38344D !important; color: #F8FAFC !important; }
+        .dark .bg-white { background-color: #262335 !important; border-color: #38344D !important; color: #F8FAFC !important; }
+        .dark [class*="bg-white"] { background-color: #262335 !important; border-color: #38344D !important; }
+        .dark [class*="bg-gray-50"], .dark .bg-gray-50 { background-color: #211e2f !important; border-color: #38344D !important; color: #F8FAFC !important; }
+        .dark [class*="bg-slate-50"], .dark .bg-slate-50 { background-color: #161421 !important; border-color: #2D2A3D !important; color: #F8FAFC !important; }
         .dark .text-gray-900, .dark .text-gray-800, .dark .text-gray-700 { color: #F8FAFC !important; }
         .dark .text-gray-600, .dark .text-gray-500, .dark .text-gray-400 { color: #94A3B8 !important; }
         .dark .border-gray-100, .dark .border-gray-200, .dark .border-gray-300 { border-color: #38344D !important; }
@@ -214,30 +217,74 @@
         .dark .hover\:bg-gray-50:hover { background-color: #2D2A3D !important; }
         .dark .hover\:bg-gray-100:hover { background-color: #38344D !important; }
         .dark .text-primary-600, .dark .text-primary-700, .dark .text-primary-800 { color: #60A5FA !important; }
-        .dark .bg-primary-50, .dark .bg-primary-100 { background-color: rgba(59, 130, 246, 0.2) !important; color: #93C5FD !important; border-color: rgba(59, 130, 246, 0.3) !important;}
+        .dark .bg-primary-50, .dark .bg-primary-100, .dark [class*="bg-primary-50"] { background-color: rgba(59, 130, 246, 0.2) !important; color: #93C5FD !important; border-color: rgba(59, 130, 246, 0.3) !important;}
         .dark .text-teal-600, .dark .text-teal-700, .dark .text-teal-800, .dark .text-teal-900 { color: #5EEAD4 !important; }
-        .dark .bg-teal-50, .dark .bg-teal-100 { background-color: rgba(20, 184, 166, 0.2) !important; color: #5EEAD4 !important; border-color: rgba(20, 184, 166, 0.3) !important; }
+        .dark .bg-teal-50, .dark .bg-teal-100, .dark [class*="bg-teal-50"] { background-color: rgba(20, 184, 166, 0.2) !important; color: #5EEAD4 !important; border-color: rgba(20, 184, 166, 0.3) !important; }
         .dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800, .dark .text-blue-900 { color: #93C5FD !important; }
-        .dark .bg-blue-50, .dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2) !important; color: #93C5FD !important; border-color: rgba(59, 130, 246, 0.3) !important; }
+        .dark .bg-blue-50, .dark .bg-blue-100, .dark [class*="bg-blue-50"] { background-color: rgba(59, 130, 246, 0.2) !important; color: #93C5FD !important; border-color: rgba(59, 130, 246, 0.3) !important; }
         .dark .text-purple-600, .dark .text-purple-700, .dark .text-purple-800, .dark .text-purple-900 { color: #D8B4FE !important; }
-        .dark .bg-purple-50, .dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.2) !important; color: #D8B4FE !important; border-color: rgba(168, 85, 247, 0.3) !important; }
+        .dark .bg-purple-50, .dark .bg-purple-100, .dark [class*="bg-purple-50"] { background-color: rgba(168, 85, 247, 0.2) !important; color: #D8B4FE !important; border-color: rgba(168, 85, 247, 0.3) !important; }
         .dark .text-amber-600, .dark .text-amber-700, .dark .text-amber-800, .dark .text-amber-900, .dark .text-amber-950 { color: #FCD34D !important; }
-        .dark .bg-amber-50, .dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; color: #FCD34D !important; border-color: rgba(245, 158, 11, 0.3) !important; }
+        .dark .bg-amber-50, .dark .bg-amber-100, .dark [class*="bg-amber-50"] { background-color: rgba(245, 158, 11, 0.18) !important; color: #FCD34D !important; border-color: rgba(245, 158, 11, 0.35) !important; }
+        .dark [class*="bg-amber-50"] .text-amber-800, .dark [class*="bg-amber-50"] .text-amber-900, .dark [class*="bg-amber-50"] .text-amber-700 { color: #FCD34D !important; }
+        .dark [class*="bg-amber-50"] .text-gray-700, .dark [class*="bg-amber-50"] .text-gray-800 { color: #FEF3C7 !important; }
         .dark .text-indigo-600, .dark .text-indigo-700, .dark .text-indigo-800, .dark .text-indigo-900, .dark .text-indigo-950 { color: #A5B4FC !important; }
-        .dark .bg-indigo-50, .dark .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.2) !important; color: #A5B4FC !important; border-color: rgba(99, 102, 241, 0.3) !important; }
+        .dark .bg-indigo-50, .dark .bg-indigo-100, .dark [class*="bg-indigo-50"] { background-color: rgba(99, 102, 241, 0.2) !important; color: #A5B4FC !important; border-color: rgba(99, 102, 241, 0.35) !important; }
         .dark .text-emerald-600, .dark .text-emerald-700, .dark .text-emerald-800, .dark .text-emerald-900, .dark .text-emerald-950 { color: #6EE7B7 !important; }
-        .dark .bg-emerald-50, .dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; color: #6EE7B7 !important; border-color: rgba(16, 185, 129, 0.3) !important; }
+        .dark .bg-emerald-50, .dark .bg-emerald-100, .dark [class*="bg-emerald-50"] { background-color: rgba(16, 185, 129, 0.18) !important; color: #6EE7B7 !important; border-color: rgba(16, 185, 129, 0.35) !important; }
+        .dark [class*="bg-emerald-50"] .text-emerald-950, .dark [class*="bg-emerald-50"] .text-emerald-900, .dark [class*="bg-emerald-50"] .text-emerald-800 { color: #A7F3D0 !important; }
         .dark .text-red-500, .dark .text-red-600, .dark .text-red-700, .dark .text-red-800 { color: #FCA5A5 !important; }
-        .dark .bg-red-50, .dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.2) !important; color: #FCA5A5 !important; border-color: rgba(239, 68, 68, 0.3) !important; }
+        .dark .bg-red-50, .dark .bg-red-100, .dark [class*="bg-red-50"] { background-color: rgba(239, 68, 68, 0.2) !important; color: #FCA5A5 !important; border-color: rgba(239, 68, 68, 0.35) !important; }
         .dark .text-rose-500, .dark .text-rose-600, .dark .text-rose-700, .dark .text-rose-800 { color: #FDA4AF !important; }
-        .dark .bg-rose-50, .dark .bg-rose-100 { background-color: rgba(244, 63, 94, 0.2) !important; color: #FDA4AF !important; border-color: rgba(244, 63, 94, 0.3) !important; }
-        .dark .bg-green-50, .dark .bg-green-100 { background-color: rgba(34, 197, 94, 0.2) !important; color: #86EFAC !important; border-color: rgba(34, 197, 94, 0.3) !important; }
+        .dark .bg-rose-50, .dark .bg-rose-100, .dark [class*="bg-rose-50"] { background-color: rgba(244, 63, 94, 0.18) !important; color: #FDA4AF !important; border-color: rgba(244, 63, 94, 0.35) !important; }
+        .dark .bg-green-50, .dark .bg-green-100, .dark [class*="bg-green-50"] { background-color: rgba(34, 197, 94, 0.18) !important; color: #86EFAC !important; border-color: rgba(34, 197, 94, 0.35) !important; }
+        .dark .bg-orange-50, .dark .bg-orange-100, .dark [class*="bg-orange-50"] { background-color: rgba(234, 88, 12, 0.18) !important; color: #FDBA74 !important; border-color: rgba(234, 88, 12, 0.35) !important; }
         .dark th { background-color: #1E1B29 !important; border-color: #38344D !important; color: #F8FAFC !important; }
         .dark td { border-color: #38344D !important; }
         .dark tr:hover td { background-color: #2D2A3D !important; }
         .dark .modal-content { background-color: #1E1B29 !important; border-color: #38344D !important; color: #F8FAFC !important; }
         .dark .custom-scrollbar::-webkit-scrollbar-track { background: #1E1B29 !important; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #38344D !important; }
+
+        /* Dark Mode MathJax, TikZ & Question Display */
+        .dark mjx-container,
+        .dark mjx-container *,
+        .dark .mjx-chtml,
+        .dark .mjx-chtml * {
+            color: #F8FAFC !important;
+            fill: #F8FAFC !important;
+        }
+        .dark .math-content {
+            color: #F1F5F9 !important;
+        }
+        .dark .math-content svg:not(.lucide):not(.fa-solid):not(.fa-regular):not([class*="fa-"]),
+        .dark #overwritePreviewBox svg:not(.lucide):not(.fa-solid):not(.fa-regular):not([class*="fa-"]),
+        .dark #questionPreviewContent svg:not(.lucide):not(.fa-solid):not(.fa-regular):not([class*="fa-"]),
+        .dark #bankEditContentLivePreview svg:not(.lucide):not(.fa-solid):not(.fa-regular):not([class*="fa-"]),
+        .dark #bankEditSolutionLivePreview svg:not(.lucide):not(.fa-solid):not(.fa-regular):not([class*="fa-"]) {
+            background-color: #ffffff !important;
+            padding: 8px 12px !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45) !important;
+            color: #111827 !important;
+            display: inline-block !important;
+            max-width: 100% !important;
+            margin: 6px auto !important;
+        }
+        .dark .math-content img,
+        .dark #overwritePreviewBox img,
+        .dark #questionPreviewContent img,
+        .dark #bankEditContentLivePreview img,
+        .dark #bankEditSolutionLivePreview img {
+            background-color: #ffffff !important;
+            padding: 8px 12px !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            display: inline-block !important;
+            max-width: 100% !important;
+            margin: 6px auto !important;
+        }
 
         /* Enhanced Admin & Modal Dark Mode */
         .dark #adminRoleModal .modal-header,
@@ -250,6 +297,207 @@
         .dark #adminEditPermissionModal .modal-footer,
         .dark #teacherAiKeyModal .modal-footer {
             background: #1e1b29 !important;
+            border-color: #38344D !important;
+        }
+
+        /* Question Modals Dark Mode Overrides */
+        .dark #overwriteQuestionModal .modal-content,
+        .dark #singleQuestionTexModal .modal-content,
+        .dark #questionPreviewModal .modal-content,
+        .dark #questionUsageModal .modal-content,
+        .dark #questionEditModal .modal-content,
+        .dark #bankDirectImportModal .modal-content,
+        .dark #bankDeduplicateModal .modal-content,
+        .dark #bankManageAliasesModal .modal-content {
+            background-color: #1E1B29 !important;
+            border-color: #38344D !important;
+            color: #F1F5F9 !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+        }
+        .dark #overwriteQuestionModal .modal-content > div:first-child {
+            background: linear-gradient(135deg, #281f3b 0%, #201b2f 50%, #1a1726 100%) !important;
+            border-color: #38344D !important;
+        }
+        .dark #singleQuestionTexModal .modal-content > div:first-child {
+            background: linear-gradient(135deg, #132e27 0%, #172535 100%) !important;
+            border-color: #234e42 !important;
+        }
+        .dark #questionPreviewModal .modal-content > div:first-child {
+            background: linear-gradient(135deg, #1b2845 0%, #1e1b29 100%) !important;
+            border-color: #38344D !important;
+        }
+        .dark #questionUsageModal .modal-content > div:first-child {
+            background: linear-gradient(135deg, #162a45 0%, #1e1b29 100%) !important;
+            border-color: #38344D !important;
+        }
+        .dark #questionEditModal .modal-content > div:first-child {
+            background: linear-gradient(135deg, #332115 0%, #1e1b29 100%) !important;
+            border-color: #38344D !important;
+        }
+        .dark #bankDirectImportModal .modal-content > div:first-child {
+            background: linear-gradient(135deg, #1a2a44 0%, #1e1b29 100%) !important;
+            border-color: #38344D !important;
+        }
+        .dark #bankDeduplicateModal .modal-content > div:first-child {
+            background: linear-gradient(135deg, #332615 0%, #1e1b29 100%) !important;
+            border-color: #38344D !important;
+        }
+        .dark #overwriteQuestionModal .modal-content > div:last-child,
+        .dark #singleQuestionTexModal .modal-content > div:last-child,
+        .dark #questionPreviewModal .modal-content > div:last-child,
+        .dark #questionUsageModal .modal-content > div:last-child,
+        .dark #questionEditModal .modal-content > div:last-child,
+        .dark #bankDirectImportModal .modal-content > div:last-child,
+        .dark #bankDeduplicateModal .modal-content > div:last-child {
+            background-color: #1E1B29 !important;
+            border-color: #38344D !important;
+        }
+        .dark #overwriteQuestionModal button[onclick*="close"],
+        .dark #singleQuestionTexModal button[onclick*="close"],
+        .dark #questionPreviewModal button[onclick*="close"],
+        .dark #questionUsageModal button[onclick*="close"],
+        .dark #questionEditModal button[onclick*="close"],
+        .dark #bankDirectImportModal button[onclick*="close"],
+        .dark #bankDeduplicateModal button[onclick*="close"],
+        .dark #bankManageAliasesModal button[onclick*="close"] {
+            background-color: #262335 !important;
+            border-color: #38344D !important;
+            color: #94A3B8 !important;
+        }
+        .dark #overwriteQuestionModal button[onclick*="close"]:hover,
+        .dark #singleQuestionTexModal button[onclick*="close"]:hover,
+        .dark #questionPreviewModal button[onclick*="close"]:hover,
+        .dark #questionUsageModal button[onclick*="close"]:hover,
+        .dark #questionEditModal button[onclick*="close"]:hover,
+        .dark #bankDirectImportModal button[onclick*="close"]:hover,
+        .dark #bankDeduplicateModal button[onclick*="close"]:hover,
+        .dark #bankManageAliasesModal button[onclick*="close"]:hover {
+            color: #F87171 !important;
+            border-color: rgba(248, 113, 113, 0.4) !important;
+            background-color: rgba(239, 68, 68, 0.15) !important;
+        }
+
+        /* Question Preview & Overwrite Box Styles */
+        .dark #overwritePreviewBox,
+        .dark #questionPreviewContent,
+        .dark #bankEditContentLivePreview,
+        .dark #bankEditSolutionLivePreview {
+            background-color: #13111C !important;
+            color: #F1F5F9 !important;
+            border-color: #2D283E !important;
+        }
+        .dark #overwritePreviewContainer {
+            background-color: #1A1726 !important;
+            border-color: #059669 !important;
+        }
+        .dark #overwriteTexInput {
+            background-color: #13111C !important;
+            color: #F1F5F9 !important;
+            border-color: #38344D !important;
+        }
+        .dark #overwritePreviewContainer .border-emerald-100 {
+            border-color: rgba(16, 185, 129, 0.3) !important;
+        }
+        .dark #overwritePreviewContainer .text-emerald-800 {
+            color: #6EE7B7 !important;
+        }
+        .dark #overwritePreviewContainer .bg-emerald-100 {
+            background-color: rgba(16, 185, 129, 0.25) !important;
+            border-color: rgba(16, 185, 129, 0.4) !important;
+            color: #A7F3D0 !important;
+        }
+        .dark #overwritePreviewBox .border-gray-200 {
+            border-color: #2D283E !important;
+        }
+        .dark #overwritePreviewBox .bg-white {
+            background-color: #1E1B29 !important;
+            border-color: #38344D !important;
+            color: #F1F5F9 !important;
+        }
+        .dark #overwritePreviewBox .bg-gray-100,
+        .dark #overwritePreviewBox .bg-gray-200 {
+            background-color: #2D283E !important;
+            color: #CBD5E1 !important;
+        }
+        .dark #overwritePreviewBox .text-gray-900,
+        .dark #overwritePreviewBox .text-gray-800,
+        .dark #overwritePreviewBox .text-gray-700 {
+            color: #F1F5F9 !important;
+        }
+        .dark #overwritePreviewBox [class*="bg-emerald-50"] {
+            background-color: rgba(16, 185, 129, 0.18) !important;
+            border-color: #059669 !important;
+            color: #A7F3D0 !important;
+        }
+        .dark #overwritePreviewBox [class*="bg-amber-50"] {
+            background-color: rgba(245, 158, 11, 0.15) !important;
+            border-color: rgba(245, 158, 11, 0.35) !important;
+            color: #FDE68A !important;
+        }
+        .dark #overwritePreviewBox [class*="bg-amber-50"] .text-amber-800 {
+            color: #FCD34D !important;
+        }
+        .dark #overwritePreviewBox [class*="bg-amber-50"] .text-gray-700,
+        .dark #overwritePreviewBox [class*="bg-amber-50"] .math-content {
+            color: #FEF3C7 !important;
+        }
+        .dark #overwritePreviewBox [class*="bg-indigo-50"] {
+            background-color: rgba(99, 102, 241, 0.18) !important;
+            border-color: rgba(99, 102, 241, 0.35) !important;
+            color: #C7D2FE !important;
+        }
+        .dark #overwritePreviewBox [class*="bg-indigo-50"] .text-indigo-900,
+        .dark #overwritePreviewBox [class*="bg-indigo-50"] .text-indigo-700 {
+            color: #A5B4FC !important;
+        }
+        .dark #overwriteStatusBanner {
+            border-color: #38344D !important;
+        }
+        .dark #overwriteStatusBanner.bg-amber-50 {
+            background-color: rgba(245, 158, 11, 0.16) !important;
+            border-color: rgba(245, 158, 11, 0.4) !important;
+            color: #FDE68A !important;
+        }
+        .dark #overwriteStatusBanner.bg-emerald-50 {
+            background-color: rgba(16, 185, 129, 0.16) !important;
+            border-color: rgba(16, 185, 129, 0.4) !important;
+            color: #A7F3D0 !important;
+        }
+        .dark #overwriteStatusBanner.bg-rose-50 {
+            background-color: rgba(244, 63, 94, 0.16) !important;
+            border-color: rgba(244, 63, 94, 0.4) !important;
+            color: #FECDD3 !important;
+        }
+        .dark #overwriteStatusBanner.bg-slate-50 {
+            background-color: #1A1726 !important;
+            border-color: #38344D !important;
+            color: #CBD5E1 !important;
+        }
+        .dark #overwriteStatusBanner h4,
+        .dark #overwriteStatusBanner p,
+        .dark #overwriteStatusBanner span,
+        .dark #overwriteStatusBanner strong {
+            color: inherit !important;
+        }
+        .dark .btn-preview-delete {
+            background: rgba(220, 38, 38, 0.18) !important;
+            color: #FCA5A5 !important;
+            border: 1px solid rgba(220, 38, 38, 0.4) !important;
+        }
+        .dark .btn-preview-delete:hover {
+            background: rgba(220, 38, 38, 0.3) !important;
+            color: #FFFFFF !important;
+            border-color: #EF4444 !important;
+        }
+        .dark #singleQuestionTexModal .btn-preview-action.bg-white {
+            background-color: #262335 !important;
+            color: #E2E8F0 !important;
+            border-color: #38344D !important;
+        }
+        .dark #questionUsageModal tr:hover {
+            background-color: #262335 !important;
+        }
+        .dark #questionUsageModal td {
             border-color: #38344D !important;
         }
 
@@ -11798,7 +12046,7 @@ function renderTagFilterUI() {
 
                 // Nội dung câu hỏi
                 const formattedContent = window.formatContent ? window.formatContent(newQ.content || '') : newQ.content;
-                html += `<div class="font-medium text-gray-900 leading-relaxed">${formattedContent}</div>`;
+                html += `<div class="font-medium text-gray-900 leading-relaxed math-content">${formattedContent}</div>`;
 
                 // Các phương án lựa chọn (nếu có)
                 if (newQ.type === 'mc' || (Array.isArray(newQ.options) && newQ.options.length > 0)) {
@@ -11809,7 +12057,7 @@ function renderTagFilterUI() {
                         const optHtml = window.formatContent ? window.formatContent(opt || '') : opt;
                         html += `<div class="p-2.5 rounded-xl border ${isCorrect ? 'border-emerald-500 bg-emerald-50/80 text-emerald-950 font-semibold' : 'border-gray-200 bg-white text-gray-700'} flex items-start gap-2.5 shadow-2xs">
                             <span class="w-6 h-6 rounded-full ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600'} flex items-center justify-center text-xs shrink-0 font-bold">${letter}</span>
-                            <div class="flex-1 min-w-0 leading-snug">${optHtml}</div>
+                            <div class="flex-1 min-w-0 leading-snug math-content">${optHtml}</div>
                         </div>`;
                     });
                     html += `</div>`;
@@ -11822,7 +12070,7 @@ function renderTagFilterUI() {
                         html += `<div class="p-2 rounded-xl border border-gray-200 bg-white flex items-center justify-between gap-2 shadow-2xs">
                             <div class="flex items-center gap-2 flex-1 min-w-0">
                                 <span class="font-bold text-gray-700">${letter})</span>
-                                <div>${stmtHtml}</div>
+                                <div class="math-content text-gray-800 leading-snug">${stmtHtml}</div>
                             </div>
                             <span class="px-2 py-0.5 rounded text-xs font-bold shrink-0 ${isTrue ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">${isTrue ? 'Đúng' : 'Sai'}</span>
                         </div>`;
@@ -11830,7 +12078,7 @@ function renderTagFilterUI() {
                     html += `</div>`;
                 } else if (newQ.type === 'short' && newQ.answer !== undefined && String(newQ.answer).trim() !== '') {
                     html += `<div class="p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-900 mt-2">
-                        Đáp án điền khuyết: <span class="font-mono text-sm text-indigo-700 ml-1.5">${newQ.answer}</span>
+                        Đáp án điền khuyết: <span class="font-mono text-sm text-indigo-700 ml-1.5 math-content">${newQ.answer}</span>
                     </div>`;
                 }
 
@@ -11841,7 +12089,7 @@ function renderTagFilterUI() {
                         <div class="font-bold text-xs text-amber-800 mb-1 flex items-center gap-1.5">
                             <i class="fa-solid fa-lightbulb"></i> Lời giải chi tiết:
                         </div>
-                        <div class="text-xs text-gray-700 leading-relaxed">${solHtml}</div>
+                        <div class="text-xs text-gray-700 leading-relaxed math-content">${solHtml}</div>
                     </div>`;
                 }
 
@@ -11850,6 +12098,8 @@ function renderTagFilterUI() {
                 if (window.MathJax && window.MathJax.typesetPromise) {
                     await window.MathJax.typesetPromise([previewBox]).catch(()=>{});
                 }
+                if (window.renderTikz) window.renderTikz();
+                if (window.autoScaleTables) window.autoScaleTables();
             }
 
             // Hiện khung Preview & nút Lưu
