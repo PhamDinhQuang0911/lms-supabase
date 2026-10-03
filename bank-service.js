@@ -377,7 +377,7 @@
             // Cập nhật bộ nhớ đệm Bank cục bộ và đồng bộ catalog R2
             try {
                 this.updateLocalBankCache(questions);
-                this.syncQuestionsToCatalog(questions);
+                await this.syncQuestionsToCatalog(questions);
             } catch(e) {}
 
             return { successCount, failCount, total };
@@ -393,8 +393,17 @@
                 if (!Array.isArray(list)) list = [];
 
                 const map = new Map();
-                list.forEach(q => map.set(q.id, q));
-                newQuestions.forEach(q => map.set(q.id, q));
+                list.forEach(q => {
+                    const k = String(q.id || q.cccd || '');
+                    if (k) map.set(k, q);
+                });
+                newQuestions.forEach(q => {
+                    const k = String(q.id || q.cccd || '');
+                    if (k) {
+                        const cur = map.get(k) || {};
+                        map.set(k, Object.assign({}, cur, q));
+                    }
+                });
 
                 const updated = Array.from(map.values());
                 localStorage.setItem(LOCAL_BANK_CACHE_KEY, JSON.stringify(updated));
@@ -446,7 +455,7 @@
             // 2. Fetch từ Cloudflare R2 qua Worker nếu chưa có
             if (!target) {
                 try {
-                    const res = await fetch(`${WORKER_BANK_URL}?id=${encodeURIComponent(queryId)}`);
+                    const res = await fetch(`${WORKER_BANK_URL}?id=${encodeURIComponent(queryId)}&t=${Date.now()}`, { cache: 'no-store' });
                     if (res.ok) {
                         const data = await res.json();
                         if (data && (data.id || data.content)) {
@@ -499,7 +508,7 @@
                 const res = await fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: formData });
                 if (res.ok) {
                     this.updateLocalBankCache([normalized]);
-                    this.syncQuestionsToCatalog([normalized]);
+                    await this.syncQuestionsToCatalog([normalized]);
                     return true;
                 }
                 return false;
@@ -518,25 +527,40 @@
                 // 1. Cập nhật window.globalBankQuestions nếu đang ở trang dashboard
                 if (typeof window !== 'undefined' && Array.isArray(window.globalBankQuestions)) {
                     newQuestions.forEach(nq => {
-                        const idx = window.globalBankQuestions.findIndex(q => String(q.id) === String(nq.id));
+                        const nqId = String(nq.id || nq.cccd);
+                        const idx = window.globalBankQuestions.findIndex(q => String(q.id) === nqId || String(q.cccd) === nqId);
+                        const cur = idx !== -1 ? window.globalBankQuestions[idx] : {};
                         const catItem = {
-                            id: String(nq.id),
-                            cccd: String(nq.cccd || nq.id),
-                            mapId: String(nq.mapId || ''),
-                            level: nq.level || null,
-                            levelColor: nq.levelColor || 'gray',
-                            subject: nq.subject || 'Khác',
-                            type: nq.type || 'mc',
-                            source: nq.source || '',
-                            isMaster: !!nq.isMaster,
-                            isDuplicate: !!nq.isDuplicate,
-                            masterId: nq.masterId || null,
-                            aliases: Array.isArray(nq.aliases) ? nq.aliases : [],
-                            aliasCount: Array.isArray(nq.aliases) ? nq.aliases.length : 0,
+                            ...cur,
+                            ...nq,
+                            id: nqId,
+                            cccd: String(nq.cccd || nqId),
+                            mapId: String(nq.mapId || cur.mapId || ''),
+                            level: nq.level || cur.level || null,
+                            levelColor: nq.levelColor || cur.levelColor || 'gray',
+                            subject: nq.subject || cur.subject || 'Khác',
+                            type: nq.type || cur.type || 'mc',
+                            content: nq.content !== undefined ? nq.content : (cur.content || ''),
+                            solution: nq.solution !== undefined ? nq.solution : (cur.solution || ''),
+                            options: Array.isArray(nq.options) ? nq.options : (cur.options || []),
+                            correct: nq.correct !== undefined ? nq.correct : (cur.correct !== undefined ? cur.correct : -1),
+                            statements: Array.isArray(nq.statements) ? nq.statements : (cur.statements || []),
+                            answer: nq.answer !== undefined ? String(nq.answer) : (cur.answer || ''),
+                            point: typeof nq.point === 'number' ? nq.point : (typeof cur.point === 'number' ? cur.point : 0.25),
+                            source: nq.source !== undefined ? nq.source : (cur.source || ''),
+                            isMaster: nq.isMaster !== undefined ? !!nq.isMaster : (cur.isMaster || false),
+                            isDuplicate: nq.isDuplicate !== undefined ? !!nq.isDuplicate : (cur.isDuplicate || false),
+                            masterId: nq.masterId !== undefined ? nq.masterId : (cur.masterId || null),
+                            aliases: Array.isArray(nq.aliases) ? nq.aliases : (cur.aliases || []),
+                            aliasCount: Array.isArray(nq.aliases) ? nq.aliases.length : (cur.aliasCount || 0),
+                            bookMapId: nq.bookMapId || cur.bookMapId || '',
+                            topicId: nq.topicId || cur.topicId || '',
+                            examId: nq.examId || cur.examId || '',
+                            updatedAt: nq.updatedAt || new Date().toISOString(),
                             uploadedAt: nq.updatedAt || new Date().toISOString()
                         };
                         if (idx !== -1) {
-                            window.globalBankQuestions[idx] = Object.assign({}, window.globalBankQuestions[idx], catItem);
+                            window.globalBankQuestions[idx] = catItem;
                         } else {
                             window.globalBankQuestions.unshift(catItem);
                         }
@@ -549,47 +573,74 @@
                     }
                 }
 
-                // 2. Tải catalog hiện tại từ R2 hoặc LocalStorage, ghép và đẩy lên R2
-                const cachedBank = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
-                let catalogList = cachedBank ? JSON.parse(cachedBank) : [];
+                // 2. Tải catalog hiện tại từ RAM, LocalStorage hoặc R2, ghép đầy đủ nội dung và đẩy lên R2
+                let catalogList = [];
+                if (typeof window !== 'undefined' && Array.isArray(window.globalBankQuestions) && window.globalBankQuestions.length > 0) {
+                    catalogList = window.globalBankQuestions;
+                } else {
+                    const cachedBank = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
+                    if (cachedBank) {
+                        try { catalogList = JSON.parse(cachedBank); } catch(e) {}
+                    }
+                }
+
                 if (!Array.isArray(catalogList) || catalogList.length === 0) {
                     try {
-                        const r = await fetch("https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank_catalog.json?t=" + Date.now());
+                        const r = await fetch("https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank_catalog.json?t=" + Date.now(), { cache: 'no-store' });
                         if (r.ok) catalogList = await r.json();
                     } catch(e) {}
                 }
+
                 if (Array.isArray(catalogList) && catalogList.length > 0) {
                     const map = new Map();
-                    catalogList.forEach(item => map.set(String(item.id), item));
+                    catalogList.forEach(item => {
+                        const k = String(item.id || item.cccd || '');
+                        if (k) map.set(k, item);
+                    });
                     newQuestions.forEach(nq => {
-                        const cur = map.get(String(nq.id)) || {};
-                        map.set(String(nq.id), {
+                        const k = String(nq.id || nq.cccd || '');
+                        if (!k) return;
+                        const cur = map.get(k) || {};
+                        map.set(k, {
                             ...cur,
-                            id: String(nq.id),
-                            cccd: String(nq.cccd || nq.id),
-                            mapId: String(nq.mapId || ''),
+                            ...nq,
+                            id: k,
+                            cccd: String(nq.cccd || k),
+                            mapId: String(nq.mapId || cur.mapId || ''),
                             level: nq.level || cur.level || null,
                             levelColor: nq.levelColor || cur.levelColor || 'gray',
                             subject: nq.subject || cur.subject || 'Khác',
                             type: nq.type || cur.type || 'mc',
-                            source: nq.source || cur.source || '',
+                            content: nq.content !== undefined ? nq.content : (cur.content || ''),
+                            solution: nq.solution !== undefined ? nq.solution : (cur.solution || ''),
+                            options: Array.isArray(nq.options) ? nq.options : (cur.options || []),
+                            correct: nq.correct !== undefined ? nq.correct : (cur.correct !== undefined ? cur.correct : -1),
+                            statements: Array.isArray(nq.statements) ? nq.statements : (cur.statements || []),
+                            answer: nq.answer !== undefined ? String(nq.answer) : (cur.answer !== undefined ? cur.answer : ''),
+                            point: typeof nq.point === 'number' ? nq.point : (typeof cur.point === 'number' ? cur.point : 0.25),
+                            source: nq.source !== undefined ? nq.source : (cur.source || ''),
                             isMaster: nq.isMaster !== undefined ? !!nq.isMaster : (cur.isMaster || false),
                             isDuplicate: nq.isDuplicate !== undefined ? !!nq.isDuplicate : (cur.isDuplicate || false),
                             masterId: nq.masterId !== undefined ? nq.masterId : (cur.masterId || null),
                             aliases: Array.isArray(nq.aliases) ? nq.aliases : (cur.aliases || []),
                             aliasCount: Array.isArray(nq.aliases) ? nq.aliases.length : (cur.aliasCount || 0),
+                            bookMapId: nq.bookMapId || cur.bookMapId || '',
+                            topicId: nq.topicId || cur.topicId || '',
+                            examId: nq.examId || cur.examId || '',
+                            updatedAt: nq.updatedAt || new Date().toISOString(),
                             uploadedAt: nq.updatedAt || new Date().toISOString()
                         });
                     });
                     const updatedCatalog = Array.from(map.values());
                     const blob = new Blob([JSON.stringify(updatedCatalog, null, 2)], { type: 'application/json' });
+                    
                     const fd = new FormData();
                     fd.append('file', blob, 'bank_catalog.json');
-                    fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: fd }).catch(() => {});
+                    await fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: fd }).catch(() => {});
 
                     const fd2 = new FormData();
                     fd2.append('file', blob, 'full_bank_catalog.json');
-                    fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: fd2 }).catch(() => {});
+                    await fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: fd2 }).catch(() => {});
                 }
             } catch(err) {
                 console.warn('Lỗi syncQuestionsToCatalog:', err);

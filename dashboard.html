@@ -10451,7 +10451,7 @@ function renderTagFilterUI() {
             }
             if (!fullData) {
                 const WORKER_URL = "https://upload-helper.phamngockhanh-942001.workers.dev/bank";
-                const res = await fetch(`${WORKER_URL}?id=${encodeURIComponent(id)}`);
+                const res = await fetch(`${WORKER_URL}?id=${encodeURIComponent(id)}&t=${Date.now()}`, { cache: 'no-store' });
                 if(!res.ok) throw new Error("Lỗi tải file");
                 fullData = await res.json();
             }
@@ -11837,6 +11837,7 @@ function renderTagFilterUI() {
         const forceBox = document.getElementById('overwriteForceBox');
         const progressBox = document.getElementById('overwriteProgressBox');
         const previewContainer = document.getElementById('overwritePreviewContainer');
+        const previewBox = document.getElementById('overwritePreviewBox');
         const btnSave = document.getElementById('btnConfirmSaveOverwrite');
         const btnCompile = document.getElementById('btnCompilePreviewOverwrite');
         const btnCompileText = document.getElementById('btnCompilePreviewText');
@@ -11852,11 +11853,20 @@ function renderTagFilterUI() {
 
         if (oldImgsCount) oldImgsCount.textContent = oldImages.length;
         if (texInput) texInput.value = '';
+        if (previewBox) previewBox.innerHTML = '';
         if (chkForce) chkForce.checked = false;
         if (forceBox) forceBox.classList.add('hidden');
         if (progressBox) progressBox.classList.add('hidden');
         if (previewContainer) previewContainer.classList.add('hidden');
-        if (btnSave) btnSave.classList.add('hidden');
+        
+        if (btnSave) {
+            btnSave.disabled = false;
+            btnSave.classList.add('hidden');
+        }
+        if (btnCompile) {
+            btnCompile.disabled = true;
+            btnCompile.className = 'px-5 py-2.5 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-not-allowed shadow-md bg-gray-300 text-white';
+        }
         if (btnCompileText) btnCompileText.textContent = 'Biên dịch & Xem trước';
 
         window.validateOverwriteTexMatch();
@@ -11872,7 +11882,29 @@ function renderTagFilterUI() {
     // Đóng modal ghi đè
     window.closeOverwriteQuestionModal = () => {
         window.compiledOverwriteQuestion = null;
+        window.targetOverwriteQuestion = null;
         const modal = document.getElementById('overwriteQuestionModal');
+        const btnSave = document.getElementById('btnConfirmSaveOverwrite');
+        const btnCompile = document.getElementById('btnCompilePreviewOverwrite');
+        const progressBox = document.getElementById('overwriteProgressBox');
+        const previewContainer = document.getElementById('overwritePreviewContainer');
+        const texInput = document.getElementById('overwriteTexInput');
+        const previewBox = document.getElementById('overwritePreviewBox');
+        const chkForce = document.getElementById('chkForceOverwrite');
+        const forceBox = document.getElementById('overwriteForceBox');
+
+        if (btnSave) {
+            btnSave.disabled = false;
+            btnSave.classList.add('hidden');
+        }
+        if (btnCompile) btnCompile.disabled = false;
+        if (progressBox) progressBox.classList.add('hidden');
+        if (previewContainer) previewContainer.classList.add('hidden');
+        if (texInput) texInput.value = '';
+        if (previewBox) previewBox.innerHTML = '';
+        if (chkForce) chkForce.checked = false;
+        if (forceBox) forceBox.classList.add('hidden');
+
         if (modal) {
             modal.classList.add('opacity-0', 'pointer-events-none');
             modal.classList.remove('opacity-100', 'pointer-events-auto');
@@ -12028,6 +12060,14 @@ function renderTagFilterUI() {
             newQ.mapId = newQ.mapId || targetQ.mapId || '';
             newQ.level = newQ.level || targetQ.level || '';
             newQ.subject = newQ.subject || targetQ.subject || '';
+            if (targetQ.isMaster !== undefined) newQ.isMaster = targetQ.isMaster;
+            if (targetQ.isDuplicate !== undefined) newQ.isDuplicate = targetQ.isDuplicate;
+            if (targetQ.masterId) newQ.masterId = targetQ.masterId;
+            if (Array.isArray(targetQ.aliases)) newQ.aliases = targetQ.aliases;
+            if (targetQ.bookMapId) newQ.bookMapId = targetQ.bookMapId;
+            if (targetQ.topicId) newQ.topicId = targetQ.topicId;
+            if (targetQ.examId) newQ.examId = targetQ.examId;
+            if (newQ.point === undefined && targetQ.point !== undefined) newQ.point = targetQ.point;
 
             // Lưu đối tượng đã biên dịch vào biến tạm chờ người dùng bấm Lưu
             window.compiledOverwriteQuestion = newQ;
@@ -12110,7 +12150,10 @@ function renderTagFilterUI() {
                 previewContainer.classList.remove('hidden');
                 previewContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
-            if (btnSave) btnSave.classList.remove('hidden');
+            if (btnSave) {
+                btnSave.disabled = false;
+                btnSave.classList.remove('hidden');
+            }
             if (btnCompile) btnCompile.disabled = false;
             if (btnCompileText) btnCompileText.textContent = 'Biên dịch lại';
 
@@ -12158,7 +12201,7 @@ function renderTagFilterUI() {
 
         try {
             // Bước 2.1: Dọn dẹp ảnh cũ không còn dùng
-            updateProgress("Đang dọn dẹp ảnh cũ khỏi Cloudflare R2...", 30, "Kiểm tra ảnh cũ không còn dùng...");
+            updateProgress("Đang dọn dẹp ảnh cũ khỏi Cloudflare R2...", 20, "Kiểm tra ảnh cũ không còn dùng...");
             const oldImages = window.extractImagesFromQuestion(targetQ);
             const newImages = new Set(window.extractImagesFromQuestion(newQ));
             const imagesToDelete = oldImages.filter(u => !newImages.has(u));
@@ -12176,24 +12219,53 @@ function renderTagFilterUI() {
             }
 
             // Bước 2.2: Lưu câu hỏi vào Ngân hàng R2
-            updateProgress("Đang lưu câu hỏi ghi đè vào Ngân hàng R2...", 60, `Ghi đè mã CCCD #${targetCccd}...`);
+            updateProgress("Đang lưu câu hỏi ghi đè vào Ngân hàng R2...", 50, `Ghi đè mã CCCD #${targetCccd}...`);
             newQ.id = targetCccd;
             newQ.cccd = targetCccd;
             newQ.updatedAt = new Date().toISOString();
 
+            let saveSuccess = false;
             if (window.BankService) {
-                await window.BankService.saveSingleQuestion(newQ);
+                saveSuccess = await window.BankService.saveSingleQuestion(newQ);
+            }
+            if (!saveSuccess) {
+                // Fallback upload trực tiếp lên Cloudflare Worker nếu BankService gặp sự cố
+                try {
+                    const jsonStr = JSON.stringify(newQ, null, 2);
+                    const blob = new Blob([jsonStr], { type: 'application/json' });
+                    const fd = new FormData();
+                    fd.append('file', blob, `bank/${targetCccd}.json`);
+                    const res = await fetch("https://upload-helper.phamngockhanh-942001.workers.dev/", { method: 'PUT', body: fd });
+                    if (res.ok) saveSuccess = true;
+                } catch(eFallback) {
+                    console.error("Fallback upload error:", eFallback);
+                }
             }
 
-            // Bước 2.3: Cập nhật vào danh sách RAM
+            if (!saveSuccess) {
+                throw new Error("Không thể ghi đè câu hỏi lên Cloudflare R2. Vui lòng kiểm tra kết nối mạng!");
+            }
+
+            // Bước 2.3: Cập nhật đồng bộ vào danh sách RAM và bộ nhớ cache cục bộ
+            updateProgress("Đang cập nhật danh mục và bộ nhớ cục bộ...", 70, "Đồng bộ ngân hàng câu hỏi...");
             if (Array.isArray(window.globalBankQuestions)) {
                 const bIdx = window.globalBankQuestions.findIndex(q => String(q.id) === targetCccd || String(q.cccd) === targetCccd);
                 if (bIdx !== -1) {
                     window.globalBankQuestions[bIdx] = Object.assign({}, window.globalBankQuestions[bIdx], newQ);
-                    try {
-                        localStorage.setItem('lms_cached_bank', JSON.stringify(window.globalBankQuestions));
-                    } catch (e) {}
+                } else {
+                    window.globalBankQuestions.unshift(Object.assign({}, newQ));
                 }
+                try {
+                    localStorage.setItem('lms_cached_bank', JSON.stringify(window.globalBankQuestions));
+                } catch (e) {}
+            }
+            if (window.BankService) {
+                window.BankService.updateLocalBankCache([newQ]);
+            }
+
+            // Render lại danh sách ngân hàng ngay tức thì
+            if (typeof window.applyBankFilters === 'function') {
+                window.applyBankFilters();
             }
 
             // Bước 2.4: Đồng bộ cập nhật vào tất cả các đề thi có chứa câu này
@@ -12248,8 +12320,10 @@ function renderTagFilterUI() {
             if (window.showNotification) {
                 window.showNotification(`Có lỗi xảy ra khi lưu ghi đè: ${err.message || err}`, "error");
             }
+        } finally {
             if (btnSave) btnSave.disabled = false;
             if (btnCompile) btnCompile.disabled = false;
+            if (progressBox) progressBox.classList.add('hidden');
         }
     };
 
