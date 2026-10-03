@@ -1104,6 +1104,7 @@
         </div>
     </div>
 
+    <script src="bank-service.js?v=20260927-hotswap"></script>
     <script type="module">
         import { 
             initializeApp, getAuth, onAuthStateChanged, 
@@ -1329,6 +1330,11 @@
                 const docSnap = await getDoc(doc(db, "exams", id));
                 if (!docSnap.exists()) { document.getElementById('lobbyTitle').innerText = "Đề thi không tồn tại!"; return; }
                 examData = { id: docSnap.id, ...docSnap.data() }; 
+                if (window.BankService && typeof window.BankService.enrichExamQuestions === 'function' && Array.isArray(examData.questions)) {
+                    try {
+                        await window.BankService.enrichExamQuestions(examData.questions);
+                    } catch(e) {}
+                }
                 if (window.QMathSecurity) {
                     window.QMathSecurity.setContext({
                         examId: id,

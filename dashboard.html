@@ -11763,44 +11763,51 @@ function renderTagFilterUI() {
         if (!targetCccd) return 0;
         let count = 0;
         try {
-            const uid = currentUserUid || localStorage.getItem('last_active_uid') || (auth?.currentUser?.uid) || null;
-            let snap;
-            if (window.isSuperAdmin || !uid) {
-                snap = await getDocs(query(collection(db, "exams"), limit(500)));
-            } else {
-                snap = await getDocs(query(collection(db, "exams"), where("teacherId", "==", uid)));
-            }
-            for (const docSnap of snap.docs) {
-                const exData = docSnap.data();
-                if (Array.isArray(exData.questions) && exData.questions.length > 0) {
+            if (window.BankService && typeof window.BankService.syncQuestionToExams === 'function') {
+                count = await window.BankService.syncQuestionToExams(targetCccd, updatedQ);
+            } else if (window.supabase) {
+                const cccdStr = String(targetCccd).trim();
+                const [resCccd, resBankId] = await Promise.all([
+                    window.supabase.from('exams').select('id,title,questions,raw_data').contains('questions', [{ cccd: cccdStr }]),
+                    window.supabase.from('exams').select('id,title,questions,raw_data').contains('questions', [{ bankId: cccdStr }])
+                ]);
+                const examMap = new Map();
+                (resCccd.data || []).forEach(e => examMap.set(e.id, e));
+                (resBankId.data || []).forEach(e => examMap.set(e.id, e));
+                for (const ex of examMap.values()) {
+                    if (!Array.isArray(ex.questions)) continue;
                     let hasMatch = false;
-                    const newQuestions = exData.questions.map(q => {
-                        const qCccd = String(q.cccd || q.id || q.bankId || '').trim();
-                        if (qCccd === String(targetCccd).trim()) {
+                    const newQuestions = ex.questions.map(q => {
+                        const qCccd = String(q.cccd || q.bankId || q.id || '').trim();
+                        if (qCccd === cccdStr) {
                             hasMatch = true;
                             return {
                                 ...q,
-                                content: updatedQ.content,
-                                solution: updatedQ.solution,
-                                options: updatedQ.options || q.options || [],
-                                statements: updatedQ.statements || q.statements || [],
+                                content: updatedQ.content !== undefined ? updatedQ.content : q.content,
+                                solution: updatedQ.solution !== undefined ? updatedQ.solution : q.solution,
+                                options: Array.isArray(updatedQ.options) ? updatedQ.options : (q.options || []),
+                                statements: Array.isArray(updatedQ.statements) ? updatedQ.statements : (q.statements || []),
                                 answer: updatedQ.answer !== undefined ? updatedQ.answer : q.answer,
+                                correct: updatedQ.correct !== undefined ? updatedQ.correct : q.correct,
                                 type: updatedQ.type || q.type,
                                 mapId: updatedQ.mapId || q.mapId,
                                 level: updatedQ.level || q.level,
+                                levelColor: updatedQ.levelColor || q.levelColor,
                                 subject: updatedQ.subject || q.subject,
+                                point: (q.point !== undefined) ? q.point : (updatedQ.point !== undefined ? updatedQ.point : 0.25),
                                 updatedAt: new Date().toISOString()
                             };
                         }
                         return q;
                     });
-
                     if (hasMatch) {
-                        await updateDoc(doc(db, "exams", docSnap.id), {
-                            questions: newQuestions,
-                            updatedAt: new Date().toISOString()
-                        });
+                        const payload = { questions: newQuestions, updated_at: new Date().toISOString() };
+                        if (ex.raw_data && typeof ex.raw_data === 'object') {
+                            payload.raw_data = { ...ex.raw_data, questions: newQuestions, updatedAt: new Date().toISOString() };
+                        }
+                        await window.supabase.from('exams').update(payload).eq('id', ex.id);
                         count++;
+                        try { sessionStorage.removeItem(`qmath:exam:${ex.id}`); } catch(e) {}
                     }
                 }
             }

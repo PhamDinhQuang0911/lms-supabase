@@ -672,11 +672,18 @@ export function collection(db, tableName) {
 }
 
 export function query(collectionRef, ...constraints) {
+    const hasIncludeQuestions = (collectionRef && collectionRef.includeQuestions) || 
+        constraints.some(c => c && (c.type === 'includeQuestions' || c.includeQuestions || c.field === 'questions'));
     return {
         type: 'query',
         table: collectionRef.table,
-        constraints: [...(collectionRef.constraints || []), ...constraints]
+        includeQuestions: !!hasIncludeQuestions,
+        constraints: [...(collectionRef.constraints || []), ...constraints.filter(c => c && c.type !== 'includeQuestions')]
     };
+}
+
+export function includeQuestions() {
+    return { type: 'includeQuestions', includeQuestions: true };
 }
 
 export function where(field, op, value) {
@@ -1100,7 +1107,9 @@ export async function getDocs(queryOrColRef) {
         }
 
         let selectCols = '*';
-        if (table === 'exams' && !queryOrColRef.includeQuestions) {
+        const wantsQuestions = queryOrColRef.includeQuestions || 
+            (queryOrColRef.constraints && queryOrColRef.constraints.some(c => c && (c.type === 'includeQuestions' || c.includeQuestions || c.field === 'questions')));
+        if (table === 'exams' && !wantsQuestions) {
             selectCols = 'id,title,folder_id,teacher_id,duration,pass_score,status,access_type,allowed_class_ids,purpose,subject,grade,question_count,password,proctoring,attempts,start_time,end_time,n8n_webhooks,created_at,updated_at';
         }
         let queryBuilder = supabase.from(table).select(selectCols);
@@ -1352,6 +1361,13 @@ export async function updateDoc(docRef, updates) {
                 payload.raw_data = { ...currRaw, students: updates.students };
             } catch(e) {}
         }
+        if (table === 'exams' && updates.questions) {
+            try {
+                const { data: exDoc } = await supabase.from('exams').select('raw_data').eq(pkCol, docRef.id).maybeSingle();
+                const currRaw = (exDoc && exDoc.raw_data && typeof exDoc.raw_data === 'object') ? exDoc.raw_data : {};
+                payload.raw_data = { ...currRaw, questions: updates.questions, updatedAt: payload.updated_at || new Date().toISOString() };
+            } catch(e) {}
+        }
         const { error } = await supabase
             .from(table)
             .update(payload)
@@ -1525,5 +1541,6 @@ if (typeof window !== 'undefined') {
     window.query = window.query || query;
     window.where = window.where || where;
     window.getDocs = window.getDocs || getDocs;
+    window.includeQuestions = window.includeQuestions || includeQuestions;
 }
 

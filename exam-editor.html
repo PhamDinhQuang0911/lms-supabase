@@ -2410,7 +2410,7 @@
                 if (sessionExam && typeof sessionExam === 'object') {
                     docSnap = { exists: () => true, data: () => sessionExam };
                     // Làm mới ngầm cho lần mở tiếp theo, không chặn giao diện chấm bài.
-                    getDoc(examRef).then((fresh) => {
+                    getDoc(examRef).then(async (fresh) => {
                         if (fresh.exists()) {
                             const freshData = fresh.data();
                             try { sessionStorage.setItem(`qmath:exam:${id}`, JSON.stringify(freshData)); } catch (_) {}
@@ -2425,6 +2425,17 @@
                             }
                             if (freshData.status && typeof window.updateExamStatusUI === 'function') {
                                 window.updateExamStatusUI(freshData.status, id);
+                            }
+                            if (Array.isArray(freshData.questions) && JSON.stringify(freshData.questions) !== JSON.stringify(window.questions)) {
+                                window.questions = freshData.questions;
+                                if (window.BankService && typeof window.BankService.enrichExamQuestions === 'function') {
+                                    await window.BankService.enrichExamQuestions(window.questions);
+                                }
+                                window.originalQuestionsData = JSON.parse(JSON.stringify(window.questions));
+                                if (typeof window.renderPreviewList === 'function') window.renderPreviewList();
+                                if (window.currentQIndex !== -1 && typeof window.loadQuestionToEditor === 'function') {
+                                    window.loadQuestionToEditor(window.currentQIndex, window.currentQListType || 'normal');
+                                }
                             }
                         }
                     }).catch(() => {});
@@ -2509,6 +2520,16 @@
                     }
 
                     window.questions = data.questions || [];
+                    if (window.BankService && typeof window.BankService.enrichExamQuestions === 'function') {
+                        try {
+                            const enrichedCount = await window.BankService.enrichExamQuestions(window.questions);
+                            if (enrichedCount > 0) {
+                                console.log(`[loadExamData] Đã tự động cập nhật ${enrichedCount} câu hỏi từ Ngân hàng R2!`);
+                            }
+                        } catch(enrichErr) {
+                            console.warn("Lỗi enrichExamQuestions:", enrichErr);
+                        }
+                    }
                     window.originalQuestionsData = JSON.parse(JSON.stringify(window.questions));
                     if(!isKeepOrder && window.sortQuestionsByType) window.sortQuestionsByType();
                     if(window.renderPreviewList) window.renderPreviewList();
@@ -8875,52 +8896,16 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
                     }
 
                     // Tự động đồng bộ sang các đề thi khác có chứa câu hỏi này
-                    if (cccd) {
-                        (async () => {
-                            try {
-                                const uid = window.currentUserUid || (auth?.currentUser?.uid) || null;
-                                const snap = uid ? await getDocs(query(collection(db, "exams"), where("teacherId", "==", uid))) : await getDocs(query(collection(db, "exams"), limit(200)));
-                                for (const docSnap of snap.docs) {
-                                    if (docSnap.id === window.currentExamId) continue;
-                                    const exData = docSnap.data();
-                                    if (Array.isArray(exData.questions)) {
-                                        let hasMatch = false;
-                                        const newQuestions = exData.questions.map(otherQ => {
-                                            const otherCccd = String(otherQ.cccd || otherQ.id || otherQ.bankId || '').trim();
-                                            if (otherCccd === String(cccd).trim()) {
-                                                hasMatch = true;
-                                                return {
-                                                    ...otherQ,
-                                                    content: payload.content,
-                                                    solution: payload.solution,
-                                                    options: payload.options || otherQ.options || [],
-                                                    statements: payload.statements || otherQ.statements || [],
-                                                    answer: payload.answer !== undefined ? payload.answer : otherQ.answer,
-                                                    type: payload.type || otherQ.type,
-                                                    mapId: payload.mapId || otherQ.mapId,
-                                                    level: payload.level || otherQ.level,
-                                                    subject: payload.subject || otherQ.subject,
-                                                    updatedAt: new Date().toISOString()
-                                                };
-                                            }
-                                            return otherQ;
-                                        });
-                                        if (hasMatch) {
-                                            await updateDoc(doc(db, "exams", docSnap.id), {
-                                                questions: newQuestions,
-                                                updatedAt: new Date().toISOString()
-                                            });
-                                            console.log(`[saveSingleQuestionToBank] Đã đồng bộ câu #${cccd} vào đề thi ${docSnap.id}`);
-                                        }
-                                    }
-                                }
-                            } catch(syncErr) {
-                                console.warn("Lỗi đồng bộ các đề thi khác:", syncErr);
-                            }
-                        })();
+                    let otherSyncCount = 0;
+                    if (cccd && window.BankService && typeof window.BankService.syncQuestionToExams === 'function') {
+                        try {
+                            otherSyncCount = await window.BankService.syncQuestionToExams(cccd, payload, { excludeExamId: window.currentExamId });
+                        } catch(syncErr) {
+                            console.warn("Lỗi đồng bộ các đề thi khác:", syncErr);
+                        }
                     }
-
-                    window.showToast(`✅ Đã lưu và ghi đè câu ${index + 1} (CCCD: #${cccd}, MapID: ${q.mapId || 'Chưa gán'}) vào Ngân hàng R2!`, "success");
+                    const syncNote = otherSyncCount > 0 ? ` (Đã tự động đồng bộ ${otherSyncCount} đề thi khác)` : '';
+                    window.showToast(`✅ Đã lưu và ghi đè câu ${index + 1} (CCCD: #${cccd}, MapID: ${q.mapId || 'Chưa gán'}) vào Ngân hàng R2!${syncNote}`, "success");
                 } else {
                     window.showToast("Không thể lưu câu hỏi lên Cloudflare R2. Vui lòng kiểm tra lại!", "error");
                 }
@@ -9013,6 +8998,11 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
                 if (typeof renderPreviewList === 'function') renderPreviewList();
                 if (window.currentQIndex !== -1 && typeof loadQuestionToEditor === 'function') {
                     loadQuestionToEditor(window.currentQIndex, window.currentQListType);
+                }
+                // Tự động lưu đề thi để ghi nhận mã CCCD mới trong CSDL Supabase
+                if (window.currentExamId && typeof window.saveExam === 'function') {
+                    const currentStatus = (window.examData && window.examData.status) || 'published';
+                    window.saveExam(currentStatus).catch(() => {});
                 }
 
                 if (res.successCount === validQuestions.length) {

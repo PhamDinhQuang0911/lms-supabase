@@ -438,8 +438,14 @@
 
             let target = null;
 
-            // 1. Kiểm tra trong cache cục bộ
-            if (!forceRemote) {
+            // 1. Kiểm tra trong window.globalBankQuestions (nếu có)
+            if (!forceRemote && typeof window !== 'undefined' && Array.isArray(window.globalBankQuestions)) {
+                const found = window.globalBankQuestions.find(q => String(q.id) === queryId || String(q.cccd) === queryId);
+                if (found && found.content) target = found;
+            }
+
+            // 2. Kiểm tra trong cache cục bộ
+            if (!target && !forceRemote) {
                 try {
                     const cached = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
                     if (cached) {
@@ -452,7 +458,21 @@
                 } catch(e) {}
             }
 
-            // 2. Fetch từ Cloudflare R2 qua Worker nếu chưa có
+            // 3. Fetch trực tiếp từ Cloudflare R2 (tốc độ cao ~50ms)
+            if (!target) {
+                try {
+                    const res = await fetch(`https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank/${encodeURIComponent(queryId)}.json?t=${Date.now()}`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && (data.id || data.content)) {
+                            this.updateLocalBankCache([data]);
+                            target = data;
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            // 4. Fetch từ Cloudflare R2 qua Worker nếu chưa có
             if (!target) {
                 try {
                     const res = await fetch(`${WORKER_BANK_URL}?id=${encodeURIComponent(queryId)}&t=${Date.now()}`, { cache: 'no-store' });
@@ -470,7 +490,7 @@
 
             if (!target) return null;
 
-            // 3. Nếu câu này là câu trùng (Duplicate/Alias) trỏ về câu gốc (Master)
+            // 5. Nếu câu này là câu trùng (Duplicate/Alias) trỏ về câu gốc (Master)
             // Tra cứu trong sách giấy hoặc tra cứu CCCD vẫn hoạt động 100%, tự động trả về nội dung câu gốc
             if (target.isDuplicate && target.masterId && String(target.masterId) !== queryId) {
                 try {
@@ -494,9 +514,9 @@
         },
 
         /**
-         * Lưu một câu hỏi lên Cloudflare R2 và đồng bộ cache
+         * Lưu một câu hỏi lên Cloudflare R2, đồng bộ cache và tự động đồng bộ vào các đề thi chứa CCCD này
          */
-        async saveSingleQuestion(questionData) {
+        async saveSingleQuestion(questionData, options = {}) {
             if (!questionData || (!questionData.id && !questionData.cccd)) return false;
             const normalized = this.createBankQuestion(questionData, questionData.id || questionData.cccd);
             try {
@@ -509,6 +529,16 @@
                 if (res.ok) {
                     this.updateLocalBankCache([normalized]);
                     await this.syncQuestionsToCatalog([normalized]);
+                    
+                    // Tự động đồng bộ câu hỏi vào tất cả các đề thi trong Supabase
+                    if (!options.skipExamSync) {
+                        try {
+                            await this.syncQuestionToExams(normalized.id, normalized, options);
+                        } catch(syncExErr) {
+                            console.warn('[BankService.saveSingleQuestion] Lỗi đồng bộ đề thi ngầm:', syncExErr);
+                        }
+                    }
+
                     return true;
                 }
                 return false;
@@ -661,6 +691,282 @@
                     }
                 }
             } catch(e) {}
+        },
+
+        /**
+         * ĐỒNG BỘ CÂU HỎI THEO MÃ CCCD VÀO TẤT CẢ CÁC ĐỀ THI TRONG SUPABASE
+         * Khi một câu hỏi được chỉnh sửa/ghi đè trong Ngân hàng, cập nhật ngay lập tức
+         * vào tất cả các đề thi đang chứa CCCD này để link thi online và trang soạn đề luôn mới nhất.
+         */
+        async syncQuestionToExams(targetCccd, updatedQ, options = {}) {
+            if (!targetCccd) return 0;
+            const cccdStr = String(targetCccd).trim();
+            if (!cccdStr) return 0;
+
+            const sb = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+            if (!sb) {
+                console.warn('[BankService.syncQuestionToExams] Supabase client không khả dụng');
+                return 0;
+            }
+
+            let count = 0;
+            try {
+                // 1. Tìm tất cả đề thi có chứa câu hỏi này (kiểm tra cccd và bankId bằng JSONB contains)
+                let matchedExams = [];
+                try {
+                    const [resCccd, resBankId] = await Promise.all([
+                        sb.from('exams').select('id,title,questions,raw_data').contains('questions', [{ cccd: cccdStr }]),
+                        sb.from('exams').select('id,title,questions,raw_data').contains('questions', [{ bankId: cccdStr }])
+                    ]);
+                    const examMap = new Map();
+                    (resCccd.data || []).forEach(e => examMap.set(e.id, e));
+                    (resBankId.data || []).forEach(e => examMap.set(e.id, e));
+                    matchedExams = Array.from(examMap.values());
+                } catch(e) {
+                    console.warn('[BankService.syncQuestionToExams] Lỗi truy vấn contains:', e);
+                }
+
+                // Fallback: Nếu query contains trả về rỗng, quét danh sách exams để không bao giờ bỏ sót
+                if (matchedExams.length === 0) {
+                    try {
+                        const { data: allExams } = await sb.from('exams').select('id,title,questions,raw_data');
+                        if (Array.isArray(allExams)) {
+                            matchedExams = allExams.filter(ex => {
+                                if (!Array.isArray(ex.questions)) return false;
+                                return ex.questions.some(q => String(q.cccd || q.bankId || q.id || '').trim() === cccdStr);
+                            });
+                        }
+                    } catch(scanErr) {
+                        console.warn('[BankService.syncQuestionToExams] Lỗi scan bảng exams:', scanErr);
+                    }
+                }
+
+                // 2. Cập nhật từng đề thi có chứa CCCD này
+                for (const ex of matchedExams) {
+                    if (options.excludeExamId && ex.id === options.excludeExamId) continue;
+                    if (!Array.isArray(ex.questions) || ex.questions.length === 0) continue;
+
+                    let hasMatch = false;
+                    const newQuestions = ex.questions.map(q => {
+                        const qCccd = String(q.cccd || q.bankId || q.id || '').trim();
+                        if (qCccd === cccdStr) {
+                            hasMatch = true;
+                            return {
+                                ...q,
+                                content: updatedQ.content !== undefined ? updatedQ.content : q.content,
+                                solution: updatedQ.solution !== undefined ? updatedQ.solution : q.solution,
+                                options: Array.isArray(updatedQ.options) ? updatedQ.options : (q.options || []),
+                                statements: Array.isArray(updatedQ.statements) ? updatedQ.statements : (q.statements || []),
+                                answer: updatedQ.answer !== undefined ? updatedQ.answer : (q.answer !== undefined ? q.answer : ''),
+                                correct: updatedQ.correct !== undefined ? updatedQ.correct : q.correct,
+                                type: updatedQ.type || q.type,
+                                mapId: updatedQ.mapId || q.mapId,
+                                level: updatedQ.level || q.level,
+                                levelColor: updatedQ.levelColor || q.levelColor,
+                                subject: updatedQ.subject || q.subject,
+                                point: (q.point !== undefined) ? q.point : (updatedQ.point !== undefined ? updatedQ.point : 0.25),
+                                updatedAt: new Date().toISOString()
+                            };
+                        }
+                        return q;
+                    });
+
+                    if (hasMatch) {
+                        const updatePayload = {
+                            questions: newQuestions,
+                            updated_at: new Date().toISOString()
+                        };
+                        if (ex.raw_data && typeof ex.raw_data === 'object') {
+                            updatePayload.raw_data = {
+                                ...ex.raw_data,
+                                questions: newQuestions,
+                                updatedAt: new Date().toISOString()
+                            };
+                        }
+                        await sb.from('exams').update(updatePayload).eq('id', ex.id);
+                        count++;
+
+                        // Xóa cache sessionStorage nếu có để tránh stale data khi mở lại
+                        try { sessionStorage.removeItem(`qmath:exam:${ex.id}`); } catch(e) {}
+
+                        // Nếu đề này đang mở trong tab hiện tại của exam-editor
+                        if (typeof window !== 'undefined' && window.examData && (window.examData.id === ex.id || window.currentExamId === ex.id)) {
+                            window.examData.questions = newQuestions;
+                            window.questions = newQuestions;
+                            window.originalQuestionsData = JSON.parse(JSON.stringify(newQuestions));
+                            if (typeof window.renderPreviewList === 'function') window.renderPreviewList();
+                            if (window.currentQIndex !== -1 && typeof window.loadQuestionToEditor === 'function') {
+                                window.loadQuestionToEditor(window.currentQIndex);
+                            }
+                        }
+                    }
+                }
+
+                if (count > 0) {
+                    console.log(`[BankService.syncQuestionToExams] Đã đồng bộ câu CCCD #${cccdStr} vào ${count} đề thi trong Supabase.`);
+                }
+            } catch(err) {
+                console.error('[BankService.syncQuestionToExams] Lỗi đồng bộ câu hỏi vào đề thi:', err);
+            }
+            return count;
+        },
+
+        /**
+         * LÀM MỚI NỘI DUNG MẢNG CÂU HỎI TRONG ĐỀ THI TỪ NGÂN HÀNG CÂU HỎI (ENRICHMENT)
+         * Đối chiếu tất cả câu có mã CCCD trong mảng questions với Ngân hàng câu hỏi R2 / Cache
+         * Cập nhật nội dung câu mới nhất từ Ngân hàng vào câu hỏi của đề thi.
+         */
+        async enrichExamQuestions(questions) {
+            if (!Array.isArray(questions) || questions.length === 0) return 0;
+            let changedCount = 0;
+
+            // Xây dựng map tra cứu từ cache ngân hàng
+            let catalogMap = new Map();
+            try {
+                const cached = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
+                if (cached) {
+                    const list = JSON.parse(cached);
+                    if (Array.isArray(list)) {
+                        list.forEach(item => {
+                            const k = String(item.id || item.cccd || '').trim();
+                            if (k) catalogMap.set(k, item);
+                        });
+                    }
+                }
+            } catch(e) {}
+
+            if (typeof window !== 'undefined' && Array.isArray(window.globalBankQuestions)) {
+                window.globalBankQuestions.forEach(item => {
+                    const k = String(item.id || item.cccd || '').trim();
+                    if (k) catalogMap.set(k, item);
+                });
+            }
+
+            for (let i = 0; i < questions.length; i++) {
+                const q = questions[i];
+                const cccd = String(q.cccd || q.bankId || q.id || '').trim();
+                if (!cccd || !/^\d{8}$/.test(cccd)) continue;
+
+                let bankQ = catalogMap.get(cccd);
+                if (!bankQ) {
+                    bankQ = await this.getQuestionById(cccd, false);
+                    if (bankQ) catalogMap.set(cccd, bankQ);
+                }
+
+                if (bankQ && bankQ.content) {
+                    const isDifferent = (q.content !== bankQ.content) ||
+                        (q.solution !== bankQ.solution && bankQ.solution) ||
+                        (JSON.stringify(q.options || []) !== JSON.stringify(bankQ.options || [])) ||
+                        (JSON.stringify(q.statements || []) !== JSON.stringify(bankQ.statements || [])) ||
+                        (bankQ.answer !== undefined && q.answer !== undefined && String(q.answer) !== String(bankQ.answer));
+
+                    if (isDifferent) {
+                        q.content = bankQ.content;
+                        if (bankQ.solution !== undefined) q.solution = bankQ.solution;
+                        if (Array.isArray(bankQ.options) && bankQ.options.length > 0) q.options = bankQ.options;
+                        if (Array.isArray(bankQ.statements) && bankQ.statements.length > 0) q.statements = bankQ.statements;
+                        if (bankQ.answer !== undefined) q.answer = bankQ.answer;
+                        if (bankQ.correct !== undefined) q.correct = bankQ.correct;
+                        if (bankQ.type) q.type = bankQ.type;
+                        if (bankQ.mapId) q.mapId = bankQ.mapId;
+                        if (bankQ.level) q.level = bankQ.level;
+                        if (bankQ.levelColor) q.levelColor = bankQ.levelColor;
+                        if (bankQ.subject) q.subject = bankQ.subject;
+                        q.updatedAt = bankQ.updatedAt || new Date().toISOString();
+                        changedCount++;
+                    }
+                }
+            }
+            return changedCount;
+        },
+
+        /**
+         * QUÉT VÀ ĐỒNG BỘ TOÀN BỘ CÁC ĐỀ THI TRONG HỆ THỐNG VỚI NGÂN HÀNG CÂU HỎI
+         */
+        async syncAllExamsFromBank() {
+            const sb = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+            if (!sb) return { syncedExams: 0, updatedQuestions: 0 };
+
+            try {
+                // 1. Tải catalog ngân hàng đầy đủ
+                const catRes = await fetch("https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank_catalog.json?t=" + Date.now());
+                if (!catRes.ok) return { syncedExams: 0, updatedQuestions: 0 };
+                const catalog = await catRes.json();
+                const bankMap = new Map();
+                catalog.forEach(item => {
+                    const k = String(item.id || item.cccd || '').trim();
+                    if (k) bankMap.set(k, item);
+                });
+
+                // 2. Tải tất cả đề thi
+                const { data: exams, error } = await sb.from('exams').select('id,title,questions,raw_data');
+                if (error || !Array.isArray(exams)) return { syncedExams: 0, updatedQuestions: 0 };
+
+                let syncedExams = 0;
+                let updatedQuestions = 0;
+
+                for (const ex of exams) {
+                    if (!Array.isArray(ex.questions) || ex.questions.length === 0) continue;
+                    let examChanged = false;
+
+                    const newQuestions = ex.questions.map(q => {
+                        const cccd = String(q.cccd || q.bankId || q.id || '').trim();
+                        if (cccd && bankMap.has(cccd)) {
+                            const bankQ = bankMap.get(cccd);
+                            const isDifferent = (q.content !== bankQ.content) ||
+                                (q.solution !== bankQ.solution && bankQ.solution) ||
+                                (JSON.stringify(q.options || []) !== JSON.stringify(bankQ.options || [])) ||
+                                (JSON.stringify(q.statements || []) !== JSON.stringify(bankQ.statements || [])) ||
+                                (bankQ.answer !== undefined && q.answer !== undefined && String(q.answer) !== String(bankQ.answer));
+
+                            if (isDifferent) {
+                                examChanged = true;
+                                updatedQuestions++;
+                                return {
+                                    ...q,
+                                    content: bankQ.content,
+                                    solution: bankQ.solution !== undefined ? bankQ.solution : q.solution,
+                                    options: Array.isArray(bankQ.options) ? bankQ.options : (q.options || []),
+                                    statements: Array.isArray(bankQ.statements) ? bankQ.statements : (q.statements || []),
+                                    answer: bankQ.answer !== undefined ? bankQ.answer : (q.answer !== undefined ? q.answer : ''),
+                                    correct: bankQ.correct !== undefined ? bankQ.correct : q.correct,
+                                    type: bankQ.type || q.type,
+                                    mapId: bankQ.mapId || q.mapId,
+                                    level: bankQ.level || q.level,
+                                    levelColor: bankQ.levelColor || q.levelColor,
+                                    subject: bankQ.subject || q.subject,
+                                    point: (q.point !== undefined) ? q.point : (bankQ.point !== undefined ? bankQ.point : 0.25),
+                                    updatedAt: bankQ.updatedAt || new Date().toISOString()
+                                };
+                            }
+                        }
+                        return q;
+                    });
+
+                    if (examChanged) {
+                        const updatePayload = {
+                            questions: newQuestions,
+                            updated_at: new Date().toISOString()
+                        };
+                        if (ex.raw_data && typeof ex.raw_data === 'object') {
+                            updatePayload.raw_data = {
+                                ...ex.raw_data,
+                                questions: newQuestions,
+                                updatedAt: new Date().toISOString()
+                            };
+                        }
+                        await sb.from('exams').update(updatePayload).eq('id', ex.id);
+                        syncedExams++;
+                        try { sessionStorage.removeItem(`qmath:exam:${ex.id}`); } catch(e) {}
+                    }
+                }
+
+                console.log(`[BankService.syncAllExamsFromBank] Đã đồng bộ ${updatedQuestions} câu hỏi trên ${syncedExams} đề thi.`);
+                return { syncedExams, updatedQuestions };
+            } catch(e) {
+                console.error('[BankService.syncAllExamsFromBank] Lỗi đồng bộ toàn hệ thống:', e);
+                return { syncedExams: 0, updatedQuestions: 0 };
+            }
         }
     };
 
