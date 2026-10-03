@@ -100,19 +100,29 @@ export function onAuthStateChanged(auth, callback) {
 
 export async function signInWithEmailAndPassword(auth, email, password) {
     const cleanEmail = (email || '').trim().toLowerCase();
-    const cleanPass = (password || '').trim();
+    const usernamePart = cleanEmail.split('@')[0];
+    const hocsinhEmail = `${usernamePart}@hocsinh.com`;
+    const cleanPass = (password !== undefined && password !== null) ? String(password).trim() : '';
 
-    // 1. Tìm trong bảng users bằng .limit(1) (tránh hoàn toàn lỗi PGRST116 của maybeSingle)
+    // 1. Tìm trong bảng users (hỗ trợ cả email chuẩn, email dạng @hocsinh.com, và id)
     let userRow = null;
     try {
         const { data: users, error } = await supabase
             .from('users')
             .select('*')
-            .or(`email.ilike.${cleanEmail},id.eq.${cleanEmail}`)
-            .limit(1);
+            .or(`email.ilike.${cleanEmail},email.ilike.${hocsinhEmail},id.eq.${cleanEmail},id.eq.${usernamePart}`);
 
         if (!error && users && users.length > 0) {
-            userRow = users[0];
+            // Nếu có nhiều hơn 1 tài khoản (do lịch sử di chuyển), ưu tiên tài khoản khớp chính xác mật khẩu
+            if (users.length > 1 && cleanPass) {
+                const passMatch = users.find(u => {
+                    const expected = u.password || (u.raw_data && u.raw_data.password);
+                    return expected && String(expected).trim() === cleanPass;
+                });
+                userRow = passMatch || users[0];
+            } else {
+                userRow = users[0];
+            }
         }
     } catch(e) {
         console.warn("Lỗi tìm người dùng:", e);
@@ -193,11 +203,12 @@ export async function signInWithEmailAndPassword(auth, email, password) {
     }
 
     // 5. Kiểm tra mật khẩu (nếu tài khoản có mật khẩu bảo vệ)
-    if (userRow.password) {
+    const expectedPass = userRow.password || (userRow.raw_data && userRow.raw_data.password);
+    if (expectedPass) {
         if (!cleanPass) {
             throw new Error("Vui lòng nhập mật khẩu!");
         }
-        if (userRow.password !== cleanPass) {
+        if (String(expectedPass).trim() !== cleanPass) {
             throw new Error("Mật khẩu không chính xác!");
         }
     }
@@ -223,14 +234,67 @@ export async function signInWithEmailAndPassword(auth, email, password) {
 }
 
 export async function createUserWithEmailAndPassword(auth, email, password) {
-    const newId = 'user_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
     const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPass = (password !== undefined && password !== null) ? String(password).trim() : '';
+
+    if (!cleanEmail) {
+        const err = new Error("Email hoặc tên đăng nhập không được để trống!");
+        err.code = 'auth/invalid-email';
+        throw err;
+    }
+    if (!cleanPass || cleanPass.length < 6) {
+        const err = new Error("Mật khẩu phải có ít nhất 6 ký tự!");
+        err.code = 'auth/weak-password';
+        throw err;
+    }
+
+    const usernamePart = cleanEmail.split('@')[0];
+    const hocsinhEmail = `${usernamePart}@hocsinh.com`;
+
+    // 1. Kiểm tra nghiêm ngặt trùng lặp trong bảng 'users' (cả email, username, id)
+    try {
+        const { data: existingUsers } = await supabase
+            .from('users')
+            .select('id, email')
+            .or(`email.ilike.${cleanEmail},email.ilike.${hocsinhEmail},id.eq.${cleanEmail},id.eq.${usernamePart}`)
+            .limit(1);
+
+        if (existingUsers && existingUsers.length > 0) {
+            const err = new Error("Tên đăng nhập hoặc Email này đã tồn tại trên hệ thống! Vui lòng chọn tên đăng nhập khác.");
+            err.code = 'auth/email-already-in-use';
+            throw err;
+        }
+    } catch (e) {
+        if (e.code === 'auth/email-already-in-use') throw e;
+        console.warn("Lỗi kiểm tra trùng lặp users:", e);
+    }
+
+    // 2. Kiểm tra trùng lặp trong bảng 'admin_accounts'
+    try {
+        const { data: existingAdmins } = await supabase
+            .from('admin_accounts')
+            .select('id, email')
+            .or(`email.ilike.${cleanEmail},email.ilike.${hocsinhEmail},id.eq.${cleanEmail},id.eq.${usernamePart}`)
+            .limit(1);
+
+        if (existingAdmins && existingAdmins.length > 0) {
+            const err = new Error("Tên đăng nhập hoặc Email này đã tồn tại trên hệ thống! Vui lòng chọn tên đăng nhập khác.");
+            err.code = 'auth/email-already-in-use';
+            throw err;
+        }
+    } catch (e) {
+        if (e.code === 'auth/email-already-in-use') throw e;
+        console.warn("Lỗi kiểm tra trùng lặp admin_accounts:", e);
+    }
+
+    // 3. Tiến hành tạo mới trong Supabase PostgreSQL
+    const newId = 'user_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
     const newUser = {
         id: newId,
         email: cleanEmail,
-        password: password,
+        password: cleanPass,
         role: 'student',
-        display_name: cleanEmail.split('@')[0],
+        display_name: usernamePart,
         created_at: new Date().toISOString()
     };
 
@@ -247,6 +311,15 @@ export async function createUserWithEmailAndPassword(auth, email, password) {
         displayName: newUser.display_name,
         role: 'student'
     };
+
+    if (auth) {
+        auth.currentUser = userObj;
+        if (auth.isDefault !== false) {
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userObj));
+            if (auth._notify) auth._notify();
+        }
+    }
+
     return { user: userObj };
 }
 

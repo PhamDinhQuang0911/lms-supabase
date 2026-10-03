@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <!-- PWA Settings -->
@@ -813,6 +813,10 @@
 
         onAuthStateChanged(auth, async (user) => { // Thêm từ khóa async
             if (user) {
+                if (window.isRegistering) {
+                    console.log("Đang trong quá trình lưu hồ sơ đăng ký tài khoản, tạm hoãn chuyển hướng...");
+                    return;
+                }
                 // --- TRƯỜNG HỢP 1: ĐÃ ĐĂNG NHẬP -> CHUYỂN HƯỚNG NGAY (KHÔNG TẢI GIAO DIỆN INDEX) ---
                 const ADMIN_EMAILS = ["phamdinhquang0911@gmail.com", "phamngockhanh.942001@gmail.com", "phamngockhanh.942002@gmail.com"];
                 
@@ -1447,48 +1451,96 @@
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('regName').value;
-            let username = document.getElementById('regUsername').value.trim().replace(/@/g, '').toLowerCase();
-            const phone = document.getElementById('regPhone').value;
-            const parentPhone = document.getElementById('regParentPhone').value;
-            const year = document.getElementById('regYear').value;
-            const school = document.getElementById('regSchool').value;
-            const city = document.getElementById('regCity').value;
-            const emailInput = document.getElementById('regEmail').value.trim();
+            const name = (document.getElementById('regName').value || '').trim();
+            let username = (document.getElementById('regUsername').value || '').trim().replace(/@/g, '').toLowerCase();
+            const rawPhone = (document.getElementById('regPhone').value || '').trim();
+            const cleanPhone = rawPhone.replace(/\s+/g, '');
+            const parentPhone = (document.getElementById('regParentPhone').value || '').trim();
+            const year = (document.getElementById('regYear').value || '').trim();
+            const school = (document.getElementById('regSchool').value || '').trim();
+            const city = (document.getElementById('regCity').value || '').trim();
+            const emailInput = (document.getElementById('regEmail').value || '').trim();
             const pass = document.getElementById('regPass').value;
             const rePass = document.getElementById('regRePass').value;
 
-            if (!/^[a-z0-9._]+$/.test(username)) return showRegMessage("Tên đăng nhập không dấu, không khoảng trắng!", "error");
-            if (pass !== rePass) return showRegMessage("Mật khẩu không khớp!", "error");
+            if (!name) return showRegMessage("Vui lòng nhập họ và tên của bạn!", "error");
+            if (!/^[a-z0-9._]{3,30}$/.test(username)) {
+                return showRegMessage("Tên đăng nhập từ 3 - 30 ký tự, viết liền không dấu (chỉ gồm chữ thường, số, dấu chấm hoặc gạch dưới)!", "error");
+            }
+            if (!cleanPhone) return showRegMessage("Vui lòng nhập số điện thoại!", "error");
+            if (!pass || pass.length < 6) return showRegMessage("Mật khẩu phải từ 6 ký tự trở lên!", "error");
+            if (pass !== rePass) return showRegMessage("Mật khẩu xác nhận không khớp!", "error");
             
-            regBtn.disabled = true; regBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ĐANG TẠO...';
+            regBtn.disabled = true; 
+            regBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ĐANG KIỂM TRA & TẠO...';
             const fakeEmail = `${username}@hocsinh.com`;
 
-            try {
-                // Check SĐT
-                const qPhone = query(collection(db, "users"), where("phone", "==", phone));
-                const snapPhone = await getDocs(qPhone);
-                if (!snapPhone.empty) throw new Error("Số điện thoại này đã được đăng ký!");
+            window.isRegistering = true;
 
+            try {
+                // 1. Kiểm tra Trùng Số Điện Thoại
+                const qPhone = query(collection(db, "users"), where("phone", "==", cleanPhone));
+                const snapPhone = await getDocs(qPhone);
+                if (!snapPhone.empty) {
+                    throw new Error("Số điện thoại này đã được đăng ký tài khoản khác! Vui lòng dùng số khác hoặc đăng nhập.");
+                }
+
+                // 2. Kiểm tra Trùng Tên Đăng Nhập (theo email định danh = username@hocsinh.com)
+                const qEmail = query(collection(db, "users"), where("email", "==", fakeEmail));
+                const snapEmail = await getDocs(qEmail);
+                if (!snapEmail.empty) {
+                    const err = new Error("Tên đăng nhập này đã có người sử dụng! Vui lòng chọn tên đăng nhập khác.");
+                    err.code = 'auth/email-already-in-use';
+                    throw err;
+                }
+
+                // 3. Kiểm tra Trùng Tên Đăng Nhập (theo ID người dùng)
+                const docCheck = await getDoc(doc(db, "users", username));
+                if (docCheck.exists()) {
+                    const err = new Error("Tên đăng nhập này đã có người sử dụng! Vui lòng chọn tên đăng nhập khác.");
+                    err.code = 'auth/email-already-in-use';
+                    throw err;
+                }
+
+                // 4. Tạo người dùng trên Auth / Supabase Users Table
                 const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, pass);
                 const user = userCredential.user;
                 await updateProfile(user, { displayName: name });
                 
+                // 5. Lưu đầy đủ hồ sơ học sinh vào database
                 await setDoc(doc(db, "users", user.uid), {
-                    displayName: name, username, email: fakeEmail, personalEmail: emailInput, phone, phoneParent: parentPhone,
-                    birthYear: year, school, city, role: 'student', createdAt: new Date().toISOString(), authType: 'username', password: pass 
+                    displayName: name, 
+                    username: username, 
+                    email: fakeEmail, 
+                    personalEmail: emailInput, 
+                    phone: cleanPhone, 
+                    phoneParent: parentPhone,
+                    birthYear: year, 
+                    school: school, 
+                    city: city, 
+                    role: 'student', 
+                    createdAt: new Date().toISOString(), 
+                    authType: 'username', 
+                    password: pass 
                 });
-                showRegMessage("Đăng ký thành công!", "success");
+
+                showRegMessage("Đăng ký tài khoản thành công! Đang chuyển đến bảng học tập...", "success");
+                window.isRegistering = false;
                 
-                // ĐÃ XÓA CHUYỂN HƯỚNG THỦ CÔNG - ĐỂ onAuthStateChanged TỰ XỬ LÝ
-                // setTimeout(() => window.location.href = "dashboard.html", 1000);
+                setTimeout(() => {
+                    window.location.href = "student.html";
+                }, 800);
                 
             } catch (error) {
-                console.error(error);
-                let msg = error.message;
-                if (error.code === 'auth/email-already-in-use') msg = "Tên đăng nhập này đã có người dùng!";
+                window.isRegistering = false;
+                console.error("Lỗi đăng ký:", error);
+                let msg = error.message || "Đăng ký thất bại!";
+                if (error.code === 'auth/email-already-in-use' || msg.includes('đã tồn tại') || msg.includes('already-in-use') || msg.includes('đã có người') || msg.includes('đã được sử dụng')) {
+                    msg = "Tên đăng nhập này đã có người sử dụng! Vui lòng chọn tên đăng nhập khác.";
+                }
                 showRegMessage(msg, "error");
-                regBtn.disabled = false; regBtn.innerHTML = 'ĐĂNG KÝ TÀI KHOẢN';
+                regBtn.disabled = false; 
+                regBtn.innerHTML = 'ĐĂNG KÝ TÀI KHOẢN';
             }
         });
 
