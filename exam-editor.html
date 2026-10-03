@@ -8859,6 +8859,53 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
                         const currentStatus = (window.examData && window.examData.status) || 'published';
                         window.saveExam(currentStatus).catch(() => {});
                     }
+
+                    // Tự động đồng bộ sang các đề thi khác có chứa câu hỏi này
+                    if (cccd) {
+                        (async () => {
+                            try {
+                                const uid = window.currentUserUid || (auth?.currentUser?.uid) || null;
+                                const snap = uid ? await getDocs(query(collection(db, "exams"), where("teacherId", "==", uid))) : await getDocs(query(collection(db, "exams"), limit(200)));
+                                for (const docSnap of snap.docs) {
+                                    if (docSnap.id === window.currentExamId) continue;
+                                    const exData = docSnap.data();
+                                    if (Array.isArray(exData.questions)) {
+                                        let hasMatch = false;
+                                        const newQuestions = exData.questions.map(otherQ => {
+                                            const otherCccd = String(otherQ.cccd || otherQ.id || otherQ.bankId || '').trim();
+                                            if (otherCccd === String(cccd).trim()) {
+                                                hasMatch = true;
+                                                return {
+                                                    ...otherQ,
+                                                    content: payload.content,
+                                                    solution: payload.solution,
+                                                    options: payload.options || otherQ.options || [],
+                                                    statements: payload.statements || otherQ.statements || [],
+                                                    answer: payload.answer !== undefined ? payload.answer : otherQ.answer,
+                                                    type: payload.type || otherQ.type,
+                                                    mapId: payload.mapId || otherQ.mapId,
+                                                    level: payload.level || otherQ.level,
+                                                    subject: payload.subject || otherQ.subject,
+                                                    updatedAt: new Date().toISOString()
+                                                };
+                                            }
+                                            return otherQ;
+                                        });
+                                        if (hasMatch) {
+                                            await updateDoc(doc(db, "exams", docSnap.id), {
+                                                questions: newQuestions,
+                                                updatedAt: new Date().toISOString()
+                                            });
+                                            console.log(`[saveSingleQuestionToBank] Đã đồng bộ câu #${cccd} vào đề thi ${docSnap.id}`);
+                                        }
+                                    }
+                                }
+                            } catch(syncErr) {
+                                console.warn("Lỗi đồng bộ các đề thi khác:", syncErr);
+                            }
+                        })();
+                    }
+
                     window.showToast(`✅ Đã lưu và ghi đè câu ${index + 1} (CCCD: #${cccd}, MapID: ${q.mapId || 'Chưa gán'}) vào Ngân hàng R2!`, "success");
                 } else {
                     window.showToast("Không thể lưu câu hỏi lên Cloudflare R2. Vui lòng kiểm tra lại!", "error");

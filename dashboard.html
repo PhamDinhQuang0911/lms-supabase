@@ -10098,7 +10098,17 @@ function renderTagFilterUI() {
             }
 
             if (saved) {
-                window.showNotification("Đã cập nhật câu hỏi thành công trên Cloudflare!", "success");
+                // Tự động đồng bộ câu hỏi vào tất cả các đề thi đang chứa câu hỏi này
+                let syncCount = 0;
+                try {
+                    const cccdToSync = currentEditingQuestion.cccd || currentEditingQuestion.id;
+                    syncCount = await syncUpdatedQuestionToAllExams(cccdToSync, currentEditingQuestion);
+                } catch(syncErr) {
+                    console.warn("Lỗi đồng bộ đề thi sau khi sửa câu hỏi:", syncErr);
+                }
+
+                const syncMsg = syncCount > 0 ? ` (Đã tự động đồng bộ ${syncCount} đề thi liên quan)` : '';
+                window.showNotification(`Đã cập nhật câu hỏi thành công trên Cloudflare!${syncMsg}`, "success");
                 window.closeQuestionEditModal();
 
                 // Cập nhật Cache local & UI
@@ -11126,14 +11136,23 @@ function renderTagFilterUI() {
                     } catch(e) {}
                 }
 
+                // Tự động đồng bộ sang tất cả các đề thi chứa câu hỏi này
+                let syncCount = 0;
+                try {
+                    syncCount = await syncUpdatedQuestionToAllExams(q.id || q.cccd, q);
+                } catch(syncErr) {
+                    console.warn("Lỗi đồng bộ đề thi sau khi thay ảnh:", syncErr);
+                }
+
                 // Reset target
                 window.activeBankImageTarget = null;
 
                 // Re-render xem trước câu hỏi
                 window.previewQuestionBank(q);
 
+                const syncMsg = syncCount > 0 ? ` (Đã đồng bộ ${syncCount} đề thi)` : '';
                 if (window.showNotification) {
-                    window.showNotification("Đã dán và cập nhật ảnh thành công lên Cloudflare R2!", "success");
+                    window.showNotification(`Đã dán và cập nhật ảnh thành công lên Cloudflare R2!${syncMsg}`, "success");
                 }
             } else {
                 throw new Error("Không thể lưu cập nhật câu hỏi lên Cloudflare R2");
@@ -11251,12 +11270,44 @@ function renderTagFilterUI() {
             }
         });
 
-        if (window.BankService) {
-            await window.BankService.saveSingleQuestion(q);
-        }
-        window.previewQuestionBank(q);
-        if (window.showNotification) {
-            window.showNotification("Đã xóa ảnh khỏi câu hỏi thành công!", "success");
+        try {
+            if (window.BankService) {
+                await window.BankService.saveSingleQuestion(q);
+            } else {
+                const WORKER_UPLOAD_URL = "https://upload-helper.phamngockhanh-942001.workers.dev/";
+                const blob = new Blob([JSON.stringify(q, null, 2)], { type: 'application/json' });
+                const fd = new FormData();
+                fd.append('file', blob, `bank/${q.id}.json`);
+                await fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: fd });
+            }
+
+            // Cập nhật RAM & cache
+            if (Array.isArray(window.globalBankQuestions)) {
+                const idx = window.globalBankQuestions.findIndex(x => String(x.id) === String(q.id));
+                if (idx !== -1) {
+                    window.globalBankQuestions[idx] = Object.assign({}, window.globalBankQuestions[idx], q);
+                }
+                try {
+                    localStorage.setItem('lms_cached_bank', JSON.stringify(window.globalBankQuestions));
+                } catch(e) {}
+            }
+
+            // Tự động đồng bộ sang tất cả các đề thi chứa câu hỏi này
+            let syncCount = 0;
+            try {
+                syncCount = await syncUpdatedQuestionToAllExams(q.id || q.cccd, q);
+            } catch(syncErr) {
+                console.warn("Lỗi đồng bộ đề thi sau khi xóa ảnh:", syncErr);
+            }
+
+            window.previewQuestionBank(q);
+            const syncMsg = syncCount > 0 ? ` (Đã đồng bộ ${syncCount} đề thi)` : '';
+            if (window.showNotification) {
+                window.showNotification(`Đã xóa ảnh khỏi câu hỏi thành công!${syncMsg}`, "success");
+            }
+        } catch (err) {
+            console.error("Lỗi khi xóa ảnh:", err);
+            if (window.showNotification) window.showNotification("Lỗi khi xóa ảnh: " + err.message, "error");
         }
     };
 
@@ -11438,7 +11489,13 @@ function renderTagFilterUI() {
         if (!targetCccd) return 0;
         let count = 0;
         try {
-            const snap = await getDocs(query(collection(db, "exams"), where("teacherId", "==", currentUserUid)));
+            const uid = currentUserUid || localStorage.getItem('last_active_uid') || (auth?.currentUser?.uid) || null;
+            let snap;
+            if (window.isSuperAdmin || !uid) {
+                snap = await getDocs(query(collection(db, "exams"), limit(500)));
+            } else {
+                snap = await getDocs(query(collection(db, "exams"), where("teacherId", "==", uid)));
+            }
             for (const docSnap of snap.docs) {
                 const exData = docSnap.data();
                 if (Array.isArray(exData.questions) && exData.questions.length > 0) {
@@ -11473,11 +11530,15 @@ function renderTagFilterUI() {
                     }
                 }
             }
+            if (count > 0) {
+                console.log(`[syncUpdatedQuestionToAllExams] Đã đồng bộ câu hỏi CCCD #${targetCccd} vào ${count} đề thi.`);
+            }
         } catch (err) {
             console.warn("Lỗi đồng bộ đề thi:", err);
         }
         return count;
     }
+    window.syncUpdatedQuestionToAllExams = syncUpdatedQuestionToAllExams;
 
     // Mở modal ghi đè câu hỏi
     window.openOverwriteQuestionModal = (targetQ = null) => {
