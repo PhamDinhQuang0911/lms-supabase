@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <!-- PWA Settings -->
@@ -5469,16 +5469,16 @@
                     }
                 }
 
-                // Chỉ thực hiện đổi mật khẩu trên Firebase Auth nếu là tài khoản do giáo viên tạo VÀ mật khẩu thực sự có sự thay đổi
-                const isPasswordChanged = isTeacherCreated && newPassword && newPassword.trim() !== "" && newPassword !== studentData.password;
+                // Thực hiện đổi mật khẩu nếu giáo viên nhập mật khẩu mới và có sự thay đổi
+                const isPasswordChanged = newPassword && newPassword.trim() !== "" && newPassword.trim() !== studentData.password;
                 if (isPasswordChanged) {
+                    const cleanNewPass = newPassword.trim();
                     if (targetUid) {
                         try {
                             const resetFunc = httpsCallable(functions, 'resetStudentPassword');
-                            await resetFunc({ studentUid: targetUid, newPassword: newPassword });
-                            window.showNotification("Đã cập nhật mật khẩu đăng nhập thành công!", "success");
+                            await resetFunc({ studentUid: targetUid, newPassword: cleanNewPass });
                         } catch (passErr) {
-                            console.warn("Lỗi resetStudentPassword Cloud Function:", passErr);
+                            console.warn("Lỗi resetStudentPassword:", passErr);
                         }
                     }
                 }
@@ -5494,7 +5494,7 @@
                     email: studentEmail,
                     zaloUid: document.getElementById('editStuZaloUid').value.trim(),
                     username: username,
-                    password: isTeacherCreated ? (newPassword || studentData.password) : (studentData.password || "")
+                    password: newPassword ? newPassword.trim() : (studentData.password || "")
                 };
 
                 // NẾU GIÁO VIÊN XÓA UID TRONG FORM, TA XÓA LUÔN TRÊN FIREBASE (zalo_uids) ĐỂ TRÁNH SYNC LẠI CÁI CŨ
@@ -5516,17 +5516,21 @@
                 currentClassStudents[editingStudentIndex] = updatedStudent;
                 await updateDoc(doc(db, "classes", currentViewingClassId), { students: currentClassStudents, studentIds: currentClassStudents.map((student) => student.uid).filter(Boolean) });
                 
-                // Đồng bộ thông tin sang users collection
+                // Đồng bộ thông tin sang users collection (bao gồm cả mật khẩu mới)
                 if (targetUid) {
                     try {
-                        await setDoc(doc(db, "users", targetUid), {
+                        const userSync = {
                             displayName: name,
                             sbd: updatedStudent.sbd || "",
                             phoneStudent: updatedStudent.phoneStudent || "",
                             phoneParent: updatedStudent.phoneParent || "",
                             zaloUid: updatedStudent.zaloUid || "",
                             gender: updatedStudent.gender || ""
-                        }, { merge: true });
+                        };
+                        if (updatedStudent.password) {
+                            userSync.password = updatedStudent.password;
+                        }
+                        await setDoc(doc(db, "users", targetUid), userSync, { merge: true });
                     } catch (err) {
                         console.warn("Không thể đồng bộ lên users:", err);
                     }

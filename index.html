@@ -311,11 +311,16 @@
                             <label class="block text-xs font-bold text-gray-700 uppercase">Mật khẩu</label>
                             <button type="button" onclick="window.handleForgotPassword()" class="text-xs text-teal-700 hover:text-orange-600 font-bold hover:underline cursor-pointer">Quên mật khẩu?</button>
                         </div>
-                        <input type="password" id="passwordInput" placeholder="Nhập mật khẩu" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 focus:border-brand outline-none transition-all">
+                        <div class="relative">
+                            <input type="password" id="passwordInput" placeholder="Nhập mật khẩu" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 focus:border-brand outline-none transition-all pr-11">
+                            <button type="button" onclick="window.togglePasswordVisibility('passwordInput', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-teal-600 transition-colors cursor-pointer" tabindex="-1">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <button type="submit" id="submitBtn" class="w-full bg-accent hover-bg-accent text-white font-bold py-3.5 rounded-xl shadow-lg transition-all cursor-pointer">Đăng nhập ngay</button>
                     <div class="relative text-center my-4"><span class="bg-white px-4 text-xs text-gray-400 font-bold">HOẶC</span></div>
-                    <button type="button" id="googleLoginBtn" class="w-full bg-white border border-gray-300 hover:border-gray-400 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 transition-all flex justify-center items-center gap-2 cursor-pointer shadow-xs"><i class="fa-brands fa-google text-red-500 text-lg"></i> Đăng nhập với tài khoản Google</button>
+                    <button type="button" id="googleLoginBtn" class="w-full bg-white border border-gray-300 hover:border-gray-400 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 transition-all flex justify-center items-center gap-2 cursor-pointer shadow-xs"><i class="fa-brands fa-google text-red-500 text-lg"></i> Đăng nhập bằng Google <span class="text-[10px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full ml-1 border border-amber-200">Đang phát triển</span></button>
                 </form>
                 <div id="messageArea" class="mt-4 text-center text-sm font-bold hidden p-3 rounded-lg bg-gray-50"></div>
             </div>
@@ -334,8 +339,13 @@
                     <div class="space-y-4">
                         <div><input type="text" id="regName" placeholder="Họ và tên (bắt buộc)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
                         <div><input type="tel" id="regPhone" placeholder="Số điện thoại (bắt buộc)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
-                        <div><input type="text" id="regUsername" placeholder="Tên đăng nhập (viết liền)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm font-bold text-teal-700"></div>
-                        <div><input type="password" id="regPass" placeholder="Mật khẩu (bắt buộc)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
+                        <div><input type="text" id="regUsername" placeholder="Tên đăng nhập (viết liền không dấu)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm font-bold text-teal-700"></div>
+                        <div class="relative">
+                            <input type="password" id="regPass" placeholder="Mật khẩu (bắt buộc)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm pr-11">
+                            <button type="button" onclick="window.togglePasswordVisibility('regPass', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-teal-600 transition-colors cursor-pointer" tabindex="-1">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="space-y-4">
                         <div><input type="number" id="regYear" placeholder="Năm sinh (bắt buộc)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
@@ -343,7 +353,12 @@
                          <div><input list="cities" type="text" id="regCity" placeholder="Tỉnh/Thành phố..." class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"><datalist id="cities"><option value="Hà Nội"><option value="Hồ Chí Minh"><option value="Hải Phòng"><option value="Hưng Yên"><option value="Hải Dương"><option value="Bắc Ninh"></datalist></div>
                          <div><input type="email" id="regEmail" placeholder="Email (tùy chọn)" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
                          <div><input type="tel" id="regParentPhone" placeholder="SĐT Phụ huynh" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
-                        <div><input type="password" id="regRePass" placeholder="Nhập lại mật khẩu" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
+                        <div class="relative">
+                            <input type="password" id="regRePass" placeholder="Nhập lại mật khẩu" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm pr-11">
+                            <button type="button" onclick="window.togglePasswordVisibility('regRePass', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-teal-600 transition-colors cursor-pointer" tabindex="-1">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="col-span-1 md:col-span-2 mt-4">
                         <button type="submit" id="regBtn" class="w-full bg-accent hover-bg-accent text-white font-bold py-4 rounded-xl shadow-lg shadow-orange-200 transition-all uppercase tracking-wide">ĐĂNG KÝ TÀI KHOẢN</button>
@@ -1371,34 +1386,26 @@
             }
         });
 
-        // ĐĂNG NHẬP VỚI GOOGLE (1 CHẠM CHO SUPER ADMIN & HỌC SINH)
+        // ĐĂNG NHẬP VỚI GOOGLE (ĐANG PHÁT TRIỂN)
         const googleLoginBtn = document.getElementById('googleLoginBtn');
         if (googleLoginBtn) {
-            googleLoginBtn.addEventListener('click', async () => {
-                const originalContent = googleLoginBtn.innerHTML;
-                try {
-                    googleLoginBtn.disabled = true;
-                    googleLoginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối Google...';
-                    const result = await signInWithPopup(auth, googleProvider);
-                    showMessage("Đăng nhập Google thành công!", "success");
-                    await saveUserData(result.user, "google");
-                } catch (error) {
-                    console.error("Lỗi Google Login:", error);
-                    let errText = "Đăng nhập Google thất bại!";
-                    if (error.code === 'auth/popup-closed-by-user') {
-                        errText = "Bạn đã đóng cửa sổ đăng nhập Google.";
-                    } else if (error.code === 'auth/cancelled-popup-request') {
-                        errText = "Yêu cầu đăng nhập đã bị hủy.";
-                    } else if (error.message) {
-                        errText = error.message;
-                    }
-                    showMessage(errText, "error");
-                } finally {
-                    googleLoginBtn.disabled = false;
-                    googleLoginBtn.innerHTML = originalContent;
-                }
+            googleLoginBtn.addEventListener('click', () => {
+                alert("Tính năng Đăng nhập bằng Google đang được hoàn thiện và sẽ sớm ra mắt trong phiên bản tiếp theo!");
+                showMessage("Tính năng Đăng nhập bằng Google đang được phát triển!", "error");
             });
         }
+
+        // HÀM ẨN / HIỆN MẬT KHẨU (HÌNH CON MẮT)
+        window.togglePasswordVisibility = function(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const isPass = input.type === 'password';
+            input.type = isPass ? 'text' : 'password';
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.className = isPass ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+            }
+        };
 
         // QUÊN MẬT KHẨU / ĐẶT LẠI MẬT KHẨU QUA EMAIL
         window.handleForgotPassword = async () => {

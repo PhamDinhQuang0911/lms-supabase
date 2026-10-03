@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -899,12 +899,22 @@
                         
                         <div>
                             <label class="block text-xs font-bold text-gray-600 mb-1 pl-1">Mật khẩu hiện tại <span class="text-red-500">*</span></label>
-                            <input type="password" id="profOldPass" placeholder="Nhập mật khẩu cũ để xác thực..." class="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-200 text-sm">
+                            <div class="relative">
+                                <input type="password" id="profOldPass" placeholder="Nhập mật khẩu cũ để xác thực..." class="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-200 text-sm pr-11">
+                                <button type="button" onclick="window.togglePasswordVisibility('profOldPass', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-primary-600 transition-colors cursor-pointer" tabindex="-1">
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-gray-600 mb-1 pl-1">Mật khẩu mới</label>
-                            <input type="password" id="profPass" placeholder="Nhập mật khẩu mới (nếu muốn đổi)..." class="w-full px-4 py-3 border border-red-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-red-200 text-sm font-medium">
+                            <div class="relative">
+                                <input type="password" id="profPass" placeholder="Nhập mật khẩu mới (nếu muốn đổi)..." class="w-full px-4 py-3 border border-red-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-red-200 text-sm font-medium pr-11">
+                                <button type="button" onclick="window.togglePasswordVisibility('profPass', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-red-600 transition-colors cursor-pointer" tabindex="-1">
+                                    <i class="fa-regular fa-eye"></i>
+                                </button>
+                            </div>
                             <p class="text-[10px] text-red-400 mt-2 flex items-center gap-1 font-medium"><i class="fa-solid fa-circle-info"></i> Để trống nếu không muốn thay đổi.</p>
                         </div>
                     </div>
@@ -1419,6 +1429,17 @@
             } finally {
                 btn.innerHTML = oldBtnText;
                 btn.disabled = false;
+            }
+        };
+
+        window.togglePasswordVisibility = function(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const isPass = input.type === 'password';
+            input.type = isPass ? 'text' : 'password';
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.className = isPass ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
             }
         };
 

@@ -35,7 +35,17 @@ export function getFunctions(app) {
     return { name: 'supabase_functions' };
 }
 export function httpsCallable(functions, name) {
-    return async (data) => ({ data: {} });
+    return async (data) => {
+        if (name === 'resetStudentPassword' || name === 'updateStudentPassword') {
+            const uid = data.studentUid || data.uid;
+            const newPassword = data.newPassword;
+            if (uid && newPassword) {
+                await updatePassword({ uid: uid }, newPassword);
+                return { data: { success: true } };
+            }
+        }
+        return { data: {} };
+    };
 }
 
 // ==========================================
@@ -346,8 +356,140 @@ export async function updateProfile(user, profile) {
 }
 
 export async function updatePassword(user, newPassword) {
-    if (!user) return;
-    await supabase.from('users').update({ password: newPassword }).eq('id', user.uid || user.id);
+    if (!user || !newPassword) return;
+    const cleanPass = String(newPassword).trim();
+    if (!cleanPass) return;
+
+    const userId = user.uid || user.id || '';
+    const userEmail = (user.email || '').trim().toLowerCase();
+    const usernamePart = userEmail.split('@')[0];
+
+    // 1. Cập nhật bảng 'users' (cả cột password và raw_data.password)
+    try {
+        let queryUsers = supabase.from('users').select('id, raw_data');
+        if (userId && userEmail) {
+            queryUsers = queryUsers.or(`id.eq.${userId},email.ilike.${userEmail}`);
+        } else if (userId) {
+            queryUsers = queryUsers.eq('id', userId);
+        } else if (userEmail) {
+            queryUsers = queryUsers.ilike('email', userEmail);
+        }
+        const { data: usersFound } = await queryUsers;
+        if (usersFound && usersFound.length > 0) {
+            for (const u of usersFound) {
+                const currRaw = (u.raw_data && typeof u.raw_data === 'object') ? u.raw_data : {};
+                const updatedRaw = { ...currRaw, password: cleanPass };
+                await supabase.from('users').update({
+                    password: cleanPass,
+                    raw_data: updatedRaw,
+                    updated_at: new Date().toISOString()
+                }).eq('id', u.id);
+            }
+        }
+    } catch (e) {
+        console.warn("Lỗi cập nhật mật khẩu bảng users:", e);
+    }
+
+    // 2. Cập nhật bảng 'admin_accounts' (nếu là tài khoản giáo viên/admin)
+    try {
+        if (userEmail || userId) {
+            const cleanDocId = userEmail ? userEmail.replace(/[@.]/g, '_') : '';
+            const conds = [];
+            if (userId) conds.push(`id.eq.${userId}`);
+            if (cleanDocId) conds.push(`id.eq.${cleanDocId}`);
+            if (userEmail) conds.push(`email.ilike.${userEmail}`);
+            const { data: adminsFound } = await supabase.from('admin_accounts').select('id, raw_data').or(conds.join(','));
+            if (adminsFound && adminsFound.length > 0) {
+                for (const a of adminsFound) {
+                    const currRaw = (a.raw_data && typeof a.raw_data === 'object') ? a.raw_data : {};
+                    const updatedRaw = { ...currRaw, password: cleanPass };
+                    await supabase.from('admin_accounts').update({
+                        raw_data: updatedRaw,
+                        updated_at: new Date().toISOString()
+                    }).eq('id', a.id);
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Lỗi cập nhật mật khẩu bảng admin_accounts:", e);
+    }
+
+    // 3. Cập nhật bảng 'configurations' id='admin_roles' (danh sách tài khoản giáo viên)
+    try {
+        const { data: cfgDoc } = await supabase
+            .from('configurations')
+            .select('raw_data')
+            .eq('id', 'admin_roles')
+            .maybeSingle();
+        if (cfgDoc && cfgDoc.raw_data && Array.isArray(cfgDoc.raw_data.accounts)) {
+            let changed = false;
+            const updatedAccounts = cfgDoc.raw_data.accounts.map(acc => {
+                const matchEmail = userEmail && (acc.email || '').toLowerCase() === userEmail;
+                const matchId = userId && (acc.id === userId || acc.id === 'admin_' + userEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+                if (matchEmail || matchId) {
+                    changed = true;
+                    return { ...acc, password: cleanPass };
+                }
+                return acc;
+            });
+            if (changed) {
+                await supabase.from('configurations').upsert({
+                    id: 'admin_roles',
+                    raw_data: { ...cfgDoc.raw_data, accounts: updatedAccounts, updatedAt: new Date().toISOString() },
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'id' });
+            }
+        }
+    } catch (e) {
+        console.warn("Lỗi cập nhật mật khẩu admin_roles:", e);
+    }
+
+    // 4. Đồng bộ mật khẩu mới vào tất cả lớp học trong bảng 'classes' (để giáo viên xem danh sách thấy ngay mật khẩu mới)
+    try {
+        const { data: classesList } = await supabase
+            .from('classes')
+            .select('id, students, raw_data');
+        if (classesList && Array.isArray(classesList)) {
+            for (const c of classesList) {
+                const stList = Array.isArray(c.students) ? c.students : (c.raw_data && Array.isArray(c.raw_data.students) ? c.raw_data.students : []);
+                let classChanged = false;
+                const newStudents = stList.map(s => {
+                    const matchUid = userId && s.uid === userId;
+                    const matchEmail = userEmail && (s.email || '').toLowerCase() === userEmail;
+                    const matchUsername = (s.username && usernamePart && s.username.toLowerCase() === usernamePart);
+                    if (matchUid || matchEmail || matchUsername) {
+                        classChanged = true;
+                        return { ...s, password: cleanPass };
+                    }
+                    return s;
+                });
+                if (classChanged) {
+                    const currRaw = (c.raw_data && typeof c.raw_data === 'object') ? c.raw_data : {};
+                    await supabase.from('classes').update({
+                        students: newStudents,
+                        raw_data: { ...currRaw, students: newStudents }
+                    }).eq('id', c.id);
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Lỗi đồng bộ mật khẩu học sinh vào classes:", e);
+    }
+
+    // 5. Cập nhật phiên đăng nhập hiện tại
+    if (user) {
+        user.password = cleanPass;
+    }
+    const currentStored = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (currentStored) {
+        try {
+            const parsed = JSON.parse(currentStored);
+            if ((userId && parsed.id === userId) || (userEmail && (parsed.email || '').toLowerCase() === userEmail)) {
+                parsed.password = cleanPass;
+                localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(parsed));
+            }
+        } catch (e) {}
+    }
 }
 
 export class GoogleAuthProvider {}
@@ -370,7 +512,57 @@ export class EmailAuthProvider {
     static credential(email, password) { return { email, password }; }
 }
 export async function reauthenticateWithCredential(user, cred) {
-    return Promise.resolve();
+    if (!user) throw new Error("Chưa đăng nhập!");
+    const pass = cred && (cred.password || cred.cleanPass);
+    if (!pass) throw new Error("Vui lòng nhập mật khẩu cũ!");
+    const cleanOld = String(pass).trim();
+
+    const userId = user.uid || user.id || '';
+    const userEmail = (user.email || '').trim().toLowerCase();
+
+    // 1. Kiểm tra mật khẩu trong bảng users
+    try {
+        const { data: users } = await supabase
+            .from('users')
+            .select('password, raw_data')
+            .or(`id.eq.${userId},email.ilike.${userEmail}`)
+            .limit(1);
+
+        if (users && users.length > 0) {
+            const expected = users[0].password || (users[0].raw_data && users[0].raw_data.password);
+            if (expected && String(expected).trim() !== cleanOld) {
+                const err = new Error("Mật khẩu cũ không chính xác!");
+                err.code = 'auth/wrong-password';
+                throw err;
+            }
+            return true;
+        }
+    } catch (e) {
+        if (e.code === 'auth/wrong-password') throw e;
+    }
+
+    // 2. Kiểm tra trong configurations/admin_roles
+    try {
+        const { data: cfgDoc } = await supabase
+            .from('configurations')
+            .select('raw_data')
+            .eq('id', 'admin_roles')
+            .maybeSingle();
+        if (cfgDoc && cfgDoc.raw_data && Array.isArray(cfgDoc.raw_data.accounts)) {
+            const found = cfgDoc.raw_data.accounts.find(a => (a.email || '').toLowerCase() === userEmail || (userId && a.id === userId));
+            if (found && found.password) {
+                if (String(found.password).trim() !== cleanOld) {
+                    const err = new Error("Mật khẩu cũ không chính xác!");
+                    err.code = 'auth/wrong-password';
+                    throw err;
+                }
+            }
+        }
+    } catch (e) {
+        if (e.code === 'auth/wrong-password') throw e;
+    }
+
+    return true;
 }
 
 // ==========================================
@@ -1049,6 +1241,20 @@ export async function updateDoc(docRef, updates) {
                 await supabase
                     .from('configurations')
                     .upsert({ id: confId, raw_data: mergedRaw, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+            } catch(e) {}
+        }
+        if (table === 'users' && updates.password) {
+            try {
+                const { data: uDoc } = await supabase.from('users').select('raw_data').eq(pkCol, docRef.id).maybeSingle();
+                const currRaw = (uDoc && uDoc.raw_data && typeof uDoc.raw_data === 'object') ? uDoc.raw_data : {};
+                payload.raw_data = { ...currRaw, password: String(updates.password).trim() };
+            } catch(e) {}
+        }
+        if (table === 'classes' && updates.students) {
+            try {
+                const { data: cDoc } = await supabase.from('classes').select('raw_data').eq(pkCol, docRef.id).maybeSingle();
+                const currRaw = (cDoc && cDoc.raw_data && typeof cDoc.raw_data === 'object') ? cDoc.raw_data : {};
+                payload.raw_data = { ...currRaw, students: updates.students };
             } catch(e) {}
         }
         const { error } = await supabase
