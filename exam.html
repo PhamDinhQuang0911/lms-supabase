@@ -644,6 +644,10 @@
                     <p class="text-orange-400 text-xs font-semibold mb-1 uppercase tracking-wider"><i class="fa-regular fa-calendar"></i> Mở đề lúc</p>
                     <p id="lobbyTimeText" class="font-bold text-orange-700">--</p>
                 </div>
+                <div class="col-span-2 hidden bg-blue-50/80 rounded-2xl p-4 text-center border border-blue-100 shadow-sm" id="lobbyEndTimeRange">
+                    <p class="text-blue-500 text-xs font-semibold mb-1 uppercase tracking-wider"><i class="fa-regular fa-clock"></i> Hạn chót nộp bài</p>
+                    <p id="lobbyEndTimeText" class="font-bold text-blue-700">--</p>
+                </div>
                 <div class="col-span-2 bg-slate-50/80 rounded-2xl p-4 flex items-center justify-between border border-slate-100 shadow-sm">
                     <span class="text-slate-500 text-sm font-semibold uppercase tracking-wider">Trạng thái</span>
                     <span id="lobbyStatusBadge" class="font-black text-slate-700 text-sm md:text-base px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-100">Checking...</span>
@@ -1109,8 +1113,11 @@
         import { 
             initializeApp, getAuth, onAuthStateChanged, 
             getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs, addDoc, updateDoc, enableMultiTabIndexedDbPersistence,
-            supabase
-        } from "./supabase-db-compat.js?v=25";
+            supabase, getServerNow, calibrateServerTime, parseDateSafe
+        } from "./supabase-db-compat.js?v=26";
+        window.getServerNow = getServerNow;
+        window.calibrateServerTime = calibrateServerTime;
+        window.parseDateSafe = parseDateSafe;
         
         import { formatContent, autoScaleTables, renderTikz, compressImage, watermarkImage, reorderTfSolution } from "./utils.js?v=8";
 
@@ -1327,6 +1334,9 @@
 
         async function loadLobbyData(id) {
             try {
+                if (typeof calibrateServerTime === 'function' && !window.isServerTimeCalibrated) {
+                    try { await calibrateServerTime(); } catch(e){}
+                }
                 const docSnap = await getDoc(doc(db, "exams", id));
                 if (!docSnap.exists()) { document.getElementById('lobbyTitle').innerText = "Đề thi không tồn tại!"; return; }
                 examData = { id: docSnap.id, ...docSnap.data() }; 
@@ -1416,8 +1426,9 @@
                         window.currentResultId = resultData.id;
                         window.currentResultData = resultData;
 
-                        const deadline = examData.endTime ? new Date(examData.endTime) : null;
-                        let canEdit = !deadline || new Date() < deadline;
+                        const deadline = parseDateSafe(examData.endTime);
+                        const nowEditCheck = (typeof getServerNow === 'function') ? getServerNow() : new Date();
+                        let canEdit = !deadline || nowEditCheck < deadline;
                         
                         if (resultData.resubmitStatus === 'graded' || resultData.resubmitStatus === 'requested' || resultData.resubmitStatus === 'rejected') {
                             canEdit = false;
@@ -1499,10 +1510,28 @@
                 let ok = true, msg = "Sẵn sàng", color = "text-green-600";
                 const modes = urlParams.getAll('mode');
                 const isPracticeMode = modes.includes('practice') || modes.includes('course');
-                const now = new Date();
+                const now = (typeof getServerNow === 'function') ? getServerNow() : new Date();
+                const startParsed = parseDateSafe(examData.startTime);
+                const endParsed = parseDateSafe(examData.endTime);
                 
-                if(examData.startTime && now < new Date(examData.startTime)) { ok=false; msg="Chưa đến giờ mở đề"; color="text-orange-500"; document.getElementById('lobbyTimeRange').classList.remove('hidden'); document.getElementById('lobbyTimeText').textContent=new Date(examData.startTime).toLocaleString('vi-VN'); }
-                if(examData.endTime && now > new Date(examData.endTime)) { ok=false; msg="Đề thi đã đóng"; color="text-red-500"; }
+                if(startParsed && now < startParsed) { 
+                    ok = false; msg = "Chưa đến giờ mở đề"; color = "text-orange-500"; 
+                    const rangeEl = document.getElementById('lobbyTimeRange');
+                    const textEl = document.getElementById('lobbyTimeText');
+                    if (rangeEl) rangeEl.classList.remove('hidden'); 
+                    if (textEl) textEl.textContent = startParsed.toLocaleString('vi-VN'); 
+                }
+                if(endParsed) {
+                    const endEl = document.getElementById('lobbyEndTimeRange');
+                    const endTxt = document.getElementById('lobbyEndTimeText');
+                    if (endEl && endTxt) {
+                        endEl.classList.remove('hidden');
+                        endTxt.textContent = endParsed.toLocaleString('vi-VN');
+                    }
+                    if (now > endParsed) {
+                        ok = false; msg = "Đề thi đã đóng"; color = "text-red-500";
+                    }
+                }
                 if(!isPracticeMode && examData.attempts > 0 && att >= examData.attempts && !hasRetryGrant) { ok=false; msg="Hết lượt làm bài"; color="text-red-500"; }
                 if(!isPracticeMode && hasRetryGrant && att >= (examData.attempts || 1)) { msg = "Được duyệt làm lại"; color = "text-green-600"; }
                 if(isPracticeMode) { msg = "Chế độ luyện tập"; color = "text-primary-600"; if(document.getElementById('lobbyMaxAttempts')) document.getElementById('lobbyMaxAttempts').innerText = '∞ (Luyện tập)'; }
@@ -1765,7 +1794,8 @@
                     const cloudAnswers = data.answers || {};
                     const localAnswers = JSON.parse(localStorage.getItem(`ans_${currentUser.uid}_${examId}`)) || {};
                     userAnswers = { ...cloudAnswers, ...localAnswers };
-                    const elapsedTime = Math.floor((Date.now() - startTimeMs) / 1000);
+                    const currentNowMs = (typeof getServerNow === 'function') ? getServerNow().getTime() : Date.now();
+                    const elapsedTime = Math.floor((currentNowMs - startTimeMs) / 1000);
                     timeLeft = (durationMinutes * 60) - elapsedTime;
                 } else {
                     isResume = false;
@@ -1773,7 +1803,8 @@
             }
             
             if (!isResume) {
-                startTimeMs = Date.now();
+                const currentNowMs = (typeof getServerNow === 'function') ? getServerNow().getTime() : Date.now();
+                startTimeMs = currentNowMs;
                 if (typeof keepOldAnswers !== 'undefined' && keepOldAnswers) {
                     userAnswers = window.examHistory[0].answers || {};
                 } else {
@@ -1781,6 +1812,16 @@
                     localStorage.removeItem(`ans_${currentUser.uid}_${examId}`);
                 }
                 timeLeft = durationMinutes * 60;
+                
+                // Giới hạn thời gian làm bài nếu gần đến hạn chót đóng đề
+                const endParsed = parseDateSafe(examData.endTime);
+                if (endParsed) {
+                    const remainSec = Math.floor((endParsed.getTime() - currentNowMs) / 1000);
+                    if (remainSec > 0 && remainSec < timeLeft) {
+                        timeLeft = remainSec;
+                    }
+                }
+                
                 await setDoc(attemptRef, {
                     examId: examId,
                     studentId: currentUser.uid,
@@ -2688,8 +2729,10 @@
                     return { ok: false, msg: `Lời giải này cần mở khóa bằng ${fee} Qpoint — bấm nút "Mở khóa lời giải" ở màn hình kết quả nhé.` };
                 }
                 if (mode === 'after_exam') {
-                    if (examData.endTime && new Date() < new Date(examData.endTime)) {
-                        return { ok: false, msg: `Lời giải sẽ mở sau khi đề thi đóng (${new Date(examData.endTime).toLocaleString('vi-VN')}).` };
+                    const endParsed = parseDateSafe(examData.endTime);
+                    const nowForSol = (typeof getServerNow === 'function') ? getServerNow() : new Date();
+                    if (endParsed && nowForSol < endParsed) {
+                        return { ok: false, msg: `Lời giải sẽ mở sau khi đề thi đóng (${endParsed.toLocaleString('vi-VN')}).` };
                     }
                     return { ok: true };
                 }
@@ -3668,7 +3711,7 @@
 
             // ====== Tiêu đề & trạng thái ======
             const titleVal = examData.title || 'Bài tập';
-            const deadline = examData.endTime ? new Date(examData.endTime) : null;
+            const deadline = parseDateSafe(examData.endTime);
             const deadlineText = deadline ? deadline.toLocaleString('vi-VN') : 'Không giới hạn';
 
             const setEl = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };

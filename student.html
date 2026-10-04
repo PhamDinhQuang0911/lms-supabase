@@ -1150,11 +1150,14 @@
         import { 
             initializeApp, getAuth, onAuthStateChanged, signOut, updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider,
             getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, where, orderBy, onSnapshot, limit, addDoc, enableMultiTabIndexedDbPersistence, deleteDoc, increment,
-            supabase
-        } from "./supabase-db-compat.js?v=25";
+            supabase, getServerNow, calibrateServerTime, parseDateSafe
+        } from "./supabase-db-compat.js?v=26";
         window.EmailAuthProvider = EmailAuthProvider;
         window.reauthenticateWithCredential = reauthenticateWithCredential;
         window.updatePassword = updatePassword;
+        window.getServerNow = getServerNow;
+        window.calibrateServerTime = calibrateServerTime;
+        window.parseDateSafe = parseDateSafe;
         import { readCache, writeCache } from "./perf-cache.js";
 
         // CẤU HÌNH SUPABASE
@@ -1828,7 +1831,9 @@
                         if (myClassIds.includes(ex.allowedClassId)) isAssignedToMe = true;
                     }
                     if (!isAssignedToMe) return;
-                    const isOverdue = ex.endTime && new Date(ex.endTime) < new Date();
+                    const endParsed = (typeof window.parseDateSafe === 'function') ? window.parseDateSafe(ex.endTime) : (ex.endTime ? new Date(ex.endTime) : null);
+                    const nowTaskCheck = (typeof window.getServerNow === 'function') ? window.getServerNow() : new Date();
+                    const isOverdue = !!endParsed && endParsed < nowTaskCheck;
                     const item = { id: d.id, ...ex, hasRetryTicket };
                     // Bài được duyệt làm lại vẫn cần hiển thị để học sinh bắt đầu lượt mới.
                     if (isOverdue && !hasRetryTicket) overdueExams.push(item);
@@ -2688,8 +2693,11 @@
         window.renderClassExams = (sortType) => {
             currentSortMode = sortType;
             const container = document.getElementById('classExamList');
-            const now = new Date();
-            const isOverdue = (exam) => !!exam.endTime && new Date(exam.endTime) < now;
+            const now = (typeof window.getServerNow === 'function') ? window.getServerNow() : new Date();
+            const isOverdue = (exam) => {
+                const endParsed = (typeof window.parseDateSafe === 'function') ? window.parseDateSafe(exam.endTime) : (exam.endTime ? new Date(exam.endTime) : null);
+                return !!endParsed && endParsed < now;
+            };
             const hasRetry = (exam) => window.myApprovedRetries && window.myApprovedRetries.has(exam.id);
             const isUnfinished = (exam) => !studentResultsMap[exam.id] || hasRetry(exam);
             const visibleExams = currentClassExams.filter(exam => {
@@ -2734,8 +2742,14 @@
                     const hasRetryTicket = window.myApprovedRetries && window.myApprovedRetries.has(exam.id);
 
                     // Xử lý Badge và Nút bấm
+                    const overdue = isOverdue(exam);
                     let statusBadge = `<span class="text-[10px] font-black bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full uppercase tracking-wider">Chưa làm</span>`;
                     let actionBtn = `<button onclick="window.location.href='exam.html?id=${exam.id}'" class="w-full py-3 bg-brand text-white font-bold rounded-xl shadow-sm hover:bg-primary-700 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-play"></i> Bắt đầu</button>`;
+                    
+                    if (overdue && !hasRetryTicket) {
+                        statusBadge = `<span class="text-[10px] font-black bg-red-100 text-red-600 px-2.5 py-1 rounded-full uppercase tracking-wider">Đã đóng</span>`;
+                        actionBtn = `<button onclick="requestReattempt('${exam.id}', '${(exam.title || '').replace(/'/g, "\\'")}')" class="w-full py-3 bg-red-50 text-red-600 border border-red-200 font-bold rounded-xl hover:bg-red-100 text-xs flex items-center justify-center gap-1 shadow-sm"><i class="fa-solid fa-lock"></i> Đã đóng hạn - Xin làm bù</button>`;
+                    }
                     
                     const isHwOrMixed = (exam.type === 'homework' || exam.type === 'mixed');
                     const isGraded = res && !!(res.gradedAt || res.resubmitStatus === 'graded');
@@ -2783,6 +2797,9 @@
                         }
                     }
                     
+                    const endParsed = (typeof window.parseDateSafe === 'function') ? window.parseDateSafe(exam.endTime) : (exam.endTime ? new Date(exam.endTime) : null);
+                    const deadlineBadge = endParsed ? `<span class="flex items-center gap-1 ${overdue ? 'text-red-500 font-bold' : 'text-slate-500'}" title="Hạn chót: ${endParsed.toLocaleString('vi-VN')}"><i class="fa-regular fa-calendar-xmark text-orange-500"></i> Hạn: ${endParsed.toLocaleDateString('vi-VN')}</span>` : '';
+
                     html += `
                     <div class="bg-white p-3 md:p-5 rounded-2xl shadow-sm border border-primary-50 hover:shadow-md transition-all flex flex-col justify-between h-full relative group hover:border-primary-200">
                         <div>
@@ -2794,9 +2811,10 @@
                                 ${statusBadge}
                             </div>
                             <h4 class="font-bold text-gray-800 text-lg mb-2 line-clamp-2 group-hover:text-brand transition-colors" title="${exam.title}">${exam.title}</h4>
-                            <div class="flex items-center gap-4 text-xs text-gray-500 font-medium">
+                            <div class="flex items-center gap-4 text-xs text-gray-500 font-medium flex-wrap">
                                 <span class="flex items-center gap-1"><i class="fa-regular fa-clock text-primary-500"></i> ${exam.duration}p</span>
                                 <span class="flex items-center gap-1"><i class="fa-solid fa-list-ol text-primary-500"></i> ${exam.questionCount||0} câu</span>
+                                ${deadlineBadge}
                             </div>
                         </div>
                         <div class="mt-5">${actionBtn}</div>
@@ -2818,8 +2836,14 @@
                     const hasRetryTicket = window.myApprovedRetries && window.myApprovedRetries.has(exam.id);
 
                     // Nút bấm cho dạng List
+                    const overdue = isOverdue(exam);
                     let actionBtn = `<button onclick="window.location.href='exam.html?id=${exam.id}'" class="px-6 py-2 bg-brand text-white font-bold rounded-lg hover:bg-primary-700 text-sm whitespace-nowrap"><i class="fa-solid fa-play mr-1"></i> Làm bài</button>`;
                     let scoreBadge = `<div class="text-right"><div class="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">Chưa làm</div></div>`;
+
+                    if (overdue && !hasRetryTicket) {
+                        scoreBadge = `<div class="text-right"><div class="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">Đã đóng</div></div>`;
+                        actionBtn = `<button onclick="requestReattempt('${exam.id}', '${(exam.title || '').replace(/'/g, "\\'")}')" class="px-3 py-2 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg hover:bg-red-100 text-xs whitespace-nowrap"><i class="fa-solid fa-lock mr-1"></i> Quá hạn - Xin bù</button>`;
+                    }
 
                     const isHwOrMixed = (exam.type === 'homework' || exam.type === 'mixed');
                     const isGraded = res && !!(res.gradedAt || res.resubmitStatus === 'graded');
@@ -2865,6 +2889,9 @@
                         }
                     }
 
+                    const endParsed = (typeof window.parseDateSafe === 'function') ? window.parseDateSafe(exam.endTime) : (exam.endTime ? new Date(exam.endTime) : null);
+                    const deadlineListBadge = endParsed ? `<span class="${overdue ? 'text-red-500 font-bold' : 'text-slate-500'}" title="Hạn chót: ${endParsed.toLocaleString('vi-VN')}"><i class="fa-regular fa-calendar-xmark text-orange-500"></i> Hạn: ${endParsed.toLocaleDateString('vi-VN')}</span>` : '';
+
                     html += `
                     <div class="bg-white p-2 md:p-4 rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-sm transition-all flex flex-col md:flex-row md:items-center gap-4 group">
                         <div class="flex items-center gap-4 flex-1">
@@ -2873,10 +2900,11 @@
                             </div>
                             <div>
                                 <h4 class="font-bold text-gray-800 text-base group-hover:text-brand transition-colors line-clamp-1">${exam.title}</h4>
-                                <div class="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                                <div class="flex items-center gap-3 text-xs text-gray-500 mt-1 flex-wrap">
                                     <span class="bg-gray-100 px-1.5 py-0.5 rounded text-[10px] font-mono">#${exam.id.substring(0,6)}</span>
                                     <span><i class="fa-regular fa-clock"></i> ${exam.duration}p</span>
                                     <span><i class="fa-solid fa-list-ol"></i> ${exam.questionCount||0} câu</span>
+                                    ${deadlineListBadge}
                                 </div>
                             </div>
                         </div>
