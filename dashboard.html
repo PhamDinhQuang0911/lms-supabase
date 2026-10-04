@@ -2,6 +2,9 @@
 <html lang="vi">
 <head>
     <!-- PWA Settings -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -56,9 +59,9 @@
     });
     </script>
     <script>
-    // Tự động giải phóng triệt để Service Worker & Cache cũ để cập nhật ngay kiến trúc mobile mới
+    // Tự động giải phóng triệt để Service Worker & Cache cũ để cập nhật ngay kiến trúc mới
     (function() {
-        const CACHE_RESET_ID = 'qmath_mobile_v17_reset';
+        const CACHE_RESET_ID = 'qmath_bank_v20261004';
         if (localStorage.getItem('qm_reset_cache') !== CACHE_RESET_ID) {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -14732,7 +14735,7 @@ window.deleteTag = async (id) => {
 
 
 
-<script src="/sw-register.js?v=18"></script>
+<script src="/sw-register.js?v=24"></script>
 <script src="/season-theme.js?v=1"></script>
 <script src="/app-installer.js?v=2"></script>
 </body>
