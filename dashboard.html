@@ -12468,11 +12468,30 @@ function renderTagFilterUI() {
     window.currentUsageQuestion = null;
 
     window.openQuestionUsageModal = async (targetQ = null) => {
-        const q = targetQ || window.currentPreviewQuestion || window.currentEditingQuestion;
+        let q = targetQ || window.currentPreviewQuestion || window.currentEditingQuestion;
         if (!q) {
             if (window.showNotification) window.showNotification("Không tìm thấy thông tin câu hỏi để tra cứu", "warning");
             return;
         }
+
+        // Tự động nạp chi tiết câu hỏi (nội dung, đáp án) nếu đối tượng hiện tại chỉ là bản tóm tắt catalog
+        const fetchId = q.id || q.cccd;
+        if ((!q.content || q.answer === undefined) && fetchId) {
+            try {
+                if (window.BankService) {
+                    const full = await window.BankService.getQuestionById(fetchId, false);
+                    if (full) q = { ...full, ...q, content: full.content || q.content, answer: full.answer !== undefined ? full.answer : q.answer };
+                }
+                if (!q.content) {
+                    const res = await fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/bank?id=${encodeURIComponent(fetchId)}`);
+                    if (res.ok) {
+                        const full = await res.json();
+                        if (full) q = { ...full, ...q, content: full.content || q.content, answer: full.answer !== undefined ? full.answer : q.answer };
+                    }
+                }
+            } catch(e) {}
+        }
+
         window.currentUsageQuestion = q;
 
         const targetCccd = String(q.cccd || q.bankId || q.id || '').trim();
@@ -12481,6 +12500,7 @@ function renderTagFilterUI() {
         const targetAliases = Array.isArray(q.aliases) ? q.aliases.map(a => String(a).trim()) : [];
         const targetMaster = q.masterCccd || q.masterId ? String(q.masterCccd || q.masterId).trim() : '';
         const targetContent = q.content || '';
+        const targetAnswer = String(q.answer !== undefined ? q.answer : (q.correct !== undefined ? q.correct : '')).trim();
         const targetExamId = q.examId || '';
         const targetSource = q.source || '';
 
@@ -12499,7 +12519,7 @@ function renderTagFilterUI() {
                 <div class="flex flex-col items-center justify-center py-12 text-sky-600 gap-2">
                     <i class="fa-solid fa-circle-notch fa-spin text-3xl"></i>
                     <p class="font-bold text-xs text-gray-700">Đang quét Đề thi và Khóa học...</p>
-                    <p class="text-[11px] text-gray-400">Đang so khớp CCCD #${targetCccd} & MapID ${targetMapId || ''}...</p>
+                    <p class="text-[11px] text-gray-400">Đang so khớp CCCD #${targetCccd} & Nội dung câu hỏi...</p>
                 </div>
             `;
         }
@@ -12514,7 +12534,7 @@ function renderTagFilterUI() {
         try {
             // Quét song song 3 nguồn dữ liệu: Đề thi, Sách ID, Khóa học
             const [matchedExams, matchedTopics, matchedCourses] = await Promise.all([
-                scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster, targetMapId, targetContent, targetExamId, targetSource),
+                scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster, targetMapId, targetContent, targetExamId, targetSource, targetAnswer),
                 scanQuestionInTopics(targetCccd, targetId, targetMapId, targetAliases),
                 scanQuestionInCourses(targetCccd, targetId)
             ]);
@@ -12587,16 +12607,20 @@ function renderTagFilterUI() {
 
     window.checkQuestionUsageById = async (id) => {
         let q = (window.globalBankQuestions || []).find(item => item.id === id || item.cccd === id);
-        if (!q) {
+        if (!q || !q.content) {
             if (window.BankService) {
                 try {
-                    q = await window.BankService.getQuestionById(id, false);
+                    const full = await window.BankService.getQuestionById(id, false);
+                    if (full) q = full;
                 } catch(e) {}
             }
-            if (!q) {
+            if (!q || !q.content) {
                 try {
                     const res = await fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/bank?id=${encodeURIComponent(id)}`);
-                    if (res.ok) q = await res.json();
+                    if (res.ok) {
+                        const full = await res.json();
+                        if (full) q = full;
+                    }
                 } catch(e) {}
             }
         }
@@ -12629,30 +12653,52 @@ function renderTagFilterUI() {
         return false;
     }
 
-    // Helper: Quét Đề thi (So khớp đa tầng: CCCD, ID, MapID, Mã đề, Nội dung câu hỏi)
-    async function scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster, targetMapId = '', targetContent = '', targetExamId = '', targetSource = '') {
+    // Helper: Quét Đề thi (So khớp chuẩn xác: CCCD, ID, Mã đề, và Nội dung toán học + Đáp án)
+    async function scanQuestionInExams(targetCccd, targetId, targetAliases, targetMaster, targetMapId = '', targetContent = '', targetExamId = '', targetSource = '', targetAnswer = '') {
         const matched = [];
         try {
             const cleanCccd = String(targetCccd || '').trim();
             const cleanId = String(targetId || '').trim();
-            const cleanMapId = String(targetMapId || '').trim().toUpperCase();
             const cleanAliases = Array.isArray(targetAliases) ? targetAliases.map(a => String(a).trim()) : [];
             const cleanMaster = String(targetMaster || '').trim();
             const cleanExamId = String(targetExamId || '').trim();
             const cleanSource = String(targetSource || '').trim().toLowerCase();
 
-            // Chuẩn hóa một đoạn trích văn bản câu hỏi (25-60 ký tự) để so khớp nội dung
-            const normalizeSnippet = (text) => {
-                if (!text) return '';
-                return text.replace(/<[^>]+>/g, '')
-                           .replace(/\$+/g, '')
-                           .replace(/\\(text|textbf|textit|mathrm)\{([^}]*)\}/g, '$2')
-                           .replace(/\s+/g, ' ')
-                           .trim()
-                           .toLowerCase()
-                           .slice(0, 60);
+            // Làm sạch công thức và văn bản toán học để đối soát chính xác nội dung câu hỏi
+            const cleanMathText = (str) => {
+                if (!str) return '';
+                return str
+                    .replace(/<[^>]+>/g, '')
+                    .replace(/\\(begin|end)\{[^}]+\}/g, '')
+                    .replace(/\\(text|textbf|textit|mathrm|mathbf)\{([^}]*)\}/g, '$2')
+                    .replace(/[\$\{\}\\\^_\*\+]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .toLowerCase();
             };
-            const snippet = normalizeSnippet(targetContent);
+
+            const isContentMatch = (contentA, contentB, ansA = '', ansB = '') => {
+                const ca = cleanMathText(contentA);
+                const cb = cleanMathText(contentB);
+                if (!ca || !cb || ca.length < 25 || cb.length < 25) return false;
+
+                // Nếu cả hai câu đều có đáp án ngắn và đáp án KHÁC NHAU -> Tuyệt đối không khớp!
+                const aA = String(ansA || '').trim().toLowerCase();
+                const aB = String(ansB || '').trim().toLowerCase();
+                if (aA && aB && aA !== aB) return false;
+
+                // 1. Trùng khớp 100% nội dung đã chuẩn hóa
+                if (ca === cb) return true;
+
+                // 2. Một chuỗi bao trùm chuỗi kia (do có tiền tố như 'Câu 1:', 'Bài 1:', ...)
+                const minLen = Math.min(ca.length, cb.length);
+                const maxLen = Math.max(ca.length, cb.length);
+                if ((ca.includes(cb) || cb.includes(ca)) && (minLen / maxLen >= 0.80)) {
+                    return true;
+                }
+
+                return false;
+            };
 
             // Quét toàn bộ đề thi trong hệ thống (truy vấn kèm trường questions & tl_questions)
             let examsList = window.allExamsWithQuestionsCache;
@@ -12726,7 +12772,6 @@ function renderTagFilterUI() {
                         const qC = String(item.cccd || '').trim();
                         const qI = String(item.id || '').trim();
                         const qB = String(item.bankId || '').trim();
-                        const qM = String(item.mapId || '').trim().toUpperCase();
 
                         // 1. So khớp CCCD / BankId / ID trực tiếp
                         if (cleanCccd && (qC === cleanCccd || qI === cleanCccd || qB === cleanCccd)) {
@@ -12738,25 +12783,14 @@ function renderTagFilterUI() {
                         if (cleanAliases.length > 0 && (cleanAliases.includes(qC) || cleanAliases.includes(qI) || cleanAliases.includes(qB))) {
                             matchedQIndex = qIdx; matchReason = 'Khớp mã bí danh'; return true;
                         }
-                        if (cleanMaster && (qC === cleanMaster || qI === cleanMaster)) {
+                        if (cleanMaster && (qC === cleanMaster || qI === cleanMaster || qB === cleanMaster)) {
                             matchedQIndex = qIdx; matchReason = 'Khớp mã câu gốc'; return true;
                         }
 
-                        // 2. So khớp theo MapID hợp lệ (VD: 9H4V2-5, 9D3C3-9)
-                        if (cleanMapId && cleanMapId !== 'ID' && cleanMapId.length >= 3) {
-                            if (qM === cleanMapId) {
-                                matchedQIndex = qIdx; matchReason = `Khớp MapID ${cleanMapId}`; return true;
-                            }
-                            if (qC.toUpperCase().startsWith(cleanMapId + '_') || qB.toUpperCase().startsWith(cleanMapId + '_')) {
-                                matchedQIndex = qIdx; matchReason = `Khớp tiền tố MapID ${cleanMapId}`; return true;
-                            }
-                        }
-
-                        // 3. So khớp theo trích đoạn nội dung câu hỏi (ít nhất 25 ký tự)
-                        if (snippet.length >= 25 && item.content) {
-                            const itemSnippet = normalizeSnippet(item.content);
-                            if (itemSnippet && (itemSnippet.includes(snippet) || snippet.includes(itemSnippet))) {
-                                matchedQIndex = qIdx; matchReason = 'Khớp nội dung văn bản'; return true;
+                        // 2. So khớp theo nội dung câu hỏi và đáp án (tuyệt đối không so khớp MapID vì MapID là mã dạng bài chung)
+                        if (targetContent && item.content) {
+                            if (isContentMatch(targetContent, item.content, targetAnswer, item.answer)) {
+                                matchedQIndex = qIdx; matchReason = 'Khớp nội dung câu hỏi'; return true;
                             }
                         }
 
@@ -12869,7 +12903,7 @@ function renderTagFilterUI() {
                     </td>
                     <td class="py-3 px-4 align-middle text-right whitespace-nowrap">
                         <div class="flex items-center justify-end gap-1.5">
-                            <a href="exam-editor.html?id=${ex.id}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-600 hover:text-white text-sky-700 font-bold text-xs transition-colors inline-flex items-center gap-1.5 shadow-2xs" title="Chỉnh sửa đề thi">
+                            <a href="exam-editor.html?id=${ex.id}&view=editor${ex.matchedQIndex ? '&q=' + ex.matchedQIndex : ''}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-600 hover:text-white text-sky-700 font-bold text-xs transition-colors inline-flex items-center gap-1.5 shadow-2xs" title="Chỉnh sửa đề thi${ex.matchedQIndex ? ' (Tới Câu ' + ex.matchedQIndex + ')' : ''}">
                                 <i class="fa-solid fa-pen-to-square"></i> <span class="hidden sm:inline">Sửa đề</span>
                             </a>
                             <a href="exam.html?id=${ex.id}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-colors inline-flex items-center gap-1.5 shadow-2xs" title="Làm bài thi online">

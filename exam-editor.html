@@ -2814,8 +2814,17 @@
                     }
                     window.originalQuestionsData = JSON.parse(JSON.stringify(window.questions));
                     if(!isKeepOrder && window.sortQuestionsByType) window.sortQuestionsByType();
-                    if(window.renderPreviewList) window.renderPreviewList();
-                    if(window.questions.length > 0) window.loadQuestionToEditor(0);
+                    let targetQIdx = 0;
+                    try {
+                        const qParam = new URLSearchParams(window.location.search).get('q');
+                        if (qParam) {
+                            const pIdx = parseInt(qParam, 10) - 1;
+                            if (!isNaN(pIdx) && pIdx >= 0 && pIdx < window.questions.length) {
+                                targetQIdx = pIdx;
+                            }
+                        }
+                    } catch(e) {}
+                    if(window.questions.length > 0) window.loadQuestionToEditor(targetQIdx);
                     
                     // Khôi phục dữ liệu loại bài Hỗn hợp
                     if (data.type === 'mixed') {
