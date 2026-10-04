@@ -399,6 +399,42 @@
         }).filter(q => q.content || q.options.some(Boolean) || q.statements.length);
     }
 
+    function extractEmbeddedRaster(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        if (!bytes || bytes.length < 16) return null;
+        for (let i = 0; i <= bytes.length - 16; i++) {
+            if (bytes[i] === 0x89 && bytes[i + 1] === 0x50 && bytes[i + 2] === 0x4e && bytes[i + 3] === 0x47 &&
+                bytes[i + 4] === 0x0d && bytes[i + 5] === 0x0a && bytes[i + 6] === 0x1a && bytes[i + 7] === 0x0a) {
+                for (let k = i + 8; k <= bytes.length - 8; k++) {
+                    if (bytes[k] === 0x49 && bytes[k + 1] === 0x45 && bytes[k + 2] === 0x42 && bytes[k + 3] === 0x44) {
+                        return { mime: 'image/png', data: bytes.subarray(i, k + 8) };
+                    }
+                }
+            }
+        }
+        for (let i = 0; i <= bytes.length - 4; i++) {
+            if (bytes[i] === 0xff && bytes[i + 1] === 0xd8 && bytes[i + 2] === 0xff) {
+                for (let k = i + 3; k <= bytes.length - 2; k++) {
+                    if (bytes[k] === 0xff && bytes[k + 1] === 0xd9) {
+                        return { mime: 'image/jpeg', data: bytes.subarray(i, k + 2) };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function uint8ArrayToBase64(bytes) {
+        let binary = '';
+        const len = bytes.byteLength;
+        const chunkSize = 16384;
+        for (let i = 0; i < len; i += chunkSize) {
+            const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+            binary += String.fromCharCode.apply(null, chunk);
+        }
+        return btoa(binary);
+    }
+
     // --- PARSER TỆP WORD THÔNG QUA MAMMOTH ---
     async function parseWordFile(fileOrArrayBuffer) {
         if (!window.mammoth) {
@@ -414,9 +450,44 @@
             throw new Error('Định dạng tệp không hợp lệ.');
         }
 
+        // Nạp thư viện giải mã ảnh vector EMF/WMF theo nhu cầu
+        if (typeof window.convertMetafileToDataUrl !== 'function') {
+            try {
+                const emfMod = await import('./emf-converter.js?v=20260925');
+                window.convertMetafileToDataUrl = emfMod.convertMetafileToDataUrl;
+            } catch (emfErr) {
+                console.warn('[Word import] Không thể nạp mô-đun emf-converter:', emfErr);
+            }
+        }
+
         const mammothOptions = {
             styleMap: ['u => u'],
             convertImage: window.mammoth.images.imgElement(element => {
+                const contentType = element.contentType || '';
+                if (contentType === 'image/x-emf' || contentType === 'image/x-wmf') {
+                    return element.readAsArrayBuffer().then(async (buf) => {
+                        try {
+                            const arrayBuf = (buf instanceof ArrayBuffer) ? buf : (buf.buffer ? buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) : new Uint8Array(buf).buffer);
+                            
+                            // 1. Ưu tiên trích xuất ảnh raster (PNG/JPEG) nhúng trực tiếp trong EMF/WMF (ảnh gốc chất lượng cao từ Word)
+                            const embedded = extractEmbeddedRaster(arrayBuf);
+                            if (embedded) {
+                                const b64 = uint8ArrayToBase64(embedded.data);
+                                return { src: `data:${embedded.mime};base64,${b64}`, alt: 'Hình minh họa' };
+                            }
+
+                            // 2. Dự phòng: giải mã vector bằng canvas nếu không có raster nhúng
+                            if (typeof window.convertMetafileToDataUrl === 'function') {
+                                const pngUrl = await window.convertMetafileToDataUrl(arrayBuf, { dpiScale: 2 });
+                                if (pngUrl) return { src: pngUrl, alt: 'Hình minh họa' };
+                            }
+                        } catch (e) {
+                            console.warn('[Word import] Lỗi chuyển EMF sang PNG:', e);
+                        }
+                        const b64 = await element.readAsBase64String();
+                        return { src: `data:${contentType};base64,${b64}`, alt: 'Hình minh họa' };
+                    });
+                }
                 return element.readAsArrayBuffer().then(buf => {
                     const blob = new Blob([buf], { type: element.contentType || 'image/png' });
                     return new Promise((resolve) => {
