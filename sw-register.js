@@ -18,7 +18,7 @@
     if ('caches' in window) {
         caches.keys().then((keys) => {
             keys.forEach((key) => {
-                if (key.startsWith('qmath-') && !key.startsWith('qmath-v25')) {
+                if (key.startsWith('qmath-') && !key.startsWith('qmath-v26')) {
                     caches.delete(key);
                 }
             });

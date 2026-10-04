@@ -97,3 +97,80 @@
     border-color: rgba(255, 255, 255, 0.15) !important;
     color: var(--season-from, #f59e0b) !important;
 }
+
+
+/* ================= CHUYỂN ĐỔI GIAO DIỆN SÁNG / TỐI SIÊU MƯỢT KHÔNG KHỰNG / NHÁY ================= */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 0.25s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+::view-transition-new(root) {
+    mix-blend-mode: normal;
+}
+html.theme-transitioning,
+html.theme-transitioning body,
+html.theme-transitioning div,
+html.theme-transitioning header,
+html.theme-transitioning aside,
+html.theme-transitioning main,
+html.theme-transitioning button,
+html.theme-transitioning input,
+html.theme-transitioning select,
+html.theme-transitioning span,
+html.theme-transitioning p {
+    transition: background-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition-delay: 0s !important;
+}
+html.theme-transitioning .katex,
+html.theme-transitioning .katex *,
+html.theme-transitioning .MathJax,
+html.theme-transitioning .MathJax * {
+    transition: none !important;
+}
+.dark-icon {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease !important;
+}
+
+/* ================= ĐỒNG BỘ NÚT VÀ THẺ THEO MÙA ================= */
+.card-season-selected {
+    border-color: var(--season-to, #ea580c) !important;
+    box-shadow: 0 0 0 2px var(--season-shadow, rgba(234, 88, 12, 0.28)) !important;
+    background-color: var(--season-badge-bg, #fff7ed) !important;
+}
+.dark .card-season-selected {
+    border-color: var(--season-from, #f59e0b) !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+.exam-select-checkbox {
+    accent-color: var(--season-to, #ea580c) !important;
+}
+.btn-explorer-action {
+    color: #6b7280 !important;
+    background-color: transparent !important;
+    border-radius: 0.5rem !important;
+    transition: all 0.15s ease-in-out !important;
+}
+.btn-explorer-action:hover {
+    color: var(--season-to, #ea580c) !important;
+    background-color: var(--season-badge-bg, #fff7ed) !important;
+}
+.dark .btn-explorer-action {
+    color: #9ca3af !important;
+}
+.dark .btn-explorer-action:hover {
+    color: var(--season-from, #f59e0b) !important;
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+.btn-explorer-action.btn-action-delete:hover {
+    color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+.dark .btn-explorer-action.btn-action-delete:hover {
+    color: #f87171 !important;
+    background-color: rgba(239, 68, 68, 0.15) !important;
+}

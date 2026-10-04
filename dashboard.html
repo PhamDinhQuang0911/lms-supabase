@@ -155,6 +155,80 @@
         border-color: rgba(255, 255, 255, 0.15) !important;
         color: var(--season-from, #f59e0b) !important;
     }
+    .card-season-selected {
+        border-color: var(--season-to, #ea580c) !important;
+        box-shadow: 0 0 0 2px var(--season-shadow, rgba(234, 88, 12, 0.28)) !important;
+        background-color: var(--season-badge-bg, #fff7ed) !important;
+    }
+    .dark .card-season-selected {
+        border-color: var(--season-from, #f59e0b) !important;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15) !important;
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    .exam-select-checkbox {
+        accent-color: var(--season-to, #ea580c) !important;
+    }
+    .btn-explorer-action {
+        color: #6b7280 !important;
+        background-color: transparent !important;
+        border-radius: 0.5rem !important;
+        transition: all 0.15s ease-in-out !important;
+    }
+    .btn-explorer-action:hover {
+        color: var(--season-to, #ea580c) !important;
+        background-color: var(--season-badge-bg, #fff7ed) !important;
+    }
+    .dark .btn-explorer-action {
+        color: #9ca3af !important;
+    }
+    .dark .btn-explorer-action:hover {
+        color: var(--season-from, #f59e0b) !important;
+        background-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    .btn-explorer-action.btn-action-delete:hover {
+        color: #ef4444 !important;
+        background-color: #fef2f2 !important;
+    }
+    .dark .btn-explorer-action.btn-action-delete:hover {
+        color: #f87171 !important;
+        background-color: rgba(239, 68, 68, 0.15) !important;
+    }
+
+    /* ================= CHUYỂN ĐỔI GIAO DIỆN SÁNG / TỐI SIÊU MƯỢT KHÔNG KHỰNG / NHÁY ================= */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 0.25s;
+        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    ::view-transition-new(root) {
+        mix-blend-mode: normal;
+    }
+    html.theme-transitioning,
+    html.theme-transitioning body,
+    html.theme-transitioning div,
+    html.theme-transitioning header,
+    html.theme-transitioning aside,
+    html.theme-transitioning main,
+    html.theme-transitioning button,
+    html.theme-transitioning input,
+    html.theme-transitioning select,
+    html.theme-transitioning span,
+    html.theme-transitioning p {
+        transition: background-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                    border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                    color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+                    box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition-delay: 0s !important;
+    }
+    html.theme-transitioning .katex,
+    html.theme-transitioning .katex *,
+    html.theme-transitioning .MathJax,
+    html.theme-transitioning .MathJax * {
+        transition: none !important;
+    }
+    .dark-icon {
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease !important;
+    }
     </style>
     <script>
     // Khởi tạo sớm hàm prefetch dự phòng để tránh lỗi khi người dùng rê chuột trước khi module script nạp xong
@@ -186,7 +260,7 @@
     <script>
     // Tự động giải phóng triệt để Service Worker & Cache cũ để cập nhật ngay kiến trúc mới
     (function() {
-        const CACHE_RESET_ID = 'qmath_season_v20261005';
+        const CACHE_RESET_ID = 'qmath_season_v20261005_v2';
         if (localStorage.getItem('qm_reset_cache') !== CACHE_RESET_ID) {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -1312,14 +1386,14 @@
             </div>
         </div>
 
-        <div id="view-exambank" class="view-section hidden flex-1 flex flex-col bg-white overflow-y-auto pb-6 md:pb-8">
-            <div class="border-b border-gray-200 flex flex-col items-stretch bg-white shrink-0 sticky top-0 z-20 shadow-xs">
+        <div id="view-exambank" class="view-section hidden flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-y-auto pb-6 md:pb-8">
+            <div class="border-b border-gray-200 dark:border-gray-800 flex flex-col items-stretch bg-white dark:bg-gray-900 shrink-0 sticky top-0 z-20 shadow-xs">
                 <!-- Dòng 1: Tab + Nút công cụ -->
                 <div class="flex items-center justify-between px-2 md:px-4 py-2 gap-1.5 md:gap-2">
-                    <div class="flex bg-gray-100 p-1 rounded-lg shrink-0">
-                        <button onclick="window.switchBankTab('exam')" id="tabBankExam" class="px-2.5 md:px-4 py-1 md:py-1.5 text-[11px] md:text-sm font-bold rounded-md transition-all text-primary-700 bg-white shadow-sm">Đề trắc nghiệm</button>
-                        <button onclick="window.switchBankTab('homework')" id="tabBankHomework" class="px-2.5 md:px-4 py-1 md:py-1.5 text-[11px] md:text-sm font-bold rounded-md transition-all text-gray-500 hover:text-gray-700">Tự luận</button>
-                        <button onclick="window.switchBankTab('mixed')" id="tabBankMixed" class="px-2.5 md:px-4 py-1 md:py-1.5 text-[11px] md:text-sm font-bold rounded-md transition-all text-gray-500 hover:text-gray-700">Đề hỗn hợp</button>
+                    <div class="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg shrink-0">
+                        <button onclick="window.switchBankTab('exam')" id="tabBankExam" class="px-2.5 md:px-4 py-1 md:py-1.5 text-[11px] md:text-sm font-bold rounded-lg transition-all btn-season-secondary shadow-2xs">Đề trắc nghiệm</button>
+                        <button onclick="window.switchBankTab('homework')" id="tabBankHomework" class="px-2.5 md:px-4 py-1 md:py-1.5 text-[11px] md:text-sm font-bold rounded-lg transition-all text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 border border-transparent">Tự luận</button>
+                        <button onclick="window.switchBankTab('mixed')" id="tabBankMixed" class="px-2.5 md:px-4 py-1 md:py-1.5 text-[11px] md:text-sm font-bold rounded-lg transition-all text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 border border-transparent">Đề hỗn hợp</button>
                     </div>
                     <div class="flex items-center gap-1.5 md:gap-2 shrink-0">
                         <!-- Bộ lọc Kho đề cho Super Admin -->
@@ -1351,66 +1425,66 @@
                             </div>
                         </div>
 
-                        <div class="bg-gray-100 p-1 rounded-lg flex items-center shrink-0">
-                            <button onclick="window.switchExplorerView('grid')" id="btnExpGrid" class="p-1 md:p-1.5 rounded text-primary-600 bg-white shadow-sm transition-all text-xs md:text-sm" title="Lưới"><i class="fa-solid fa-border-all"></i></button>
-                            <button onclick="window.switchExplorerView('list')" id="btnExpList" class="p-1 md:p-1.5 rounded text-gray-400 hover:text-primary-600 transition-all text-xs md:text-sm" title="Danh sách"><i class="fa-solid fa-list"></i></button>
+                        <div class="bg-gray-100 dark:bg-gray-800 p-1 rounded-lg flex items-center shrink-0">
+                            <button onclick="window.switchExplorerView('grid')" id="btnExpGrid" class="p-1 md:p-1.5 rounded text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 shadow-sm transition-all text-xs md:text-sm" title="Lưới"><i class="fa-solid fa-border-all"></i></button>
+                            <button onclick="window.switchExplorerView('list')" id="btnExpList" class="p-1 md:p-1.5 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all text-xs md:text-sm" title="Danh sách"><i class="fa-solid fa-list"></i></button>
                         </div>
-                        <button onclick="window.pasteExplorerItem()" id="btnPasteItem" class="p-2 md:px-3 md:py-2 bg-primary-100 text-primary-700 hover:bg-primary-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0 hidden" title="Dán (Paste)"><i class="fa-solid fa-paste"></i><span class="hidden sm:inline ml-1.5">Dán</span></button>
-                        <button onclick="window.createNewFolder()" class="p-2 md:px-3 md:py-2 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0" title="Tạo thư mục"><i class="fa-solid fa-folder-plus"></i><span class="hidden sm:inline ml-1.5">Tạo thư mục</span></button>
-                        <button id="btnCreateContent" onclick="window.openCreateExam()" class="p-2 md:px-3 md:py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0" title="Soạn đề mới"><i class="fa-solid fa-file-circle-plus"></i><span class="hidden sm:inline ml-1.5">Soạn đề mới</span></button>
-                        <button onclick="window.toggleSelectAllExams()" id="btnToggleSelectMode" class="p-2 md:px-3 md:py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0 cursor-pointer" title="Chọn nhiều đề thi để xuất mã nguồn ZIP"><i class="fa-solid fa-square-check"></i><span class="hidden sm:inline ml-1.5">Chọn nhiều</span></button>
+                        <button onclick="window.pasteExplorerItem()" id="btnPasteItem" class="p-2 md:px-3.5 md:py-2 btn-season-secondary rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-2xs hidden" title="Dán (Paste)"><i class="fa-solid fa-paste"></i><span class="hidden sm:inline ml-1.5">Dán</span></button>
+                        <button onclick="window.createNewFolder()" class="p-2 md:px-3.5 md:py-2 btn-season-secondary rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-2xs" title="Tạo thư mục"><i class="fa-solid fa-folder-plus"></i><span class="hidden sm:inline ml-1.5">Tạo thư mục</span></button>
+                        <button id="btnCreateContent" onclick="window.openCreateExam()" class="p-2 md:px-3.5 md:py-2 btn-season-primary rounded-xl text-white text-xs md:text-sm font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-sm" title="Soạn đề mới"><i class="fa-solid fa-file-circle-plus"></i><span class="hidden sm:inline ml-1.5">Soạn đề mới</span></button>
+                        <button onclick="window.toggleSelectAllExams()" id="btnToggleSelectMode" class="p-2 md:px-3.5 md:py-2 btn-season-secondary rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-2xs" title="Chọn nhiều đề thi để xuất mã nguồn ZIP"><i class="fa-solid fa-square-check"></i><span class="hidden sm:inline ml-1.5">Chọn nhiều</span></button>
                     </div>
                 </div>
                 <!-- Dòng 2: Breadcrumb (chỉ hiện trên desktop) -->
-                <div class="hidden md:flex items-center text-gray-500 text-xs border-t border-gray-100 px-4 py-1.5 gap-1">
-                    <button onclick="window.navigateFolder('root')" class="hover:text-primary-600 font-bold flex items-center gap-1" title="Về thư mục gốc"><i class="fa-solid fa-house"></i></button>
-                    <button onclick="window.navigateUpFolder()" class="hover:text-primary-600 font-bold flex items-center gap-1 ml-2" title="Quay lại"><i class="fa-solid fa-arrow-left"></i></button>
+                <div class="hidden md:flex items-center text-gray-500 text-xs border-t border-gray-100 dark:border-gray-800 px-4 py-1.5 gap-1">
+                    <button onclick="window.navigateFolder('root')" class="hover:text-gray-900 dark:hover:text-gray-100 font-bold flex items-center gap-1" title="Về thư mục gốc"><i class="fa-solid fa-house"></i></button>
+                    <button onclick="window.navigateUpFolder()" class="hover:text-gray-900 dark:hover:text-gray-100 font-bold flex items-center gap-1 ml-2" title="Quay lại"><i class="fa-solid fa-arrow-left"></i></button>
                     <span id="breadcrumbContainer" class="flex items-center ml-1"></span>
                 </div>
                 <!-- Dòng Thanh thao tác chọn nhiều đề thi & Xuất ZIP -->
-                <div id="bulkExamActionBar" class="hidden border-t border-b px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm shadow-sm transition-all shrink-0" style="background-color: #ecfdf5 !important; border-color: #a7f3d0 !important;">
+                <div id="bulkExamActionBar" class="hidden border-t border-b px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm shadow-sm transition-all shrink-0 badge-season">
                     <div class="flex items-center gap-2">
-                        <span class="px-2.5 py-0.5 rounded-full text-white font-black text-xs shadow-sm" style="background-color: #059669 !important;" id="selectedExamCountBadge">0</span>
-                        <span class="font-bold text-gray-800">Đã chọn <span id="selectedExamCountText" class="text-emerald-700 font-black">0</span> đề thi</span>
-                        <span class="text-gray-300">|</span>
-                        <button onclick="window.selectAllExamsInCurrentFolder()" class="text-emerald-700 hover:text-emerald-900 font-bold hover:underline flex items-center gap-1 cursor-pointer">
+                        <span class="px-2.5 py-0.5 rounded-full text-white font-black text-xs shadow-sm btn-season-primary" id="selectedExamCountBadge">0</span>
+                        <span class="font-bold text-gray-800 dark:text-gray-100">Đã chọn <span id="selectedExamCountText" class="font-black" style="color: var(--season-to, #ea580c);">0</span> đề thi</span>
+                        <span class="text-gray-300 dark:text-gray-600">|</span>
+                        <button onclick="window.selectAllExamsInCurrentFolder()" class="font-bold hover:underline flex items-center gap-1 cursor-pointer" style="color: var(--season-to, #ea580c);">
                             <i class="fa-solid fa-check-double text-xs"></i> Chọn tất cả (<span id="totalExamsInFolderCount">0</span>)
                         </button>
-                        <span class="text-gray-300">|</span>
+                        <span class="text-gray-300 dark:text-gray-600">|</span>
                         <button onclick="window.clearSelectedExams()" class="text-gray-500 hover:text-rose-600 font-bold hover:underline flex items-center gap-1 cursor-pointer">
                             <i class="fa-solid fa-xmark text-xs"></i> Bỏ chọn
                         </button>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="window.exportBulkLatexExams()" id="btnBulkExportLatex" style="background: linear-gradient(135deg, #059669 0%, #0d9488 100%) !important; background-color: #059669 !important; color: #ffffff !important; box-shadow: 0 4px 14px 0 rgba(5, 150, 105, 0.45) !important;" class="px-4 py-2 rounded-xl font-black text-white flex items-center gap-2 text-xs md:text-sm active:scale-95 cursor-pointer transition-all hover:opacity-95">
+                        <button onclick="window.exportBulkLatexExams()" id="btnBulkExportLatex" class="btn-season-primary px-4 py-2 rounded-xl font-black text-white flex items-center gap-2 text-xs md:text-sm active:scale-95 cursor-pointer transition-all">
                             <i class="fa-solid fa-file-zipper text-white text-base"></i>
                             <span class="font-black text-white">Xuất mã nguồn TeX (.ZIP)</span>
                         </button>
                     </div>
                 </div>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50" id="fileExplorerArea">
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 dark:bg-gray-900" id="fileExplorerArea">
                 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4" id="explorerGrid"></div>
                 <div id="emptyExplorerMsg" class="hidden flex flex-col items-center justify-center h-64 text-gray-400"><i class="fa-regular fa-folder-open text-6xl mb-4 text-gray-300"></i><p>Thư mục trống</p></div>
             </div>
 
             <!-- Thanh Dock nổi thao tác chọn nhiều cố định ở đáy màn hình khi cuộn trang -->
-            <div id="bulkExamFloatingDock" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] rounded-2xl px-4 md:px-6 py-3 flex items-center gap-3 md:gap-4 shadow-2xl transition-all border border-emerald-400" style="background-color: #ffffff !important; box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.25), 0 4px 12px -2px rgba(5, 150, 105, 0.3) !important;">
+            <div id="bulkExamFloatingDock" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] rounded-2xl px-4 md:px-6 py-3 flex items-center gap-3 md:gap-4 shadow-2xl transition-all border badge-season" style="box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.25), 0 4px 12px -2px var(--season-shadow, rgba(234, 88, 12, 0.3)) !important;">
                 <div class="flex items-center gap-2 shrink-0">
-                    <span class="px-2.5 py-0.5 rounded-full text-white font-black text-xs shadow-sm" style="background-color: #059669 !important;" id="floatingSelectedExamCountBadge">0</span>
-                    <span class="font-bold text-gray-800 text-xs md:text-sm whitespace-nowrap">Đã chọn <strong class="text-emerald-700 font-black" id="floatingSelectedExamCountText">0</strong> đề</span>
+                    <span class="px-2.5 py-0.5 rounded-full text-white font-black text-xs shadow-sm btn-season-primary" id="floatingSelectedExamCountBadge">0</span>
+                    <span class="font-bold text-gray-800 dark:text-gray-100 text-xs md:text-sm whitespace-nowrap">Đã chọn <strong class="font-black" style="color: var(--season-to, #ea580c);" id="floatingSelectedExamCountText">0</strong> đề</span>
                 </div>
-                <div class="h-5 w-px bg-gray-200 hidden sm:block"></div>
+                <div class="h-5 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
                 <div class="hidden sm:flex items-center gap-2 shrink-0">
-                    <button onclick="window.selectAllExamsInCurrentFolder()" class="text-xs md:text-sm font-bold text-emerald-700 hover:text-emerald-900 hover:underline flex items-center gap-1 cursor-pointer">
+                    <button onclick="window.selectAllExamsInCurrentFolder()" class="text-xs md:text-sm font-bold hover:underline flex items-center gap-1 cursor-pointer" style="color: var(--season-to, #ea580c);">
                         <i class="fa-solid fa-check-double text-xs"></i> Chọn tất cả
                     </button>
-                    <span class="text-gray-300">|</span>
+                    <span class="text-gray-300 dark:text-gray-600">|</span>
                     <button onclick="window.clearSelectedExams()" class="text-xs md:text-sm font-bold text-gray-500 hover:text-rose-600 hover:underline flex items-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-xmark text-xs"></i> Bỏ chọn
                     </button>
                 </div>
-                <button onclick="window.exportBulkLatexExams()" id="btnFloatingBulkExportLatex" style="background: linear-gradient(135deg, #059669 0%, #0d9488 100%) !important; background-color: #059669 !important; color: #ffffff !important; box-shadow: 0 4px 14px 0 rgba(5, 150, 105, 0.45) !important;" class="px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-white text-xs md:text-sm flex items-center gap-2 hover:opacity-95 active:scale-95 transition-all cursor-pointer shrink-0">
+                <button onclick="window.exportBulkLatexExams()" id="btnFloatingBulkExportLatex" class="btn-season-primary px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-white text-xs md:text-sm flex items-center gap-2 hover:opacity-95 active:scale-95 transition-all cursor-pointer shrink-0">
                     <i class="fa-solid fa-file-zipper text-white text-base"></i>
                     <span class="font-black text-white whitespace-nowrap">Xuất mã nguồn TeX (.ZIP)</span>
                 </button>
@@ -3297,22 +3371,20 @@
             const btnMixed = document.getElementById('tabBankMixed');
             const btnCreate = document.getElementById('btnCreateContent');
 
-            const activeClass = "px-2.5 md:px-4 py-1 md:py-1.5 text-[11px] md:text-sm font-bold rounded-md transition-all text-primary-700 bg-white shadow-sm";
-            const inactiveClass = "px-2.5 md:px-4 py-1 md:py-1.5 text-[11px] md:text-sm font-bold rounded-md transition-all text-gray-500 hover:text-gray-700";
+            const activeClass = "px-2.5 md:px-4 py-1 md:py-1.5 text-[11px] md:text-sm font-bold rounded-lg transition-all btn-season-secondary shadow-2xs";
+            const inactiveClass = "px-2.5 md:px-4 py-1 md:py-1.5 text-[11px] md:text-sm font-bold rounded-lg transition-all text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 border border-transparent";
 
             if (btnExam) btnExam.className = tab === 'exam' ? activeClass : inactiveClass;
             if (btnHw) btnHw.className = tab === 'homework' ? activeClass : inactiveClass;
             if (btnMixed) btnMixed.className = tab === 'mixed' ? activeClass : inactiveClass;
 
             if (btnCreate) {
+                btnCreate.className = "p-2 md:px-3.5 md:py-2 btn-season-primary rounded-xl text-white text-xs md:text-sm font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-sm";
                 if (tab === 'exam') {
-                    btnCreate.className = "p-2 md:px-3 md:py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0";
                     btnCreate.innerHTML = '<i class="fa-solid fa-file-circle-plus"></i><span class="hidden sm:inline ml-1.5">Soạn đề mới</span>';
                 } else if (tab === 'homework') {
-                    btnCreate.className = "p-2 md:px-3 md:py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0";
                     btnCreate.innerHTML = '<i class="fa-solid fa-file-pdf"></i><span class="hidden sm:inline ml-1.5">Tạo bài Tự luận</span>';
                 } else {
-                    btnCreate.className = "p-2 md:px-3 md:py-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg text-xs md:text-sm font-bold transition-colors flex items-center justify-center shrink-0";
                     btnCreate.innerHTML = '<i class="fa-solid fa-file-pen"></i><span class="hidden sm:inline ml-1.5">Soạn đề hỗn hợp</span>';
                 }
             }
@@ -7013,37 +7085,37 @@ function renderTagFilterUI() {
 
                 if (currentExplorerView === 'list') {
                     // Giao diện LIST cho Folder
-                    div.className = "explorer-item bg-white px-2 py-2 md:px-4 md:py-3 rounded-xl border border-gray-200 flex items-center justify-between hover:bg-primary-50 group gap-1 md:gap-2 overflow-hidden";
+                    div.className = "explorer-item bg-white dark:bg-gray-800/90 px-2 py-2 md:px-4 md:py-3 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 group gap-1 md:gap-2 overflow-hidden transition-all";
                     div.innerHTML = `
                         <div class="flex items-center gap-1.5 md:gap-2.5 overflow-hidden flex-1 min-w-0">
                             <div class="text-base md:text-xl text-yellow-400 shrink-0"><i class="fa-solid fa-folder"></i></div>
                             <div class="flex items-center min-w-0 flex-1 pointer-events-none">
-                                <p class="text-[10px] sm:text-xs md:text-sm font-bold text-gray-700 truncate">${f.name}</p>
+                                <p class="text-[10px] sm:text-xs md:text-sm font-bold text-gray-700 dark:text-gray-200 truncate">${f.name}</p>
                                 ${folderBadge}
                                 ${getTagsHtml(f)}
                             </div>
                         </div>
                         <div class="flex items-center gap-0.5 md:gap-1 shrink-0">
                             ${superSysBtn}
-                            ${canManageFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('rename', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 md:p-2 text-primary-600 hover:bg-primary-100 rounded-lg transition-colors" title="Đổi tên"><i class="fa-solid fa-pen text-[11px] md:text-sm"></i></button>` : ''}
-                            <button onclick="event.stopPropagation(); window.copyExplorerItem('${f.id}', 'folder')" class="p-1 md:p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors" title="Sao chép"><i class="fa-solid fa-copy text-[11px] md:text-sm"></i></button>
-                            ${canManageFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('move', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 md:p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors" title="Di chuyển"><i class="fa-solid fa-arrow-right-to-bracket text-[11px] md:text-sm"></i></button>` : ''}
-                            ${canDeleteFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('delete', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 md:p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Xóa"><i class="fa-solid fa-trash-can text-[11px] md:text-sm"></i></button>` : ''}
+                            ${canManageFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('rename', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 md:p-2 btn-explorer-action" title="Đổi tên"><i class="fa-solid fa-pen text-[11px] md:text-sm"></i></button>` : ''}
+                            <button onclick="event.stopPropagation(); window.copyExplorerItem('${f.id}', 'folder')" class="p-1 md:p-2 btn-explorer-action" title="Sao chép"><i class="fa-solid fa-copy text-[11px] md:text-sm"></i></button>
+                            ${canManageFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('move', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 md:p-2 btn-explorer-action" title="Di chuyển"><i class="fa-solid fa-arrow-right-to-bracket text-[11px] md:text-sm"></i></button>` : ''}
+                            ${canDeleteFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('delete', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 md:p-2 btn-explorer-action btn-action-delete" title="Xóa"><i class="fa-solid fa-trash-can text-[11px] md:text-sm"></i></button>` : ''}
                         </div>
                     `;
                 } else {
                     // Giao diện GRID cho Folder
-                    div.className = "explorer-item bg-white p-4 rounded-xl border border-gray-200 relative group flex flex-col items-center justify-center aspect-square md:aspect-auto";
+                    div.className = "explorer-item bg-white dark:bg-gray-800/90 p-4 rounded-xl border border-gray-200 dark:border-gray-700 relative group flex flex-col items-center justify-center aspect-square md:aspect-auto transition-all";
                     div.innerHTML = `
                         <div class="text-4xl text-yellow-400 mb-2 pointer-events-none"><i class="fa-solid fa-folder"></i></div>
-                        <p class="text-sm font-bold text-gray-700 text-center truncate w-full px-1 pointer-events-none">${f.name}</p>
+                        <p class="text-sm font-bold text-gray-700 dark:text-gray-200 text-center truncate w-full px-1 pointer-events-none">${f.name}</p>
                         <div class="pointer-events-none mt-1">${folderBadge} ${getTagsHtml(f)}</div>
-                        <div class="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-white/95 shadow-sm px-1 py-0.5 rounded-lg border border-gray-200">
+                        <div class="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-white/95 dark:bg-gray-800/95 shadow-sm px-1 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
                             ${superSysBtn}
-                            ${canManageFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('rename', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 text-primary-600 hover:bg-primary-50 rounded" title="Đổi tên"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
-                            <button onclick="event.stopPropagation(); window.copyExplorerItem('${f.id}', 'folder')" class="p-1 text-green-600 hover:bg-green-50 rounded" title="Sao chép"><i class="fa-solid fa-copy text-xs"></i></button>
-                            ${canManageFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('move', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 text-purple-600 hover:bg-purple-50 rounded" title="Di chuyển"><i class="fa-solid fa-arrow-right-to-bracket text-xs"></i></button>` : ''}
-                            ${canDeleteFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('delete', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 text-red-600 hover:bg-red-50 rounded" title="Xóa"><i class="fa-solid fa-trash-can text-xs"></i></button>` : ''}
+                            ${canManageFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('rename', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 btn-explorer-action" title="Đổi tên"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
+                            <button onclick="event.stopPropagation(); window.copyExplorerItem('${f.id}', 'folder')" class="p-1 btn-explorer-action" title="Sao chép"><i class="fa-solid fa-copy text-xs"></i></button>
+                            ${canManageFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('move', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 btn-explorer-action" title="Di chuyển"><i class="fa-solid fa-arrow-right-to-bracket text-xs"></i></button>` : ''}
+                            ${canDeleteFolder ? `<button onclick="event.stopPropagation(); window.openActionDirect('delete', '${f.id}', 'folder', '${f.name.replace(/'/g, "\\'")}')" class="p-1 btn-explorer-action btn-action-delete" title="Xóa"><i class="fa-solid fa-trash-can text-xs"></i></button>` : ''}
                         </div>
                     `;
                 }
@@ -7079,18 +7151,18 @@ function renderTagFilterUI() {
                         ? `<span class="bg-purple-100 text-purple-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1"><i class="fa-solid fa-chalkboard-user text-purple-600"></i> GV: ${exam.teacherEmail || exam.teacherId}</span>` 
                         : '');
 
-                const superSysBtn = isSuper ? `<button onclick="event.stopPropagation(); window.toggleItemSystemBank('${exam.id}', 'exam')" class="p-1 md:p-2 ${exam.isSystem ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-blue-600'} rounded-lg transition-colors" title="${exam.isSystem ? 'Đang là đề hệ thống dùng chung (Bấm để gỡ)' : 'Đặt làm đề hệ thống dùng chung'}"><i class="fa-solid fa-earth-americas text-[11px] md:text-sm"></i></button>` : '';
+                const superSysBtn = isSuper ? `<button onclick="event.stopPropagation(); window.toggleItemSystemBank('${exam.id}', 'exam')" class="p-1 md:p-2 ${exam.isSystem ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' : 'btn-explorer-action'} rounded-lg transition-colors" title="${exam.isSystem ? 'Đang là đề hệ thống dùng chung (Bấm để gỡ)' : 'Đặt làm đề hệ thống dùng chung'}"><i class="fa-solid fa-earth-americas text-[11px] md:text-sm"></i></button>` : '';
 
                 if (currentExplorerView === 'list') {
                     // Giao diện LIST cho Exam
-                    div.className = `explorer-item bg-white px-2 py-2 md:px-4 md:py-3 rounded-xl border ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-400/50 bg-emerald-50/40' : 'border-gray-200 hover:bg-primary-50'} flex items-center justify-between group gap-1 md:gap-2 overflow-hidden transition-all`;
+                    div.className = `explorer-item bg-white dark:bg-gray-800/90 px-2 py-2 md:px-4 md:py-3 rounded-xl border ${isSelected ? 'card-season-selected' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'} flex items-center justify-between group gap-1 md:gap-2 overflow-hidden transition-all`;
                     div.innerHTML = `
                         <div class="flex items-center gap-1.5 md:gap-2.5 overflow-hidden flex-1 min-w-0">
-                            <input type="checkbox" data-exam-id="${exam.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleSelectExam('${exam.id}')" class="exam-select-checkbox w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer shrink-0 transition-all" title="Tích chọn đề này để xuất ZIP">
-                            <div class="text-base md:text-xl text-primary-500 shrink-0"><i class="fa-regular fa-file-lines"></i></div>
+                            <input type="checkbox" data-exam-id="${exam.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleSelectExam('${exam.id}')" class="exam-select-checkbox w-4 h-4 rounded border-gray-300 dark:border-gray-600 cursor-pointer shrink-0 transition-all" title="Tích chọn đề này để xuất ZIP">
+                            <div class="text-base md:text-xl shrink-0" style="color: var(--season-to, #ea580c);"><i class="fa-regular fa-file-lines"></i></div>
                             <div class="flex flex-col overflow-hidden min-w-0 flex-1 pointer-events-none">
                                 <div class="flex items-center gap-1.5">
-                                    <p class="text-[10px] sm:text-xs md:text-sm font-bold text-gray-700 truncate" title="${exam.title}">${exam.title}</p>
+                                    <p class="text-[10px] sm:text-xs md:text-sm font-bold text-gray-700 dark:text-gray-200 truncate" title="${exam.title}">${exam.title}</p>
                                     ${examBadge}
                                 </div>
                                 <p class="text-[10px] text-gray-400 hidden md:block">Ngày tạo: ${new Date(exam.createdAt).toLocaleDateString('vi-VN')}</p>
@@ -7099,36 +7171,36 @@ function renderTagFilterUI() {
                         </div>
                         <div class="flex items-center gap-0.5 md:gap-1.5 shrink-0">
                             ${superSysBtn}
-                            <button onclick="event.stopPropagation(); window.quickExportSingleLatex('${exam.id}')" class="p-1 md:p-2 text-teal-600 hover:bg-teal-100 rounded-lg transition-colors" title="Xuất mã nguồn TeX đề này"><i class="fa-solid fa-file-code text-[11px] md:text-sm"></i></button>
-                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.toggleExamAntiScreenshot('${exam.id}')" class="p-1 md:p-2 ${exam.antiScreenshot === false ? 'text-gray-400 dark:text-gray-500 hover:text-rose-600 hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'} rounded-lg transition-colors" title="${exam.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh đề & giải (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình đề & giải (Bấm để cho phép)'}"><i class="fa-solid ${exam.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'} text-[11px] md:text-sm"></i></button>` : ''}
-                            <button onclick="event.stopPropagation(); window.showExamInfo('${exam.id}')" class="p-1 md:p-2 text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors" title="Thông tin đề thi"><i class="fa-solid fa-circle-info text-[11px] md:text-sm"></i></button>
-                            <button onclick="event.stopPropagation(); window.promptAssignExamToAnyClass('${exam.id}')" class="p-1 md:p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="Giao đề này cho lớp"><i class="fa-solid fa-share-from-square text-[11px] md:text-sm"></i></button>
-                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('rename', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 md:p-2 text-primary-600 hover:bg-primary-100 rounded-lg transition-colors" title="Đổi tên"><i class="fa-solid fa-pen text-[11px] md:text-sm"></i></button>` : ''}
-                            <button onclick="event.stopPropagation(); window.copyExplorerItem('${exam.id}', 'exam')" class="p-1 md:p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors" title="Sao chép về kho của tôi"><i class="fa-solid fa-copy text-[11px] md:text-sm"></i></button>
-                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('move', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 md:p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors" title="Di chuyển"><i class="fa-solid fa-arrow-right-to-bracket text-[11px] md:text-sm"></i></button>` : ''}
-                            ${canDeleteExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('delete', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 md:p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Xóa"><i class="fa-solid fa-trash-can text-[11px] md:text-sm"></i></button>` : ''}
+                            <button onclick="event.stopPropagation(); window.quickExportSingleLatex('${exam.id}')" class="p-1 md:p-2 btn-explorer-action" title="Xuất mã nguồn TeX đề này"><i class="fa-solid fa-file-code text-[11px] md:text-sm"></i></button>
+                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.toggleExamAntiScreenshot('${exam.id}')" class="p-1 md:p-2 ${exam.antiScreenshot === false ? 'btn-explorer-action' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 rounded-lg'} transition-colors" title="${exam.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh đề & giải (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình đề & giải (Bấm để cho phép)'}"><i class="fa-solid ${exam.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'} text-[11px] md:text-sm"></i></button>` : ''}
+                            <button onclick="event.stopPropagation(); window.showExamInfo('${exam.id}')" class="p-1 md:p-2 btn-explorer-action" title="Thông tin đề thi"><i class="fa-solid fa-circle-info text-[11px] md:text-sm"></i></button>
+                            <button onclick="event.stopPropagation(); window.promptAssignExamToAnyClass('${exam.id}')" class="p-1 md:p-2 btn-explorer-action" title="Giao đề này cho lớp"><i class="fa-solid fa-share-from-square text-[11px] md:text-sm"></i></button>
+                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('rename', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 md:p-2 btn-explorer-action" title="Đổi tên"><i class="fa-solid fa-pen text-[11px] md:text-sm"></i></button>` : ''}
+                            <button onclick="event.stopPropagation(); window.copyExplorerItem('${exam.id}', 'exam')" class="p-1 md:p-2 btn-explorer-action" title="Sao chép về kho của tôi"><i class="fa-solid fa-copy text-[11px] md:text-sm"></i></button>
+                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('move', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 md:p-2 btn-explorer-action" title="Di chuyển"><i class="fa-solid fa-arrow-right-to-bracket text-[11px] md:text-sm"></i></button>` : ''}
+                            ${canDeleteExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('delete', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 md:p-2 btn-explorer-action btn-action-delete" title="Xóa"><i class="fa-solid fa-trash-can text-[11px] md:text-sm"></i></button>` : ''}
                         </div>
                     `;
                 } else {
                     // Giao diện GRID cho Exam
-                    div.className = `explorer-item bg-white p-4 rounded-xl border ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-400/50 bg-emerald-50/40' : 'border-gray-200'} relative group flex flex-col items-center justify-center aspect-square md:aspect-auto transition-all`;
+                    div.className = `explorer-item bg-white dark:bg-gray-800/90 p-4 rounded-xl border ${isSelected ? 'card-season-selected' : 'border-gray-200 dark:border-gray-700'} relative group flex flex-col items-center justify-center aspect-square md:aspect-auto transition-all`;
                     div.innerHTML = `
                         <div class="absolute top-2 left-2 z-10">
-                            <input type="checkbox" data-exam-id="${exam.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleSelectExam('${exam.id}')" class="exam-select-checkbox w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer shadow-sm transition-all" title="Tích chọn đề này để xuất ZIP">
+                            <input type="checkbox" data-exam-id="${exam.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleSelectExam('${exam.id}')" class="exam-select-checkbox w-4 h-4 rounded border-gray-300 dark:border-gray-600 cursor-pointer shadow-sm transition-all" title="Tích chọn đề này để xuất ZIP">
                         </div>
-                        <div class="text-4xl text-primary-500 mb-2 pointer-events-none"><i class="fa-regular fa-file-lines"></i></div>
-                        <p class="text-xs md:text-sm font-bold text-gray-700 text-center truncate w-full px-1 pointer-events-none" title="${exam.title}">${exam.title}</p>
+                        <div class="text-4xl mb-2 pointer-events-none" style="color: var(--season-to, #ea580c);"><i class="fa-regular fa-file-lines"></i></div>
+                        <p class="text-xs md:text-sm font-bold text-gray-700 dark:text-gray-200 text-center truncate w-full px-1 pointer-events-none" title="${exam.title}">${exam.title}</p>
                         <div class="pointer-events-none mt-1">${examBadge} ${getTagsHtml(exam)}</div>
-                        <div class="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-white/95 shadow-sm px-1 py-0.5 rounded-lg border border-gray-200">
+                        <div class="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-white/95 dark:bg-gray-800/95 shadow-sm px-1 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
                             ${superSysBtn}
-                            <button onclick="event.stopPropagation(); window.quickExportSingleLatex('${exam.id}')" class="p-1 text-teal-600 hover:bg-teal-50 rounded" title="Xuất mã nguồn TeX đề này"><i class="fa-solid fa-file-code text-xs"></i></button>
-                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.toggleExamAntiScreenshot('${exam.id}')" class="p-1 ${exam.antiScreenshot === false ? 'text-gray-400 dark:text-gray-500 hover:text-rose-600 hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'} rounded transition-colors" title="${exam.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh đề & giải (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình đề & giải (Bấm để cho phép)'}"><i class="fa-solid ${exam.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'} text-xs"></i></button>` : ''}
-                            <button onclick="event.stopPropagation(); window.showExamInfo('${exam.id}')" class="p-1 text-cyan-600 hover:bg-cyan-50 rounded" title="Thông tin đề thi"><i class="fa-solid fa-circle-info text-xs"></i></button>
-                            <button onclick="event.stopPropagation(); window.promptAssignExamToAnyClass('${exam.id}')" class="p-1 text-primary-600 hover:bg-primary-50 rounded" title="Giao đề này cho lớp"><i class="fa-solid fa-share-from-square text-xs"></i></button>
-                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('rename', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 text-primary-600 hover:bg-primary-50 rounded" title="Đổi tên"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
-                            <button onclick="event.stopPropagation(); window.copyExplorerItem('${exam.id}', 'exam')" class="p-1 text-green-600 hover:bg-green-50 rounded" title="Sao chép về kho của tôi"><i class="fa-solid fa-copy text-xs"></i></button>
-                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('move', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 text-purple-600 hover:bg-purple-50 rounded" title="Di chuyển"><i class="fa-solid fa-arrow-right-to-bracket text-xs"></i></button>` : ''}
-                            ${canDeleteExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('delete', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 text-red-600 hover:bg-red-50 rounded" title="Xóa"><i class="fa-solid fa-trash-can text-xs"></i></button>` : ''}
+                            <button onclick="event.stopPropagation(); window.quickExportSingleLatex('${exam.id}')" class="p-1 btn-explorer-action" title="Xuất mã nguồn TeX đề này"><i class="fa-solid fa-file-code text-xs"></i></button>
+                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.toggleExamAntiScreenshot('${exam.id}')" class="p-1 ${exam.antiScreenshot === false ? 'btn-explorer-action' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 rounded'} transition-colors" title="${exam.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh đề & giải (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình đề & giải (Bấm để cho phép)'}"><i class="fa-solid ${exam.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'} text-xs"></i></button>` : ''}
+                            <button onclick="event.stopPropagation(); window.showExamInfo('${exam.id}')" class="p-1 btn-explorer-action" title="Thông tin đề thi"><i class="fa-solid fa-circle-info text-xs"></i></button>
+                            <button onclick="event.stopPropagation(); window.promptAssignExamToAnyClass('${exam.id}')" class="p-1 btn-explorer-action" title="Giao đề này cho lớp"><i class="fa-solid fa-share-from-square text-xs"></i></button>
+                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('rename', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 btn-explorer-action" title="Đổi tên"><i class="fa-solid fa-pen text-xs"></i></button>` : ''}
+                            <button onclick="event.stopPropagation(); window.copyExplorerItem('${exam.id}', 'exam')" class="p-1 btn-explorer-action" title="Sao chép về kho của tôi"><i class="fa-solid fa-copy text-xs"></i></button>
+                            ${canManageExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('move', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 btn-explorer-action" title="Di chuyển"><i class="fa-solid fa-arrow-right-to-bracket text-xs"></i></button>` : ''}
+                            ${canDeleteExam ? `<button onclick="event.stopPropagation(); window.openActionDirect('delete', '${exam.id}', 'exam', '${exam.title.replace(/'/g, "\\'")}')" class="p-1 btn-explorer-action btn-action-delete" title="Xóa"><i class="fa-solid fa-trash-can text-xs"></i></button>` : ''}
                         </div>
                     `;
                 }
@@ -7672,8 +7744,8 @@ function renderTagFilterUI() {
                 if (floatingBadge) floatingBadge.textContent = count;
                 if (floatingText) floatingText.textContent = count;
                 if (btnToggle) {
-                    btnToggle.classList.remove('bg-emerald-50', 'text-emerald-700');
-                    btnToggle.classList.add('bg-emerald-600', 'text-white', 'shadow-xs');
+                    btnToggle.classList.remove('btn-season-secondary');
+                    btnToggle.classList.add('btn-season-primary');
                 }
             } else {
                 if (bar) bar.classList.add('hidden');
@@ -7683,8 +7755,8 @@ function renderTagFilterUI() {
                 if (floatingBadge) floatingBadge.textContent = '0';
                 if (floatingText) floatingText.textContent = '0';
                 if (btnToggle) {
-                    btnToggle.classList.remove('bg-emerald-600', 'text-white', 'shadow-xs');
-                    btnToggle.classList.add('bg-emerald-50', 'text-emerald-700');
+                    btnToggle.classList.remove('btn-season-primary');
+                    btnToggle.classList.add('btn-season-secondary');
                 }
             }
 
@@ -7697,10 +7769,10 @@ function renderTagFilterUI() {
                 const card = cb.closest('.explorer-item');
                 if (card) {
                     if (isSelected) {
-                        card.classList.add('border-emerald-500', 'ring-2', 'ring-emerald-400/50', 'bg-emerald-50/40');
+                        card.classList.add('card-season-selected');
                         card.classList.remove('border-gray-200');
                     } else {
-                        card.classList.remove('border-emerald-500', 'ring-2', 'ring-emerald-400/50', 'bg-emerald-50/40');
+                        card.classList.remove('card-season-selected');
                         card.classList.add('border-gray-200');
                     }
                 }
@@ -14618,14 +14690,35 @@ window.deleteTag = async (id) => {
             }
         }
         window.toggleTheme = () => {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.theme = 'light';
-                document.querySelectorAll('.dark-icon').forEach(icon => { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); });
+            const isDark = document.documentElement.classList.contains('dark');
+            const switchTheme = () => {
+                if (isDark) {
+                    document.documentElement.classList.remove('dark');
+                    try { localStorage.theme = 'light'; } catch(e){}
+                    document.querySelectorAll('.dark-icon').forEach(icon => {
+                        icon.classList.remove('fa-sun');
+                        icon.classList.add('fa-moon');
+                    });
+                } else {
+                    document.documentElement.classList.add('dark');
+                    try { localStorage.theme = 'dark'; } catch(e){}
+                    document.querySelectorAll('.dark-icon').forEach(icon => {
+                        icon.classList.remove('fa-moon');
+                        icon.classList.add('fa-sun');
+                    });
+                }
+            };
+
+            if (document.startViewTransition) {
+                document.startViewTransition(() => {
+                    switchTheme();
+                });
             } else {
-                document.documentElement.classList.add('dark');
-                localStorage.theme = 'dark';
-                document.querySelectorAll('.dark-icon').forEach(icon => { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); });
+                document.documentElement.classList.add('theme-transitioning');
+                switchTheme();
+                setTimeout(() => {
+                    document.documentElement.classList.remove('theme-transitioning');
+                }, 260);
             }
         };
         initTheme();
