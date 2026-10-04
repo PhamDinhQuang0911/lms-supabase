@@ -100,29 +100,61 @@
 
 
 /* ================= CHUYỂN ĐỔI GIAO DIỆN SÁNG / TỐI SIÊU MƯỢT KHÔNG KHỰNG / NHÁY ================= */
-::view-transition-old(root),
-::view-transition-new(root) {
-    animation-duration: 0.25s;
-    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+    transition: none !important;
+    animation-duration: 0.001s !important;
 }
-::view-transition-new(root) {
-    mix-blend-mode: normal;
+
+::view-transition {
+    background-color: transparent !important;
 }
+::view-transition-image-pair(root) {
+    isolation: isolate !important;
+}
+/* Layer cũ giữ nguyên 100% opacity ở dưới, triệt tiêu hoàn toàn khoảng hở trong suốt gây nhấp nháy màn hình */
+::view-transition-old(root) {
+    animation: none !important;
+    mix-blend-mode: normal !important;
+    z-index: 1 !important;
+}
+/* Layer mới phủ mượt mà lên trên bằng alpha compositing chuẩn không bị lóa trắng */
+::view-transition-new(root) {
+    animation: 200ms cubic-bezier(0.25, 1, 0.5, 1) both themeFadeIn !important;
+    mix-blend-mode: normal !important;
+    z-index: 2 !important;
+}
+@keyframes themeFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(root),
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none !important;
+    }
+}
+
 html.theme-transitioning,
 html.theme-transitioning body,
-html.theme-transitioning div,
 html.theme-transitioning header,
 html.theme-transitioning aside,
 html.theme-transitioning main,
-html.theme-transitioning button,
+html.theme-transitioning .view-section,
+html.theme-transitioning .bank-top-header,
+html.theme-transitioning .bank-toolbar,
+html.theme-transitioning #bankListGrid > div,
+html.theme-transitioning .card,
 html.theme-transitioning input,
 html.theme-transitioning select,
-html.theme-transitioning span,
-html.theme-transitioning p {
-    transition: background-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-                border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-                color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+html.theme-transitioning button {
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.16s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
     transition-delay: 0s !important;
 }
 html.theme-transitioning .katex,
@@ -133,6 +165,60 @@ html.theme-transitioning .MathJax * {
 }
 .dark-icon {
     transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease !important;
+}
+
+/* ================= HIỆU ỨNG CHUYỂN GIAO DIỆN & VIEW SECTION ================= */
+.view-section {
+    will-change: opacity;
+}
+.view-section:not(.hidden) {
+    animation: viewSectionFadeIn 0.18s cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes viewSectionFadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* ================= HIỆU ỨNG TƯƠNG TÁC NÚT BẤM (BUTTON INTERACTIONS) ================= */
+button:not(:disabled),
+.btn-season-primary,
+.btn-season-secondary,
+.btn-explorer-action {
+    transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1),
+                background-color 0.16s ease,
+                border-color 0.16s ease,
+                color 0.16s ease,
+                box-shadow 0.16s ease !important;
+}
+button:not(:disabled):hover,
+.btn-season-primary:hover,
+.btn-season-secondary:hover {
+    transform: translateY(-1px);
+}
+button:not(:disabled):active,
+.btn-season-primary:active,
+.btn-season-secondary:active {
+    transform: translateY(0.5px) scale(0.98) !important;
+}
+
+.nav-item {
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.nav-item:hover {
+    transform: translateX(3px);
+}
+.nav-item.active {
+    background: var(--season-badge-bg, #fff7ed) !important;
+    color: var(--season-to, #ea580c) !important;
+    font-weight: 700;
+}
+.dark .nav-item.active {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--season-from, #f59e0b) !important;
 }
 
 /* ================= ĐỒNG BỘ NÚT VÀ THẺ THEO MÙA ================= */
@@ -173,4 +259,82 @@ html.theme-transitioning .MathJax * {
 .dark .btn-explorer-action.btn-action-delete:hover {
     color: #f87171 !important;
     background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+/* ================= QUESTION BANK DARK MODE FULL COMPATIBILITY ================= */
+.dark #view-questionbank {
+    background-color: #111827 !important;
+}
+.dark #view-questionbank > div:first-child,
+.dark #view-questionbank .bank-top-header {
+    background-color: #111827 !important;
+    border-color: #1f2937 !important;
+}
+.dark #view-questionbank h2 {
+    color: #f3f4f6 !important;
+}
+.dark #view-questionbank p {
+    color: #9ca3af !important;
+}
+.dark #view-questionbank select,
+.dark #view-questionbank input[type="text"] {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+.dark #view-questionbank select option {
+    background-color: #1f2937 !important;
+    color: #e5e7eb !important;
+}
+.dark #view-questionbank #bankImportDropdownMenu {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+.dark #view-questionbank #bankImportDropdownMenu button {
+    color: #d1d5db !important;
+}
+.dark #view-questionbank #bankImportDropdownMenu button:hover {
+    background-color: #374151 !important;
+    color: #ffffff !important;
+}
+.dark #view-questionbank .bank-toolbar {
+    background-color: #111827 !important;
+    border-color: #1f2937 !important;
+    color: #d1d5db !important;
+}
+.dark #view-questionbank .bank-view-toggle {
+    background-color: #1f2937 !important;
+}
+.dark #bankListGrid > div {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f3f4f6 !important;
+}
+.dark #bankListGrid > div:hover {
+    border-color: var(--season-from, #f59e0b) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45) !important;
+}
+.dark #bankListGrid .font-mono {
+    color: #f9fafb !important;
+}
+.dark #bankListGrid .bg-gray-50 {
+    background-color: #111827 !important;
+    border-color: #374151 !important;
+    color: #9ca3af !important;
+}
+.dark #questionPreviewModal .modal-content {
+    background-color: #1f2937 !important;
+    color: #f3f4f6 !important;
+}
+.dark #questionPreviewModal .bg-primary-50 {
+    background-color: #111827 !important;
+    border-color: #374151 !important;
+}
+.dark #questionPreviewModal .bg-gray-50 {
+    background-color: #111827 !important;
+    border-color: #374151 !important;
+}
+.dark #questionPreviewModal h3 {
+    color: #f3f4f6 !important;
 }
