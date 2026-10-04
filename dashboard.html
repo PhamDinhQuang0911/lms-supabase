@@ -32,6 +32,131 @@
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
+    // Kích hoạt ngay thuộc tính mùa trên <html> trước khi DOM render
+    (function() {
+        var m = new Date().getMonth() + 1;
+        var s = 'autumn';
+        if (m === 11 || m === 12 || m === 1) s = 'winter';
+        else if (m >= 2 && m <= 4) s = 'spring';
+        else if (m >= 5 && m <= 7) s = 'summer';
+        try {
+            var saved = localStorage.getItem('app_season_override');
+            if (saved && ['spring', 'summer', 'autumn', 'winter'].indexOf(saved) !== -1) {
+                s = saved;
+            }
+        } catch(e) {}
+        document.documentElement.setAttribute('data-season', s);
+        window.currentAppSeason = s;
+        window.setAppSeason = function(seasonName) {
+            if (['spring', 'summer', 'autumn', 'winter'].indexOf(seasonName) !== -1) {
+                try { localStorage.setItem('app_season_override', seasonName); } catch(e){}
+                document.documentElement.setAttribute('data-season', seasonName);
+                window.currentAppSeason = seasonName;
+                console.log('Đã chuyển giao diện mùa sang:', seasonName);
+            } else if (!seasonName || seasonName === 'auto') {
+                try { localStorage.removeItem('app_season_override'); } catch(e){}
+                location.reload();
+            }
+        };
+    })();
+    </script>
+    <style id="season-button-system">
+    /* ================= GIAO DIỆN NÚT ĐỒNG BỘ THEO MÙA ================= */
+    :root {
+        --season-from: #f59e0b;
+        --season-to: #ea580c;
+        --season-hover-from: #d97706;
+        --season-hover-to: #c2410c;
+        --season-shadow: rgba(234, 88, 12, 0.28);
+        --season-badge-bg: #fff7ed;
+        --season-badge-border: #fed7aa;
+        --season-badge-text: #c2410c;
+    }
+    [data-season="spring"] {
+        --season-from: #f472b6;
+        --season-to: #e11d48;
+        --season-hover-from: #ec4899;
+        --season-hover-to: #be123c;
+        --season-shadow: rgba(225, 29, 72, 0.28);
+        --season-badge-bg: #fdf2f8;
+        --season-badge-border: #fbcfe8;
+        --season-badge-text: #be185d;
+    }
+    [data-season="summer"] {
+        --season-from: #38bdf8;
+        --season-to: #2563eb;
+        --season-hover-from: #0284c7;
+        --season-hover-to: #1d4ed8;
+        --season-shadow: rgba(37, 99, 235, 0.28);
+        --season-badge-bg: #eff6ff;
+        --season-badge-border: #bfdbfe;
+        --season-badge-text: #1d4ed8;
+    }
+    [data-season="autumn"] {
+        --season-from: #f59e0b;
+        --season-to: #ea580c;
+        --season-hover-from: #d97706;
+        --season-hover-to: #c2410c;
+        --season-shadow: rgba(234, 88, 12, 0.28);
+        --season-badge-bg: #fff7ed;
+        --season-badge-border: #fed7aa;
+        --season-badge-text: #c2410c;
+    }
+    [data-season="winter"] {
+        --season-from: #818cf8;
+        --season-to: #4f46e5;
+        --season-hover-from: #6366f1;
+        --season-hover-to: #4338ca;
+        --season-shadow: rgba(79, 70, 229, 0.28);
+        --season-badge-bg: #eef2ff;
+        --season-badge-border: #c7d2fe;
+        --season-badge-text: #4338ca;
+    }
+    .btn-season-primary {
+        background: linear-gradient(135deg, var(--season-from, #f59e0b), var(--season-to, #ea580c)) !important;
+        color: #ffffff !important;
+        border: none !important;
+        box-shadow: 0 4px 12px var(--season-shadow, rgba(234, 88, 12, 0.28)) !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .btn-season-primary:hover {
+        background: linear-gradient(135deg, var(--season-hover-from, #d97706), var(--season-hover-to, #c2410c)) !important;
+        box-shadow: 0 6px 18px var(--season-shadow, rgba(234, 88, 12, 0.38)) !important;
+        transform: translateY(-1px);
+    }
+    .btn-season-primary:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px var(--season-shadow, rgba(234, 88, 12, 0.28)) !important;
+    }
+    .btn-season-secondary {
+        background: var(--season-badge-bg, #fff7ed) !important;
+        color: var(--season-badge-text, #c2410c) !important;
+        border: 1px solid var(--season-badge-border, #fed7aa) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+    .btn-season-secondary:hover {
+        background: linear-gradient(135deg, var(--season-from, #f59e0b), var(--season-to, #ea580c)) !important;
+        color: #ffffff !important;
+        border-color: transparent !important;
+        box-shadow: 0 4px 12px var(--season-shadow, rgba(234, 88, 12, 0.28)) !important;
+    }
+    .badge-season {
+        background: var(--season-badge-bg, #fff7ed) !important;
+        color: var(--season-badge-text, #c2410c) !important;
+        border: 1px solid var(--season-badge-border, #fed7aa) !important;
+    }
+    .dark .badge-season {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+        color: var(--season-from, #f59e0b) !important;
+    }
+    .dark .btn-season-secondary {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+        color: var(--season-from, #f59e0b) !important;
+    }
+    </style>
+    <script>
     // Khởi tạo sớm hàm prefetch dự phòng để tránh lỗi khi người dùng rê chuột trước khi module script nạp xong
     window.hoverPrefetchExam = function() {};
     window.prefetchExamEditor = function() { return Promise.resolve(null); };
@@ -61,7 +186,7 @@
     <script>
     // Tự động giải phóng triệt để Service Worker & Cache cũ để cập nhật ngay kiến trúc mới
     (function() {
-        const CACHE_RESET_ID = 'qmath_bank_v20261004';
+        const CACHE_RESET_ID = 'qmath_season_v20261005';
         if (localStorage.getItem('qm_reset_cache') !== CACHE_RESET_ID) {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -1301,37 +1426,37 @@
                             <p class="text-sm text-gray-500">Quản lý kho dữ liệu câu hỏi trắc nghiệm & tự luận trên Cloudflare</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span id="bankCount" class="bg-primary-100 text-primary-700 px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm">0 câu</span>
+                            <span id="bankCount" class="badge-season h-10 px-3.5 rounded-xl text-xs font-bold flex items-center justify-center shrink-0 shadow-2xs">0 câu</span>
                             <!-- Nút Nạp câu hỏi vào Ngân hàng -->
                             <div class="relative inline-block text-left" id="bankImportDropdownContainer">
-                                <button type="button" onclick="window.openBankDirectImportModal()" class="h-10 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all shrink-0 cursor-pointer" title="Nạp câu hỏi mới vào Ngân hàng từ LaTeX (.tex) hoặc Word (.docx)">
+                                <button type="button" onclick="window.openBankDirectImportModal()" class="btn-season-primary h-10 px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer" title="Nạp câu hỏi mới vào Ngân hàng từ LaTeX (.tex) hoặc Word (.docx)">
                                     <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
                                     <span>Nạp câu hỏi</span>
-                                    <span onclick="event.stopPropagation(); window.toggleBankImportDropdown();" class="ml-1 pl-1.5 border-l border-emerald-400/50 hover:text-emerald-100 transition" title="Tùy chọn nguồn tải lên">
+                                    <span onclick="event.stopPropagation(); window.toggleBankImportDropdown();" class="ml-1 pl-1.5 border-l border-white/30 hover:opacity-80 transition" title="Tùy chọn nguồn tải lên">
                                         <i class="fa-solid fa-chevron-down text-[10px]"></i>
                                     </span>
                                 </button>
                                 <div id="bankImportDropdownMenu" class="hidden absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50 text-xs animate-fadeIn">
-                                    <button type="button" onclick="window.triggerDirectBankUpload('tex')" class="w-full px-3 py-2 text-left hover:bg-emerald-50 text-gray-700 hover:text-emerald-700 flex items-center gap-2.5 font-bold transition">
-                                        <i class="fa-solid fa-file-code text-emerald-600 w-4 text-center"></i> Nạp từ file LaTeX (.tex)
+                                    <button type="button" onclick="window.triggerDirectBankUpload('tex')" class="w-full px-3 py-2 text-left hover:bg-gray-50 text-gray-700 hover:text-gray-900 flex items-center gap-2.5 font-bold transition">
+                                        <i class="fa-solid fa-file-code w-4 text-center" style="color: var(--season-from, #ea580c);"></i> Nạp từ file LaTeX (.tex)
                                     </button>
-                                    <button type="button" onclick="window.triggerDirectBankUpload('word')" class="w-full px-3 py-2 text-left hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-2.5 font-bold transition">
-                                        <i class="fa-solid fa-file-word text-blue-600 w-4 text-center"></i> Nạp từ file Word (.docx)
+                                    <button type="button" onclick="window.triggerDirectBankUpload('word')" class="w-full px-3 py-2 text-left hover:bg-gray-50 text-gray-700 hover:text-gray-900 flex items-center gap-2.5 font-bold transition">
+                                        <i class="fa-solid fa-file-word w-4 text-center" style="color: var(--season-to, #ea580c);"></i> Nạp từ file Word (.docx)
                                     </button>
-                                    <button type="button" onclick="window.openBankDirectImportModal('manual')" class="w-full px-3 py-2 text-left hover:bg-teal-50 text-gray-700 hover:text-teal-700 flex items-center gap-2.5 font-bold border-t border-gray-100 transition">
-                                        <i class="fa-solid fa-keyboard text-teal-600 w-4 text-center"></i> Nhập câu hỏi thủ công
+                                    <button type="button" onclick="window.openBankDirectImportModal('manual')" class="w-full px-3 py-2 text-left hover:bg-gray-50 text-gray-700 hover:text-gray-900 flex items-center gap-2.5 font-bold border-t border-gray-100 transition">
+                                        <i class="fa-solid fa-keyboard w-4 text-center" style="color: var(--season-from, #ea580c);"></i> Nhập câu hỏi thủ công
                                     </button>
                                 </div>
                             </div>
                             <input type="file" id="bankDirectTexInput" accept=".tex,.txt" class="hidden" onchange="window.handleBankTexFileUpload(this)">
                             <input type="file" id="bankDirectWordInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" onchange="window.handleBankWordFileUpload(this)">
-                            <button onclick="window.openDeduplicateModal()" class="h-10 px-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:from-amber-600 hover:to-orange-700 transition-all shrink-0" title="Quét và xử lý câu hỏi trùng lặp trong ngân hàng">
+                            <button onclick="window.openDeduplicateModal()" class="btn-season-primary h-10 px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer" title="Quét và xử lý câu hỏi trùng lặp trong ngân hàng">
                                 <i class="fa-solid fa-clone"></i> Lọc câu trùng
                             </button>
-                            <button onclick="window.location.href='book-manager.html'" class="h-10 px-3.5 rounded-xl bg-gradient-to-r from-teal-600 to-indigo-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm hover:from-teal-700 hover:to-indigo-700 transition-all shrink-0" title="Số hóa sách: Gán mã CCCD số và xuất file TeX">
+                            <button onclick="window.location.href='book-manager.html'" class="btn-season-primary h-10 px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer" title="Số hóa sách: Gán mã CCCD số và xuất file TeX">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i> Số Hóa Sách (Sách ID)
                             </button>
-                            <button onclick="loadQuestionBank()" class="h-10 w-10 rounded-xl bg-gray-100 text-gray-600 border border-gray-200 hover:bg-primary-50 hover:text-primary-600 flex items-center justify-center shrink-0 transition-colors" title="Tải lại"><i class="fa-solid fa-rotate"></i></button>
+                            <button onclick="loadQuestionBank()" class="h-10 w-10 rounded-xl bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 flex items-center justify-center shrink-0 transition-colors" title="Tải lại"><i class="fa-solid fa-rotate"></i></button>
                         </div>
                     </div>
                     <!-- Bộ lọc: scroll ngang trên mobile -->
@@ -1360,7 +1485,7 @@
                                 <input type="text" id="searchBank" onkeyup="if(event.key==='Enter'){window.directLookupTeacherBank();}else{window.applyBankFilters();}" placeholder="Tìm theo MapID, CCCD, ID..." class="h-10 pl-9 pr-3 border border-gray-300 rounded-xl text-sm w-full outline-none focus:ring-2 focus:ring-primary-100">
                                 <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400"></i>
                             </div>
-                            <button id="btnDirectLookupBank" onclick="window.directLookupTeacherBank()" class="h-10 px-3.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 shadow-sm" title="Tra cứu trực tiếp từ Ngân hàng Cloudflare">
+                            <button id="btnDirectLookupBank" onclick="window.directLookupTeacherBank()" class="btn-season-primary h-10 px-3.5 text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 cursor-pointer" title="Tra cứu trực tiếp từ Ngân hàng Cloudflare">
                                 <i class="fa-solid fa-magnifying-glass"></i> Tra cứu
                             </button>
                         </div>
@@ -1409,14 +1534,14 @@
         <div id="bankDirectImportModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[110] flex items-center justify-center bg-gray-900/60 px-4 backdrop-blur-xs transition-all duration-200">
             <div class="modal-content bg-white w-full max-w-4xl rounded-2xl shadow-2xl transform scale-95 transition-all duration-300 flex flex-col max-h-[92vh] overflow-hidden">
                 <!-- Header -->
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 text-white rounded-t-2xl shrink-0">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center text-white rounded-t-2xl shrink-0" style="background: linear-gradient(135deg, var(--season-from, #f59e0b), var(--season-to, #ea580c));">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl font-bold shadow-inner">
                             <i class="fa-solid fa-cloud-arrow-up"></i>
                         </div>
                         <div>
                             <h2 class="text-lg font-black leading-tight">Nạp câu hỏi vào Ngân hàng</h2>
-                            <p class="text-xs text-emerald-100 font-medium">Hỗ trợ LaTeX (.tex), Word (.docx) & Nhập thủ công • Luôn tự cấp mã CCCD 8 số duy nhất</p>
+                            <p class="text-xs text-white/90 font-medium">Hỗ trợ LaTeX (.tex), Word (.docx) & Nhập thủ công • Luôn tự cấp mã CCCD 8 số duy nhất</p>
                         </div>
                     </div>
                     <button type="button" onclick="window.closeBankDirectImportModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition cursor-pointer">
@@ -1428,14 +1553,14 @@
                 <div class="flex-1 overflow-y-auto p-5 bg-gray-50 flex flex-col gap-4 text-sm custom-scrollbar">
                     <!-- Source Tabs: LaTeX / Word / Nhập thủ công -->
                     <div class="flex gap-2 bg-white p-1.5 rounded-xl border border-gray-200 shadow-2xs">
-                        <button type="button" id="tabImportTex" onclick="window.switchBankImportTab('tex')" class="flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition bg-emerald-50 text-emerald-700 shadow-2xs">
+                        <button type="button" id="tabImportTex" onclick="window.switchBankImportTab('tex')" class="flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition btn-season-secondary shadow-2xs">
                             <i class="fa-solid fa-file-code"></i> File LaTeX (.tex / txt)
                         </button>
-                        <button type="button" id="tabImportWord" onclick="window.switchBankImportTab('word')" class="flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition text-gray-600 hover:text-primary-600 hover:bg-gray-50">
-                            <i class="fa-solid fa-file-word text-blue-600"></i> File Word (.docx)
+                        <button type="button" id="tabImportWord" onclick="window.switchBankImportTab('word')" class="flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-transparent">
+                            <i class="fa-solid fa-file-word"></i> File Word (.docx)
                         </button>
-                        <button type="button" id="tabImportManual" onclick="window.switchBankImportTab('manual')" class="flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition text-gray-600 hover:text-primary-600 hover:bg-gray-50">
-                            <i class="fa-solid fa-keyboard text-teal-600"></i> Nhập trực tiếp
+                        <button type="button" id="tabImportManual" onclick="window.switchBankImportTab('manual')" class="flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-transparent">
+                            <i class="fa-solid fa-keyboard"></i> Nhập trực tiếp
                         </button>
                     </div>
 
@@ -1444,30 +1569,30 @@
                         <div class="flex items-center justify-between gap-2 flex-wrap">
                             <label class="font-bold text-gray-700 text-xs">Mã nguồn LaTeX (hỗ trợ \begin{ex}, \begin{bt}, \choice, \choiceTF, \loigiai...):</label>
                             <div class="flex items-center gap-2">
-                                <label class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg font-bold text-xs cursor-pointer transition flex items-center gap-1.5 shadow-2xs">
+                                <label class="px-3 py-1.5 btn-season-secondary rounded-lg font-bold text-xs cursor-pointer transition flex items-center gap-1.5 shadow-2xs">
                                     <i class="fa-solid fa-upload"></i> Chọn file .tex/.txt
                                     <input type="file" id="bankTexFileInput" accept=".tex,.txt" class="hidden" onchange="window.handleBankTexFileUpload(this)">
                                 </label>
                                 <button type="button" onclick="document.getElementById('bankTexInput').value = ''" class="px-2 py-1.5 text-gray-400 hover:text-red-500 text-xs font-bold transition">Xóa trắng</button>
                             </div>
                         </div>
-                        <textarea id="bankTexInput" rows="6" placeholder="Dán nội dung file TeX vào đây... Ví dụ:&#10;\begin{ex}&#10;[9D1H1-1] Cho biểu thức A...&#10;\choice&#10;{A. Đúng}&#10;{\True B. Sai}&#10;{C. Không xác định}&#10;{D. Vô nghiệm}&#10;\loigiai{Lời giải chi tiết...}&#10;\end{ex}" class="w-full p-3 border border-gray-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-emerald-500 bg-white"></textarea>
-                        <button type="button" onclick="window.parseBankTexQuestions()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+                        <textarea id="bankTexInput" rows="6" placeholder="Dán nội dung file TeX vào đây... Ví dụ:&#10;\begin{ex}&#10;[9D1H1-1] Cho biểu thức A...&#10;\choice&#10;{A. Đúng}&#10;{\True B. Sai}&#10;{C. Không xác định}&#10;{D. Vô nghiệm}&#10;\loigiai{Lời giải chi tiết...}&#10;\end{ex}" class="w-full p-3 border border-gray-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-orange-500 bg-white"></textarea>
+                        <button type="button" onclick="window.parseBankTexQuestions()" class="btn-season-primary w-full py-2.5 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer">
                             <i class="fa-solid fa-magnifying-glass"></i> Phân tích câu hỏi từ LaTeX
                         </button>
                     </div>
 
                     <!-- Tab 2: Word -->
                     <div id="bankTabContentWord" class="space-y-3 hidden">
-                        <div class="border-2 border-dashed border-blue-200 rounded-2xl p-6 bg-blue-50/40 text-center flex flex-col items-center justify-center gap-3">
-                            <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl shadow-inner">
+                        <div class="border-2 border-dashed border-gray-300 rounded-2xl p-6 bg-white text-center flex flex-col items-center justify-center gap-3">
+                            <div class="w-14 h-14 rounded-2xl badge-season flex items-center justify-center text-2xl shadow-inner">
                                 <i class="fa-solid fa-file-word"></i>
                             </div>
                             <div>
                                 <h4 class="font-bold text-gray-800 text-sm">Chọn tệp đề thi Word (.docx)</h4>
                                 <p class="text-xs text-gray-500 mt-1 max-w-md">Tự động nhận diện công thức Toán qua MathType API, trích xuất hình vẽ & nhận diện 4 loại câu hỏi (Trắc nghiệm A, B, C, D gạch chân, Đúng/Sai, Điền số, Tự luận).</p>
                             </div>
-                            <label class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer transition flex items-center gap-2">
+                            <label class="btn-season-primary px-4 py-2 text-white font-bold text-xs rounded-xl cursor-pointer transition flex items-center gap-2">
                                 <i class="fa-solid fa-folder-open"></i> Tải file .docx
                                 <input type="file" id="bankWordFileInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" onchange="window.handleBankWordFileUpload(this)">
                             </label>
@@ -1490,7 +1615,7 @@
                                 <label class="block text-xs font-bold text-gray-600 mb-1">Mã MapID (Tùy chọn)</label>
                                 <div class="flex gap-1">
                                     <input type="text" id="manualQMapId" placeholder="VD: 9D1H2-1" class="w-full p-2 border border-gray-300 rounded-lg text-xs font-mono font-bold">
-                                    <button type="button" onclick="window.pickManualImportMapId()" class="px-2 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-lg text-xs font-bold shrink-0" title="Chọn từ Cây MapID"><i class="fa-solid fa-network-wired"></i></button>
+                                    <button type="button" onclick="window.pickManualImportMapId()" class="px-2 btn-season-secondary rounded-lg text-xs font-bold shrink-0" title="Chọn từ Cây MapID"><i class="fa-solid fa-network-wired"></i></button>
                                 </div>
                             </div>
                             <div>
@@ -1507,15 +1632,15 @@
                         <div class="bg-white p-3.5 rounded-xl border border-gray-200 space-y-2">
                             <label class="block text-xs font-bold text-gray-700">Đề bài (LaTeX)</label>
                             <div id="manualMathPaletteContainer"></div>
-                            <textarea id="manualQContent" rows="3" placeholder="Nhập đề bài câu hỏi..." class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500"></textarea>
+                            <textarea id="manualQContent" rows="3" placeholder="Nhập đề bài câu hỏi..." class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-orange-500"></textarea>
                             
                             <div id="manualTypeSpecificContainer"></div>
 
                             <label class="block text-xs font-bold text-gray-700 mt-2">Lời giải chi tiết</label>
-                            <textarea id="manualQSolution" rows="2" placeholder="Nhập lời giải chi tiết..." class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500"></textarea>
+                            <textarea id="manualQSolution" rows="2" placeholder="Nhập lời giải chi tiết..." class="w-full p-2.5 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-orange-500"></textarea>
 
                             <div class="flex justify-end pt-1">
-                                <button type="button" onclick="window.addManualQuestionToImportQueue()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                                <button type="button" onclick="window.addManualQuestionToImportQueue()" class="btn-season-primary px-4 py-2 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer">
                                     <i class="fa-solid fa-plus"></i> Thêm vào danh sách chờ nạp
                                 </button>
                             </div>
@@ -1527,13 +1652,13 @@
                         <div class="flex items-center justify-between flex-wrap gap-2">
                             <div class="flex items-center gap-2">
                                 <h4 class="font-black text-gray-800 text-xs flex items-center gap-1.5">
-                                    <i class="fa-solid fa-list-check text-emerald-600"></i>
-                                    <span>Danh sách câu hỏi (<span id="bankImportCount" class="text-emerald-600 font-bold">0</span> câu)</span>
+                                    <i class="fa-solid fa-list-check" style="color: var(--season-to, #ea580c);"></i>
+                                    <span>Danh sách câu hỏi (<span id="bankImportCount" style="color: var(--season-to, #ea580c);" class="font-bold">0</span> câu)</span>
                                 </h4>
-                                <span id="bankImportMissingBadge" class="hidden px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">0 thiếu MapID</span>
+                                <span id="bankImportMissingBadge" class="hidden px-2 py-0.5 rounded-full badge-season font-bold text-[10px]">0 thiếu MapID</span>
                             </div>
                             <div class="flex items-center gap-2 text-xs flex-wrap">
-                                <select id="selBankDefaultGrade" class="h-8 px-2 border border-gray-300 rounded-lg font-bold text-xs bg-white text-gray-700 focus:ring-1 focus:ring-emerald-500" title="Khối lớp mặc định khi AI phân tích MapID">
+                                <select id="selBankDefaultGrade" class="h-8 px-2 border border-gray-300 rounded-lg font-bold text-xs bg-white text-gray-700 focus:ring-1 focus:ring-orange-500" title="Khối lớp mặc định khi AI phân tích MapID">
                                     <option value="9" selected>Khối: Lớp 9</option>
                                     <option value="6">Khối: Lớp 6</option>
                                     <option value="7">Khối: Lớp 7</option>
@@ -1542,10 +1667,10 @@
                                     <option value="11">Khối: Lớp 11</option>
                                     <option value="12">Khối: Lớp 12</option>
                                 </select>
-                                <button type="button" onclick="window.assignQueueMissingMapIdAi()" class="h-8 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer" title="Quét và gán MapID bằng AI cho các câu chưa có">
+                                <button type="button" onclick="window.assignQueueMissingMapIdAi()" class="h-8 px-2.5 rounded-lg btn-season-secondary font-bold text-xs flex items-center gap-1.5 transition cursor-pointer" title="Quét và gán MapID bằng AI cho các câu chưa có">
                                     <i class="fa-solid fa-robot"></i> Gán MapID bằng AI
                                 </button>
-                                <button type="button" onclick="window.assignQueueMapIdTree()" class="h-8 px-2.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 font-bold text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer" title="Chọn MapID từ Cây Ma trận để gán">
+                                <button type="button" onclick="window.assignQueueMapIdTree()" class="h-8 px-2.5 rounded-lg btn-season-secondary font-bold text-xs flex items-center gap-1.5 transition cursor-pointer" title="Chọn MapID từ Cây Ma trận để gán">
                                     <i class="fa-solid fa-network-wired"></i> Chọn Cây MapID
                                 </button>
                                 <button type="button" onclick="window.clearBankImportQueue()" class="h-8 px-2.5 rounded-lg bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600 font-bold text-xs transition cursor-pointer" title="Xóa toàn bộ danh sách chờ nạp">
@@ -1557,7 +1682,7 @@
                         <!-- Checkbox auto-assign -->
                         <div class="flex items-center justify-between text-xs text-gray-500 px-1 flex-wrap gap-2">
                             <label class="flex items-center gap-1.5 font-bold text-gray-700 cursor-pointer">
-                                <input type="checkbox" id="chkBankAutoAiAssign" checked class="w-4 h-4 rounded text-emerald-600 accent-emerald-600">
+                                <input type="checkbox" id="chkBankAutoAiAssign" checked class="w-4 h-4 rounded" style="accent-color: var(--season-to, #ea580c);">
                                 <span>🤖 Tự động gọi AI gán MapID khi nạp nếu còn câu thiếu mã</span>
                             </label>
                             <span class="text-[11px] text-gray-400">Bấm vào mã MapID trên từng câu để đổi nhanh từ Cây</span>
@@ -1573,12 +1698,12 @@
                 <!-- Footer -->
                 <div class="p-4 border-t border-gray-100 bg-white rounded-b-2xl flex justify-between items-center shrink-0 flex-wrap gap-2">
                     <span id="bankImportCccdNotice" class="text-xs text-gray-600 font-medium flex items-center gap-1.5">
-                        <i class="fa-solid fa-shield-halved text-emerald-600 text-sm"></i>
+                        <i class="fa-solid fa-shield-halved text-sm" style="color: var(--season-to, #ea580c);"></i>
                         <span>Hệ thống <b>luôn tự động cấp dải mã CCCD số 8 chữ số</b> duy nhất toàn hệ thống khi nạp.</span>
                     </span>
                     <div class="flex gap-2">
                         <button type="button" onclick="window.closeBankDirectImportModal()" class="px-5 py-2.5 bg-gray-100 text-gray-600 font-bold rounded-xl text-xs hover:bg-gray-200 transition cursor-pointer">Hủy</button>
-                        <button type="button" id="btnExecuteBankImport" onclick="window.executeDirectBankImport()" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none" disabled>
+                        <button type="button" id="btnExecuteBankImport" onclick="window.executeDirectBankImport()" class="btn-season-primary px-6 py-2.5 text-white font-bold rounded-xl text-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none" disabled>
                             <i class="fa-solid fa-cloud-arrow-up"></i> Nạp vào Ngân hàng
                         </button>
                     </div>
@@ -1925,9 +2050,9 @@
         <div id="bankDeduplicateModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[100] flex items-center justify-center bg-gray-900 bg-opacity-60 px-3 md:px-4 backdrop-blur-sm">
             <div class="modal-content bg-white w-full max-w-5xl rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh]">
                 <!-- Header -->
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-amber-50 to-orange-50 rounded-t-2xl shrink-0">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl shrink-0">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center text-lg shadow-sm shrink-0">
+                        <div class="w-10 h-10 rounded-xl text-white flex items-center justify-center text-lg shadow-sm shrink-0" style="background: linear-gradient(135deg, var(--season-from, #f59e0b), var(--season-to, #ea580c));">
                             <i class="fa-solid fa-clone"></i>
                         </div>
                         <div>
@@ -1949,7 +2074,7 @@
                     <div class="flex items-center gap-2.5 flex-wrap">
                         <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs">
                             <label class="text-xs font-bold text-gray-600">Độ tương đồng:</label>
-                            <select id="dedupeThresholdSelect" class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 outline-none">
+                            <select id="dedupeThresholdSelect" class="text-xs font-bold rounded-lg px-2 py-1 outline-none badge-season">
                                 <option value="80">≥ 80% (Quét rộng)</option>
                                 <option value="85" selected>≥ 85% (Tiêu chuẩn)</option>
                                 <option value="90">≥ 90% (Khớp cao)</option>
@@ -1965,7 +2090,7 @@
                             </select>
                         </div>
 
-                        <button id="btnStartDedupeScan" onclick="window.runDeduplicateScan()" class="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-xs rounded-xl hover:from-amber-700 hover:to-orange-700 transition-all shadow-sm flex items-center gap-1.5">
+                        <button id="btnStartDedupeScan" onclick="window.runDeduplicateScan()" class="btn-season-primary px-4 py-2 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer">
                             <i class="fa-solid fa-radar"></i> Bắt đầu quét trùng
                         </button>
                     </div>
@@ -1978,13 +2103,13 @@
                 </div>
 
                 <!-- Progress Bar -->
-                <div id="dedupeProgressBarContainer" class="hidden px-4 pt-3 pb-1 bg-amber-50/50 border-b border-amber-100">
-                    <div class="flex justify-between items-center text-xs font-bold text-amber-800 mb-1">
+                <div id="dedupeProgressBarContainer" class="hidden px-4 pt-3 pb-1 bg-gray-50 border-b border-gray-100">
+                    <div class="flex justify-between items-center text-xs font-bold text-gray-800 mb-1">
                         <span id="dedupeProgressText"><i class="fa-solid fa-spinner fa-spin mr-1.5"></i>Đang so khớp câu hỏi...</span>
                         <span id="dedupeProgressPct">0%</span>
                     </div>
-                    <div class="w-full bg-amber-100 rounded-full h-2 overflow-hidden">
-                        <div id="dedupeProgressBar" class="bg-gradient-to-r from-amber-500 to-orange-600 h-2 rounded-full transition-all duration-200" style="width: 0%"></div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div id="dedupeProgressBar" class="h-2 rounded-full transition-all duration-200" style="background: linear-gradient(90deg, var(--season-from, #f59e0b), var(--season-to, #ea580c)); width: 0%;"></div>
                     </div>
                 </div>
 
@@ -1992,14 +2117,14 @@
                 <div id="dedupeModalBody" class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar space-y-6">
                     <!-- Initial placeholder -->
                     <div id="dedupeInitialState" class="flex flex-col items-center justify-center py-16 text-center">
-                        <div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mb-4">
+                        <div class="w-16 h-16 rounded-2xl badge-season flex items-center justify-center text-2xl mb-4">
                             <i class="fa-solid fa-layer-group"></i>
                         </div>
                         <h4 class="text-base font-bold text-gray-800 mb-1">Bộ lọc phát hiện câu hỏi trùng lặp thông minh</h4>
                         <p class="text-xs text-gray-500 max-w-md leading-relaxed mb-6">
                             Hệ thống sẽ quét đối chiếu công thức LaTeX, loại bỏ khác biệt về thứ tự đáp án A/B/C/D, nhận diện từ đồng nghĩa và gom các câu trùng lặp thành cụm Master - Alias.
                         </p>
-                        <button onclick="window.runDeduplicateScan()" class="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-sm rounded-xl hover:from-amber-700 hover:to-orange-700 shadow-md shadow-amber-200 transition-all">
+                        <button onclick="window.runDeduplicateScan()" class="btn-season-primary px-6 py-2.5 text-white font-bold text-sm rounded-xl transition-all cursor-pointer">
                             <i class="fa-solid fa-play mr-1.5"></i> Chạy quét ngân hàng ngay
                         </button>
                     </div>
@@ -10606,21 +10731,20 @@ function renderTagFilterUI() {
         const contentManual = document.getElementById('bankTabContentManual');
 
         [tabTex, tabWord, tabManual].forEach(btn => {
-            if (btn) btn.className = "flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition text-gray-600 hover:text-primary-600 hover:bg-gray-50";
+            if (btn) btn.className = "flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-transparent";
         });
         [contentTex, contentWord, contentManual].forEach(c => {
             if (c) c.classList.add('hidden');
         });
 
-        if (tab === 'tex') {
-            if (tabTex) tabTex.className = "flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition bg-emerald-50 text-emerald-700 shadow-2xs";
-            if (contentTex) contentTex.classList.remove('hidden');
-        } else if (tab === 'word') {
-            if (tabWord) tabWord.className = "flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition bg-blue-50 text-blue-700 shadow-2xs";
-            if (contentWord) contentWord.classList.remove('hidden');
-        } else if (tab === 'manual') {
-            if (tabManual) tabManual.className = "flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition bg-teal-50 text-teal-700 shadow-2xs";
-            if (contentManual) contentManual.classList.remove('hidden');
+        const activeBtn = tab === 'tex' ? tabTex : (tab === 'word' ? tabWord : tabManual);
+        const activeContent = tab === 'tex' ? contentTex : (tab === 'word' ? contentWord : contentManual);
+
+        if (activeBtn) {
+            activeBtn.className = "flex-1 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition btn-season-secondary shadow-2xs";
+        }
+        if (activeContent) {
+            activeContent.classList.remove('hidden');
         }
     };
 
