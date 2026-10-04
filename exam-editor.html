@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <!-- PWA Settings -->
@@ -95,6 +95,10 @@
     <script src="math-palette.js?v=20260927-v4"></script>
     <script src="mapid-picker.js"></script>
     <script src="latex-exporter.js?v=20261002"></script>
+    <!-- Flatpickr: Bộ chọn ngày giờ lịch tháng thông minh chuẩn 24h & Mobile -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
     <script>
         // Sẵn sàng ngay các hàm điều hướng giao diện trước khi tải dữ liệu
         function toggleSidebar() {
@@ -177,8 +181,203 @@
             if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
         }
         window.closeScoringModal = closeScoringModal;
+
+        // --- QUẢN LÝ BỘ CHỌN THỜI GIAN MỞ ĐỀ & HẠN NỘP (FLATPICKR) ---
+        function initExamFlatpickr() {
+            if (typeof flatpickr === 'undefined') return;
+
+            const commonConfig = {
+                enableTime: true,
+                time_24hr: true,
+                dateFormat: "Y-m-d\\TH:i",
+                altInput: true,
+                altFormat: "d/m/Y H:i",
+                altInputClass: "form-input pr-9 font-medium bg-white cursor-pointer",
+                locale: (flatpickr.l10ns && flatpickr.l10ns.vn) ? flatpickr.l10ns.vn : "vn",
+                disableMobile: true, // Ép dùng giao diện lịch tháng trực quan trên cả điện thoại (chặn bánh xe spinner mặc định của OS)
+                allowInput: true,
+                minuteIncrement: 5,
+                onClose: function(selectedDates, dateStr, instance) {
+                    instance.element.dispatchEvent(new Event('input', { bubbles: true }));
+                    instance.element.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            };
+
+            const startEl = document.getElementById('settingStartTime');
+            if (startEl && !startEl._flatpickr) {
+                const initVal = startEl.value;
+                flatpickr(startEl, {
+                    ...commonConfig,
+                    defaultDate: initVal || undefined
+                });
+            }
+
+            const endEl = document.getElementById('settingEndTime');
+            if (endEl && !endEl._flatpickr) {
+                const initVal = endEl.value;
+                flatpickr(endEl, {
+                    ...commonConfig,
+                    defaultDate: initVal || undefined
+                });
+            }
+        }
+        window.initExamFlatpickr = initExamFlatpickr;
+
+        function setQuickTime(inputId, preset) {
+            const el = document.getElementById(inputId);
+            if (!el) return;
+            const now = new Date();
+            let target = new Date();
+
+            if (preset === 'now') {
+                target = now;
+            } else if (preset === 'today_7am') {
+                target.setHours(7, 0, 0, 0);
+            } else if (preset === 'today_19h30') {
+                target.setHours(19, 30, 0, 0);
+            } else if (preset === 'today_night') {
+                target.setHours(23, 59, 0, 0);
+            } else if (preset === 'tomorrow_night') {
+                target.setDate(target.getDate() + 1);
+                target.setHours(23, 59, 0, 0);
+            } else if (preset === 'plus_7d') {
+                target.setDate(target.getDate() + 7);
+                target.setHours(23, 59, 0, 0);
+            } else if (preset === 'plus_14d') {
+                target.setDate(target.getDate() + 14);
+                target.setHours(23, 59, 0, 0);
+            }
+
+            const pad = n => String(n).padStart(2, '0');
+            const formatted = `${target.getFullYear()}-${pad(target.getMonth()+1)}-${pad(target.getDate())}T${pad(target.getHours())}:${pad(target.getMinutes())}`;
+
+            if (el._flatpickr) {
+                el._flatpickr.setDate(formatted, true);
+            } else {
+                el.value = formatted;
+            }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        window.setQuickTime = setQuickTime;
+
+        function clearExamTime(inputId) {
+            const el = document.getElementById(inputId);
+            if (!el) return;
+            if (el._flatpickr) {
+                el._flatpickr.clear();
+            } else {
+                el.value = '';
+            }
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        window.clearExamTime = clearExamTime;
     </script>
     <style>
+        /* --- BỘ CHỌN NGÀY GIỜ LỊCH THÁNG (FLATPICKR) --- */
+        .flatpickr-calendar {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+            border-radius: 1rem !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+            border: 1px solid #E2E8F0 !important;
+            padding: 6px !important;
+            background: #ffffff !important;
+            z-index: 99999 !important;
+            max-width: calc(100vw - 20px) !important;
+        }
+        .flatpickr-calendar.animate.open {
+            animation: fpFadeInDown 200ms cubic-bezier(0, 0, 0.2, 1);
+        }
+        @keyframes fpFadeInDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .flatpickr-months {
+            border-radius: 0.75rem 0.75rem 0 0 !important;
+            background: #F8FAFC !important;
+            padding: 6px 0 !important;
+            align-items: center !important;
+        }
+        .flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month {
+            padding: 6px 10px !important;
+            color: #475569 !important;
+            fill: #475569 !important;
+            border-radius: 0.5rem !important;
+            transition: all 0.15s ease !important;
+        }
+        .flatpickr-months .flatpickr-prev-month:hover, .flatpickr-months .flatpickr-next-month:hover {
+            background: #E2E8F0 !important;
+            color: #0F172A !important;
+        }
+        .flatpickr-current-month {
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            color: #0F172A !important;
+            padding-top: 2px !important;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            font-weight: 700 !important;
+            color: #0F172A !important;
+        }
+        .flatpickr-weekdays {
+            background: #F8FAFC !important;
+            margin-top: 4px !important;
+        }
+        span.flatpickr-weekday {
+            color: #64748B !important;
+            font-weight: 700 !important;
+            font-size: 11px !important;
+            text-transform: uppercase !important;
+        }
+        .flatpickr-day {
+            border-radius: 0.5rem !important;
+            font-weight: 600 !important;
+            color: #334155 !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            transition: all 0.12s ease !important;
+        }
+        .flatpickr-day:hover {
+            background: #EFF6FF !important;
+            border-color: #BFDBFE !important;
+            color: #1D4ED8 !important;
+        }
+        .flatpickr-day.today {
+            border-color: #3B82F6 !important;
+            color: #2563EB !important;
+            font-weight: 800 !important;
+            background: #EFF6FF !important;
+        }
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+            background: #2563EB !important;
+            border-color: #2563EB !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.35) !important;
+        }
+        .flatpickr-time {
+            border-top: 1px solid #F1F5F9 !important;
+            background: #F8FAFC !important;
+            border-radius: 0 0 0.75rem 0.75rem !important;
+            padding: 8px 0 !important;
+            margin-top: 6px !important;
+        }
+        .flatpickr-time input {
+            font-weight: 800 !important;
+            font-size: 16px !important;
+            color: #1E293B !important;
+            border-radius: 0.375rem !important;
+        }
+        .flatpickr-time input:hover, .flatpickr-time input:focus {
+            background: #EFF6FF !important;
+            color: #1D4ED8 !important;
+        }
+        .flatpickr-time .flatpickr-time-separator {
+            font-weight: 900 !important;
+            font-size: 16px !important;
+            color: #64748B !important;
+        }
         body { font-family: 'Inter', sans-serif; background-color: #F8F9FA; }
         .font-handwriting { font-family: 'Pacifico', cursive; }
         .sidebar-item.active { background-color: #EFF6FF; color: #1D4ED8; font-weight: 700; border-right: 3px solid #1D4ED8; }
@@ -495,7 +694,79 @@
                             <div><label class="form-group-title">Môn học</label><select id="settingSubject" class="form-input bg-white"><option>Toán học</option><option>Vật lý</option><option>Hóa học</option><option>Tiếng Anh</option></select></div>
                             <div><label class="form-group-title">Thời gian (phút)</label><input type="number" id="settingDuration" value="90" class="form-input"></div>
                             <div><label class="form-group-title">Mục đích</label><select id="settingPurpose" class="form-input bg-white"><option value="exam">Thi / Kiểm tra</option><option value="practice">Luyện tập</option></select></div>
-                            <div class="col-span-1 md:col-span-2 pt-2 border-t border-dashed"><label class="form-group-title block mb-2">Thời gian mở đề (Tùy chọn)</label><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><span class="text-xs text-gray-500">Từ:</span><input type="datetime-local" id="settingStartTime" class="form-input"></div><div><span class="text-xs text-gray-500">Đến:</span><input type="datetime-local" id="settingEndTime" class="form-input"></div></div></div>
+                            <div class="col-span-1 md:col-span-2 pt-3 border-t border-dashed border-gray-200">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="form-group-title flex items-center gap-1.5 mb-0 text-sm font-bold text-gray-700">
+                                        <i class="fa-regular fa-calendar-days text-primary-600"></i>
+                                        <span>Thời gian mở đề & Hạn nộp</span>
+                                    </label>
+                                    <span class="text-[11px] text-gray-400 font-medium hidden sm:inline-block">Lịch tháng trực quan • Giờ 24h</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                                    <!-- Thời gian mở đề -->
+                                    <div class="bg-gray-50/80 p-3 rounded-xl border border-gray-200 flex flex-col gap-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                                <i class="fa-solid fa-play text-emerald-500 text-[10px]"></i> Bắt đầu mở đề:
+                                            </span>
+                                            <button type="button" onclick="window.clearExamTime('settingStartTime')" class="text-[11px] text-gray-400 hover:text-red-500 transition-colors cursor-pointer">
+                                                <i class="fa-solid fa-xmark"></i> Bỏ mở
+                                            </button>
+                                        </div>
+                                        <div class="relative">
+                                            <input type="text" id="settingStartTime" class="form-input pr-9 font-medium bg-white" placeholder="Chọn ngày giờ mở (để trống nếu mở ngay)">
+                                            <button type="button" onclick="document.getElementById('settingStartTime')._flatpickr?.open()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 transition-colors p-1" title="Mở lịch chọn ngày">
+                                                <i class="fa-regular fa-calendar text-sm"></i>
+                                            </button>
+                                        </div>
+                                        <!-- Phím chọn nhanh bắt đầu -->
+                                        <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                            <button type="button" onclick="window.setQuickTime('settingStartTime', 'now')" class="px-2 py-0.5 text-[11px] bg-white hover:bg-emerald-50 hover:text-emerald-700 text-gray-600 rounded border border-gray-200 shadow-2xs font-medium transition-all cursor-pointer">
+                                                ⚡ Mở ngay bây giờ
+                                            </button>
+                                            <button type="button" onclick="window.setQuickTime('settingStartTime', 'today_7am')" class="px-2 py-0.5 text-[11px] bg-white hover:bg-emerald-50 hover:text-emerald-700 text-gray-600 rounded border border-gray-200 shadow-2xs font-medium transition-all cursor-pointer">
+                                                🌅 Sáng nay 07:00
+                                            </button>
+                                            <button type="button" onclick="window.setQuickTime('settingStartTime', 'today_19h30')" class="px-2 py-0.5 text-[11px] bg-white hover:bg-emerald-50 hover:text-emerald-700 text-gray-600 rounded border border-gray-200 shadow-2xs font-medium transition-all cursor-pointer">
+                                                🌙 Tối nay 19:30
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Thời gian đóng đề (Hạn nộp) -->
+                                    <div class="bg-gray-50/80 p-3 rounded-xl border border-gray-200 flex flex-col gap-2">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                                <i class="fa-solid fa-flag-checkered text-rose-500 text-[10px]"></i> Hạn chót nộp bài:
+                                            </span>
+                                            <button type="button" onclick="window.clearExamTime('settingEndTime')" class="text-[11px] text-gray-400 hover:text-red-500 transition-colors cursor-pointer">
+                                                <i class="fa-solid fa-xmark"></i> Không hạn
+                                            </button>
+                                        </div>
+                                        <div class="relative">
+                                            <input type="text" id="settingEndTime" class="form-input pr-9 font-medium bg-white" placeholder="Chọn hạn chót (để trống nếu không giới hạn)">
+                                            <button type="button" onclick="document.getElementById('settingEndTime')._flatpickr?.open()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 transition-colors p-1" title="Mở lịch chọn ngày">
+                                                <i class="fa-regular fa-clock text-sm"></i>
+                                            </button>
+                                        </div>
+                                        <!-- Phím chọn nhanh hạn chót -->
+                                        <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                            <button type="button" onclick="window.setQuickTime('settingEndTime', 'today_night')" class="px-2 py-0.5 text-[11px] bg-white hover:bg-blue-50 hover:text-blue-700 text-gray-600 rounded border border-gray-200 shadow-2xs font-medium transition-all cursor-pointer">
+                                                🌙 Tối nay 23:59
+                                            </button>
+                                            <button type="button" onclick="window.setQuickTime('settingEndTime', 'tomorrow_night')" class="px-2 py-0.5 text-[11px] bg-white hover:bg-blue-50 hover:text-blue-700 text-gray-600 rounded border border-gray-200 shadow-2xs font-medium transition-all cursor-pointer">
+                                                📅 Tối mai 23:59
+                                            </button>
+                                            <button type="button" onclick="window.setQuickTime('settingEndTime', 'plus_7d')" class="px-2 py-0.5 text-[11px] bg-white hover:bg-blue-50 hover:text-blue-700 text-gray-600 rounded border border-gray-200 shadow-2xs font-medium transition-all cursor-pointer">
+                                                ⏳ +7 ngày 23:59
+                                            </button>
+                                            <button type="button" onclick="window.setQuickTime('settingEndTime', 'plus_14d')" class="px-2 py-0.5 text-[11px] bg-white hover:bg-blue-50 hover:text-blue-700 text-gray-600 rounded border border-gray-200 shadow-2xs font-medium transition-all cursor-pointer">
+                                                +14 ngày
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1731,6 +2002,7 @@
                 });
             }
             document.getElementById('imgUploadInput').addEventListener('change', (e) => { if(e.target.files.length > 0) handleImageUpload(e.target.files[0]); });
+            if (window.initExamFlatpickr) window.initExamFlatpickr();
         });
 
         // --- HÀM TẠO KHUNG CHỜ ẢNH TƯƠNG TÁC (PLACEHOLDER) ---
@@ -2480,8 +2752,18 @@
                             return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
                         } catch(e) { return ''; }
                     };
-                    document.getElementById('settingStartTime').value = toDatetimeLocal(data.startTime);
-                    document.getElementById('settingEndTime').value = toDatetimeLocal(data.endTime);
+                    const sTimeVal = toDatetimeLocal(data.startTime);
+                    const eTimeVal = toDatetimeLocal(data.endTime);
+                    const startInput = document.getElementById('settingStartTime');
+                    const endInput = document.getElementById('settingEndTime');
+                    if (startInput) {
+                        if (startInput._flatpickr) startInput._flatpickr.setDate(sTimeVal || '', true);
+                        else startInput.value = sTimeVal;
+                    }
+                    if (endInput) {
+                        if (endInput._flatpickr) endInput._flatpickr.setDate(eTimeVal || '', true);
+                        else endInput.value = eTimeVal;
+                    }
                     document.getElementById('settingPassword').value = data.password || '';
                     document.getElementById('settingAttempts').value = (data.attempts !== undefined) ? data.attempts : 1;
                     document.getElementById('settingProctoring').checked = (data.proctoring === true);

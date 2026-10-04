@@ -12654,20 +12654,61 @@ function renderTagFilterUI() {
             };
             const snippet = normalizeSnippet(targetContent);
 
-            // Quét toàn bộ đề thi trong hệ thống (không lọc theo giáo viên để tìm thấy tất cả nơi sử dụng)
-            const snap = await getDocs(query(collection(db, "exams"), limit(500)));
+            // Quét toàn bộ đề thi trong hệ thống (truy vấn kèm trường questions & tl_questions)
+            let examsList = window.allExamsWithQuestionsCache;
+            if (!examsList || examsList.length === 0) {
+                if (window.supabase) {
+                    try {
+                        const { data, error } = await window.supabase
+                            .from('exams')
+                            .select('id, title, duration, question_count, questions, tl_questions, raw_data');
+                        if (!error && Array.isArray(data)) {
+                            examsList = data.map(r => {
+                                const raw = (r.raw_data && typeof r.raw_data === 'object') ? r.raw_data : {};
+                                const qs = Array.isArray(r.questions) ? r.questions : (Array.isArray(raw.questions) ? raw.questions : []);
+                                const tlQs = Array.isArray(r.tl_questions) ? r.tl_questions : (Array.isArray(raw.tlQuestions) ? raw.tlQuestions : []);
+                                return {
+                                    id: r.id,
+                                    title: r.title || raw.title || 'Đề thi không tiêu đề',
+                                    questionCount: r.question_count || raw.questionCount || (qs.length + tlQs.length),
+                                    duration: r.duration || raw.duration || 45,
+                                    code: r.id ? r.id.substring(0, 8) : '',
+                                    questions: qs,
+                                    tlQuestions: tlQs
+                                };
+                            });
+                            window.allExamsWithQuestionsCache = examsList;
+                        }
+                    } catch(e) { console.warn("Lỗi đọc exams từ supabase:", e); }
+                }
+                if (!examsList || examsList.length === 0) {
+                    const snap = await getDocs(query(collection(db, "exams"), { type: 'includeQuestions' }, limit(500)));
+                    examsList = [];
+                    snap.forEach(docSnap => {
+                        const ex = docSnap.data();
+                        examsList.push({
+                            id: docSnap.id,
+                            title: ex.title || ex.name || 'Đề thi không tiêu đề',
+                            questionCount: Array.isArray(ex.questions) ? ex.questions.length : (ex.questionCount || 0),
+                            duration: ex.duration || 45,
+                            code: ex.code || docSnap.id.substring(0, 8),
+                            questions: ex.questions || [],
+                            tlQuestions: ex.tlQuestions || ex.tl_questions || []
+                        });
+                    });
+                }
+            }
 
-            snap.forEach(docSnap => {
-                const ex = docSnap.data();
-                const examId = docSnap.id;
-                const examTitle = ex.title || ex.name || 'Đề thi không tiêu đề';
+            (examsList || []).forEach(ex => {
+                const examId = ex.id;
+                const examTitle = ex.title || 'Đề thi không tiêu đề';
 
                 // 1. Khớp trực tiếp examId nguồn
                 if (cleanExamId && examId === cleanExamId) {
                     matched.push({
                         id: examId,
                         title: examTitle,
-                        questionCount: Array.isArray(ex.questions) ? ex.questions.length : (ex.questionCount || 0),
+                        questionCount: ex.questionCount || (ex.questions?.length || 0),
                         duration: ex.duration || 45,
                         code: ex.code || examId.substring(0, 8),
                         matchedQIndex: null,
@@ -12676,9 +12717,12 @@ function renderTagFilterUI() {
                     return;
                 }
 
-                if (Array.isArray(ex.questions) && ex.questions.length > 0) {
+                const allExamQs = [...(ex.questions || []), ...(ex.tlQuestions || [])];
+                if (allExamQs.length > 0) {
                     let matchedQIndex = -1;
-                    const hasMatch = ex.questions.some((item, qIdx) => {
+                    let matchReason = '';
+                    const hasMatch = allExamQs.some((item, qIdx) => {
+                        if (!item || typeof item !== 'object') return false;
                         const qC = String(item.cccd || '').trim();
                         const qI = String(item.id || '').trim();
                         const qB = String(item.bankId || '').trim();
@@ -12686,25 +12730,25 @@ function renderTagFilterUI() {
 
                         // 1. So khớp CCCD / BankId / ID trực tiếp
                         if (cleanCccd && (qC === cleanCccd || qI === cleanCccd || qB === cleanCccd)) {
-                            matchedQIndex = qIdx; return true;
+                            matchedQIndex = qIdx; matchReason = `Khớp mã CCCD #${cleanCccd}`; return true;
                         }
                         if (cleanId && (qC === cleanId || qI === cleanId || qB === cleanId)) {
-                            matchedQIndex = qIdx; return true;
+                            matchedQIndex = qIdx; matchReason = `Khớp ID #${cleanId}`; return true;
                         }
                         if (cleanAliases.length > 0 && (cleanAliases.includes(qC) || cleanAliases.includes(qI) || cleanAliases.includes(qB))) {
-                            matchedQIndex = qIdx; return true;
+                            matchedQIndex = qIdx; matchReason = 'Khớp mã bí danh'; return true;
                         }
                         if (cleanMaster && (qC === cleanMaster || qI === cleanMaster)) {
-                            matchedQIndex = qIdx; return true;
+                            matchedQIndex = qIdx; matchReason = 'Khớp mã câu gốc'; return true;
                         }
 
                         // 2. So khớp theo MapID hợp lệ (VD: 9H4V2-5, 9D3C3-9)
                         if (cleanMapId && cleanMapId !== 'ID' && cleanMapId.length >= 3) {
                             if (qM === cleanMapId) {
-                                matchedQIndex = qIdx; return true;
+                                matchedQIndex = qIdx; matchReason = `Khớp MapID ${cleanMapId}`; return true;
                             }
                             if (qC.toUpperCase().startsWith(cleanMapId + '_') || qB.toUpperCase().startsWith(cleanMapId + '_')) {
-                                matchedQIndex = qIdx; return true;
+                                matchedQIndex = qIdx; matchReason = `Khớp tiền tố MapID ${cleanMapId}`; return true;
                             }
                         }
 
@@ -12712,7 +12756,7 @@ function renderTagFilterUI() {
                         if (snippet.length >= 25 && item.content) {
                             const itemSnippet = normalizeSnippet(item.content);
                             if (itemSnippet && (itemSnippet.includes(snippet) || snippet.includes(itemSnippet))) {
-                                matchedQIndex = qIdx; return true;
+                                matchedQIndex = qIdx; matchReason = 'Khớp nội dung văn bản'; return true;
                             }
                         }
 
@@ -12723,10 +12767,11 @@ function renderTagFilterUI() {
                         matched.push({
                             id: examId,
                             title: examTitle,
-                            questionCount: ex.questions.length,
+                            questionCount: allExamQs.length,
                             duration: ex.duration || 45,
                             code: ex.code || examId.substring(0, 8),
-                            matchedQIndex: matchedQIndex >= 0 ? (matchedQIndex + 1) : null
+                            matchedQIndex: matchedQIndex >= 0 ? (matchedQIndex + 1) : null,
+                            reason: matchReason
                         });
                     }
                 }
