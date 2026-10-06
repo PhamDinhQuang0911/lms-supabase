@@ -3,273 +3,507 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý ID - Cây kiến thức</title>
+    <title>Quản lý ID - Cây Ma Trận Kiến Thức Chuẩn</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#ea580c">
-        <!-- Apple Touch Icons cho iPhone & iPad -->
+    <!-- Apple Touch Icons cho iPhone & iPad -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152.png">
-    <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120.png">
-    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon-precomposed.png">
     <link rel="icon" type="image/png" href="/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-title" content="Toán Thầy Choang">
+
+    <!-- Dark Mode Init Script -->
     <script>
-        window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            window.deferredInstallPrompt = e;
-        });
+        try {
+            const t = localStorage.getItem('theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        } catch(e) {}
     </script>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    
+
+    <!-- FontAwesome & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     
+    <!-- MathJax 3 config with inline dollars support -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            }
+        };
+    </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
+    <link rel="stylesheet" href="/styles.css?v=28">
+    
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
         
-        /* Tree Styling */
-        .tree-node { transition: all 0.15s ease; border-left: 2px solid transparent; }
-        .tree-node:hover { background-color: #F1F5F9; }
-        .tree-node.active { background-color: #EFF6FF; border-left-color: #3B82F6; }
-        .tree-node.active .node-name { color: #1D4ED8; font-weight: 700; }
-        
-        .tree-children { padding-left: 22px; border-left: 1px dashed #CBD5E1; margin-left: 10px; }
-        .tree-children.collapsed { display: none; }
+        /* Custom Tree Styling */
+        .tree-node {
+            transition: all 0.15s ease;
+            position: relative;
+            border-left: 3px solid transparent;
+        }
+        .tree-node:hover {
+            background-color: rgba(241, 245, 249, 0.9);
+        }
+        html.dark .tree-node:hover {
+            background-color: rgba(31, 41, 55, 0.7);
+        }
+        .tree-node.active {
+            background-color: rgba(255, 237, 213, 0.75) !important;
+            border-left-color: #ea580c !important;
+        }
+        html.dark .tree-node.active {
+            background-color: rgba(124, 45, 18, 0.35) !important;
+            border-left-color: #f97316 !important;
+        }
+        .tree-node.active .node-name {
+            color: #c2410c !important;
+            font-weight: 800;
+        }
+        html.dark .tree-node.active .node-name {
+            color: #fb923c !important;
+        }
 
-        
-        /* Level Colors */
-        .tree-node[data-level="0"] { background-color: #FEF3C7; border-radius: 8px; margin-bottom: 8px; border: 1px solid #FDE68A; }
-        .tree-node[data-level="0"] .node-name { color: #92400E; font-weight: 800; font-size: 15px; }
-        .tree-node[data-level="0"] code { background-color: #FDE68A !important; color: #92400E !important; }
-        
-        .tree-node[data-level="1"] { background-color: #EFF6FF; border-radius: 6px; margin: 4px 0; border: 1px solid #BFDBFE; }
-        .tree-node[data-level="1"] .node-name { color: #1D4ED8; font-weight: 700; font-size: 14px; }
-        .tree-node[data-level="1"] code { background-color: #BFDBFE !important; color: #1D4ED8 !important; }
-        
-        .tree-node[data-level="2"] { border-bottom: 1px solid #F1F5F9; padding: 4px 0; }
-        .tree-node[data-level="2"]:hover { background-color: #F8FAFC; border-radius: 4px; }
+        /* Tree Level Hierarchy */
+        .tree-node[data-level="0"] {
+            background: linear-gradient(90deg, rgba(254, 243, 199, 0.65), rgba(255, 237, 213, 0.45));
+            border-radius: 10px;
+            margin-top: 8px;
+            margin-bottom: 4px;
+            border: 1px solid rgba(253, 230, 138, 0.9);
+        }
+        html.dark .tree-node[data-level="0"] {
+            background: linear-gradient(90deg, rgba(120, 53, 15, 0.35), rgba(69, 26, 3, 0.25));
+            border-color: rgba(180, 83, 9, 0.5);
+        }
+        .tree-node[data-level="0"] .node-name {
+            color: #9a3412;
+            font-weight: 800;
+            font-size: 14px;
+        }
+        html.dark .tree-node[data-level="0"] .node-name {
+            color: #fdba74;
+        }
 
-        /* Inline Edit Styling */
-        [contenteditable="true"] { outline: none; border-bottom: 1px dashed #94A3B8; padding: 0 2px; min-width: 20px; display: inline-block; }
-        [contenteditable="true"]:focus { border-bottom: 2px solid #3B82F6; background: #fff; }
+        .tree-node[data-level="1"] {
+            background: rgba(239, 246, 255, 0.75);
+            border-radius: 8px;
+            margin: 3px 0;
+            border: 1px solid rgba(191, 219, 254, 0.8);
+        }
+        html.dark .tree-node[data-level="1"] {
+            background: rgba(30, 58, 138, 0.25);
+            border-color: rgba(59, 130, 246, 0.35);
+        }
+        .tree-node[data-level="1"] .node-name {
+            color: #1d4ed8;
+            font-weight: 700;
+            font-size: 13.5px;
+        }
+        html.dark .tree-node[data-level="1"] .node-name {
+            color: #93c5fd;
+        }
 
-        /* Custom Scroll */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background-color: #CBD5E1; border-radius: 4px; }
-        
-        /* MathJax fix */
-        .math-content { display: inline-block; pointer-events: none; }
+        .tree-children {
+            padding-left: 16px;
+            border-left: 1.5px dashed rgba(203, 213, 225, 0.8);
+            margin-left: 12px;
+        }
+        html.dark .tree-children {
+            border-left-color: rgba(75, 85, 99, 0.6);
+        }
+
+        /* Inline edit on tree */
+        [contenteditable="true"] {
+            outline: none;
+            border-bottom: 1px dashed transparent;
+            min-width: 20px;
+        }
+        [contenteditable="true"]:hover {
+            border-bottom-color: #94a3b8;
+        }
+        [contenteditable="true"]:focus {
+            border-bottom: 2px solid #ea580c !important;
+            background: #ffffff;
+            color: #0f172a !important;
+            border-radius: 4px;
+            padding: 0 4px;
+        }
+        html.dark [contenteditable="true"]:focus {
+            background: #1f2937;
+            color: #f3f4f6 !important;
+        }
+
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.7); }
+
+        .math-content { display: inline-block; }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=6">
-<meta name="view-transition" content="same-origin" /></head>
-<body class="h-screen flex flex-col overflow-hidden text-gray-700">
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-100">
 
-    <header class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm z-20 shrink-0">
-        <div class="flex items-center gap-3">
-            <a href="dashboard.html" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-50 hover:bg-gray-200 transition-colors"><i class="fa-solid fa-arrow-left"></i></a>
-            <h1 class="font-bold text-lg text-gray-800 flex items-center gap-2"><i class="fa-solid fa-folder-tree text-primary-600"></i> Quản lý ID</h1>
+    <!-- Top Navigation Header -->
+    <header class="h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-3 md:px-5 shadow-xs z-30 shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <a href="dashboard.html" class="w-9 h-9 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shrink-0" title="Quay lại Dashboard">
+                <i class="fa-solid fa-arrow-left text-sm"></i>
+            </a>
+            <div class="flex items-center gap-2 min-w-0">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs" style="background: linear-gradient(135deg, var(--season-from, #f59e0b), var(--season-to, #ea580c));">
+                    <i class="fa-solid fa-sitemap text-sm"></i>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="font-black text-sm sm:text-base text-gray-800 dark:text-gray-100 flex items-center gap-2 truncate">
+                        <span>Quản lý Cây MapID</span>
+                        <span class="badge-season hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">Chuẩn Hệ Thống</span>
+                    </h1>
+                </div>
+            </div>
         </div>
-        <div class="flex items-center gap-2">
-            <button id="btnImport" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-sm font-bold text-gray-600 hover:bg-gray-50"><i class="fa-solid fa-upload mr-1"></i> Nhập</button>
-            <button id="btnExport" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-sm font-bold text-gray-600 hover:bg-gray-50"><i class="fa-solid fa-download mr-1"></i> Xuất</button>
-            <button id="btnSave" class="px-4 py-1.5 bg-primary-600 text-white rounded text-sm font-bold hover:bg-primary-700 shadow-md ml-2"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Lưu cấu hình</button>
+        
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <!-- Dark mode toggle -->
+            <button id="btnToggleTheme" onclick="window.toggleDarkMode && window.toggleDarkMode()" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors cursor-pointer" title="Đổi giao diện Sáng / Tối">
+                <i class="fa-solid fa-moon dark:hidden text-sm"></i>
+                <i class="fa-solid fa-sun hidden dark:inline-block text-sm text-amber-400"></i>
+            </button>
+            
+            <!-- Quick Add Root Grade -->
+            <button id="btnAddRoot" onclick="window.addRootNode()" class="btn-season-secondary h-9 px-3 rounded-xl text-xs font-bold hidden md:flex items-center gap-1.5 cursor-pointer shadow-2xs" title="Thêm mục Lớp mới ở cấp gốc">
+                <i class="fa-solid fa-plus text-xs"></i> <span>+ Thêm Lớp</span>
+            </button>
+
+            <!-- Import / Export -->
+            <button id="btnImport" class="h-9 px-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs" title="Nhập cây MapID từ file văn bản (.txt)">
+                <i class="fa-solid fa-cloud-arrow-up text-xs text-primary-500"></i> <span class="hidden sm:inline">Nhập</span>
+            </button>
+            <button id="btnExport" class="h-9 px-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs" title="Xuất cây MapID ra file văn bản (.txt)">
+                <i class="fa-solid fa-cloud-arrow-down text-xs text-primary-500"></i> <span class="hidden sm:inline">Xuất</span>
+            </button>
+
+            <!-- Save to Server button -->
+            <button id="btnSave" class="btn-season-primary h-9 px-3.5 sm:px-4 rounded-xl text-white text-xs font-black shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all" title="Lưu Cây MapID chuẩn lên Server (Đồng bộ toàn bộ Ngân hàng, Luyện tập và Soạn đề)">
+                <i class="fa-solid fa-floppy-disk text-xs"></i>
+                <span>Lưu cấu hình</span>
+            </button>
         </div>
     </header>
 
-    <!-- Tabs Navigation -->
-    <div class="flex border-b border-gray-200 bg-white px-6 pt-3 gap-8 shrink-0">
-        <button id="tabIDManager" class="pb-3 border-b-2 border-primary-600 text-primary-600 font-bold text-sm transition-colors"><i class="fa-solid fa-code-branch mr-1"></i> Quản lý ID Cây kiến thức</button>
-
+    <!-- Subheader Info Ribbon -->
+    <div class="bg-amber-50/70 dark:bg-amber-950/30 border-b border-amber-200/60 dark:border-amber-900/40 px-4 py-1.5 flex items-center justify-between text-xs text-amber-800 dark:text-amber-300 shrink-0">
+        <div class="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
+            <i class="fa-solid fa-circle-check text-emerald-500 shrink-0"></i>
+            <span class="font-medium truncate">MapID ở đây là <strong>bộ khung ma trận duy nhất</strong> dùng chung cho: <b>Ngân hàng câu hỏi</b>, <b>Luyện tập theo dạng</b> và <b>Soạn đề thi</b>.</span>
+        </div>
+        <div class="hidden sm:flex items-center gap-3 shrink-0 font-mono text-[11px] text-gray-500 dark:text-gray-400">
+            <span>Cú pháp: [Lớp][Môn][Chương][Mức độ][Bài]-[Dạng]</span>
+        </div>
     </div>
 
+    <!-- Main Workspace -->
     <main class="flex-1 flex overflow-hidden">
         
-        <div class="flex-1 min-w-0 flex flex-col bg-white border-r border-gray-200" id="treePanel">
-            <div class="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center text-xs font-bold text-gray-500 uppercase">
-                <span><i class="fa-solid fa-list-ul mr-1"></i> Cây kiến thức</span>
-                <span id="nodeCountBadge" class="bg-gray-200 px-2 py-0.5 rounded text-gray-700">0 mục</span>
-            </div>
-            <div id="treeContainer" class="flex-1 overflow-y-auto p-4 custom-scroll select-none">
-                <div class="flex flex-col items-center justify-center h-64 text-gray-300">
-                    <i class="fa-solid fa-folder-tree text-5xl mb-3"></i>
-                    <p>Chưa có dữ liệu</p>
+        <!-- LEFT: CÂY KIẾN THỨC (TREE PANEL) -->
+        <section class="w-full md:w-[380px] lg:w-[440px] shrink-0 flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800" id="treePanel">
+            
+            <!-- Tree Search & Filter Header -->
+            <div class="p-3 border-b border-gray-100 dark:border-gray-800 flex flex-col gap-2 bg-gray-50/60 dark:bg-gray-850">
+                <div class="relative">
+                    <input type="text" id="treeSearchInput" placeholder="Tìm theo mã ID hoặc tên mục..." class="w-full h-9 pl-8 pr-7 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-800 dark:text-gray-100 placeholder-gray-400 focus:border-season-from focus:ring-1 focus:ring-season-from transition-all">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                    <button id="btnClearSearch" onclick="window.clearTreeSearch()" class="hidden absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs cursor-pointer">✕</button>
                 </div>
-            </div>
-            <div class="p-2 bg-yellow-50 text-[11px] text-yellow-700 border-t border-yellow-200 text-center">
-                <i class="fa-solid fa-lightbulb mr-1"></i> Mẹo: <b>Click đúp</b> vào Tên hoặc Mã ID để sửa trực tiếp. Bấm nút <b>(+)</b> để thêm mục con.
-            </div>
-        </div>
-
-        
-        
-        <!-- Main Right Panel (Replaces Middle and Right panels from old design to match Image 6) -->
-        <div class="flex-1 flex flex-col bg-gray-50 min-w-0" id="topicContentPanel" style="display:none;">
-            <!-- Tabs Navigation inside Right Panel -->
-            <div class="bg-white px-6 pt-4 border-b border-gray-200 flex gap-8 shrink-0">
-                <button onclick="switchMapTab('overview')" id="mapTab-overview" class="pb-3 border-b-2 border-primary-600 text-primary-600 font-bold text-sm transition-colors">Tổng quan</button>
-                <button onclick="switchMapTab('topics')" id="mapTab-topics" class="pb-3 border-b-2 border-transparent hover:text-primary-600 text-gray-500 font-bold text-sm transition-colors">Dạng bài</button>
-                <button onclick="switchMapTab('theory')" id="mapTab-theory" class="pb-3 border-b-2 border-transparent hover:text-primary-600 text-gray-500 font-bold text-sm transition-colors">Lý thuyết</button>
-            </div>
-
-            <div class="flex-1 overflow-y-auto p-6 custom-scroll relative">
-                <!-- Tab: Tổng quan -->
-                <div id="mapContent-overview" class="max-w-4xl mx-auto space-y-6">
+                
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5">
+                        <span id="nodeCountBadge" class="badge-season px-2 py-0.5 rounded-lg text-[11px] font-black">0 mục</span>
+                        <span class="text-[11px] text-gray-400 dark:text-gray-500">trong cây</span>
+                    </div>
                     
-                    <!-- Card Chi tiết -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                        <div class="flex justify-between items-start mb-6">
-                            <div>
-                                <h2 class="text-2xl font-bold text-gray-800 mb-2" id="topicContentTitle">Chi tiết Chuyên đề</h2>
-                                <div class="flex items-center gap-2 text-sm text-gray-500" id="pathContainer">
-                                    <!-- Breadcrumb path renders here -->
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button id="btnImportTopic" class="px-4 py-2 bg-primary-50 text-primary-700 font-bold rounded-lg hover:bg-primary-100 transition-colors flex items-center gap-2 border border-primary-200"><i class="fa-solid fa-plus"></i> Thêm câu hỏi</button>
-                                <button class="px-4 py-2 bg-gray-100 text-gray-600 font-bold rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"><i class="fa-solid fa-file-pdf"></i> Xuất PDF</button>
-                            </div>
-                        </div>
-
-                        <!-- ID Box -->
-                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-6 flex items-center justify-between">
-                            <div>
-                                <div class="text-xs font-bold text-gray-400 mb-1">MÃ ĐỊNH DANH (ID)</div>
-                                <code id="previewID" class="text-xl font-black text-primary-600 font-mono">--</code>
-                            </div>
-                            <button onclick="copyID()" class="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-primary-600 hover:border-primary-300 flex items-center justify-center transition-colors shadow-sm" title="Copy ID"><i class="fa-regular fa-copy"></i></button>
-                        </div>
-
-                        <!-- Thống kê câu hỏi -->
-                        <div>
-                            <h3 class="text-sm font-bold text-gray-700 mb-3 uppercase">Thống kê Câu hỏi</h3>
-                            <div class="flex flex-wrap gap-3">
-                                <div class="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700">
-                                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                                    <span class="font-bold text-sm">Nhận biết: <span id="statNb">0</span> câu</span>
-                                </div>
-                                <div class="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
-                                    <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                                    <span class="font-bold text-sm">Thông hiểu: <span id="statTh">0</span> câu</span>
-                                </div>
-                                <div class="flex items-center gap-2 px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg text-orange-700">
-                                    <span class="w-2 h-2 rounded-full bg-orange-500"></span>
-                                    <span class="font-bold text-sm">Vận dụng: <span id="statVd">0</span> câu</span>
-                                </div>
-                                <div class="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                                    <span class="font-bold text-sm">Vận dụng cao: <span id="statVdc">0</span> câu</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Card Cài đặt nhánh -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                        <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase">Cài đặt Thuộc tính Nhánh</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-primary-50 transition-colors">
-                                <input type="checkbox" id="chkTheory" class="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500 transition-all mt-0.5">
-                                <div>
-                                    <div class="font-bold text-sm text-gray-800">Dạng Lý thuyết</div>
-                                    <div class="text-xs text-gray-500 mt-1">Đánh dấu toàn bộ câu hỏi trong nhánh này là câu hỏi lý thuyết.</div>
-                                </div>
-                            </label>
-                            <label class="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-green-50 transition-colors">
-                                <input type="checkbox" id="chkRealWorld" class="w-5 h-5 text-green-600 rounded border-gray-300 focus:ring-green-500 transition-all mt-0.5">
-                                <div>
-                                    <div class="font-bold text-sm text-gray-800">Toán Thực tế</div>
-                                    <div class="text-xs text-gray-500 mt-1">Đánh dấu toàn bộ câu hỏi trong nhánh này liên quan đến thực tiễn.</div>
-                                </div>
-                            </label>
-                        </div>
-                        <div class="mt-6 pt-6 border-t border-gray-100 flex justify-end">
-                            <button id="btnDeleteNode" class="px-4 py-2 bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2">
-                                <i class="fa-solid fa-trash"></i> Xóa nhánh này
-                            </button>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Tab: Dạng bài (Hiện danh sách câu hỏi) -->
-                <div id="mapContent-topics" class="hidden max-w-4xl mx-auto">
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 min-h-[400px]">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-gray-800 text-lg">Danh sách Câu hỏi</h3>
-                            <button class="px-3 py-1.5 bg-gray-100 text-gray-600 font-bold rounded text-sm hover:bg-gray-200 transition-colors" id="btnSelectBank"><i class="fa-solid fa-database mr-1"></i> Chọn từ Ngân hàng</button>
-                        </div>
-                        <div id="topicQuestionsList" class="space-y-4">
-                            <div class="text-center text-gray-400 py-10 flex flex-col items-center">
-                                <i class="fa-solid fa-box-open text-4xl mb-3 text-gray-200"></i>
-                                <p>Chưa có câu hỏi nào.</p>
-                            </div>
-                        </div>
+                    <div class="flex items-center gap-1">
+                        <button id="btnExpandAll" onclick="window.expandAllNodes()" class="p-1 px-2 text-[11px] font-bold rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors cursor-pointer" title="Mở rộng tất cả các nhánh">
+                            <i class="fa-solid fa-angles-down text-[10px] mr-1"></i> Mở hết
+                        </button>
+                        <button id="btnCollapseAll" onclick="window.collapseAllNodes()" class="p-1 px-2 text-[11px] font-bold rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors cursor-pointer" title="Thu gọn các nhánh">
+                            <i class="fa-solid fa-angles-up text-[10px] mr-1"></i> Thu gọn
+                        </button>
+                        <button onclick="window.addRootNode()" class="p-1 px-2 text-[11px] font-bold rounded-lg text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40 transition-colors cursor-pointer" title="Thêm Lớp mới">
+                            <i class="fa-solid fa-plus text-[10px] mr-1"></i> + Lớp
+                        </button>
                     </div>
                 </div>
-
-                <!-- Tab: Lý thuyết -->
-                <div id="mapContent-theory" class="hidden max-w-4xl mx-auto">
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 min-h-[400px] flex items-center justify-center text-gray-400">
-                        <div class="text-center">
-                            <i class="fa-solid fa-book-open text-6xl mb-4 text-gray-200"></i>
-                            <h3 class="text-lg font-bold text-gray-500">Chưa có bài giảng lý thuyết</h3>
-                            <p class="text-sm mt-2">Tính năng soạn thảo lý thuyết đang được cập nhật.</p>
-                        </div>
-                    </div>
-                </div>
-
             </div>
-        </div>
 
-        <!-- Initial Placeholder when no node is selected -->
-        <div id="topicBuilderGuide" class="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 bg-gray-50">
-            <div class="text-center max-w-sm">
-                <i class="fa-solid fa-diagram-project text-6xl mb-6 text-primary-200"></i>
-                <h3 class="text-lg font-bold text-gray-600 mb-3">Xây dựng Ngân hàng ID</h3>
-                <p class="text-sm mb-6 text-gray-500">Hãy click vào một mục trong Cây kiến thức bên trái để xem chi tiết hoặc bổ sung câu hỏi.</p>
+            <!-- Tree View Container -->
+            <div id="treeContainer" class="flex-1 overflow-y-auto p-3 custom-scroll select-none">
+                <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+                    <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-orange-500"></i>
+                    <p class="text-xs font-bold">Đang tải Cây MapID chuẩn...</p>
+                </div>
             </div>
-        </div>
+
+            <!-- Footer Tip -->
+            <div class="p-2.5 bg-yellow-50/70 dark:bg-yellow-950/20 text-[11px] text-yellow-800 dark:text-yellow-400 border-t border-yellow-200/50 dark:border-yellow-900/40 flex items-center gap-2">
+                <i class="fa-solid fa-lightbulb text-amber-500 shrink-0"></i>
+                <div class="leading-tight">
+                    Nhấp đúp vào <b>Mã/Tên</b> để sửa nhanh. Bấm <b>(+)</b> thêm con, bấm <b>(🗑)</b> để xóa mục thừa.
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT: DETAIL & QUESTION BANK INSPECTOR -->
+        <section class="flex-1 min-w-0 flex flex-col bg-gray-50 dark:bg-gray-950 overflow-hidden" id="rightWorkspace">
+            
+            <!-- Empty Placeholder (When NO node is selected) -->
+            <div id="topicBuilderGuide" class="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 text-center overflow-y-auto custom-scroll">
+                <div class="max-w-md w-full bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col items-center">
+                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl shadow-md mb-4" style="background: linear-gradient(135deg, var(--season-from, #f59e0b), var(--season-to, #ea580c));">
+                        <i class="fa-solid fa-network-wired"></i>
+                    </div>
+                    <h2 class="text-lg font-black text-gray-800 dark:text-gray-100 mb-1">Cây Ma Trận MapID Chuẩn</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-6">Chọn một mục bất kỳ bên Cây kiến thức để xem chi tiết, sửa tên, đổi mã hoặc duyệt câu hỏi trong Ngân hàng.</p>
+                    
+                    <!-- Quick Reference Table -->
+                    <div class="w-full bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 text-left border border-gray-100 dark:border-gray-700 text-xs space-y-2.5 mb-6">
+                        <div class="font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider text-[11px] flex items-center justify-between">
+                            <span>Quy chuẩn mã MapID:</span>
+                            <span class="font-mono text-orange-600 dark:text-orange-400 font-black">9D1H2-1</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-600 dark:text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
+                            <div>• <strong>9</strong>: Khối Lớp (Lớp 9)</div>
+                            <div>• <strong>D</strong>: Phân môn (Đại số)</div>
+                            <div>• <strong>1</strong>: Chương 1</div>
+                            <div>• <strong>H</strong>: Mức Thông hiểu</div>
+                            <div>• <strong>2</strong>: Bài học 2</div>
+                            <div>• <strong>-1</strong>: Dạng bài 1</div>
+                        </div>
+                    </div>
+
+                    <div class="w-full grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                        <div class="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold">
+                            <span class="block text-sm font-black font-mono">[N]</span> Nhận biết
+                        </div>
+                        <div class="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold">
+                            <span class="block text-sm font-black font-mono">[H]</span> Thông hiểu
+                        </div>
+                        <div class="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 font-bold">
+                            <span class="block text-sm font-black font-mono">[V]</span> Vận dụng
+                        </div>
+                        <div class="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-bold">
+                            <span class="block text-sm font-black font-mono">[C]</span> Vận dụng cao
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Topic Details Panel (Shown when a node IS selected) -->
+            <div class="flex-1 flex flex-col min-w-0" id="topicContentPanel" style="display: none;">
+                
+                <!-- Sub Tabs Navigation -->
+                <div class="bg-white dark:bg-gray-900 px-4 md:px-6 pt-3 border-b border-gray-200 dark:border-gray-800 flex gap-6 shrink-0">
+                    <button onclick="window.switchMapTab('overview')" id="mapTab-overview" class="pb-3 border-b-2 border-season-from text-season-from font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-check text-xs"></i> <span>Tổng quan & Câu hỏi</span>
+                    </button>
+                    <button onclick="window.switchMapTab('theory')" id="mapTab-theory" class="pb-3 border-b-2 border-transparent hover:text-gray-900 dark:hover:text-gray-100 text-gray-500 font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5">
+                        <i class="fa-solid fa-book-open text-xs"></i> <span>Lý thuyết & Trọng tâm</span>
+                    </button>
+                </div>
+
+                <!-- Tab Content Area -->
+                <div class="flex-1 overflow-y-auto p-4 md:p-6 custom-scroll">
+                    
+                    <!-- TAB 1: OVERVIEW & QUESTIONS -->
+                    <div id="mapContent-overview" class="max-w-4xl mx-auto space-y-5">
+                        
+                        <!-- Card 1: Node Header & Full MapID -->
+                        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xs border border-gray-200 dark:border-gray-800 p-5 md:p-6">
+                            
+                            <!-- Breadcrumb Path -->
+                            <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-2 overflow-x-auto no-scrollbar py-0.5" id="pathContainer">
+                                <!-- Rendered dynamically -->
+                            </div>
+                            
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                                <h2 class="text-xl md:text-2xl font-black text-gray-800 dark:text-gray-100 math-content" id="topicContentTitle">
+                                    Chi tiết mục
+                                </h2>
+                                
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <button id="btnImportTopic" class="btn-season-secondary px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs" title="Nhập thêm câu hỏi từ file LaTeX (.tex) hoặc Text (.txt)">
+                                        <i class="fa-solid fa-cloud-arrow-up text-xs"></i> <span>Nạp câu hỏi</span>
+                                    </button>
+                                    <button id="btnSelectBank" class="btn-season-primary px-3 py-1.5 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs" title="Gán các câu hỏi từ Ngân hàng Cloudflare vào MapID này">
+                                        <i class="fa-solid fa-database text-xs"></i> <span>Chọn từ kho</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Full Canonical MapID Box -->
+                            <div class="bg-orange-50/70 dark:bg-gray-800/80 rounded-2xl p-4 border border-orange-200/70 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                                <div>
+                                    <div class="text-[10px] font-black uppercase tracking-wider text-orange-700 dark:text-orange-400 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-fingerprint"></i> MÃ MAPID CHUẨN KẾT HỢP
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <code id="previewID" class="text-2xl font-black font-mono text-orange-600 dark:text-orange-400 tracking-wide">--</code>
+                                        <span id="nodeLevelBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">Cấp 0</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="copyID()" class="px-3 py-2 rounded-xl bg-white dark:bg-gray-700 border border-orange-200 dark:border-gray-600 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-gray-600 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs" title="Sao chép mã ID chuẩn này">
+                                        <i class="fa-regular fa-copy"></i> Sao chép ID
+                                    </button>
+                                    <button id="btnDeleteNode" onclick="window.deleteCurrentNode()" class="px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs" title="Xóa mục này và toàn bộ mục con">
+                                        <i class="fa-solid fa-trash-can"></i> Xóa mục này
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Fast Node Property Editor Form -->
+                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                                <div class="sm:col-span-3">
+                                    <label class="block text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Mã ID phân cấp:</label>
+                                    <input type="text" id="editNodeId" class="w-full h-9 px-3 font-mono font-black text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-800 dark:text-gray-100 focus:border-season-from focus:bg-white dark:focus:bg-gray-750 transition-all">
+                                </div>
+                                <div class="sm:col-span-9">
+                                    <label class="block text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Tên mục / Chuyên đề:</label>
+                                    <input type="text" id="editNodeName" class="w-full h-9 px-3 text-sm font-semibold bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none text-gray-800 dark:text-gray-100 focus:border-season-from focus:bg-white dark:focus:bg-gray-750 transition-all">
+                                </div>
+                            </div>
+
+                            <!-- Attribute Checkboxes -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                                <label class="flex items-center gap-2.5 p-2.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors">
+                                    <input type="checkbox" id="chkTheory" class="w-4 h-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 cursor-pointer">
+                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Gán nhãn [LT] Dạng Lý thuyết</span>
+                                </label>
+                                <label class="flex items-center gap-2.5 p-2.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition-colors">
+                                    <input type="checkbox" id="chkRealWorld" class="w-4 h-4 text-emerald-600 rounded border-gray-300 dark:border-gray-600 focus:ring-emerald-500 cursor-pointer">
+                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Gán nhãn [TT] Toán Thực tế</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Question Statistics Breakdown -->
+                        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xs border border-gray-200 dark:border-gray-800 p-5 md:p-6">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                    <i class="fa-solid fa-chart-pie text-season-from"></i>
+                                    <span>Câu hỏi trong Ngân hàng khớp ID này</span>
+                                </h3>
+                                <span id="statTotalMatched" class="badge-season px-2.5 py-0.5 rounded-full text-xs font-black">0 câu</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                <div class="flex items-center gap-2 px-3 py-2 bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-emerald-700 dark:text-emerald-300">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                    <span class="text-xs font-bold">Nhận biết: <strong id="statNb" class="font-black">0</strong></span>
+                                </div>
+                                <div class="flex items-center gap-2 px-3 py-2 bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 rounded-xl text-blue-700 dark:text-blue-300">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></span>
+                                    <span class="text-xs font-bold">Thông hiểu: <strong id="statTh" class="font-black">0</strong></span>
+                                </div>
+                                <div class="flex items-center gap-2 px-3 py-2 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-amber-700 dark:text-amber-300">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                                    <span class="text-xs font-bold">Vận dụng: <strong id="statVd" class="font-black">0</strong></span>
+                                </div>
+                                <div class="flex items-center gap-2 px-3 py-2 bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-xl text-rose-700 dark:text-rose-300">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
+                                    <span class="text-xs font-bold">Vận dụng cao: <strong id="statVdc" class="font-black">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Questions List -->
+                        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xs border border-gray-200 dark:border-gray-800 p-5 md:p-6 min-h-[300px]">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-gray-800 dark:text-gray-100 text-sm sm:text-base flex items-center gap-2">
+                                    <i class="fa-solid fa-list-ol text-primary-500"></i>
+                                    <span>Danh sách Câu hỏi</span>
+                                </h3>
+                                <button onclick="window.reloadCurrentTopicQuestions()" class="text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-season-from transition-colors flex items-center gap-1 cursor-pointer">
+                                    <i class="fa-solid fa-rotate-right"></i> Làm mới
+                                </button>
+                            </div>
+
+                            <div id="topicQuestionsList" class="space-y-3">
+                                <div class="text-center text-gray-400 py-12 flex flex-col items-center">
+                                    <i class="fa-solid fa-folder-open text-4xl mb-3 text-gray-300 dark:text-gray-700"></i>
+                                    <p class="text-sm">Chưa có câu hỏi nào khớp với mã ID này.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- TAB 2: THEORY & NOTES -->
+                    <div id="mapContent-theory" class="hidden max-w-4xl mx-auto space-y-5">
+                        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xs border border-gray-200 dark:border-gray-800 p-6">
+                            <h3 class="font-bold text-gray-800 dark:text-gray-100 text-base mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-book-bookmark text-season-from"></i>
+                                <span>Lý thuyết trọng tâm & Hướng dẫn giải dạng</span>
+                            </h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Lý thuyết này sẽ hiển thị cho học sinh khi làm bài luyện tập theo dạng bài tương ứng.</p>
+                            
+                            <textarea id="nodeTheoryNotes" rows="8" placeholder="Nhập lý thuyết, công thức, mẹo giải hoặc mã LaTeX... (Hỗ trợ $công thức$)" class="w-full p-4 text-sm font-sans bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none text-gray-800 dark:text-gray-100 focus:border-season-from focus:bg-white dark:focus:bg-gray-750 transition-all"></textarea>
+                            
+                            <div class="flex justify-end mt-3">
+                                <button onclick="window.saveNodeTheory()" class="btn-season-primary px-4 py-2 rounded-xl text-white text-xs font-bold cursor-pointer shadow-2xs">
+                                    <i class="fa-solid fa-floppy-disk mr-1"></i> Lưu ghi chú lý thuyết
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
     
     </main>
 
+    <!-- Hidden File Input for .txt import -->
     <input type="file" id="fileInput" accept=".txt" class="hidden">
 
-    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-x-full opacity-0 transition-all duration-300">
-        <div class="bg-white border-l-4 border-green-500 shadow-xl rounded p-3 flex items-center gap-3">
-            <i class="fa-solid fa-check-circle text-green-500 text-xl"></i>
-            <span class="text-sm font-bold text-gray-700" id="toastMsg">Success</span>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-5 right-5 z-[99999] transform translate-x-full opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-white dark:bg-gray-800 border-l-4 border-orange-500 shadow-2xl rounded-2xl p-3.5 px-4 flex items-center gap-3 border border-gray-100 dark:border-gray-700 pointer-events-auto">
+            <i class="fa-solid fa-circle-check text-orange-500 text-lg" id="toastIcon"></i>
+            <span class="text-xs font-bold text-gray-800 dark:text-gray-200" id="toastMsg">Thành công!</span>
         </div>
     </div>
 
-    <script src="bank-service.js"></script>
-    <script type="module" src="mapid-manager.js?v=2.3"></script>
-    <script>
-        function copyID() {
-            const text = document.getElementById('previewID').innerText;
-            navigator.clipboard.writeText(text);
-            alert("Đã sao chép: " + text);
-        }
-    </script>
-
     <!-- Modal Select From Bank -->
-    <div id="selectBankModal" class="fixed inset-0 bg-black/60 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl transform transition-all overflow-hidden">
-            <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center shrink-0">
+    <div id="selectBankModal" class="fixed inset-0 bg-black/60 z-[100] hidden items-center justify-center p-4 backdrop-blur-xs">
+        <div class="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden animate-fadeIn">
+            <div class="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-850 flex justify-between items-center shrink-0">
                 <div>
-                    <h3 class="font-bold text-lg text-gray-800"><i class="fa-solid fa-database text-primary-600 mr-2"></i>Chọn câu hỏi từ Ngân hàng</h3>
-                    <p class="text-xs text-gray-500 mt-1" id="selectBankModalSubtitle">Đang thêm vào: ...</p>
+                    <h3 class="font-black text-base text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                        <i class="fa-solid fa-database text-season-from"></i>
+                        <span>Chọn câu hỏi từ Ngân hàng gán vào MapID</span>
+                    </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5" id="selectBankModalSubtitle">Đang thêm vào: ...</p>
                 </div>
-                <button onclick="document.getElementById('selectBankModal').classList.remove('flex'); document.getElementById('selectBankModal').classList.add('hidden');" class="text-gray-400 hover:text-red-500 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"><i class="fa-solid fa-times"></i></button>
+                <button onclick="document.getElementById('selectBankModal').classList.remove('flex'); document.getElementById('selectBankModal').classList.add('hidden');" class="text-gray-400 hover:text-red-500 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
             </div>
-            <div class="p-3 border-b border-gray-100 bg-white flex gap-2 overflow-x-auto items-center shrink-0">
-                <input type="text" id="bankSearch" placeholder="Tìm ID hoặc nội dung..." class="h-9 px-3 border border-gray-300 rounded text-sm w-64 outline-none focus:border-primary-500">
-                <select id="bankFilterLevel" class="h-9 px-2 border border-gray-300 rounded text-sm outline-none bg-white">
+            
+            <div class="p-3 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-2 overflow-x-auto items-center shrink-0">
+                <input type="text" id="bankSearch" placeholder="Tìm theo ID, CCCD hoặc nội dung..." class="h-9 px-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-xl text-xs w-64 outline-none focus:border-season-from">
+                <select id="bankFilterLevel" class="h-9 px-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-xl text-xs outline-none">
                     <option value="all">Mọi mức độ</option>
                     <option value="Nhận biết">Nhận biết</option>
                     <option value="Thông hiểu">Thông hiểu</option>
@@ -277,37 +511,43 @@
                     <option value="Vận dụng cao">Vận dụng cao</option>
                 </select>
                 <div class="flex-1"></div>
-                <button class="px-3 py-1.5 bg-primary-600 text-white font-bold rounded text-sm hover:bg-primary-700 transition-colors shadow-sm" id="btnConfirmBankSelection"><i class="fa-solid fa-check mr-1"></i> Xác nhận (<span id="bankSelectedCount">0</span>)</button>
+                <button class="btn-season-primary h-9 px-4 rounded-xl text-white text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5" id="btnConfirmBankSelection">
+                    <i class="fa-solid fa-check"></i> Xác nhận (<span id="bankSelectedCount">0</span>)
+                </button>
             </div>
-            <div class="flex-1 overflow-y-auto p-4 bg-gray-100" id="bankModalList">
-                <div class="text-center py-20 text-gray-400"><i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-primary-500"></i><br>Đang tải dữ liệu...</div>
+            
+            <div class="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-950 custom-scroll" id="bankModalList">
+                <div class="text-center py-20 text-gray-400">
+                    <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-orange-500"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
             </div>
         </div>
     </div>
 
-
+    <!-- Scripts -->
+    <script src="bank-service.js"></script>
+    <script type="module" src="mapid-manager.js?v=3.0"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const tab1 = document.getElementById('tabIDManager');
-            const tab2 = null; // nut Xuong da bo (da co trong sidebar dashboard)
-            const pnlID = document.getElementById('panelIDManager');
-            const pnlTopic = document.getElementById('topicContentPanel');
+        function copyID() {
+            const el = document.getElementById('previewID');
+            if (!el) return;
+            const text = el.innerText.trim();
+            if (!text || text === '--') return;
+            navigator.clipboard.writeText(text);
+            if (window.showToast) window.showToast(`Đã sao chép mã: ${text}`, 'success');
+            else alert("Đã sao chép: " + text);
+        }
 
-            tab1.addEventListener('click', () => {
-                tab1.className = "pb-3 border-b-2 border-primary-600 text-primary-600 font-bold text-sm transition-colors";
-                if (tab2) tab2.className = "pb-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-bold text-sm transition-colors";
-                pnlID.style.display = '';
-                pnlTopic.style.display = 'none';
-            });
-
-            // (Đã bỏ tab Xưởng — vào Xưởng Chuyên Đề từ sidebar dashboard)
-        });
+        window.toggleDarkMode = function() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch(e) {}
+        };
     </script>
-<script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
-}
-</script>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js?v=28').catch(() => {}));
+    }
+    </script>
 </body>
-
 </html>
