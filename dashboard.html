@@ -424,7 +424,7 @@
     <script>
     // Tự động giải phóng triệt để Service Worker & Cache cũ để cập nhật ngay kiến trúc mới
     (function() {
-        const CACHE_RESET_ID = 'qmath_season_v20261005_v4';
+        const CACHE_RESET_ID = 'qmath_season_v20261006_v1';
         if (localStorage.getItem('qm_reset_cache') !== CACHE_RESET_ID) {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -1657,17 +1657,20 @@
 
         <div id="view-questionbank" class="view-section hidden flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 pb-6 md:pb-8 overflow-y-auto">
             <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm z-10 shrink-0 bank-top-header">
-                <div class="p-4 flex flex-col gap-3">
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <h2 class="text-xl font-black text-gray-800 dark:text-gray-100"><i class="fa-solid fa-database text-primary-600 mr-2"></i>Ngân hàng câu hỏi</h2>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Quản lý kho dữ liệu câu hỏi trắc nghiệm & tự luận trên Cloudflare</p>
+                <div class="p-3 md:p-4 flex flex-col gap-2.5 md:gap-3">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
+                        <div class="min-w-0">
+                            <h2 class="text-lg md:text-xl font-black text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                                <i class="fa-solid fa-database text-primary-600 shrink-0"></i>
+                                <span class="whitespace-nowrap">Ngân hàng câu hỏi</span>
+                            </h2>
+                            <p class="hidden sm:block text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-0.5">Quản lý kho dữ liệu câu hỏi trắc nghiệm & tự luận trên Cloudflare</p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span id="bankCount" class="badge-season h-10 px-3.5 rounded-xl text-xs font-bold flex items-center justify-center shrink-0 shadow-2xs">0 câu</span>
+                        <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-0.5 pt-0.5 shrink-0">
+                            <span id="bankCount" class="badge-season h-9 md:h-10 px-3 md:px-3.5 rounded-xl text-xs font-bold flex items-center justify-center shrink-0 shadow-2xs whitespace-nowrap">0 câu</span>
                             <!-- Nút Nạp câu hỏi vào Ngân hàng -->
-                            <div class="relative inline-block text-left" id="bankImportDropdownContainer">
-                                <button type="button" onclick="window.openBankDirectImportModal()" class="btn-season-primary h-10 px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer" title="Nạp câu hỏi mới vào Ngân hàng từ LaTeX (.tex) hoặc Word (.docx)">
+                            <div class="relative inline-block text-left shrink-0" id="bankImportDropdownContainer">
+                                <button type="button" onclick="window.openBankDirectImportModal()" class="btn-season-primary h-9 md:h-10 px-3 md:px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer shadow-2xs" title="Nạp câu hỏi mới vào Ngân hàng từ LaTeX (.tex) hoặc Word (.docx)">
                                     <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
                                     <span>Nạp câu hỏi</span>
                                     <span onclick="event.stopPropagation(); window.toggleBankImportDropdown();" class="ml-1 pl-1.5 border-l border-white/30 hover:opacity-80 transition" title="Tùy chọn nguồn tải lên">
@@ -1688,42 +1691,44 @@
                             </div>
                             <input type="file" id="bankDirectTexInput" accept=".tex,.txt" class="hidden" onchange="window.handleBankTexFileUpload(this)">
                             <input type="file" id="bankDirectWordInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" onchange="window.handleBankWordFileUpload(this)">
-                            <button onclick="window.openDeduplicateModal()" class="btn-season-primary h-10 px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer" title="Quét và xử lý câu hỏi trùng lặp trong ngân hàng">
-                                <i class="fa-solid fa-clone"></i> Lọc câu trùng
+                            <button onclick="window.openDeduplicateModal()" class="btn-season-primary h-9 md:h-10 px-3 md:px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer shadow-2xs" title="Quét và xử lý câu hỏi trùng lặp trong ngân hàng">
+                                <i class="fa-solid fa-clone"></i> <span>Lọc câu trùng</span>
                             </button>
-                            <button onclick="window.location.href='book-manager.html'" class="btn-season-primary h-10 px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer" title="Số hóa sách: Gán mã CCCD số và xuất file TeX">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i> Số Hóa Sách (Sách ID)
+                            <button onclick="window.location.href='book-manager.html'" class="btn-season-primary h-9 md:h-10 px-3 md:px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer shadow-2xs" title="Số hóa sách: Gán mã CCCD số và xuất file TeX">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Số Hóa Sách (Sách ID)</span>
                             </button>
-                            <button onclick="loadQuestionBank()" class="h-10 w-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center shrink-0 transition-colors" title="Tải lại"><i class="fa-solid fa-rotate"></i></button>
+                            <button onclick="loadQuestionBank()" class="h-9 w-9 md:h-10 md:w-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center shrink-0 transition-colors shadow-2xs cursor-pointer" title="Tải lại">
+                                <i class="fa-solid fa-rotate text-xs md:text-sm"></i>
+                            </button>
                         </div>
                     </div>
                     <!-- Bộ lọc: scroll ngang trên mobile -->
                     <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar items-center">
-                        <select id="f_Grade" onchange="window.onFilterChange('grade')" class="h-10 border border-gray-300 dark:border-gray-700 rounded-xl px-3 text-sm outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold shrink-0 w-[110px] focus:ring-2 focus:ring-primary-100">
+                        <select id="f_Grade" onchange="window.onFilterChange('grade')" class="h-9 md:h-10 border border-gray-300 dark:border-gray-700 rounded-xl px-2.5 md:px-3 text-xs md:text-sm outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold shrink-0 min-w-[124px] focus:ring-2 focus:ring-primary-100">
                             <option value="all">Lớp: Tất cả</option>
                         </select>
-                        <select id="f_Subject" onchange="window.onFilterChange('subject')" class="h-10 border border-gray-300 dark:border-gray-700 rounded-xl px-3 text-sm outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold shrink-0 w-[110px] focus:ring-2 focus:ring-primary-100">
+                        <select id="f_Subject" onchange="window.onFilterChange('subject')" class="h-9 md:h-10 border border-gray-300 dark:border-gray-700 rounded-xl px-2.5 md:px-3 text-xs md:text-sm outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-bold shrink-0 min-w-[124px] focus:ring-2 focus:ring-primary-100">
                             <option value="all">Môn: Tất cả</option>
                         </select>
-                        <select id="f_Chapter" onchange="window.onFilterChange('chapter')" class="h-10 border border-gray-300 dark:border-gray-700 rounded-xl px-3 text-sm outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 shrink-0 w-[130px] truncate focus:ring-2 focus:ring-primary-100">
+                        <select id="f_Chapter" onchange="window.onFilterChange('chapter')" class="h-9 md:h-10 border border-gray-300 dark:border-gray-700 rounded-xl px-2.5 md:px-3 text-xs md:text-sm outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 shrink-0 min-w-[136px] focus:ring-2 focus:ring-primary-100">
                             <option value="all">Chương: Tất cả</option>
                         </select>
-                        <select id="f_Lesson" onchange="window.onFilterChange('lesson')" class="h-10 border border-gray-300 dark:border-gray-700 rounded-xl px-3 text-sm outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 shrink-0 w-[130px] truncate focus:ring-2 focus:ring-primary-100">
+                        <select id="f_Lesson" onchange="window.onFilterChange('lesson')" class="h-9 md:h-10 border border-gray-300 dark:border-gray-700 rounded-xl px-2.5 md:px-3 text-xs md:text-sm outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 shrink-0 min-w-[124px] focus:ring-2 focus:ring-primary-100">
                             <option value="all">Bài: Tất cả</option>
                         </select>
-                        <select id="f_Level" onchange="window.applyBankFilters()" class="h-10 border border-gray-300 dark:border-gray-700 rounded-xl px-3 text-sm outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 shrink-0 focus:ring-2 focus:ring-primary-100">
+                        <select id="f_Level" onchange="window.applyBankFilters()" class="h-9 md:h-10 border border-gray-300 dark:border-gray-700 rounded-xl px-2.5 md:px-3 text-xs md:text-sm outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 shrink-0 min-w-[136px] focus:ring-2 focus:ring-primary-100">
                             <option value="all">Mức độ: Tất cả</option>
                             <option value="Nhận biết">Nhận biết</option>
                             <option value="Thông hiểu">Thông hiểu</option>
                             <option value="Vận dụng">Vận dụng</option>
                             <option value="Vận dụng cao">Vận dụng cao</option>
                         </select>
-                        <div class="relative shrink-0 flex-1 min-w-[260px] flex items-center gap-1.5">
+                        <div class="relative shrink-0 flex-1 min-w-[240px] md:min-w-[260px] flex items-center gap-1.5">
                             <div class="relative flex-1">
-                                <input type="text" id="searchBank" onkeyup="if(event.key==='Enter'){window.directLookupTeacherBank();}else{window.applyBankFilters();}" placeholder="Tìm theo MapID, CCCD, ID..." class="h-10 pl-9 pr-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-xl text-sm w-full outline-none focus:ring-2 focus:ring-primary-100">
-                                <i class="fa-solid fa-search absolute left-3 top-3 text-gray-400"></i>
+                                <input type="text" id="searchBank" onkeyup="if(event.key==='Enter'){window.directLookupTeacherBank();}else{window.applyBankFilters();}" placeholder="Tìm theo MapID, CCCD, ID..." class="h-9 md:h-10 pl-8 md:pl-9 pr-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-xl text-xs md:text-sm w-full outline-none focus:ring-2 focus:ring-primary-100">
+                                <i class="fa-solid fa-search absolute left-2.5 md:left-3 top-2.5 md:top-3 text-gray-400 text-xs md:text-sm"></i>
                             </div>
-                            <button id="btnDirectLookupBank" onclick="window.directLookupTeacherBank()" class="btn-season-primary h-10 px-3.5 text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 cursor-pointer" title="Tra cứu trực tiếp từ Ngân hàng Cloudflare">
+                            <button id="btnDirectLookupBank" onclick="window.directLookupTeacherBank()" class="btn-season-primary h-9 md:h-10 px-3 md:px-3.5 text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-2xs" title="Tra cứu trực tiếp từ Ngân hàng Cloudflare">
                                 <i class="fa-solid fa-magnifying-glass"></i> Tra cứu
                             </button>
                         </div>
@@ -1732,23 +1737,23 @@
             </div>
             
             <!-- TOOLBAR: Bulk Actions & View Toggle -->
-            <div class="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 md:px-6 py-3 flex items-center justify-between bank-toolbar">
-                <div id="bankBulkActionContainer" class="flex items-center gap-4">
-                    <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 font-bold">
+            <div class="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-3 md:px-6 py-2.5 md:py-3 flex items-center justify-between bank-toolbar gap-2">
+                <div id="bankBulkActionContainer" class="flex items-center gap-2 md:gap-4 flex-wrap">
+                    <label class="flex items-center gap-1.5 md:gap-2 cursor-pointer text-xs md:text-sm text-gray-600 dark:text-gray-300 hover:text-primary-600 font-bold whitespace-nowrap">
                         <input type="checkbox" id="selectAllCheckbox" onchange="window.toggleSelectAllBank(this.checked)" class="bank-item-checkbox exam-select-checkbox w-4 h-4 rounded border-gray-300 dark:border-gray-600 cursor-pointer">
-                        Chọn tất cả
+                        <span>Chọn tất cả</span>
                     </label>
-                    <button id="btnBulkDelete" onclick="window.deleteSelectedQuestions()" class="hidden bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-lg text-sm font-bold border border-red-200 dark:border-red-800 hover:bg-red-600 hover:text-white transition-colors">
+                    <button id="btnBulkDelete" onclick="window.deleteSelectedQuestions()" class="hidden bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-bold border border-red-200 dark:border-red-800 hover:bg-red-600 hover:text-white transition-colors whitespace-nowrap">
                         <i class="fa-solid fa-trash-can mr-1"></i> Xóa đã chọn
                     </button>
-                    <label class="flex items-center gap-1.5 cursor-pointer text-xs md:text-sm text-gray-700 dark:text-gray-300 font-semibold bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2.5 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none" title="Khi bật, hệ thống chỉ hiển thị câu gốc (Master) và ẩn các câu trùng/mã phụ (Alias)">
+                    <label class="flex items-center gap-1.5 cursor-pointer text-xs md:text-sm text-gray-700 dark:text-gray-300 font-semibold bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 md:px-2.5 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none whitespace-nowrap" title="Khi bật, hệ thống chỉ hiển thị câu gốc (Master) và ẩn các câu trùng/mã phụ (Alias)">
                         <input type="checkbox" id="filterHideDuplicates" onchange="window.applyBankFilters()" checked class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer">
                         <span>Ẩn câu trùng</span>
                     </label>
                 </div>
-                <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl bank-view-toggle">
-                    <button onclick="window.toggleBankView('grid')" id="btnViewGrid" class="w-8 h-8 rounded-lg bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm flex items-center justify-center transition-all"><i class="fa-solid fa-table-cells-large"></i></button>
-                    <button onclick="window.toggleBankView('list')" id="btnViewList" class="w-8 h-8 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 flex items-center justify-center transition-all"><i class="fa-solid fa-list"></i></button>
+                <div class="flex items-center gap-1 md:gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl bank-view-toggle shrink-0">
+                    <button onclick="window.toggleBankView('grid')" id="btnViewGrid" class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm flex items-center justify-center transition-all cursor-pointer"><i class="fa-solid fa-table-cells-large text-xs md:text-sm"></i></button>
+                    <button onclick="window.toggleBankView('list')" id="btnViewList" class="w-7 h-7 md:w-8 md:h-8 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 flex items-center justify-center transition-all cursor-pointer"><i class="fa-solid fa-list text-xs md:text-sm"></i></button>
                 </div>
             </div>
 
