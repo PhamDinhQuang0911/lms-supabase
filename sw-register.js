@@ -18,13 +18,13 @@
     if ('caches' in window) {
         caches.keys().then((keys) => {
             keys.forEach((key) => {
-                if (key.startsWith('qmath-') && !key.startsWith('qmath-v28')) {
+                if (key.startsWith('qmath-') && !key.startsWith('qmath-v30')) {
                     caches.delete(key);
                 }
             });
         }).catch(() => {});
     }
 
-    const registration = await navigator.serviceWorker.register('/sw.js?v=28', { updateViaCache: 'none' });
+    const registration = await navigator.serviceWorker.register('/sw.js?v=30', { updateViaCache: 'none' });
     registration.update().catch(() => {});
 })().catch(() => {});

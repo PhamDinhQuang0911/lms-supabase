@@ -239,7 +239,9 @@
          */
         compareQuestions(q1, q2) {
             if (!q1 || !q2) return { score: 0, isMatch: false };
-            if (q1.id && q2.id && String(q1.id) === String(q2.id)) return { score: 100, isMatch: true };
+            // Hai câu cùng một mã ID hoặc CCCD là cùng 1 câu hỏi trong hệ thống, không phải câu trùng cần gộp
+            if (q1.id && q2.id && String(q1.id) === String(q2.id)) return { score: 0, isMatch: false, reason: "Cùng một mã câu hỏi" };
+            if (q1.cccd && q2.cccd && String(q1.cccd) === String(q2.cccd)) return { score: 0, isMatch: false, reason: "Cùng một mã CCCD" };
 
             const c1 = (q1.content || '').trim();
             const c2 = (q2.content || '').trim();
@@ -250,6 +252,20 @@
             // Nếu khác loại câu hỏi (ví dụ trắc nghiệm vs tự luận) -> Không trùng
             if (q1.type && q2.type && q1.type !== q2.type) {
                 return { score: 0, isMatch: false, reason: "Khác loại câu hỏi" };
+            }
+
+            // 0. Kiểm tra trùng khớp hoàn toàn nội dung và các phương án (100% tuyệt đối)
+            const normC1 = c1.replace(/\s+/g, ' ');
+            const normC2 = c2.replace(/\s+/g, ' ');
+            const rawOpts1 = (q1.options || []).map(o => String(o).trim()).filter(Boolean).sort().join('||');
+            const rawOpts2 = (q2.options || []).map(o => String(o).trim()).filter(Boolean).sort().join('||');
+            if (normC1 === normC2 && rawOpts1 === rawOpts2) {
+                return {
+                    score: 100,
+                    details: { options: 100, math: 100, text: 100 },
+                    isMatch: true,
+                    isPotential: true
+                };
             }
 
             // 1. So khớp 4 phương án trắc nghiệm
@@ -288,13 +304,18 @@
                     // Nếu đáp án chỉ là các số đếm đơn giản (1, 2, 3, 4), không thể dựa vào đáp án
                     // Trọng số chính phải nằm ở công thức Toán và đề bài
                     totalScore = (scoreMath * 0.55) + (scoreText * 0.35) + (scoreOptions * 0.10);
+                } else if (hasMathBlocks && scoreMath < 0.30) {
+                    // Hai câu có công thức hoàn toàn khác nhau thì không thể là một
+                    totalScore = (scoreMath * 0.50) + (scoreText * 0.30) + (scoreOptions * 0.20);
                 } else if (scoreOptions >= 0.98) {
                     // Đáp án đặc thù và khớp 100%
-                    if (scoreMath >= 0.50 || scoreText >= 0.40) {
-                        totalScore = 0.96;
-                    } else if (hasMathBlocks && scoreMath < 0.30) {
-                        // Hai câu có công thức hoàn toàn khác nhau thì không thể là một
-                        totalScore = (scoreMath * 0.50) + (scoreText * 0.30) + (scoreOptions * 0.20);
+                    if (scoreMath >= 0.98 && scoreText >= 0.98) {
+                        totalScore = 1.0; // Trùng khớp 100% tuyệt đối
+                    } else if (scoreMath >= 0.92 && scoreText >= 0.90) {
+                        totalScore = 0.98; // Trùng khớp rất cao >= 98%
+                    } else if (scoreMath >= 0.50 || scoreText >= 0.40) {
+                        const weighted = (scoreOptions * 0.50) + (scoreMath * 0.30) + (scoreText * 0.20);
+                        totalScore = Math.max(weighted, 0.96);
                     } else {
                         totalScore = (scoreOptions * 0.50) + (scoreMath * 0.30) + (scoreText * 0.20);
                     }
@@ -305,7 +326,13 @@
                 }
             } else {
                 // Câu tự luận hoặc điền khuyết (không có 4 phương án)
-                totalScore = (scoreMath * 0.60) + (scoreText * 0.40);
+                if (scoreMath >= 0.98 && scoreText >= 0.98) {
+                    totalScore = 1.0;
+                } else if (scoreMath >= 0.92 && scoreText >= 0.90) {
+                    totalScore = 0.98;
+                } else {
+                    totalScore = (scoreMath * 0.60) + (scoreText * 0.40);
+                }
             }
 
             // Nếu cả hai câu đều có khối toán học mà độ tương đồng toán quá thấp (< 0.25)
@@ -335,7 +362,19 @@
             const onProgress = options.onProgress || null;
             const clusters = [];
             const visited = new Set();
-            const list = (Array.isArray(questionList) ? questionList : []).filter(q => q && q.content && q.content.trim().length >= 5);
+
+            // 0. Khử trùng lặp bản ghi theo ID/CCCD (đảm bảo mỗi câu hỏi chỉ xuất hiện đúng 1 lần trong danh sách quét)
+            const uniqueMap = new Map();
+            (Array.isArray(questionList) ? questionList : []).forEach(q => {
+                if (!q) return;
+                const k = String(q.id || q.cccd || '').trim();
+                if (k && !uniqueMap.has(k)) {
+                    uniqueMap.set(k, q);
+                } else if (!k) {
+                    uniqueMap.set(`temp_${uniqueMap.size}`, q);
+                }
+            });
+            const list = Array.from(uniqueMap.values()).filter(q => q && q.content && q.content.trim().length >= 5);
             const n = list.length;
 
             if (n < 2) return [];
@@ -360,15 +399,15 @@
 
                 for (let i = 0; i < bLen; i++) {
                     const itemA = bucketItems[i].q;
-                    const idA = String(itemA.id || itemA.cccd);
-                    if (visited.has(idA)) continue;
+                    const idA = String(itemA.id || itemA.cccd || '');
+                    if (!idA || visited.has(idA)) continue;
 
                     const currentCluster = [itemA];
 
                     for (let j = i + 1; j < bLen; j++) {
                         const itemB = bucketItems[j].q;
-                        const idB = String(itemB.id || itemB.cccd);
-                        if (visited.has(idB)) continue;
+                        const idB = String(itemB.id || itemB.cccd || '');
+                        if (!idB || idB === idA || visited.has(idB)) continue;
 
                         const res = this.compareQuestions(itemA, itemB);
 

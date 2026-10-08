@@ -504,6 +504,22 @@
         </nav>
         
         <div class="p-3 md:p-4 border-t border-primary-100 bg-primary-50/30 relative z-10 space-y-3 shrink-0 pb-8 md:pb-4 mt-auto">
+            <!-- QPoint Balance Card -->
+            <div onclick="window.openQPointShopModal()" class="cursor-pointer bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border border-amber-200 dark:border-amber-800/60 p-3 rounded-2xl flex items-center justify-between shadow-2xs hover:shadow-md hover:border-amber-400 transition-all group">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center font-bold text-sm shadow-xs group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-coins"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-amber-700 dark:text-amber-300 font-extrabold uppercase tracking-wider">Số dư QPoint</div>
+                        <div class="text-base font-black text-amber-900 dark:text-amber-100 leading-tight"><span class="qp-balance">0</span> <span class="text-xs font-bold text-amber-600">Qp</span></div>
+                    </div>
+                </div>
+                <button class="text-[11px] font-black text-amber-700 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 shadow-2xs">
+                    <i class="fa-solid fa-plus text-[10px]"></i> Nạp
+                </button>
+            </div>
+
             <div class="flex items-center gap-3 cursor-pointer group bg-white p-3 rounded-xl border border-primary-50 shadow-sm hover:border-primary-200 transition-all" onclick="openProfileModal()">
                 <img id="userAvatar" src="https://placehold.co/150" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
                 <div class="flex-1 min-w-0">
@@ -525,7 +541,13 @@
                 <button onclick="toggleMobileSidebar()" class="text-gray-500 hover:text-primary-600 focus:outline-none p-2 rounded-lg hover:bg-gray-100 transition-colors"><i class="fa-solid fa-bars text-2xl"></i></button>
                 <span class="font-black text-brand text-lg">Góc Học Tập</span>
             </div>
-            <div onclick="openProfileModal()" class="w-9 h-9 rounded-full bg-gray-200 border border-white shadow-sm overflow-hidden active:scale-95 transition-transform"><img id="mobileHeaderAvatar" src="https://placehold.co/100" class="w-full h-full object-cover"></div>
+            <div class="flex items-center gap-2">
+                <div onclick="window.openQPointShopModal()" class="h-8 px-2.5 rounded-full bg-amber-50 border border-amber-200 flex items-center gap-1.5 text-amber-700 font-black text-xs cursor-pointer shadow-2xs">
+                    <i class="fa-solid fa-coins text-amber-500"></i>
+                    <span class="qp-balance">0</span>
+                </div>
+                <div onclick="openProfileModal()" class="w-9 h-9 rounded-full bg-gray-200 border border-white shadow-sm overflow-hidden active:scale-95 transition-transform"><img id="mobileHeaderAvatar" src="https://placehold.co/100" class="w-full h-full object-cover"></div>
+            </div>
         </header>
 
         <div class="flex-1 overflow-y-auto p-2 md:p-8 pb-6 md:pb-8 relative scroll-smooth min-h-0" id="mainScrollArea">
@@ -661,36 +683,56 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-1 flex flex-col gap-4">
-                        <div onclick="window.location.href='practice.html'" class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl shadow-indigo-200 relative overflow-hidden group cursor-pointer border border-indigo-500 transition-transform hover:-translate-y-1">
+                        <!-- Mode 1: Lộ trình & Xưởng chuyên đề -->
+                        <div onclick="window.location.href='practice.html?mode=roadmap'" class="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 rounded-3xl p-5 text-white shadow-xl shadow-teal-200 relative overflow-hidden group cursor-pointer border border-teal-500 transition-all hover:-translate-y-1 hover:shadow-2xl">
                             <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700"></div>
-                            
                             <div class="relative z-10">
-                                <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-white/30 group-hover:bg-white group-hover:text-indigo-600 transition-colors">
-                                    <i class="fa-solid fa-rocket text-2xl"></i>
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner border border-white/30 group-hover:bg-white group-hover:text-teal-700 transition-colors">
+                                        <i class="fa-solid fa-layer-group text-xl"></i>
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full border border-white/30 text-teal-100">Xưởng Chuyên Đề</span>
                                 </div>
-                                <h3 class="text-xl font-black mb-1">Bắt đầu Luyện tập</h3>
-                                <p class="text-indigo-100 text-xs mb-4 font-medium">Tự động tạo đề thi theo chuyên đề, mức độ hoặc ngẫu nhiên.</p>
-                                <button class="px-6 py-2.5 bg-white text-indigo-700 font-bold rounded-xl shadow-md hover:bg-indigo-50 transition-all w-full flex items-center justify-center gap-2 text-sm">
-                                    Vào ngay <i class="fa-solid fa-arrow-right"></i>
+                                <h3 class="text-lg font-black mb-1">Lộ Trình & Chuyên Đề</h3>
+                                <p class="text-teal-100 text-xs mb-3 font-medium">Học theo các chuyên đề trọng điểm do giáo viên biên soạn (VIP & Miễn phí). Luyện bài bản theo từng chương, dạng bài.</p>
+                                <button class="px-4 py-2 bg-white text-teal-800 font-black rounded-xl shadow-md hover:bg-teal-50 transition-all w-full flex items-center justify-center gap-2 text-xs">
+                                    Khám phá chuyên đề <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Mode 2: Luyện tập tự chọn -->
+                        <div onclick="window.location.href='practice.html?mode=custom'" class="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-3xl p-5 text-white shadow-xl shadow-indigo-200 relative overflow-hidden group cursor-pointer border border-indigo-500 transition-all hover:-translate-y-1 hover:shadow-2xl">
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700"></div>
+                            <div class="relative z-10">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner border border-white/30 group-hover:bg-white group-hover:text-indigo-700 transition-colors">
+                                        <i class="fa-solid fa-sliders text-xl"></i>
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2.5 py-1 rounded-full border border-white/30 text-indigo-100">Tự Do Chọn Đề</span>
+                                </div>
+                                <h3 class="text-lg font-black mb-1">Luyện Tập Tự Chọn</h3>
+                                <p class="text-indigo-100 text-xs mb-3 font-medium">Tự chọn Lớp (6-12), Môn, Chủ đề, Dạng bài, Mức độ (NB, TH, VD, VDC) và số lượng câu hỏi mong muốn.</p>
+                                <button class="px-4 py-2 bg-white text-indigo-800 font-black rounded-xl shadow-md hover:bg-indigo-50 transition-all w-full flex items-center justify-center gap-2 text-xs">
+                                    Tạo đề luyện ngay <i class="fa-solid fa-rocket"></i>
                                 </button>
                             </div>
                         </div>
 
                         <!-- Card Tra cứu câu hỏi theo ID -->
-                        <div class="bg-gradient-to-br from-teal-600 to-emerald-700 rounded-3xl p-6 text-white shadow-xl shadow-teal-200 relative overflow-hidden group border border-teal-500 transition-transform hover:-translate-y-1">
-                            <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700"></div>
-                            <div class="relative z-10">
-                                <div class="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-white/30 group-hover:bg-white group-hover:text-teal-600 transition-colors">
-                                    <i class="fa-solid fa-qrcode text-2xl"></i>
+                        <div class="bg-white rounded-3xl p-4 border border-gray-200 shadow-sm">
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold shrink-0"><i class="fa-solid fa-qrcode"></i></div>
+                                <div>
+                                    <h4 class="font-black text-gray-800 text-xs">Tra cứu ID & Lời giải</h4>
+                                    <p class="text-[10px] text-gray-400">Xem giải chi tiết theo mã ID in trong sách</p>
                                 </div>
-                                <h3 class="text-xl font-black mb-1">Tra cứu ID & Lời giải</h3>
-                                <p class="text-teal-100 text-xs mb-4 font-medium">Nhập mã ID câu hỏi in trong sách để tra cứu lời giải chi tiết.</p>
-                                <div class="flex gap-2">
-                                    <input type="text" id="studentQuickCccdInp" placeholder="Mã ID câu hỏi (VD: 10000038)..." class="flex-1 px-3 py-2 bg-white/90 text-gray-800 rounded-xl text-xs font-mono font-bold outline-none focus:ring-2 focus:ring-white" onkeydown="if(event.key==='Enter') window.studentQuickLookupCccd()">
-                                    <button onclick="window.studentQuickLookupCccd()" class="px-4 py-2 bg-white text-teal-800 font-bold rounded-xl text-xs hover:bg-teal-50 transition-all shrink-0">
-                                        Tra cứu
-                                    </button>
-                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" id="studentQuickCccdInp" placeholder="Nhập mã ID (VD: 10000038)..." class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 text-gray-800 rounded-xl text-xs font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-300" onkeydown="if(event.key==='Enter') window.studentQuickLookupCccd()">
+                                <button onclick="window.studentQuickLookupCccd()" class="px-3 py-2 bg-indigo-600 text-white font-bold rounded-xl text-xs hover:bg-indigo-700 transition-all shrink-0">
+                                    Tra cứu
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1151,7 +1193,7 @@
             initializeApp, getAuth, onAuthStateChanged, signOut, updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider,
             getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, where, orderBy, onSnapshot, limit, addDoc, enableMultiTabIndexedDbPersistence, deleteDoc, increment,
             supabase, getServerNow, calibrateServerTime, parseDateSafe
-        } from "./supabase-db-compat.js?v=26";
+        } from "./supabase-db-compat.js?v=27";
         window.EmailAuthProvider = EmailAuthProvider;
         window.reauthenticateWithCredential = reauthenticateWithCredential;
         window.updatePassword = updatePassword;
@@ -1159,6 +1201,7 @@
         window.calibrateServerTime = calibrateServerTime;
         window.parseDateSafe = parseDateSafe;
         import { readCache, writeCache } from "./perf-cache.js";
+        import { createQPoint, QP_COSTS, QP_REWARDS, getQPointConfig } from "./qpoint.js?v=30";
 
         // CẤU HÌNH SUPABASE
         const app = initializeApp({});
@@ -1227,6 +1270,18 @@
                 // 1. Tải thông tin người dùng (Nhanh)
                 loadSiteLogo();
                 loadUserProfile(user);
+
+                // Khởi tạo QPoint
+                try {
+                    window.QP = createQPoint(db, user.uid, { email: user.email, username: user.username });
+                    window.QP_COSTS = QP_COSTS;
+                    window.QP_REWARDS = QP_REWARDS;
+                    window.QP.onChange((bal) => {
+                        document.querySelectorAll('.qp-balance').forEach(el => el.textContent = Number(bal).toLocaleString('vi-VN'));
+                        if (user) user.qpoints = bal;
+                    });
+                    window.QP.load().catch(e => console.warn(e));
+                } catch(eQp) { console.warn("QPoint error:", eQp); }
 
                 // 2. Gọi các hàm tải dữ liệu NGAY LẬP TỨC (Không dùng await)
                 // Nhờ có Skeleton ở Bước 2, giao diện sẽ hiện khung xám ngay, không bị trắng trang
@@ -5188,7 +5243,9 @@
                 const now = new Date();
                 results = results.filter(item => {
                     if (filterTime === 'all') return true;
-                    const itemDate = new Date(item.timestamp);
+                    const rawTime = item.timestamp || item.createdAt || item.created_at || 0;
+                    const itemDate = new Date(rawTime);
+                    if (isNaN(itemDate.getTime())) return true;
                     
                     if (filterTime === 'today') {
                         return itemDate.toDateString() === now.toDateString();
@@ -5205,55 +5262,70 @@
 
                 // 4. Sắp xếp (Client-side sorting)
                 results.sort((a, b) => {
-                    if (sortType === 'newest') return b.createdAt - a.createdAt; // Mặc định query đã sort, nhưng sort lại cho chắc
-                    if (sortType === 'score_high') return b.score - a.score;
-                    if (sortType === 'score_low') return a.score - b.score;
+                    const timeA = new Date(a.timestamp || a.createdAt || a.created_at || 0).getTime();
+                    const timeB = new Date(b.timestamp || b.createdAt || b.created_at || 0).getTime();
+                    const scoreA = Number(a.score) || 0;
+                    const scoreB = Number(b.score) || 0;
+                    if (sortType === 'newest') return timeB - timeA;
+                    if (sortType === 'score_high') return scoreB - scoreA;
+                    if (sortType === 'score_low') return scoreA - scoreB;
                     return 0;
                 });
 
                 // 5. Render Giao diện đẹp
                 if(results.length === 0) {
-                     container.innerHTML = '<div class="p-10 text-center text-gray-400 text-sm">Không tìm thấy bài nào trong khoảng thời gian này.</div>';
+                     container.innerHTML = '<div class="p-10 text-center text-gray-400 text-sm font-bold">Không tìm thấy bài nào trong khoảng thời gian này.</div>';
                      return;
                 }
 
                 let html = '';
                 results.forEach(d => {
-                    const date = new Date(d.timestamp).toLocaleString('vi-VN', {
+                    const rawTime = d.timestamp || d.createdAt || d.created_at || Date.now();
+                    const dObj = new Date(rawTime);
+                    const date = !isNaN(dObj.getTime()) ? dObj.toLocaleString('vi-VN', {
                         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-                    });
+                    }) : 'Gần đây';
                     
                     // Màu sắc điểm số
+                    const scoreNum = Number(d.score) || 0;
                     let scoreColor = 'text-red-500';
                     let scoreBg = 'bg-red-50';
-                    if (d.score >= 8) { scoreColor = 'text-green-600'; scoreBg = 'bg-green-50'; }
-                    else if (d.score >= 5) { scoreColor = 'text-blue-600'; scoreBg = 'bg-blue-50'; }
+                    if (scoreNum >= 8) { scoreColor = 'text-green-600'; scoreBg = 'bg-green-50'; }
+                    else if (scoreNum >= 5) { scoreColor = 'text-blue-600'; scoreBg = 'bg-blue-50'; }
 
-                    // Xử lý hiển thị levels (nếu có)
+                    // Xử lý hiển thị levels an toàn tuyệt đối
                     let levelBadge = '';
-                    if (d.levels) {
-                        levelBadge = `<div class="flex gap-1 mt-1 flex-wrap">${d.levels.split(',').map(l => `<span class="text-[9px] px-1.5 py-0.5 rounded border border-gray-100 bg-gray-50 text-gray-500">${l.trim()}</span>`).join('')}</div>`;
+                    let levelsArr = [];
+                    if (typeof d.levels === 'string') {
+                        levelsArr = d.levels.split(',').map(l => l.trim()).filter(Boolean);
+                    } else if (Array.isArray(d.levels)) {
+                        levelsArr = d.levels.map(l => String(l).trim()).filter(Boolean);
+                    } else if (d.levels && typeof d.levels === 'object') {
+                        levelsArr = Object.values(d.levels).map(l => String(l).trim()).filter(Boolean);
+                    }
+                    if (levelsArr.length > 0) {
+                        levelBadge = `<div class="flex gap-1 mt-1 flex-wrap">${levelsArr.map(l => `<span class="text-[9px] px-1.5 py-0.5 rounded border border-gray-100 bg-gray-50 text-gray-500 font-bold">${l}</span>`).join('')}</div>`;
                     }
 
                     html += `
                         <div class="p-2 md:p-4 hover:bg-gray-50 transition-colors flex items-center justify-between group">
                             <div class="flex items-start gap-2 md:gap-4">
                                 <div class="w-12 h-12 rounded-2xl ${scoreBg} ${scoreColor} flex flex-col items-center justify-center font-black shadow-sm shrink-0 border border-white">
-                                    <span class="text-lg leading-none">${d.score}</span>
+                                    <span class="text-lg leading-none">${scoreNum}</span>
                                     <span class="text-[8px] uppercase opacity-70">Điểm</span>
                                 </div>
                                 <div>
-                                    <h4 class="font-bold text-gray-800 text-sm">Lớp ${d.grade} - ${d.subject}</h4>
+                                    <h4 class="font-bold text-gray-800 text-sm">Lớp ${d.grade || '--'} - ${d.subject || 'Tổng hợp'}</h4>
                                     ${levelBadge}
                                     <div class="flex items-center gap-3 mt-1.5 text-xs text-gray-400 font-medium">
                                         <span class="flex items-center gap-1"><i class="fa-regular fa-clock"></i> ${date}</span>
-                                        <span class="flex items-center gap-1"><i class="fa-solid fa-list-check"></i> ${d.correct}/${d.total} câu</span>
+                                        <span class="flex items-center gap-1"><i class="fa-solid fa-list-check"></i> ${d.correct || 0}/${d.total || 0} câu</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="hidden md:block">
                                 <div class="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                    <div class="h-full ${scoreColor.replace('text', 'bg')}" style="width: ${d.score * 10}%"></div>
+                                    <div class="h-full ${scoreColor.replace('text', 'bg')}" style="width: ${Math.min(100, scoreNum * 10)}%"></div>
                                 </div>
                             </div>
                         </div>
@@ -5263,7 +5335,7 @@
 
             } catch(e) {
                 console.error("Lỗi:", e);
-                container.innerHTML = `<div class="p-6 text-center text-red-400 text-xs">Lỗi tải dữ liệu. Cần tạo Index Firestore (Xem Console).</div>`;
+                container.innerHTML = `<div class="p-6 text-center text-gray-400 text-xs font-bold">Chưa thể tải lịch sử luyện tập lúc này. Hãy bắt đầu một bài luyện tập mới!</div>`;
             }
         };
 
@@ -5661,6 +5733,619 @@
             }
         };
 
+        // --- QPOINT SHOP LOGIC (2 BƯỚC CHUẨN & QUÉT TỰ ĐỘNG) ---
+        let currentShopConfig = null;
+        let currentSelectedPkg = null;
+        let dynamicQpBankConfig = null;
+        let currentQpOrderContent = '';
+        let qpPaymentListener = null;
+        let qpOrderListener = null;
+        let qpUserListener = null;
+        let qpQrCountdownInterval = null;
+        let qpRecheckTimer = null;
+        let initialQpBalance = 0;
+
+        window.openQPointShopModal = async () => {
+            const modal = document.getElementById('qpointShopModal');
+            if (!modal) return;
+            initialQpBalance = window.QP ? (Number(window.QP.balance) || 0) : 0;
+            modal.classList.remove('hidden');
+            window.backToQpStep1();
+            await window.loadQPointShopPackages();
+        };
+
+        window.closeQPointShopModal = () => {
+            if (qpQrCountdownInterval) { clearInterval(qpQrCountdownInterval); qpQrCountdownInterval = null; }
+            if (qpRecheckTimer) { clearInterval(qpRecheckTimer); qpRecheckTimer = null; }
+            if (qpPaymentListener) { qpPaymentListener(); qpPaymentListener = null; }
+            if (qpOrderListener) { qpOrderListener(); qpOrderListener = null; }
+            if (qpUserListener) { qpUserListener(); qpUserListener = null; }
+            document.getElementById('qpointShopModal')?.classList.add('hidden');
+        };
+
+        window.backToQpStep1 = () => {
+            if (qpQrCountdownInterval) { clearInterval(qpQrCountdownInterval); qpQrCountdownInterval = null; }
+            if (qpRecheckTimer) { clearInterval(qpRecheckTimer); qpRecheckTimer = null; }
+            if (qpPaymentListener) { qpPaymentListener(); qpPaymentListener = null; }
+            if (qpOrderListener) { qpOrderListener(); qpOrderListener = null; }
+            if (qpUserListener) { qpUserListener(); qpUserListener = null; }
+
+            // Step Indicator
+            const s1 = document.getElementById('qpStepIndicator1');
+            const s2 = document.getElementById('qpStepIndicator2');
+            const b1 = document.getElementById('qpStepBadge1');
+            const b2 = document.getElementById('qpStepBadge2');
+            const line = document.getElementById('qpStepProgressLine');
+            if (s1 && b1) {
+                s1.className = 'flex items-center gap-2 font-black text-amber-600 dark:text-amber-400 transition-colors cursor-pointer';
+                b1.className = 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-[11px] font-black shadow-xs';
+                b1.innerHTML = '1';
+            }
+            if (s2 && b2) {
+                s2.className = 'flex items-center gap-2 font-semibold text-gray-400 dark:text-gray-500 transition-colors';
+                b2.className = 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 flex items-center justify-center text-[11px] font-black';
+                b2.innerHTML = '2';
+            }
+            if (line) line.style.width = '0%';
+
+            // Views
+            document.getElementById('qpStep1Left')?.classList.remove('hidden');
+            document.getElementById('qpStep2Left')?.classList.add('hidden');
+            document.getElementById('qpCheckoutStep1Box')?.classList.remove('hidden');
+            document.getElementById('qpCheckoutStep2Box')?.classList.add('hidden');
+        };
+
+        window.loadQPointShopPackages = async () => {
+            const grid = document.getElementById('qpShopCardsGrid');
+            if (!grid) return;
+            grid.innerHTML = '<div class="col-span-full text-center py-8 text-gray-400"><i class="fa-solid fa-spinner fa-spin text-2xl text-amber-500 mb-2"></i><p class="text-xs font-bold">Đang tải danh sách gói QPoint...</p></div>';
+
+            try {
+                currentShopConfig = await getQPointConfig(db);
+                if (currentShopConfig.note) {
+                    const noticeText = document.getElementById('qpShopNoticeText');
+                    if (noticeText) noticeText.textContent = currentShopConfig.note;
+                }
+
+                if (currentShopConfig.enabled === false) {
+                    grid.innerHTML = `
+                        <div class="col-span-full p-8 text-center bg-gray-50 dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800">
+                            <i class="fa-solid fa-store-slash text-4xl text-gray-300 mb-2"></i>
+                            <h4 class="font-bold text-gray-700 dark:text-gray-200 text-sm mb-1">Cửa hàng tạm đóng</h4>
+                            <p class="text-xs text-gray-400">Thầy cô hiện đang tạm dừng tính năng nạp gói QPoint. Hãy tích lũy QPoint bằng cách làm đúng các bài tập nhé!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const pkgs = currentShopConfig.packages || [];
+                if (!pkgs.length) {
+                    grid.innerHTML = '<div class="col-span-full text-center py-6 text-gray-400 text-xs">Hiện chưa có gói nào được thiết lập.</div>';
+                    return;
+                }
+
+                // Tự động chọn gói hot hoặc gói đầu tiên
+                if (!currentSelectedPkg || !pkgs.find(p => p.id === currentSelectedPkg.id)) {
+                    currentSelectedPkg = pkgs.find(p => p.popular) || pkgs[0];
+                }
+
+                window.renderQpCards();
+                window.updateQpSummary();
+            } catch(e) {
+                console.error("Lỗi tải gói QPoint:", e);
+                grid.innerHTML = '<div class="col-span-full text-center py-8 text-rose-500 text-xs font-bold">Không thể tải danh sách gói. Vui lòng thử lại sau!</div>';
+            }
+        };
+
+        window.renderQpCards = () => {
+            const grid = document.getElementById('qpShopCardsGrid');
+            if (!grid || !currentShopConfig) return;
+            const pkgs = currentShopConfig.packages || [];
+
+            grid.innerHTML = pkgs.map(pkg => {
+                const totalPoints = (Number(pkg.points) || 0) + (Number(pkg.bonus) || 0);
+                const isSelected = currentSelectedPkg && currentSelectedPkg.id === pkg.id;
+                const bonusBadge = (pkg.bonus && pkg.bonus > 0)
+                    ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">+${pkg.bonus} Qp tặng</span>`
+                    : '';
+                const hotBadge = pkg.popular
+                    ? `<span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500 text-white shadow-2xs">🔥 Hot</span>`
+                    : '';
+
+                return `
+                    <div onclick="window.selectQpPackage('${pkg.id}')"
+                         class="relative rounded-2xl p-3.5 sm:p-4 border-2 cursor-pointer transition-all flex flex-col justify-between group ${
+                            isSelected 
+                                ? 'border-amber-500 bg-amber-50/60 dark:bg-amber-950/40 shadow-md ring-2 ring-amber-400/70' 
+                                : 'border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-amber-300 dark:hover:border-slate-700'
+                         }">
+                        <div>
+                            <div class="flex justify-between items-start gap-1 mb-1.5">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-amber-500 bg-amber-500 text-white' : 'border-gray-300 dark:border-slate-600'}">
+                                        ${isSelected ? '<i class="fa-solid fa-check text-[9px]"></i>' : ''}
+                                    </div>
+                                    <h4 class="font-black text-gray-900 dark:text-white text-xs sm:text-sm truncate">${pkg.name}</h4>
+                                </div>
+                                <div class="flex items-center gap-1">${hotBadge}</div>
+                            </div>
+                            <div class="flex items-baseline gap-1.5 my-2">
+                                <span class="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">${totalPoints}</span>
+                                <span class="text-xs font-bold text-gray-400">QPoint</span>
+                                ${bonusBadge}
+                            </div>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400 mb-3 leading-relaxed line-clamp-2">${pkg.desc || 'Gói điểm luyện thi thông minh'}</p>
+                        </div>
+                        <div class="pt-2.5 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+                            <span class="font-black text-sm sm:text-base text-gray-900 dark:text-white font-mono">${(Number(pkg.price) || 0).toLocaleString('vi-VN')} đ</span>
+                            <span class="text-[10px] font-black px-2.5 py-1 rounded-lg ${isSelected ? 'bg-amber-500 text-white shadow-xs' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 group-hover:bg-amber-100 dark:group-hover:bg-slate-700'} transition-all">
+                                ${isSelected ? '<i class="fa-solid fa-check"></i> Đã chọn' : 'Chọn gói'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.selectQpPackage = (pkgId) => {
+            const pkgs = currentShopConfig ? currentShopConfig.packages : [];
+            const pkg = pkgs.find(p => p.id === pkgId);
+            if (!pkg) return;
+            currentSelectedPkg = pkg;
+            window.renderQpCards();
+            window.updateQpSummary();
+        };
+
+        window.updateQpSummary = () => {
+            if (!currentSelectedPkg) return;
+            const pkg = currentSelectedPkg;
+            const totalPoints = (Number(pkg.points) || 0) + (Number(pkg.bonus) || 0);
+            const priceFormatted = `${(Number(pkg.price) || 0).toLocaleString('vi-VN')} đ`;
+
+            const titleEl = document.getElementById('qpSummaryTitle');
+            const badgeEl = document.getElementById('qpSummaryPointsBadge');
+            const priceEl = document.getElementById('qpSummaryPrice');
+            const totalPtsEl = document.getElementById('qpSummaryPointsTotal');
+            const finalPriceEl = document.getElementById('qpSummaryFinalPrice');
+
+            if (titleEl) titleEl.textContent = pkg.name;
+            if (badgeEl) badgeEl.textContent = `+${totalPoints} QPoint (${pkg.points} gốc ${pkg.bonus ? `+ ${pkg.bonus} thưởng` : ''})`;
+            if (priceEl) priceEl.textContent = priceFormatted;
+            if (totalPtsEl) totalPtsEl.textContent = `+${totalPoints} Qp`;
+            if (finalPriceEl) finalPriceEl.textContent = priceFormatted;
+        };
+
+        window.proceedToQpPaymentStep = async () => {
+            if (!currentSelectedPkg) {
+                if (window.showNotification) window.showNotification("Vui lòng chọn 1 gói QPoint để tiếp tục!", "warning");
+                return;
+            }
+
+            const btn = document.getElementById('btnProceedToQpPay');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo mã VietQR...'; btn.disabled = true; }
+
+            try {
+                // 1. Tải cấu hình ngân hàng nếu chưa có
+                if (!dynamicQpBankConfig) {
+                    try {
+                        const snapBank = await getDoc(doc(db, "site_settings", "payment_config"));
+                        dynamicQpBankConfig = snapBank.exists() ? snapBank.data() : { BANK_ID: "970422", BANK_NAME: "MB Bank", ACCOUNT_NO: "0000", ACCOUNT_NAME: "ADMIN", TEMPLATE: "compact2" };
+                    } catch(e) {
+                        dynamicQpBankConfig = { BANK_ID: "970422", BANK_NAME: "MB Bank", ACCOUNT_NO: "0000", ACCOUNT_NAME: "ADMIN", TEMPLATE: "compact2" };
+                    }
+                }
+
+                // 2. Tạo nội dung chuyển khoản độc nhất: QP + UID5 + PKG + RAND3
+                const user = auth.currentUser;
+                const uidShort = user ? user.uid.substring(0, 5).toUpperCase().replace(/[^A-Z0-9]/g, "") : Math.random().toString(36).substring(2, 7).toUpperCase();
+                const pkgShort = currentSelectedPkg.id.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+                const randSuffix = Math.floor(100 + Math.random() * 900);
+                currentQpOrderContent = `QP ${uidShort} ${pkgShort} ${randSuffix}`;
+
+                const totalPoints = (Number(currentSelectedPkg.points) || 0) + (Number(currentSelectedPkg.bonus) || 0);
+
+                // 3. Cập nhật chi tiết ngân hàng vào UI
+                const bNameEl = document.getElementById('qpBankNameDisplay');
+                const bAccEl = document.getElementById('qpAccountNoDisplay');
+                const bOwnerEl = document.getElementById('qpAccountOwnerDisplay');
+                const bContentEl = document.getElementById('qpTransferContentDisplay');
+
+                if (bNameEl) bNameEl.textContent = dynamicQpBankConfig.BANK_NAME || dynamicQpBankConfig.BANK_ID || 'MB Bank';
+                if (bAccEl) bAccEl.textContent = dynamicQpBankConfig.ACCOUNT_NO || '';
+                if (bOwnerEl) bOwnerEl.textContent = dynamicQpBankConfig.ACCOUNT_NAME ? `(${dynamicQpBankConfig.ACCOUNT_NAME})` : '';
+                if (bContentEl) bContentEl.textContent = currentQpOrderContent;
+
+                // 4. Cập nhật thông tin gói ở Bước 2 bên trái
+                const pTitle = document.getElementById('qpStep2PkgTitle');
+                const pBadge = document.getElementById('qpStep2PkgPointsBadge');
+                if (pTitle) pTitle.textContent = currentSelectedPkg.name;
+                if (pBadge) pBadge.textContent = `+${totalPoints} QPoint (${(Number(currentSelectedPkg.price) || 0).toLocaleString('vi-VN')} đ)`;
+
+                // 5. Tạo mã VietQR
+                const bankId = dynamicQpBankConfig.BANK_ID || '970422';
+                const accNo = dynamicQpBankConfig.ACCOUNT_NO || '';
+                const template = dynamicQpBankConfig.TEMPLATE || 'compact2';
+                const qrUrl = `https://img.vietqr.io/image/${bankId}-${accNo}-${template}.png?amount=${currentSelectedPkg.price}&addInfo=${encodeURIComponent(currentQpOrderContent)}&accountName=${encodeURIComponent(dynamicQpBankConfig.ACCOUNT_NAME || '')}`;
+
+                const qrImg = document.getElementById('qpVietQrImage');
+                const qrLoading = document.getElementById('qpQrLoading');
+                if (qrLoading) qrLoading.classList.remove('hidden');
+                if (qrImg) {
+                    qrImg.onload = () => qrLoading?.classList.add('hidden');
+                    qrImg.onerror = () => qrLoading?.classList.add('hidden');
+                    qrImg.src = qrUrl;
+                }
+
+                // 6. Ghi nhận yêu cầu nạp vào Firestore (access_requests & orders)
+                const reqDoc = await addDoc(collection(db, "access_requests"), {
+                    type: 'qpoint_purchase',
+                    studentId: user ? user.uid : null,
+                    studentName: user ? (user.displayName || user.email || 'Học sinh') : 'Học sinh',
+                    studentEmail: user ? (user.email || '') : '',
+                    packageId: currentSelectedPkg.id,
+                    packageName: currentSelectedPkg.name,
+                    points: totalPoints,
+                    amount: currentSelectedPkg.price,
+                    content: currentQpOrderContent,
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                });
+                window._currentQpRequestId = reqDoc.id;
+
+                try {
+                    const ordDoc = await addDoc(collection(db, "orders"), {
+                        orderType: 'qpoint',
+                        userId: user ? user.uid : null,
+                        userName: user ? (user.displayName || user.email || 'Học sinh') : 'Học sinh',
+                        userEmail: user ? (user.email || '') : '',
+                        packageId: currentSelectedPkg.id,
+                        packageName: currentSelectedPkg.name,
+                        points: totalPoints,
+                        amount: currentSelectedPkg.price,
+                        content: currentQpOrderContent,
+                        requestId: reqDoc.id,
+                        status: 'pending',
+                        createdAt: new Date().toISOString()
+                    });
+                    window._currentQpOrderId = ordDoc.id;
+                    await updateDoc(doc(db, "access_requests", reqDoc.id), { orderId: ordDoc.id }).catch(() => {});
+                } catch(eOrd) {
+                    console.warn("Lỗi ghi đơn orders:", eOrd);
+                }
+
+                // 7. Chuyển UI sang Bước 2
+                const s1 = document.getElementById('qpStepIndicator1');
+                const s2 = document.getElementById('qpStepIndicator2');
+                const b1 = document.getElementById('qpStepBadge1');
+                const b2 = document.getElementById('qpStepBadge2');
+                const line = document.getElementById('qpStepProgressLine');
+
+                if (s1 && b1) {
+                    s1.className = 'flex items-center gap-2 font-black text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer';
+                    b1.className = 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[11px] font-black shadow-xs';
+                    b1.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i>';
+                }
+                if (s2 && b2) {
+                    s2.className = 'flex items-center gap-2 font-black text-amber-600 dark:text-amber-400 transition-colors';
+                    b2.className = 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-[11px] font-black shadow-xs';
+                    b2.innerHTML = '2';
+                }
+                if (line) line.style.width = '100%';
+
+                document.getElementById('qpStep1Left')?.classList.add('hidden');
+                document.getElementById('qpStep2Left')?.classList.remove('hidden');
+                document.getElementById('qpCheckoutStep1Box')?.classList.add('hidden');
+                document.getElementById('qpCheckoutStep2Box')?.classList.remove('hidden');
+
+                // Reset trạng thái scanning box
+                window.resetQpStatusBox();
+
+                // 8. Kích hoạt đếm ngược 10 phút, recheck 30s và listener Realtime
+                window.startQpQrCountdown();
+                window.startQpRecheckTimer();
+                window.startQpRealtimeListener(window._currentQpRequestId, window._currentQpOrderId, totalPoints);
+
+            } catch(e) {
+                console.error("Lỗi chuyển sang thanh toán:", e);
+                if (window.showNotification) window.showNotification("Lỗi khởi tạo thanh toán: " + e.message, "error");
+                else alert("Lỗi: " + e.message);
+            } finally {
+                if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
+            }
+        };
+
+        window.resetQpStatusBox = () => {
+            const statusBox = document.getElementById('qpPaymentStatusBox');
+            if (statusBox) {
+                statusBox.className = 'mt-3 w-full p-4 rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-gradient-to-b from-amber-50/90 to-orange-50/90 dark:from-slate-800 dark:to-slate-900 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden transition-all';
+            }
+            document.getElementById('qpPaymentWaitGraphic')?.classList.remove('hidden');
+            document.getElementById('qpPaymentSuccessGraphic')?.classList.add('hidden');
+
+            const badge = document.getElementById('qpPaymentStatusBadge');
+            if (badge) {
+                badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-200/80 dark:bg-amber-900 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 mb-1.5 uppercase tracking-wide';
+                badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-600 animate-ping"></span><span>Đang chờ chuyển khoản...</span>';
+            }
+
+            const title = document.getElementById('qpPaymentStatusTitle');
+            if (title) {
+                title.className = 'font-black text-gray-800 dark:text-white text-xs sm:text-sm mb-1 leading-snug';
+                title.textContent = 'Hệ thống đang quét giao dịch tự động';
+            }
+
+            const desc = document.getElementById('qpPaymentStatusDesc');
+            if (desc) {
+                desc.textContent = 'Học sinh vui lòng không đóng cửa sổ này. QPoint sẽ tự động cộng ngay khi ngân hàng khớp lệnh!';
+            }
+
+            document.getElementById('btnConfirmQpPayment')?.classList.remove('hidden');
+            document.getElementById('btnBackToQpStep1')?.classList.remove('hidden');
+            document.getElementById('qpSuccessActionBox')?.classList.add('hidden');
+            document.getElementById('qpPayQrBox')?.classList.remove('opacity-40', 'pointer-events-none');
+        };
+
+        window.startQpQrCountdown = () => {
+            if (qpQrCountdownInterval) clearInterval(qpQrCountdownInterval);
+            let timeLeft = 10 * 60; // 10 phút
+            const textEl = document.getElementById('qpQrCountdownText');
+            const overlay = document.getElementById('qpQrExpiredOverlay');
+            if (overlay) overlay.classList.add('hidden');
+
+            const updateDisplay = () => {
+                const m = Math.floor(timeLeft / 60);
+                const s = timeLeft % 60;
+                if (textEl) textEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            };
+            updateDisplay();
+
+            qpQrCountdownInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(qpQrCountdownInterval);
+                    qpQrCountdownInterval = null;
+                    if (overlay) overlay.classList.remove('hidden');
+                } else {
+                    updateDisplay();
+                }
+            }, 1000);
+        };
+
+        window.refreshQpPaymentCode = () => {
+            window.proceedToQpPaymentStep();
+        };
+
+        window.startQpRecheckTimer = () => {
+            if (qpRecheckTimer) clearInterval(qpRecheckTimer);
+            let recheckSec = 30;
+            const numEl = document.getElementById('qpRecheckCountdownNum');
+            const noticeEl = document.getElementById('qpRecheckCountdownNotice');
+            const btnEl = document.getElementById('btnRecheckQpPayment');
+
+            if (noticeEl) noticeEl.classList.remove('hidden');
+            if (btnEl) btnEl.classList.add('hidden');
+
+            qpRecheckTimer = setInterval(() => {
+                recheckSec--;
+                if (numEl) numEl.textContent = `${recheckSec}s`;
+                if (recheckSec <= 0) {
+                    clearInterval(qpRecheckTimer);
+                    qpRecheckTimer = null;
+                    if (noticeEl) noticeEl.classList.add('hidden');
+                    if (btnEl) btnEl.classList.remove('hidden');
+                }
+            }, 1000);
+        };
+
+        window.startQpRealtimeListener = (reqId, ordId, points) => {
+            if (qpPaymentListener) { qpPaymentListener(); qpPaymentListener = null; }
+            if (qpOrderListener) { qpOrderListener(); qpOrderListener = null; }
+            if (qpUserListener) { qpUserListener(); qpUserListener = null; }
+
+            const isApproved = (data) => {
+                if (!data) return false;
+                const s = String(data.status || '').toLowerCase().trim();
+                return s === 'resolved' || s === 'approved' || s === 'paid' || s === 'completed' || s === 'success';
+            };
+
+            // 1. Lắng nghe access_requests
+            if (reqId) {
+                qpPaymentListener = onSnapshot(doc(db, "access_requests", reqId), (snap) => {
+                    if (snap.exists() && isApproved(snap.data())) {
+                        window.showQpPaymentSuccessState(points);
+                    }
+                }, (err) => console.warn("Lỗi listener access_requests:", err));
+            }
+
+            // 2. Lắng nghe orders
+            if (ordId) {
+                qpOrderListener = onSnapshot(doc(db, "orders", ordId), (snap) => {
+                    if (snap.exists() && isApproved(snap.data())) {
+                        window.showQpPaymentSuccessState(points);
+                    }
+                }, (err) => console.warn("Lỗi listener orders:", err));
+            }
+
+            // 3. Lắng nghe trực tiếp số dư users (nhận diện tức thì khi giáo viên hoặc webhook cộng điểm)
+            const user = auth.currentUser;
+            if (user && user.uid) {
+                qpUserListener = onSnapshot(doc(db, "users", user.uid), (snap) => {
+                    if (snap.exists()) {
+                        const curQp = snap.data().qpoints;
+                        if (typeof curQp === 'number' && curQp > initialQpBalance) {
+                            window.showQpPaymentSuccessState(points);
+                        }
+                    }
+                }, (err) => console.warn("Lỗi listener user balance:", err));
+            }
+        };
+
+        window.showQpPaymentSuccessState = (points) => {
+            // Dọn dẹp timers và listeners
+            if (qpQrCountdownInterval) { clearInterval(qpQrCountdownInterval); qpQrCountdownInterval = null; }
+            if (qpRecheckTimer) { clearInterval(qpRecheckTimer); qpRecheckTimer = null; }
+            if (qpPaymentListener) { qpPaymentListener(); qpPaymentListener = null; }
+            if (qpOrderListener) { qpOrderListener(); qpOrderListener = null; }
+            if (qpUserListener) { qpUserListener(); qpUserListener = null; }
+
+            // Cập nhật UI
+            const statusBox = document.getElementById('qpPaymentStatusBox');
+            if (statusBox) {
+                statusBox.className = 'mt-3 w-full p-5 rounded-2xl border-2 border-emerald-500 bg-gradient-to-b from-emerald-50 to-green-50 dark:from-emerald-950/50 dark:to-green-950/50 flex flex-col items-center justify-center text-center shadow-lg relative overflow-hidden transition-all duration-500';
+            }
+
+            document.getElementById('qpPaymentWaitGraphic')?.classList.add('hidden');
+            document.getElementById('qpPaymentSuccessGraphic')?.classList.remove('hidden');
+
+            const badge = document.getElementById('qpPaymentStatusBadge');
+            if (badge) {
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 mb-2 uppercase tracking-wide shadow-sm';
+                badge.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-700 dark:text-emerald-300"></i> <span>Đã thanh toán thành công!</span>';
+            }
+
+            const title = document.getElementById('qpPaymentStatusTitle');
+            if (title) {
+                title.className = 'font-black text-emerald-800 dark:text-emerald-200 text-sm sm:text-base mb-1 leading-snug';
+                title.textContent = `🎉 +${points || ''} QPoint ĐÃ ĐƯỢC CỘNG VÀO TÀI KHOẢN!`;
+            }
+
+            const desc = document.getElementById('qpPaymentStatusDesc');
+            if (desc) {
+                desc.textContent = 'Giao dịch đã được xác nhận tự động. Chúc bạn có những giờ phút ôn thi hiệu quả và đạt điểm cao!';
+            }
+
+            document.getElementById('btnConfirmQpPayment')?.classList.add('hidden');
+            document.getElementById('btnBackToQpStep1')?.classList.add('hidden');
+            document.getElementById('qpRecheckPaymentBox')?.classList.add('hidden');
+            document.getElementById('qpSuccessActionBox')?.classList.remove('hidden');
+            document.getElementById('qpPayQrBox')?.classList.add('opacity-40', 'pointer-events-none');
+
+            // Cập nhật số dư QPoint tức thì khắp trang
+            if (window.QP) {
+                window.QP.load().catch(() => {});
+            }
+
+            if (window.showNotification) {
+                window.showNotification(`🎉 Nạp QPoint thành công! Đã cộng +${points || ''} QPoint.`, "success");
+            }
+        };
+
+        window.confirmQpPayment = () => {
+            const statusBox = document.getElementById('qpPaymentStatusBox');
+            if (statusBox) {
+                statusBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            if (window.showNotification) {
+                window.showNotification("⚡ Đã gửi yêu cầu đối soát tới ngân hàng! Vui lòng giữ cửa sổ trong 1-2 phút.", "info");
+            }
+        };
+
+        window.recheckQpPayment = async () => {
+            const btn = document.getElementById('btnRecheckQpPayment');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đối soát với ngân hàng...';
+            }
+
+            try {
+                const totalPoints = currentSelectedPkg ? ((Number(currentSelectedPkg.points) || 0) + (Number(currentSelectedPkg.bonus) || 0)) : 0;
+                let isSuccess = false;
+
+                // 1. Kiểm tra access_requests
+                if (window._currentQpRequestId) {
+                    const snap = await getDoc(doc(db, "access_requests", window._currentQpRequestId));
+                    if (snap.exists()) {
+                        const s = String(snap.data().status || '').toLowerCase().trim();
+                        if (s === 'resolved' || s === 'approved' || s === 'paid' || s === 'completed' || s === 'success') {
+                            isSuccess = true;
+                        }
+                    }
+                }
+
+                // 2. Kiểm tra orders
+                if (!isSuccess && window._currentQpOrderId) {
+                    const snapOrd = await getDoc(doc(db, "orders", window._currentQpOrderId));
+                    if (snapOrd.exists()) {
+                        const s = String(snapOrd.data().status || '').toLowerCase().trim();
+                        if (s === 'resolved' || s === 'approved' || s === 'paid' || s === 'completed' || s === 'success') {
+                            isSuccess = true;
+                        }
+                    }
+                }
+
+                // 3. Kiểm tra số dư người dùng
+                const user = auth.currentUser;
+                if (!isSuccess && user && user.uid) {
+                    const snapUser = await getDoc(doc(db, "users", user.uid));
+                    if (snapUser.exists()) {
+                        const curQp = snapUser.data().qpoints;
+                        if (typeof curQp === 'number' && curQp > initialQpBalance) {
+                            isSuccess = true;
+                        }
+                    }
+                }
+
+                if (isSuccess) {
+                    window.showQpPaymentSuccessState(totalPoints);
+                } else {
+                    if (window.showNotification) {
+                        window.showNotification("Hệ thống đang tiếp tục đối soát với ngân hàng. Nếu bạn vừa chuyển tiền, vui lòng đợi 30s - 1 phút để ngân hàng xử lý nhé!", "info");
+                    } else {
+                        alert("Hệ thống đang tiếp tục đối soát với ngân hàng. Vui lòng thử lại sau 30 giây!");
+                    }
+                }
+            } catch(e) {
+                console.error("Lỗi recheckQpPayment:", e);
+                if (window.showNotification) window.showNotification("Lỗi kiểm tra đơn: " + e.message, "error");
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
+        };
+
+        window.copyQpPaymentField = (elementId, labelName) => {
+            const el = document.getElementById(elementId);
+            const text = el ? (el.innerText || el.textContent || '').trim() : '';
+            if (!text || text === '...') {
+                if (window.showNotification) window.showNotification("Chưa có thông tin để sao chép!", "warning");
+                return;
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    if (window.showNotification) window.showNotification(`Đã sao chép ${labelName}: ${text}`, "success");
+                    else alert(`Đã sao chép: ${text}`);
+                }).catch(() => {
+                    prompt(`Sao chép ${labelName}:`, text);
+                });
+            } else {
+                prompt(`Sao chép ${labelName}:`, text);
+            }
+        };
+
+        window.downloadQpQrCode = () => {
+            const qrImg = document.getElementById('qpVietQrImage');
+            if (!qrImg || !qrImg.src) {
+                if (window.showNotification) window.showNotification("Chưa có mã QR để tải!", "warning");
+                return;
+            }
+            try {
+                const link = document.createElement('a');
+                link.href = qrImg.src;
+                link.download = `VietQR-QPoint-${Date.now()}.png`;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                if (window.showNotification) window.showNotification("Đã tải mã QR về máy thành công!", "success");
+            } catch(e) {
+                window.open(qrImg.src, '_blank');
+            }
+        };
+
         // URL Parameters auto-lookup
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -5829,6 +6514,367 @@
                 <div class="grid grid-cols-2 gap-3">
                     <button onclick="document.getElementById('reattemptModal').classList.add('hidden')" class="py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-colors">Hủy bỏ</button>
                     <button onclick="submitReattemptRequest()" class="py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-200 transition-colors">Gửi yêu cầu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CỬA HÀNG NẠP QPOINT HỌC TẬP (2 BƯỚC CHUẨN MUA HÀNG & QUÉT TỰ ĐỘNG) -->
+    <div id="qpointShopModal" class="hidden fixed inset-0 z-[200] overflow-y-auto p-2 sm:p-4 md:p-6 bg-gray-900/75 backdrop-blur-sm flex justify-center items-start sm:items-center">
+        <div class="relative bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[92vh] sm:max-h-[88vh] my-auto rounded-3xl shadow-2xl border border-gray-200 dark:border-slate-800 overflow-hidden flex flex-col">
+            
+            <!-- 1. Header Modal -->
+            <div class="px-4 py-3 sm:px-6 sm:py-3.5 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2.5 sm:gap-3">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-md shadow-amber-500/20 shrink-0">
+                        <i class="fa-solid fa-coins"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xs sm:text-sm font-black text-gray-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+                            <span>Nạp QPoint Học Tập</span>
+                            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hidden sm:inline-block">Tự động 24/7</span>
+                        </h2>
+                        <p class="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400">Thanh toán an toàn • Tự động kích hoạt điểm tức thì</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-xs font-black text-amber-800 dark:text-amber-300 flex items-center gap-1.5 shadow-2xs">
+                        <i class="fa-solid fa-wallet text-amber-500"></i>
+                        <span class="hidden sm:inline text-[11px] font-semibold text-gray-500 dark:text-gray-400">Số dư:</span>
+                        <span class="qp-balance font-mono font-black text-amber-600 dark:text-amber-400">0</span>
+                        <span class="text-[10px]">Qp</span>
+                    </div>
+                    <button type="button" onclick="window.closeQPointShopModal()" class="text-gray-400 hover:text-red-500 flex items-center gap-1 font-bold text-xs px-2 py-1.5 sm:px-3 sm:py-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all cursor-pointer">
+                        <span class="hidden sm:inline">Đóng</span> <i class="fa-solid fa-times text-base"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Step Progress Bar (2 Bước Chuẩn) -->
+            <div class="bg-gray-50 dark:bg-slate-900/80 border-b border-gray-200 dark:border-slate-800 px-4 py-2 sm:px-6 shrink-0">
+                <div class="max-w-lg mx-auto flex items-center justify-between text-xs">
+                    <!-- Bước 1 Indicator -->
+                    <div id="qpStepIndicator1" class="flex items-center gap-2 font-black text-amber-600 dark:text-amber-400 transition-colors cursor-pointer" onclick="window.backToQpStep1()">
+                        <span id="qpStepBadge1" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-[11px] font-black shadow-xs">1</span>
+                        <span class="text-[11px] sm:text-xs">1. Chọn gói QPoint</span>
+                    </div>
+                    <div class="flex-1 mx-3 sm:mx-4 h-1 bg-gray-200 dark:bg-slate-700 rounded-full relative overflow-hidden">
+                        <div id="qpStepProgressLine" class="h-full bg-gradient-to-r from-amber-500 to-emerald-500 w-0 transition-all duration-300 rounded-full"></div>
+                    </div>
+                    <!-- Bước 2 Indicator -->
+                    <div id="qpStepIndicator2" class="flex items-center gap-2 font-semibold text-gray-400 dark:text-gray-500 transition-colors">
+                        <span id="qpStepBadge2" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-gray-400 flex items-center justify-center text-[11px] font-black">2</span>
+                        <span class="text-[11px] sm:text-xs">2. Thanh toán VietQR</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Modal Body: 2 Columns Grid -->
+            <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 md:p-6 overscroll-contain">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+                    
+                    <!-- ── CỘT TRÁI (lg:col-span-7) ── -->
+                    <div class="lg:col-span-7 space-y-4">
+
+                        <!-- === BƯỚC 1: BÊN TRÁI === -->
+                        <div id="qpStep1Left" class="space-y-4">
+                            <!-- Banner Giới thiệu QPoint -->
+                            <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-md">
+                                <div class="relative z-10">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[10px] font-black uppercase tracking-wider">Tiện ích học tập</span>
+                                        <span class="text-[11px] text-amber-100 font-medium">Hỗ trợ ôn thi thông minh</span>
+                                    </div>
+                                    <h3 class="text-base sm:text-lg font-black leading-snug">Nâng cao hiệu quả ôn luyện cùng QPoint</h3>
+                                    <p class="text-xs text-amber-100/90 mt-1 leading-relaxed" id="qpShopNoticeText">
+                                        QPoint dùng để xem gợi ý AI, dùng trợ giúp 50/50, bảo vệ chuỗi ngày học tập và xem hướng dẫn giải chi tiết.
+                                    </p>
+                                    <div class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/20 text-center">
+                                        <div class="bg-white/10 backdrop-blur-xs p-1.5 rounded-xl">
+                                            <i class="fa-solid fa-wand-magic-sparkles text-amber-200 text-xs sm:text-sm block mb-0.5"></i>
+                                            <span class="text-[10px] sm:text-[11px] font-bold block">Gợi ý AI</span>
+                                            <span class="text-[9px] text-amber-100/80">5 Qp/lượt</span>
+                                        </div>
+                                        <div class="bg-white/10 backdrop-blur-xs p-1.5 rounded-xl">
+                                            <i class="fa-solid fa-divide text-amber-200 text-xs sm:text-sm block mb-0.5"></i>
+                                            <span class="text-[10px] sm:text-[11px] font-bold block">Trợ giúp 50/50</span>
+                                            <span class="text-[9px] text-amber-100/80">3 Qp/lượt</span>
+                                        </div>
+                                        <div class="bg-white/10 backdrop-blur-xs p-1.5 rounded-xl">
+                                            <i class="fa-solid fa-infinity text-amber-200 text-xs sm:text-sm block mb-0.5"></i>
+                                            <span class="text-[10px] sm:text-[11px] font-bold block">Không hết hạn</span>
+                                            <span class="text-[9px] text-amber-100/80">Dùng vĩnh viễn</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tiêu đề danh sách gói -->
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-xs sm:text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
+                                    <i class="fa-solid fa-layer-group text-amber-500"></i> Chọn gói QPoint phù hợp
+                                </h4>
+                                <span class="text-[11px] text-gray-500 dark:text-gray-400">Click chọn 1 gói bên dưới</span>
+                            </div>
+
+                            <!-- Grid các gói nạp QPoint -->
+                            <div id="qpShopCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <!-- Dynamic package cards -->
+                            </div>
+                        </div>
+
+                        <!-- === BƯỚC 2: BÊN TRÁI (ẨN Ở BƯỚC 1) === -->
+                        <div id="qpStep2Left" class="hidden space-y-4">
+                            <!-- Banner xác nhận gói đã chốt -->
+                            <div class="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-2xl flex items-center justify-between gap-3 shadow-2xs">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg font-black shrink-0 shadow-sm">
+                                        <i class="fa-solid fa-cube"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="text-[10px] font-black uppercase text-amber-700 dark:text-amber-400 block tracking-wider">Gói nạp đã chọn</span>
+                                        <h4 id="qpStep2PkgTitle" class="text-sm font-black text-gray-900 dark:text-white truncate">Gói Tiêu Chuẩn</h4>
+                                        <p id="qpStep2PkgPointsBadge" class="text-xs text-emerald-600 dark:text-emerald-400 font-bold">+165 QPoint</p>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="window.backToQpStep1()" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-slate-700 text-amber-800 dark:text-amber-300 font-bold rounded-xl text-xs transition-colors shrink-0 cursor-pointer shadow-2xs flex items-center gap-1.5">
+                                    <i class="fa-solid fa-pen-to-square"></i> Đổi gói
+                                </button>
+                            </div>
+
+                            <!-- Hướng dẫn quy trình nạp tự động -->
+                            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-4 space-y-3 shadow-sm">
+                                <h4 class="text-xs sm:text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-2">
+                                    <i class="fa-solid fa-shield-halved text-blue-600"></i> Hướng dẫn chuyển khoản an toàn
+                                </h4>
+                                <div class="space-y-2.5 text-xs text-gray-600 dark:text-gray-300">
+                                    <div class="flex items-start gap-2.5">
+                                        <span class="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">1</span>
+                                        <p>Mở ứng dụng ngân hàng bất kỳ (MB, Vietcombank, Techcombank, MoMo...) và chọn <b>Quét QR</b>.</p>
+                                    </div>
+                                    <div class="flex items-start gap-2.5">
+                                        <span class="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">2</span>
+                                        <p>Mã VietQR bên phải đã <b>tự động điền đúng số tiền và nội dung chuyển khoản</b>.</p>
+                                    </div>
+                                    <div class="flex items-start gap-2.5">
+                                        <span class="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">3</span>
+                                        <p>Hệ thống sẽ <b>tự động kiểm tra và cộng điểm tức thì</b> (thường từ 1 - 3 phút). Bạn không cần tải lại trang!</p>
+                                    </div>
+                                </div>
+                                <div class="p-2.5 bg-amber-50/70 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed flex items-center gap-2">
+                                    <i class="fa-solid fa-triangle-exclamation text-amber-500 shrink-0"></i>
+                                    <span>Nếu chuyển thủ công, bắt buộc nhập đúng <b>Nội dung chuyển khoản</b> để hệ thống tự nhận diện học sinh.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── CỘT PHẢI (lg:col-span-5) ── -->
+                    <div class="lg:col-span-5 space-y-4">
+                        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-800 p-4 sm:p-5">
+                            
+                            <h3 class="font-black text-gray-800 dark:text-white uppercase tracking-wide text-xs mb-3 flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-2">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-receipt text-amber-500"></i> Đơn hàng nạp điểm
+                                </span>
+                                <span class="text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md uppercase">QPOINT</span>
+                            </h3>
+
+                            <!-- Mini tóm tắt sản phẩm gói -->
+                            <div class="flex items-center gap-3 pb-3 border-b border-gray-100 dark:border-slate-800 mb-3">
+                                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 text-white flex items-center justify-center text-xl shadow-md shadow-amber-500/20 shrink-0">
+                                    <i class="fa-solid fa-coins"></i>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <h4 id="qpSummaryTitle" class="font-black text-gray-800 dark:text-white text-sm truncate">Đang chọn gói...</h4>
+                                    <div id="qpSummaryPointsBadge" class="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">+0 QPoint</div>
+                                </div>
+                            </div>
+
+                            <!-- Bảng tính giá -->
+                            <div class="space-y-2 text-xs text-gray-600 dark:text-gray-300 mb-4">
+                                <div class="flex justify-between">
+                                    <span>Giá gói nạp:</span>
+                                    <span id="qpSummaryPrice" class="font-bold text-gray-700 dark:text-gray-200">0 đ</span>
+                                </div>
+                                <div class="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                                    <span>Điểm nhận được:</span>
+                                    <span id="qpSummaryPointsTotal">+0 Qp</span>
+                                </div>
+                                <div class="flex justify-between items-baseline text-base sm:text-lg font-black text-gray-900 dark:text-white border-t border-dashed border-gray-200 dark:border-slate-700 pt-2.5 mt-2">
+                                    <span>TỔNG CỘNG:</span>
+                                    <span id="qpSummaryFinalPrice" class="text-amber-600 dark:text-amber-400 font-mono text-xl font-black">0 đ</span>
+                                </div>
+                            </div>
+
+                            <!-- ── BƯỚC 1: KHỐI NÚT TIẾP TỤC ĐẾN BƯỚC THANH TOÁN ── -->
+                            <div id="qpCheckoutStep1Box" class="space-y-3">
+                                <button type="button" id="btnProceedToQpPay" onclick="window.proceedToQpPaymentStep()" class="w-full py-3 sm:py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-black text-sm sm:text-base rounded-2xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                    <span>TIẾP TỤC THANH TOÁN VIETQR</span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                                <div class="p-3 bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl space-y-1 text-left">
+                                    <p class="text-[11px] font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-shield-check text-amber-600"></i> Quy trình 2 bước an toàn & bảo mật
+                                    </p>
+                                    <p class="text-[10px] text-gray-600 dark:text-gray-400 leading-relaxed">
+                                        Bấm nút trên để tạo mã VietQR có sẵn số tiền và nội dung cho đơn nạp của bạn.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- ── BƯỚC 2: KHỐI MÃ VIETQR VÀ TỰ ĐỘNG CHECK (ẨN Ở BƯỚC 1) ── -->
+                            <div id="qpCheckoutStep2Box" class="hidden space-y-3">
+                                
+                                <!-- Khung QR Code + Đếm ngược -->
+                                <div id="qpPayQrBox" class="bg-gray-50 dark:bg-slate-800/80 rounded-2xl p-3 text-center border border-dashed border-amber-300 dark:border-amber-700/60 relative overflow-hidden">
+                                    <!-- Overlay hết hạn 10 phút -->
+                                    <div id="qpQrExpiredOverlay" class="hidden absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center p-3 text-center z-30 transition-all">
+                                        <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-lg mb-2">
+                                            <i class="fa-solid fa-clock-rotate-left"></i>
+                                        </div>
+                                        <h5 class="font-bold text-gray-800 dark:text-white text-xs">Mã thanh toán đã hết hạn 10 phút</h5>
+                                        <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-1 mb-2 max-w-[200px]">Vui lòng bấm bên dưới để tạo mã mới!</p>
+                                        <button type="button" onclick="window.refreshQpPaymentCode()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow cursor-pointer flex items-center gap-1">
+                                            <i class="fa-solid fa-rotate-right"></i> Lấy mã mới
+                                        </button>
+                                    </div>
+
+                                    <div class="flex items-center justify-between mb-1.5 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">
+                                        <span>Quét mã VietQR</span>
+                                        <span id="qpQrTimerBadge" class="inline-flex items-center gap-1 text-orange-600 bg-orange-50 dark:bg-orange-950/60 px-2 py-0.5 rounded-lg border border-orange-200 dark:border-orange-800 font-mono text-[11px]">
+                                            <i class="fa-regular fa-clock"></i> <span id="qpQrCountdownText">10:00</span>
+                                        </span>
+                                    </div>
+
+                                    <div class="relative w-36 h-36 mx-auto bg-white p-2 rounded-xl shadow-sm">
+                                        <img id="qpVietQrImage" src="" class="w-full h-full object-contain" alt="QR Code">
+                                        <div id="qpQrLoading" class="absolute inset-0 bg-white flex flex-col items-center justify-center z-10">
+                                            <i class="fa-solid fa-spinner fa-spin text-xl text-amber-500 mb-1"></i>
+                                            <span class="text-[9px] font-bold text-gray-400">Đang tạo QR...</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-[9px] text-gray-400 mt-1 italic">Mở app ngân hàng bất kỳ > Quét QR</p>
+
+                                    <!-- Nút tải ảnh QR -->
+                                    <div class="mt-1.5 flex justify-center">
+                                        <button type="button" id="btnDownloadQpQr" onclick="window.downloadQpQrCode()" class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg text-[10px] font-bold shadow-2xs active:scale-95 transition-all cursor-pointer">
+                                            <i class="fa-solid fa-download text-[9px]"></i> Tải ảnh QR
+                                        </button>
+                                    </div>
+
+                                    <!-- Chi tiết ngân hàng & các nút Sao Chép riêng -->
+                                    <div class="mt-2.5 p-2.5 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-left space-y-1.5">
+                                        <!-- 1. Tên ngân hàng -->
+                                        <div class="flex items-center justify-between gap-1">
+                                            <div class="flex items-center gap-1 min-w-0">
+                                                <span class="text-[10px] text-gray-500 dark:text-gray-400 shrink-0">Ngân hàng:</span>
+                                                <b id="qpBankNameDisplay" class="text-[10px] sm:text-[11px] text-gray-900 dark:text-white font-bold truncate">...</b>
+                                            </div>
+                                            <button type="button" onclick="window.copyQpPaymentField('qpBankNameDisplay', 'Tên ngân hàng')" class="text-[9px] font-bold text-amber-700 dark:text-amber-300 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-amber-200 dark:border-slate-700 hover:bg-amber-100 active:scale-95 transition-all cursor-pointer shrink-0 shadow-2xs">
+                                                <i class="fa-regular fa-copy"></i> Sao chép
+                                            </button>
+                                        </div>
+
+                                        <!-- 2. Số tài khoản -->
+                                        <div class="flex items-center justify-between gap-1">
+                                            <div class="flex items-center gap-1 min-w-0">
+                                                <span class="text-[10px] text-gray-500 dark:text-gray-400 shrink-0">Số tài khoản:</span>
+                                                <b id="qpAccountNoDisplay" class="text-xs text-blue-600 dark:text-blue-400 font-mono font-black tracking-wide truncate">...</b>
+                                                <span id="qpAccountOwnerDisplay" class="text-[9px] text-gray-500 truncate hidden sm:inline"></span>
+                                            </div>
+                                            <button type="button" onclick="window.copyQpPaymentField('qpAccountNoDisplay', 'Số tài khoản')" class="text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-blue-200 dark:border-slate-700 hover:bg-blue-100 active:scale-95 transition-all cursor-pointer shrink-0 shadow-2xs">
+                                                <i class="fa-regular fa-copy"></i> Sao chép
+                                            </button>
+                                        </div>
+
+                                        <!-- 3. Nội dung chuyển khoản -->
+                                        <div class="pt-1.5 border-t border-amber-200/80 dark:border-slate-700 flex items-center justify-between gap-1">
+                                            <div class="min-w-0 flex-1">
+                                                <div class="text-[9px] uppercase font-black text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                                                    <i class="fa-solid fa-receipt text-amber-600"></i> Nội dung CK (Bắt buộc):
+                                                </div>
+                                                <div id="qpTransferContentDisplay" class="font-black text-xs text-orange-600 dark:text-orange-400 font-mono tracking-wider break-all select-all mt-0.5">...</div>
+                                            </div>
+                                            <button type="button" onclick="window.copyQpPaymentField('qpTransferContentDisplay', 'Nội dung chuyển khoản')" class="text-[9px] font-bold text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-orange-200 dark:border-slate-700 hover:bg-orange-50 active:scale-95 transition-all cursor-pointer shrink-0 shadow-2xs">
+                                                <i class="fa-regular fa-copy"></i> Sao chép
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button id="btnConfirmQpPayment" type="button" onclick="window.confirmQpPayment()" class="w-full py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white font-bold text-sm rounded-xl shadow-md hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                    <i class="fa-solid fa-check-circle text-base"></i> TÔI ĐÃ CHUYỂN KHOẢN
+                                </button>
+
+                                <button type="button" id="btnBackToQpStep1" onclick="window.backToQpStep1()" class="w-full py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-gray-600 dark:text-gray-300 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                                    <i class="fa-solid fa-arrow-left"></i> <span>Quay lại đổi gói khác</span>
+                                </button>
+
+                                <!-- Khung Quét Thanh Toán Realtime Tự Động -->
+                                <div id="qpPaymentStatusBox" class="mt-3 w-full p-4 rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-gradient-to-b from-amber-50/90 to-orange-50/90 dark:from-slate-800 dark:to-slate-900 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden transition-all">
+                                    <!-- Thanh quét chuyển động -->
+                                    <div class="absolute top-0 left-0 right-0 h-1 bg-amber-200/50 overflow-hidden">
+                                        <div class="w-1/2 h-full bg-gradient-to-r from-transparent via-amber-500 to-transparent animate-scanning-bar"></div>
+                                    </div>
+                                    
+                                    <!-- Radar / Graphic -->
+                                    <div id="qpPaymentWaitGraphic" class="relative my-2">
+                                        <div class="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950 flex items-center justify-center text-amber-600 text-lg font-bold shadow-inner relative z-10">
+                                            <i class="fa-solid fa-satellite-dish animate-bounce"></i>
+                                        </div>
+                                        <div class="absolute inset-0 rounded-full border-2 border-amber-400 animate-ping opacity-75"></div>
+                                        <div class="absolute -inset-2 rounded-full border border-amber-300 animate-pulse-ring"></div>
+                                    </div>
+
+                                    <!-- Graphic thành công -->
+                                    <div id="qpPaymentSuccessGraphic" class="hidden my-2">
+                                        <div class="w-14 h-14 rounded-full bg-green-500 text-white flex items-center justify-center text-2xl shadow-lg animate-success-pop">
+                                            <i class="fa-solid fa-check"></i>
+                                        </div>
+                                    </div>
+
+                                    <!-- Huy hiệu trạng thái -->
+                                    <div id="qpPaymentStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-200/80 dark:bg-amber-900 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 mb-1.5 uppercase tracking-wide">
+                                        <span class="w-2 h-2 rounded-full bg-amber-600 animate-ping"></span>
+                                        <span>Đang chờ chuyển khoản...</span>
+                                    </div>
+
+                                    <h4 id="qpPaymentStatusTitle" class="font-black text-gray-800 dark:text-white text-xs sm:text-sm mb-1 leading-snug">
+                                        Hệ thống đang quét giao dịch tự động
+                                    </h4>
+
+                                    <div id="qpPaymentTimeNotice" class="text-[11px] text-amber-800 dark:text-amber-300 font-semibold bg-white/80 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-slate-700 my-1 flex items-center gap-1.5">
+                                        <i class="fa-regular fa-clock text-amber-600"></i>
+                                        <span>Thời gian xác nhận đơn tự động: <b>1 - 3 phút</b></span>
+                                    </div>
+
+                                    <p id="qpPaymentStatusDesc" class="text-[10px] sm:text-[11px] text-gray-600 dark:text-gray-400 mt-0.5 leading-relaxed">
+                                        Học sinh vui lòng không đóng cửa sổ này. QPoint sẽ tự động cộng ngay khi ngân hàng khớp lệnh!
+                                    </p>
+
+                                    <!-- Khối nút Kiểm tra lại sau 30 giây -->
+                                    <div id="qpRecheckPaymentBox" class="mt-2.5 w-full border-t border-amber-200/80 dark:border-slate-700 pt-2">
+                                        <div id="qpRecheckCountdownNotice" class="text-[10px] text-amber-800 dark:text-amber-300 font-medium mb-1.5 flex items-center justify-center gap-1">
+                                            <i class="fa-regular fa-clock text-amber-600"></i>
+                                            <span>Có thể bấm kiểm tra lại sau <b id="qpRecheckCountdownNum">30s</b>...</span>
+                                        </div>
+                                        <button type="button" id="btnRecheckQpPayment" onclick="window.recheckQpPayment()" class="hidden w-full py-2 px-3 text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-gradient-to-r from-amber-500 to-orange-500">
+                                            <i class="fa-solid fa-rotate"></i>
+                                            <span>Kiểm tra lại thanh toán</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Nút hoàn tất khi thành công -->
+                                    <div id="qpSuccessActionBox" class="hidden mt-3 w-full">
+                                        <button type="button" onclick="window.closeQPointShopModal()" class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                                            <i class="fa-solid fa-check"></i> Hoàn tất & Tiếp tục học
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -80,6 +80,11 @@ service cloud.firestore {
       allow write: if isTeacher();
     }
     
+    // --- QUẢN LÝ TÀI KHOẢN & PHÂN QUYỀN ADMIN ---
+    match /admin_accounts/{adminId} {
+      allow read, write: if request.auth != null;
+    }
+    
     // (Lưu ý: Đang có 2 block rule cho bảng results, giữ nguyên để tránh ảnh hưởng logic khác)
     match /results/{document=**} {
       allow read: if request.auth != null; 

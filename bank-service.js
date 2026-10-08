@@ -715,8 +715,8 @@
                 let matchedExams = [];
                 try {
                     const [resCccd, resBankId] = await Promise.all([
-                        sb.from('exams').select('id,title,questions,raw_data').contains('questions', [{ cccd: cccdStr }]),
-                        sb.from('exams').select('id,title,questions,raw_data').contains('questions', [{ bankId: cccdStr }])
+                        sb.from('exams').select('id,title,questions,raw_data').contains('questions', JSON.stringify([{ cccd: cccdStr }])),
+                        sb.from('exams').select('id,title,questions,raw_data').contains('questions', JSON.stringify([{ bankId: cccdStr }]))
                     ]);
                     const examMap = new Map();
                     (resCccd.data || []).forEach(e => examMap.set(e.id, e));

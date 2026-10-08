@@ -947,7 +947,7 @@ const TABLE_COLUMNS = {
     exams: ['id', 'title', 'folder_id', 'teacher_id', 'duration', 'pass_score', 'status', 'access_type', 'allowed_class_ids', 'purpose', 'subject', 'grade', 'questions', 'tl_questions', 'question_count', 'password', 'proctoring', 'attempts', 'start_time', 'end_time', 'n8n_webhooks', 'created_at', 'updated_at', 'raw_data'],
     results: ['id', 'exam_id', 'student_id', 'student_name', 'class_id', 'score', 'correct_count', 'total_questions', 'submit_count', 'submitted_at', 'duration', 'is_passed', 'answers', 'brief_notes', 'cheat_count', 'pass_score_snapshot', 'teacher_feedback', 'raw_data'],
     exam_attempts: ['id', 'exam_id', 'student_id', 'answers', 'brief_notes', 'last_updated', 'raw_data'],
-    practice_results: ['id', 'user_id', 'topic_id', 'score', 'total_questions', 'duration', 'completed_at', 'details', 'raw_data'],
+    practice_results: ['id', 'uid', 'student_name', 'grade', 'subject', 'score', 'correct', 'total', 'levels', 'created_at', 'raw_data'],
     configurations: ['id', 'keys', 'tree', 'metadata', 'url', 'updated_at', 'raw_data'],
     user_progress: ['id', 'user_id', 'course_id', 'completed_items', 'playback_positions', 'quiz_usage', 'last_updated', 'raw_data'],
     access_requests: ['id', 'exam_id', 'exam_title', 'student_id', 'student_name', 'requested_at', 'status', 'approved_at', 'raw_data'],
@@ -956,7 +956,8 @@ const TABLE_COLUMNS = {
     orders: ['id', 'user_id', 'user_name', 'user_phone', 'course_id', 'document_id', 'course_title', 'quantity', 'unit_price', 'shipping_fee', 'amount', 'original_amount', 'voucher_code', 'voucher_discount', 'voucher_id', 'status', 'content', 'order_type', 'delivery_type', 'shipping_info', 'created_at', 'updated_at'],
     vouchers: ['id', 'code', 'discount_type', 'discount_value', 'min_order_value', 'max_discount', 'max_usage', 'used', 'used_by', 'start_date', 'end_date', 'status', 'course_id', 'created_at'],
     site_settings: ['key', 'value', 'updated_at'],
-    admin_accounts: ['id', 'email', 'display_name', 'role', 'status', 'permissions', 'assigned_courses', 'note', 'created_at', 'updated_at', 'raw_data']
+    admin_accounts: ['id', 'email', 'display_name', 'role', 'status', 'permissions', 'assigned_courses', 'note', 'created_at', 'updated_at', 'raw_data'],
+    qpoint_transactions: ['id', 'uid', 'amount', 'reason', 'balanceAfter', 'balance_after', 'meta', 'at', 'created_at', 'raw_data']
 };
 
 function toSupabasePayload(table, id, data) {
@@ -1026,6 +1027,48 @@ export async function getDoc(docRef) {
             }
         }
 
+        if (table === 'custom_topics') {
+            try {
+                const confId = docRef.id.startsWith('topic_') ? docRef.id : ('topic_' + docRef.id);
+                const { data: confData } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .eq('id', confId)
+                    .maybeSingle();
+                if (confData && confData.raw_data) {
+                    const docData = unwrapRecord({ ...confData.raw_data, id: confData.raw_data.id || docRef.id });
+                    return {
+                        id: docRef.id,
+                        exists: () => true,
+                        data: () => docData
+                    };
+                }
+            } catch(e) {
+                console.warn("[Supabase getDoc] Lỗi đọc configurations cho custom_topics:", e);
+            }
+        }
+
+        if (table === 'qpoint_transactions') {
+            try {
+                const confId = docRef.id.startsWith('qptx_') ? docRef.id : ('qptx_' + docRef.id);
+                const { data: confData } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .eq('id', confId)
+                    .maybeSingle();
+                if (confData && confData.raw_data) {
+                    const docData = unwrapRecord({ ...confData.raw_data, id: confData.raw_data.id || docRef.id });
+                    return {
+                        id: docRef.id,
+                        exists: () => true,
+                        data: () => docData
+                    };
+                }
+            } catch(e) {
+                console.warn("[Supabase getDoc] Lỗi đọc configurations cho qpoint_transactions:", e);
+            }
+        }
+
         const { data, error } = await supabase
             .from(table)
             .select('*')
@@ -1044,6 +1087,19 @@ export async function getDoc(docRef) {
                     .maybeSingle();
                 if (confData && confData.raw_data) {
                     docData = unwrapRecord(confData.raw_data);
+                }
+            } catch(e) {}
+        }
+        if (!docData && table === 'custom_topics') {
+            try {
+                const confId = docRef.id.startsWith('topic_') ? docRef.id : ('topic_' + docRef.id);
+                const { data: confData } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .eq('id', confId)
+                    .maybeSingle();
+                if (confData && confData.raw_data) {
+                    docData = unwrapRecord({ ...confData.raw_data, id: confData.raw_data.id || docRef.id });
                 }
             } catch(e) {}
         }
@@ -1104,6 +1160,102 @@ export async function getDocs(queryOrColRef) {
         const table = queryOrColRef.table;
         if (table === 'tags' && !isTagsTableAvailable) {
             return { docs: [], forEach: () => {}, size: 0, empty: true };
+        }
+
+        if (table === 'custom_topics') {
+            try {
+                const { data: confTopics, error: tErr } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .like('id', 'topic_%');
+                if (tErr) throw tErr;
+                let resultRows = (confTopics || []).map(r => {
+                    const raw = (r.raw_data && typeof r.raw_data === 'object') ? r.raw_data : {};
+                    const topicId = raw.id || r.id.replace(/^topic_/, '');
+                    return { id: topicId, ...raw };
+                });
+                const constraints = queryOrColRef.constraints || [];
+                const docs = resultRows.map(r => {
+                    const docData = unwrapRecord(r);
+                    return {
+                        id: r.id || r.key,
+                        exists: () => true,
+                        data: () => docData
+                    };
+                }).filter(doc => {
+                    const d = doc.data();
+                    for (const c of constraints) {
+                        if (c.type === 'where') {
+                            const val = d[c.field] !== undefined ? d[c.field] : d[mapFieldToColumn(c.field)];
+                            if (c.op === '==' || c.op === '===') {
+                                if (val !== c.value) return false;
+                            } else if (c.op === '!=') {
+                                if (val === c.value) return false;
+                            } else if (c.op === 'in') {
+                                if (!Array.isArray(c.value) || !c.value.includes(val)) return false;
+                            }
+                        }
+                    }
+                    return true;
+                });
+                return {
+                    docs,
+                    forEach: (cb) => docs.forEach(cb),
+                    size: docs.length,
+                    empty: docs.length === 0
+                };
+            } catch(err) {
+                console.warn("[Supabase getDocs] Lỗi đọc custom_topics từ configurations:", err);
+                return { docs: [], forEach: () => {}, size: 0, empty: true };
+            }
+        }
+
+        if (table === 'qpoint_transactions') {
+            try {
+                const { data: confTxs, error: txErr } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .like('id', 'qptx_%');
+                if (txErr) throw txErr;
+                let resultRows = (confTxs || []).map(r => {
+                    const raw = (r.raw_data && typeof r.raw_data === 'object') ? r.raw_data : {};
+                    const txId = raw.id || r.id.replace(/^qptx_/, '');
+                    return { id: txId, ...raw };
+                });
+                const constraints = queryOrColRef.constraints || [];
+                const docs = resultRows.map(r => {
+                    const docData = unwrapRecord(r);
+                    return {
+                        id: r.id || r.key,
+                        exists: () => true,
+                        data: () => docData
+                    };
+                }).filter(doc => {
+                    const d = doc.data();
+                    for (const c of constraints) {
+                        if (c.type === 'where') {
+                            const val = d[c.field] !== undefined ? d[c.field] : d[mapFieldToColumn(c.field)];
+                            if (c.op === '==' || c.op === '===') {
+                                if (val !== c.value) return false;
+                            } else if (c.op === '!=') {
+                                if (val === c.value) return false;
+                            } else if (c.op === 'in') {
+                                if (!Array.isArray(c.value) || !c.value.includes(val)) return false;
+                            }
+                        }
+                    }
+                    return true;
+                });
+                return {
+                    docs,
+                    forEach: (cb) => docs.forEach(cb),
+                    size: docs.length,
+                    empty: docs.length === 0
+                };
+            } catch(eTx) {
+                console.warn("[Supabase getDocs] Lỗi đọc qpoint_transactions từ configurations:", eTx);
+                return { docs: [], forEach: () => {}, size: 0, empty: true };
+            }
         }
 
         let selectCols = '*';
@@ -1237,6 +1389,21 @@ export async function setDoc(docRef, data, options = {}) {
     const payload = toSupabasePayload(table, docRef.id, data);
 
     try {
+        if (table === 'custom_topics') {
+            const confId = docRef.id.startsWith('topic_') ? docRef.id : ('topic_' + docRef.id);
+            const cleanId = docRef.id.replace(/^topic_/, '');
+            const confPayload = {
+                id: confId,
+                raw_data: { id: cleanId, ...data, updatedAt: new Date().toISOString() },
+                updated_at: new Date().toISOString()
+            };
+            const { error: confErr } = await supabase
+                .from('configurations')
+                .upsert(confPayload, { onConflict: 'id' });
+            if (confErr) throw confErr;
+            return docRef;
+        }
+
         if (table === 'site_settings') {
             const confPayload = {
                 id: 'setting_' + docRef.id,
@@ -1332,6 +1499,20 @@ export async function updateDoc(docRef, updates) {
     }
 
     try {
+        if (table === 'custom_topics') {
+            const confId = docRef.id.startsWith('topic_') ? docRef.id : ('topic_' + docRef.id);
+            const { data: existing } = await supabase
+                .from('configurations')
+                .select('raw_data')
+                .eq('id', confId)
+                .maybeSingle();
+            const currRaw = (existing && existing.raw_data && typeof existing.raw_data === 'object') ? existing.raw_data : {};
+            const mergedRaw = { ...currRaw, ...updates, updatedAt: new Date().toISOString() };
+            await supabase
+                .from('configurations')
+                .upsert({ id: confId, raw_data: mergedRaw, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+            return docRef;
+        }
         if (table === 'site_settings') {
             try {
                 const confId = 'setting_' + docRef.id;
@@ -1418,6 +1599,31 @@ export async function updateDoc(docRef, updates) {
 export async function addDoc(colRef, data) {
     const newId = generateId();
     const table = colRef.table;
+
+    if (table === 'custom_topics') {
+        const confPayload = {
+            id: 'topic_' + newId,
+            raw_data: { id: newId, ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            updated_at: new Date().toISOString()
+        };
+        await supabase.from('configurations').upsert(confPayload, { onConflict: 'id' });
+        return { id: newId };
+    }
+
+    if (table === 'qpoint_transactions') {
+        const confPayload = {
+            id: 'qptx_' + newId,
+            raw_data: { id: newId, ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            updated_at: new Date().toISOString()
+        };
+        try {
+            await supabase.from('configurations').upsert(confPayload, { onConflict: 'id' });
+        } catch(e) {
+            console.warn('[Supabase addDoc qpoint_transactions]:', e);
+        }
+        return { id: newId };
+    }
+
     const payload = toSupabasePayload(table, newId, data);
 
     try {
@@ -1473,6 +1679,15 @@ export async function deleteDoc(docRef) {
                 .from('configurations')
                 .delete()
                 .eq('id', 'course_' + docRef.id);
+        } catch(e) {}
+    }
+    if (table === 'custom_topics') {
+        try {
+            const confId = docRef.id.startsWith('topic_') ? docRef.id : ('topic_' + docRef.id);
+            await supabase
+                .from('configurations')
+                .delete()
+                .eq('id', confId);
         } catch(e) {}
     }
     return true;
