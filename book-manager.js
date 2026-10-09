@@ -109,9 +109,46 @@ function extractLoigiai(exContent) {
     return { content: content.trim(), solution };
 }
 
+// Chuẩn hóa công thức cung tròn: \wideparen, \widearc, \overparen, \cung
+export function cleanArcLatex(str) {
+    if (!str || typeof str !== 'string') return str;
+    function normalizeInMath(mathStr) {
+        let s = mathStr;
+        s = s.replace(/\\(?:wideparen|widearc|overparen|cung)\s*\{([^}]+)\}/g, '\\overparen{$1}');
+        s = s.replace(/\\(?:wideparen|widearc|overparen|cung)(?:\s+|(?=[A-Za-z]))([A-Za-z0-9]{1,4})\b/g, '\\overparen{$1}');
+        s = s.replace(/(^|[^\\])sđ(?=\s*\\overparen)/g, '$1\\text{sđ}\\;');
+        s = s.replace(/\\text\{sđ\}(?=\s*\\overparen)/g, '\\text{sđ}\\;');
+        return s;
+    }
+    function normalizeOutsideMath(textStr) {
+        let s = textStr;
+        s = s.replace(/(sđ\s*)?\\(?:wideparen|widearc|overparen|cung)\s*\{([^}]+)\}/g, (match, sd, body) => {
+            const prefix = sd ? '\\text{sđ}\\;' : '';
+            return '$' + prefix + '\\overparen{' + body + '}$';
+        });
+        s = s.replace(/(sđ\s*)?\\(?:wideparen|widearc|overparen|cung)(?:\s+|(?=[A-Za-z]))([A-Za-z0-9]{1,4})\b/g, (match, sd, body) => {
+            const prefix = sd ? '\\text{sđ}\\;' : '';
+            return '$' + prefix + '\\overparen{' + body + '}$';
+        });
+        return s;
+    }
+    const parts = str.split(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\))/g);
+    for (let i = 0; i < parts.length; i++) {
+        if (!parts[i]) continue;
+        const p = parts[i];
+        if (p.startsWith('$') || p.startsWith('\\(') || p.startsWith('\\[')) {
+            parts[i] = normalizeInMath(p);
+        } else {
+            parts[i] = normalizeOutsideMath(p);
+        }
+    }
+    return parts.join('');
+}
+window.cleanArcLatex = cleanArcLatex;
+
 function postProcess(text) {
     if(!text) return "";
-    let processed = text;
+    let processed = cleanArcLatex(text);
 
     processed = processed.replace(/(?<!\\)%.*/g, '');
 
@@ -1277,7 +1314,7 @@ function showEditorPane() {
                 }
             });
         }
-        document.getElementById("previewArea").innerHTML = html;
+        document.getElementById("previewArea").innerHTML = cleanArcLatex(html);
         
         if (window.MathJax) {
             MathJax.typesetPromise([document.getElementById("previewArea")]).catch((err) => console.log('MathJax error:', err));

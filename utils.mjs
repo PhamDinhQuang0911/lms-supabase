@@ -490,7 +490,10 @@ export const formatContent = (text) => {
     processed = processed.replace(/\\hfill/g, '<span style="display:inline-block; width: 2rem;"></span>');
     processed = processed.replace(/\\allowdisplaybreaks(\[.*?\])?/g, "");
     processed = processed.replace(/\\lq\\lq/g, '"').replace(/\\rq\\rq/g, '"').replace(/\\lq/g, '"').replace(/\\rq/g, '"');
-    processed = processed.replace(/\\wideparen\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
+    processed = processed.replace(/\\(?:wideparen|widearc|overparen|cung)\s*\{([^}]+)\}/g, '\\overparen{$1}');
+    processed = processed.replace(/\\(?:wideparen|widearc|overparen|cung)(?:\s+|(?=[A-Za-z]))([A-Za-z0-9]{1,4})\b/g, '\\overparen{$1}');
+    processed = processed.replace(/(^|[^\\])sđ(?=\s*\\overparen)/g, '$1\\text{sđ}\\;');
+    processed = processed.replace(/\\text\{sđ\}(?=\s*\\overparen)/g, '\\text{sđ}\\;');
     processed = processed.replace(/\\(h|v)space\*?\{[^}]+\}/g, '').replace(/\\(no)?indent/g, '');
 
     // 2. Structure

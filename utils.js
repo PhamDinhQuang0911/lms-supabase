@@ -670,9 +670,10 @@ export const formatContent = (text) => {
     processed = processed.replace(/\\centering/g, "");
     processed = processed.replace(/\\allowdisplaybreaks(\[.*?\])?/g, "");
     processed = processed.replace(/\\lq\\lq/g, '"').replace(/\\rq\\rq/g, '"').replace(/\\lq/g, '"').replace(/\\rq/g, '"');
-    processed = processed.replace(/\\wideparen\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
-    processed = processed.replace(/\\widearc\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
-    processed = processed.replace(/\\cung\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
+    processed = processed.replace(/\\(?:wideparen|widearc|overparen|cung)\s*\{([^}]+)\}/g, '\\overparen{$1}');
+    processed = processed.replace(/\\(?:wideparen|widearc|overparen|cung)(?:\s+|(?=[A-Za-z]))([A-Za-z0-9]{1,4})\b/g, '\\overparen{$1}');
+    processed = processed.replace(/(^|[^\\])sđ(?=\s*\\overparen)/g, '$1\\text{sđ}\\;');
+    processed = processed.replace(/\\text\{sđ\}(?=\s*\\overparen)/g, '\\text{sđ}\\;');
     processed = processed.replace(/\\(h|v)space\*?\{[^}]+\}/g, '').replace(/\\(no)?indent/g, '');
     processed = processed.replace(/\\begin\{center\}\s*\\includegraphics(?:\[.*?\])?\{(https?:\/\/[^}]+)\}\s*\\end\{center\}/g, '<div class="flex justify-center my-3"><img src="$1" class="max-h-[350px] object-contain rounded-lg shadow-sm" loading="lazy"></div>');
     processed = processed.replace(/\\includegraphics(?:\[.*?\])?\{(https?:\/\/[^}]+)\}/g, '<div class="flex justify-center my-3"><img src="$1" class="max-h-[350px] object-contain rounded-lg shadow-sm" loading="lazy"></div>');

@@ -54,9 +54,9 @@
                 processEscapes: true,
                 packages: {'[+]': ['noerrors']},
                 macros: {
-                    wideparen: ["\\overset{\\frown}{#1}", 1],
-                    widearc: ["\\overset{\\frown}{#1}", 1],
-                    cung: ["\\overset{\\frown}{#1}", 1],
+                    wideparen: ["\\overparen{#1}", 1],
+                    widearc: ["\\overparen{#1}", 1],
+                    cung: ["\\overparen{#1}", 1],
                     heva: ["\\left\\{\\begin{aligned}#1\\end{aligned}\\right.", 1],
                     hoac: ["\\left[\\begin{aligned}#1\\end{aligned}\\right.", 1],
                     tich: "\\cdot",
@@ -5481,9 +5481,10 @@
                         return window.formatContent(str);
                     }
                     let res = str;
-                    res = res.replace(/\\wideparen\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
-                    res = res.replace(/\\widearc\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
-                    res = res.replace(/\\cung\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
+                    res = res.replace(/\\(?:wideparen|widearc|overparen|cung)\s*\{([^}]+)\}/g, '\\overparen{$1}');
+                    res = res.replace(/\\(?:wideparen|widearc|overparen|cung)(?:\s+|(?=[A-Za-z]))([A-Za-z0-9]{1,4})\b/g, '\\overparen{$1}');
+                    res = res.replace(/(^|[^\\])sđ(?=\s*\\overparen)/g, '$1\\text{sđ}\\;');
+                    res = res.replace(/\\text\{sđ\}(?=\s*\\overparen)/g, '\\text{sđ}\\;');
                     res = res.replace(/\\begin\{itemchoice\}([\s\S]*?)\\end\{itemchoice\}/gi, (match, body) => {
                         const items = body.split(/\\itemch\b/g).filter(s => s.trim().length > 0);
                         return '<ul class="my-3 pl-0 list-none space-y-2">' + items.map((it, idx) => `<li class="flex items-start gap-2.5 mb-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80"><span class="w-6 h-6 rounded-lg bg-amber-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">${String.fromCharCode(97 + idx)}</span><div class="leading-relaxed flex-1 text-gray-800 text-sm font-medium">${it.trim()}</div></li>`).join('') + '</ul>';

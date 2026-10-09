@@ -494,9 +494,9 @@
           processEscapes: true,
           packages: {'[+]': ['noerrors']},
           macros: {
-            wideparen: ["\\overset{\\frown}{#1}", 1],
-            widearc: ["\\overset{\\frown}{#1}", 1],
-            cung: ["\\overset{\\frown}{#1}", 1],
+            wideparen: ["\\overparen{#1}", 1],
+            widearc: ["\\overparen{#1}", 1],
+            cung: ["\\overparen{#1}", 1],
             heva: ["\\left\\{\\begin{aligned}#1\\end{aligned}\\right.", 1],
             hoac: ["\\left[\\begin{aligned}#1\\end{aligned}\\right.", 1],
             tich: "\\cdot",
@@ -10798,9 +10798,10 @@ function renderTagFilterUI() {
             processed = window.replaceCustomMathCmd(processed, 'heva\\*', '\\left\\{', '\\right.');
             processed = window.replaceCustomMathCmd(processed, 'hoac\\*', '\\left[', '\\right.');
         }
-        processed = processed.replace(/\\wideparen\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
-        processed = processed.replace(/\\widearc\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
-        processed = processed.replace(/\\cung\{([^}]+)\}/g, '\\overset{\\frown}{$1}');
+        processed = processed.replace(/\\(?:wideparen|widearc|overparen|cung)\s*\{([^}]+)\}/g, '\\overparen{$1}');
+        processed = processed.replace(/\\(?:wideparen|widearc|overparen|cung)(?:\s+|(?=[A-Za-z]))([A-Za-z0-9]{1,4})\b/g, '\\overparen{$1}');
+        processed = processed.replace(/(^|[^\\])sđ(?=\s*\\overparen)/g, '$1\\text{sđ}\\;');
+        processed = processed.replace(/\\text\{sđ\}(?=\s*\\overparen)/g, '\\text{sđ}\\;');
         processed = processed.replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '');
         processed = processed.replace(/\\renewcommand\s*\{?\s*\\arraystretch\s*\}?\s*\{[^}]+\}/g, '');
         processed = processed.replace(/\\renewcommand\\arraystretch\s*\{[^}]+\}/g, '');
