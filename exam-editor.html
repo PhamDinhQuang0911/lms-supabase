@@ -2810,6 +2810,16 @@
                             const enrichedCount = await window.BankService.enrichExamQuestions(window.questions);
                             if (enrichedCount > 0) {
                                 console.log(`[loadExamData] Đã tự động cập nhật ${enrichedCount} câu hỏi từ Ngân hàng R2!`);
+                                setTimeout(async () => {
+                                    try {
+                                        if (typeof window.saveExam === 'function' && id) {
+                                            await window.saveExam(data.status || 'published');
+                                            console.log(`[loadExamData] Đã tự động lưu ${enrichedCount} câu hỏi được phục hồi từ Ngân hàng vào đề thi!`);
+                                        }
+                                    } catch(e) {
+                                        console.warn('[loadExamData] Tự động lưu đề thi sau phục hồi thất bại:', e);
+                                    }
+                                }, 500);
                             }
                         } catch(enrichErr) {
                             console.warn("Lỗi enrichExamQuestions:", enrichErr);
@@ -4186,10 +4196,16 @@
                     }
 
                     // Làm sạch header ở đầu nội dung câu hỏi
-                    if (firstNewline !== -1 && (bracketMatches.length > 0 || firstLine.trim().startsWith('%'))) {
-                        fullBody = fullBody.substring(firstNewline + 1);
+                    let testLine = firstLine.trim();
+                    testLine = testLine.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+/, '').trim();
+                    if (testLine === '' || testLine.startsWith('%')) {
+                        if (firstNewline !== -1) {
+                            fullBody = fullBody.substring(firstNewline + 1);
+                        } else {
+                            fullBody = '';
+                        }
                     } else {
-                        fullBody = fullBody.replace(/^\s*\[.*?\](?:%\[.*?\])*/, '');
+                        fullBody = fullBody.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+\s*/, '');
                     }
                     fullBody = fullBody.replace(/(?:%%|%)\s*\[[a-zA-Z0-9\-_.]+\]/g, '');
                     fullBody = fullBody.replace(/(?<!\\)%.*/g, '');
@@ -4482,10 +4498,16 @@
                     }
 
                     // Làm sạch header ở đầu nội dung câu hỏi
-                    if (firstNewline !== -1 && (bracketMatches.length > 0 || firstLine.trim().startsWith('%'))) {
-                        fullBody = fullBody.substring(firstNewline + 1);
+                    let testLine = firstLine.trim();
+                    testLine = testLine.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+/, '').trim();
+                    if (testLine === '' || testLine.startsWith('%')) {
+                        if (firstNewline !== -1) {
+                            fullBody = fullBody.substring(firstNewline + 1);
+                        } else {
+                            fullBody = '';
+                        }
                     } else {
-                        fullBody = fullBody.replace(/^\s*\[.*?\](?:%\[.*?\])*/, '');
+                        fullBody = fullBody.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+\s*/, '');
                     }
                     fullBody = fullBody.replace(/(?:%%|%)\s*\[[a-zA-Z0-9\-_.]+\]/g, '');
                     fullBody = fullBody.replace(/(?<!\\)%.*/g, '');

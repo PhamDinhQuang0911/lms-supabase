@@ -166,10 +166,16 @@
 
             if (questionID) tags = parseQuestionID(questionID);
 
-            if (firstNewline !== -1 && (bracketMatches.length > 0 || firstLine.trim().startsWith('%'))) {
-                fullBody = trimmedBody.substring(firstNewline + 1);
+            let testLine = firstLine.trim();
+            testLine = testLine.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+/, '').trim();
+            if (testLine === '' || testLine.startsWith('%')) {
+                if (firstNewline !== -1) {
+                    fullBody = trimmedBody.substring(firstNewline + 1);
+                } else {
+                    fullBody = '';
+                }
             } else {
-                fullBody = trimmedBody.replace(/^\s*\[.*?\](?:%\[.*?\])*/, '');
+                fullBody = trimmedBody.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+\s*/, '');
             }
             fullBody = fullBody.replace(/(?:%%|%)\s*\[[a-zA-Z0-9\-_.]+\]/g, '');
             fullBody = fullBody.replace(/(?<!\\)%.*/g, '');

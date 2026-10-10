@@ -820,7 +820,7 @@
             if (!Array.isArray(questions) || questions.length === 0) return 0;
             let changedCount = 0;
 
-            // Xây dựng map tra cứu từ cache ngân hàng
+            // Xây dựng map tra cứu từ cache ngân hàng (chỉ lấy các câu đã có nội dung đầy đủ)
             let catalogMap = new Map();
             try {
                 const cached = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
@@ -829,7 +829,7 @@
                     if (Array.isArray(list)) {
                         list.forEach(item => {
                             const k = String(item.id || item.cccd || '').trim();
-                            if (k) catalogMap.set(k, item);
+                            if (k && item.content) catalogMap.set(k, item);
                         });
                     }
                 }
@@ -838,8 +838,38 @@
             if (typeof window !== 'undefined' && Array.isArray(window.globalBankQuestions)) {
                 window.globalBankQuestions.forEach(item => {
                     const k = String(item.id || item.cccd || '').trim();
-                    if (k) catalogMap.set(k, item);
+                    if (k && item.content) catalogMap.set(k, item);
                 });
+            }
+
+            // Thu thập danh sách CCCD cần tải từ R2 (chưa có trong cache hoặc chưa có nội dung)
+            const cccdToFetch = new Set();
+            for (let i = 0; i < questions.length; i++) {
+                const q = questions[i];
+                const cccd = String(q.cccd || q.bankId || q.id || '').trim();
+                if (!cccd || !/^\d{8}$/.test(cccd)) continue;
+
+                const cachedQ = catalogMap.get(cccd);
+                if (!cachedQ || !cachedQ.content) {
+                    cccdToFetch.add(cccd);
+                }
+            }
+
+            // Tải đồng thời theo lô (batch concurrency 10) từ Cloudflare R2
+            if (cccdToFetch.size > 0) {
+                const fetchList = Array.from(cccdToFetch);
+                const batchSize = 10;
+                for (let i = 0; i < fetchList.length; i += batchSize) {
+                    const batch = fetchList.slice(i, i + batchSize);
+                    await Promise.all(batch.map(async (cccd) => {
+                        try {
+                            const bankQ = await this.getQuestionById(cccd, false);
+                            if (bankQ && bankQ.content) {
+                                catalogMap.set(cccd, bankQ);
+                            }
+                        } catch(e) {}
+                    }));
+                }
             }
 
             for (let i = 0; i < questions.length; i++) {
@@ -848,13 +878,9 @@
                 if (!cccd || !/^\d{8}$/.test(cccd)) continue;
 
                 let bankQ = catalogMap.get(cccd);
-                if (!bankQ) {
-                    bankQ = await this.getQuestionById(cccd, false);
-                    if (bankQ) catalogMap.set(cccd, bankQ);
-                }
-
                 if (bankQ && bankQ.content) {
-                    const isDifferent = (q.content !== bankQ.content) ||
+                    const isDifferent = (!q.content || !String(q.content).trim()) ||
+                        (q.content !== bankQ.content) ||
                         (q.solution !== bankQ.solution && bankQ.solution) ||
                         (JSON.stringify(q.options || []) !== JSON.stringify(bankQ.options || [])) ||
                         (JSON.stringify(q.statements || []) !== JSON.stringify(bankQ.statements || [])) ||
