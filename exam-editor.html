@@ -1805,6 +1805,7 @@
     
     <div id="toastContainer" class="fixed top-5 right-5 z-[110] flex flex-col gap-3 pointer-events-none"></div>
     
+    <input type="file" id="imgUploadInput" accept="image/*" class="hidden">
     <input type="file" id="batchFileInput" accept="image/*" class="hidden">
     <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden">
 
@@ -1855,6 +1856,9 @@
         window.originalQuestionsData = []; 
         window.currentQIndex = -1;
         let sessionUploadedFiles = [];
+        let pendingImageUploads = [];
+        window.pendingImageUploads = pendingImageUploads;
+        let currentBatchUploadId = null;
         let statsMap = {}; 
         let classStudentList = [];
         let modalResolve = null;
@@ -2005,7 +2009,7 @@
                     }
                 });
             }
-            document.getElementById('imgUploadInput').addEventListener('change', (e) => { if(e.target.files.length > 0) handleImageUpload(e.target.files[0]); });
+            document.getElementById('imgUploadInput')?.addEventListener('change', (e) => { if(e.target.files.length > 0) handleImageUpload(e.target.files[0]); });
             if (window.initExamFlatpickr) window.initExamFlatpickr();
         });
 
