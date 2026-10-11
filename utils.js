@@ -390,16 +390,16 @@ export const compileTikzLocalViaTikzJax = async (code) => {
         const timeoutHandle = setTimeout(() => {
             if (_tikzCurrentTask && _tikzCurrentTask.id === id) {
                 _tikzCurrentTask = null;
-                reject(new Error("TikzJax timeout sau 15s"));
+                reject(new Error("TikzJax timeout sau 4s"));
                 processNextTikzTask();
             } else {
                 const idx = _tikzTaskQueue.findIndex(t => t.id === id);
                 if (idx !== -1) {
                     _tikzTaskQueue.splice(idx, 1);
-                    reject(new Error("TikzJax timeout sau 15s"));
+                    reject(new Error("TikzJax timeout sau 4s"));
                 }
             }
-        }, 15000);
+        }, 4000);
 
         _tikzTaskQueue.push({
             id,

@@ -3990,6 +3990,12 @@
         };
 
         window.handleAutoCompileAll = async (forcedEngine = null) => {
+            // 1. Đồng bộ và lưu ngay cài đặt VPS từ modal
+            const modeSel = document.getElementById('vpsModeSelector');
+            if (modeSel) localStorage.setItem('tikzVpsMode', modeSel.value);
+            const customUrlEl = document.getElementById('vpsCustomUrl');
+            if (customUrlEl && customUrlEl.value.trim()) localStorage.setItem('tikzVpsUrl', customUrlEl.value.trim());
+
             if (forcedEngine) {
                 if (window.setTikzRenderMode) window.setTikzRenderMode(forcedEngine);
                 else localStorage.setItem('tikzRenderMode', forcedEngine);
@@ -4007,11 +4013,13 @@
             const vpsMode = localStorage.getItem('tikzVpsMode') || 'personal';
 
             const engineIndicator = document.getElementById('compileEngineText');
-            if (engineIndicator) {
-                engineIndicator.innerText = useTikzJax 
-                    ? "⚡ Đang xử lý bằng TikZJax (Client Web)..." 
-                    : "🖥️ Đang gửi sang máy chủ VPS...";
-            }
+            const updateIndicator = (text) => {
+                if (engineIndicator) engineIndicator.innerText = text;
+            };
+
+            updateIndicator(useTikzJax 
+                ? "⚡ Đang xử lý bằng TikZJax (Client Web)..." 
+                : "🚀 Đang gửi sang VPS Batching siêu tốc...");
 
             const updateUI = () => {
                 const pct = total > 0 ? Math.round((finishedCount / total) * 100) : 100;
@@ -4021,23 +4029,6 @@
                 if (window.renderMissingImagesPanel) window.renderMissingImagesPanel(); 
             };
             if (window.renderMissingImagesPanel) window.renderMissingImagesPanel();
-
-            let localQueue = [];
-            let vpsQueue = [];
-
-            // Phân loại hình: Nếu chọn TikZJax, chỉ hình TikZ thuần mới vẽ trực tiếp, hình phức tạp (tkz-euclide) tự động qua VPS
-            if (useTikzJax) {
-                rawQueue.forEach(item => {
-                    const isPureTikz = window.canRenderWithTikzJax ? window.canRenderWithTikzJax(item.contentCode) : !item.contentCode.includes('tkz');
-                    if (isPureTikz) {
-                        localQueue.push(item); // TikzJax: render trực tiếp trên máy, không phụ thuộc server
-                    } else {
-                        vpsQueue.push(item); // VPS: biên dịch qua server → Cloudflare R2
-                    }
-                });
-            } else {
-                vpsQueue = [...rawQueue];
-            }
 
             const processSuccessItem = (item, url, customHtml = null) => {
                 const imgTag = customHtml || `<div class="flex justify-center my-1"><img src="${url}" class="rounded-lg shadow-sm max-h-[250px] object-contain mx-auto w-full md:w-auto" loading="lazy"></div>`;
@@ -4070,77 +4061,69 @@
                 updateUI();
             };
 
-            const runLocalWorker = async () => {
-                while(localQueue.length > 0) {
-                    const item = localQueue.shift();
-                    try {
-                        console.log(`[TikzJax] Đang xử lý ảnh ${item.questionIdx + 1}...`);
-                        const url = await compileTikzLocalViaTikzJax(item.contentCode);
-                        processSuccessItem(item, url);
-                    } catch(e) {
-                        console.warn(`[TikzJax] Lỗi ảnh ${item.questionIdx+1}, tự động chuyển sang VPS: ${e.message}`);
-                        try {
-                            const vpsUrl = await compileTikZToImage(item.contentCode);
-                            processSuccessItem(item, vpsUrl);
-                        } catch(vpsErr) {
-                            processFailItem(item, vpsErr.message);
-                        }
+            let localQueue = [];
+            let vpsQueue = [];
+
+            // Phân loại hình ban đầu
+            if (useTikzJax) {
+                rawQueue.forEach(item => {
+                    const isPureTikz = window.canRenderWithTikzJax ? window.canRenderWithTikzJax(item.contentCode) : !item.contentCode.includes('tkz');
+                    if (isPureTikz) {
+                        localQueue.push(item);
+                    } else {
+                        vpsQueue.push(item);
                     }
-                }
-            };
-
-            const runVpsSingleWorker = async (workerId, queueToProcess) => {
-                while (queueToProcess.length > 0) {
-                    const item = queueToProcess.shift();
-                    try {
-                        console.log(`[VPS Tuần tự ${workerId}] Đang xử lý ảnh ${item.questionIdx + 1}...`);
-                        const url = await compileTikZToImage(item.contentCode);
-                        processSuccessItem(item, url);
-                    } catch (err) {
-                        item.retries = (item.retries || 0) + 1;
-                        const original = pendingImageUploads.find(i => i.id === item.id);
-                        if(original) original.retries = item.retries;
-
-                        if (item.retries < 3) {
-                            queueToProcess.unshift(item);
-                            await new Promise(r => setTimeout(r, 3000));
-                        } else {
-                            processFailItem(item, err.message);
-                        }
-                    }
-                    await new Promise(r => setTimeout(r, 500));
-                }
-            };
-
-            const workers = [];
-
-            if (localQueue.length > 0) {
-                workers.push(runLocalWorker());
-                workers.push(runLocalWorker());
+                });
+            } else {
+                vpsQueue = [...rawQueue];
             }
 
-            const actualApiUrl = getTikzApiUrl();
-            const isActuallyFreeTier = (vpsMode === 'free') || (actualApiUrl === 'https://compile.qmath.io.vn/compile');
+            // GIAI ĐOẠN 1: Nếu dùng TikZJax, vẽ nhanh hình TikZ thuần trên máy
+            if (useTikzJax && localQueue.length > 0) {
+                updateIndicator(`⚡ Đang vẽ ${localQueue.length} hình TikZJax trên trình duyệt...`);
+                let consecutiveFailures = 0;
 
-            if (isActuallyFreeTier) {
-                // Free tier (hoặc bị ép sang Free tier): 4 luồng, mỗi luồng 1 ảnh (Không dùng Batch vì server không hỗ trợ)
-                for (let i = 1; i <= 4; i++) {
-                    workers.push(runVpsSingleWorker(i, vpsQueue));
+                const runLocalWorker = async () => {
+                    while (localQueue.length > 0) {
+                        if (consecutiveFailures >= 2) {
+                            // Fast Circuit Breaker: TikZJax không tương thích hoặc WebAssembly lỗi
+                            break;
+                        }
+                        const item = localQueue.shift();
+                        try {
+                            console.log(`[TikzJax] Đang xử lý câu ${item.questionIdx + 1}...`);
+                            const url = await compileTikzLocalViaTikzJax(item.contentCode);
+                            processSuccessItem(item, url);
+                            consecutiveFailures = 0;
+                        } catch(e) {
+                            console.warn(`[TikZJax] Câu ${item.questionIdx + 1} lỗi WebAssembly: ${e.message}. Chuyển vào hàng đợi VPS Batch.`);
+                            consecutiveFailures++;
+                            vpsQueue.push(item);
+                        }
+                    }
+                };
+
+                await Promise.all([runLocalWorker(), runLocalWorker()]);
+
+                if (localQueue.length > 0) {
+                    console.warn(`[TikZJax Circuit Breaker] Chuyển ${localQueue.length} hình còn lại sang VPS Batching siêu tốc!`);
+                    vpsQueue.push(...localQueue);
+                    localQueue.length = 0;
                 }
-            } else {
-                // Personal / Premium VPS: 4 luồng, batch size 20 với logic fallback xé nhỏ
-                let jobQueue = [];
-                for (let i = 0; i < vpsQueue.length; i += 20) {
-                    jobQueue.push(vpsQueue.slice(i, i + 20));
-                }
-                
-                const runBatchWorker = async (workerId) => {
-                    while (jobQueue.length > 0) {
-                        const job = jobQueue.shift();
-                        if (job.length === 1) {
-                            const item = job[0];
+            }
+
+            // GIAI ĐOẠN 2: XỬ LÝ HÀNG ĐỢI VPS BẰNG BỘ BIÊN DỊCH BATCHING TỐC ĐỘ CAO
+            if (vpsQueue.length > 0) {
+                const actualApiUrl = getTikzApiUrl();
+                const isActuallyFreeTier = (vpsMode === 'free') || (actualApiUrl === 'https://compile.qmath.io.vn/compile');
+
+                if (isActuallyFreeTier) {
+                    updateIndicator(`🖥️ Đang gửi ${vpsQueue.length} hình sang VPS Free Tier (tuần tự)...`);
+                    const runVpsSingleWorker = async (workerId) => {
+                        while (vpsQueue.length > 0) {
+                            const item = vpsQueue.shift();
                             try {
-                                console.log(`[VPS Batch ${workerId}] Xử lý 1 ảnh (Câu ${item.questionIdx + 1})...`);
+                                console.log(`[VPS Tuần tự ${workerId}] Xử lý ảnh câu ${item.questionIdx + 1}...`);
                                 const url = await compileTikZToImage(item.contentCode);
                                 processSuccessItem(item, url);
                             } catch (err) {
@@ -4149,41 +4132,81 @@
                                 if(original) original.retries = item.retries;
 
                                 if (item.retries < 3) {
-                                    jobQueue.unshift([item]);
-                                    await new Promise(r => setTimeout(r, 3000));
+                                    vpsQueue.unshift(item);
+                                    await new Promise(r => setTimeout(r, 2000));
                                 } else {
                                     processFailItem(item, err.message);
                                 }
                             }
-                        } else {
-                            try {
-                                console.log(`[VPS Batch ${workerId}] Đang xử lý khối ${job.length} ảnh...`);
-                                const codes = job.map(c => c.contentCode);
-                                const urls = await compileTikZBatch(codes);
-                                for(let i = 0; i < job.length; i++) {
-                                    processSuccessItem(job[i], urls[i]);
-                                }
-                            } catch (e) {
-                                console.warn(`[VPS Batch ${workerId}] Khối ${job.length} ảnh lỗi: ${e.message}. Đang chia nhỏ...`);
-                                // Chia nhỏ: 20 -> 5 -> 1
-                                let newSize = job.length <= 5 ? 1 : Math.ceil(job.length / 4);
-                                const newJobs = [];
-                                for (let i = 0; i < job.length; i += newSize) {
-                                    newJobs.push(job.slice(i, i + newSize));
-                                }
-                                jobQueue.unshift(...newJobs);
-                            }
+                            await new Promise(r => setTimeout(r, 300));
                         }
-                        await new Promise(r => setTimeout(r, 500));
-                    }
-                };
+                    };
 
-                for (let i = 1; i <= 4; i++) {
-                    workers.push(runBatchWorker(i));
+                    const vpsWorkers = [];
+                    for (let i = 1; i <= 4; i++) {
+                        vpsWorkers.push(runVpsSingleWorker(i));
+                    }
+                    await Promise.all(vpsWorkers);
+                } else {
+                    // CHẾ ĐỘ VPS CÁ NHÂN / TRẢ PHÍ: BATCHING 20 HÌNH / LÔ SIÊU TỐC
+                    updateIndicator(`🚀 Đang biên dịch ${vpsQueue.length} hình bằng VPS Batching siêu tốc (Khối 20 hình)...`);
+
+                    let jobQueue = [];
+                    for (let i = 0; i < vpsQueue.length; i += 20) {
+                        jobQueue.push(vpsQueue.slice(i, i + 20));
+                    }
+                    
+                    const runBatchWorker = async (workerId) => {
+                        while (jobQueue.length > 0) {
+                            const job = jobQueue.shift();
+                            if (job.length === 1) {
+                                const item = job[0];
+                                try {
+                                    console.log(`[VPS Batch ${workerId}] Xử lý đơn lẻ câu ${item.questionIdx + 1}...`);
+                                    const url = await compileTikZToImage(item.contentCode);
+                                    processSuccessItem(item, url);
+                                } catch (err) {
+                                    item.retries = (item.retries || 0) + 1;
+                                    const original = pendingImageUploads.find(i => i.id === item.id);
+                                    if(original) original.retries = item.retries;
+
+                                    if (item.retries < 3) {
+                                        jobQueue.unshift([item]);
+                                        await new Promise(r => setTimeout(r, 2000));
+                                    } else {
+                                        processFailItem(item, err.message);
+                                    }
+                                }
+                            } else {
+                                try {
+                                    console.log(`[VPS Batch ${workerId}] Đang gửi khối ${job.length} hình lên server...`);
+                                    const codes = job.map(c => c.contentCode);
+                                    const urls = await compileTikZBatch(codes);
+                                    for(let i = 0; i < job.length; i++) {
+                                        processSuccessItem(job[i], urls[i]);
+                                    }
+                                } catch (e) {
+                                    console.warn(`[VPS Batch ${workerId}] Khối ${job.length} hình gặp sự cố: ${e.message}. Tự động xé nhỏ...`);
+                                    // Chia nhỏ: 20 -> 5 -> 1
+                                    let newSize = job.length <= 5 ? 1 : Math.ceil(job.length / 4);
+                                    const newJobs = [];
+                                    for (let i = 0; i < job.length; i += newSize) {
+                                        newJobs.push(job.slice(i, i + newSize));
+                                    }
+                                    jobQueue.unshift(...newJobs);
+                                }
+                            }
+                            await new Promise(r => setTimeout(r, 200));
+                        }
+                    };
+
+                    const batchWorkers = [];
+                    for (let i = 1; i <= 4; i++) {
+                        batchWorkers.push(runBatchWorker(i));
+                    }
+                    await Promise.all(batchWorkers);
                 }
             }
-            
-            await Promise.all(workers);
 
             setTimeout(() => {
                 pm.classList.add('opacity-0', 'pointer-events-none');
@@ -11525,21 +11548,22 @@ Vậy max f(x) = 4 tại x = 2; min f(x) = 0 tại x = 1.`;
 
                 <!-- Cấu hình Máy chủ VPS (Khi dùng VPS hoặc tự động Fallback từ TikZJax) -->
                 <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-left space-y-3">
-                    <label class="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
-                        <i class="fa-solid fa-sliders text-primary-600"></i> Cấu hình Máy chủ VPS (Dùng cho Lựa chọn 1 & Fallback tự động)
+                    <label class="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-sliders text-primary-600"></i> Cấu hình Máy chủ VPS (Dùng cho Lựa chọn 1 & Tự động Fallback)</span>
+                        <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full"><i class="fa-solid fa-bolt mr-1"></i>Batching x10 Tốc độ cao</span>
                     </label>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">Máy chủ VPS:</label>
-                            <select id="vpsModeSelector" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-bold bg-white" onchange="document.getElementById('vpsUrlContainer').classList.toggle('hidden', this.value === 'free')">
-                                <option value="free">VPS Free Tier (Mặc định - Tuần tự, an toàn)</option>
-                                <option value="personal">VPS Cá nhân (Batching - Nhanh x10)</option>
+                            <select id="vpsModeSelector" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-bold bg-white" onchange="localStorage.setItem('tikzVpsMode', this.value); document.getElementById('vpsUrlContainer').classList.toggle('hidden', this.value === 'free')">
+                                <option value="personal" selected>VPS Cá nhân / Tốc độ cao (Batching - Nhanh x10)</option>
+                                <option value="free">VPS Free Tier (Tuần tự, dự phòng)</option>
                             </select>
                         </div>
-                        <div id="vpsUrlContainer" class="hidden">
+                        <div id="vpsUrlContainer">
                             <label class="block text-xs font-medium text-gray-600 mb-1">Địa chỉ API VPS Cá nhân:</label>
-                            <input type="text" id="vpsCustomUrl" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs bg-white" placeholder="https://api.qmath.io.vn">
+                            <input type="text" id="vpsCustomUrl" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs bg-white font-mono" value="https://api.qmath.io.vn" placeholder="https://api.qmath.io.vn" onchange="localStorage.setItem('tikzVpsUrl', this.value.trim())" oninput="localStorage.setItem('tikzVpsUrl', this.value.trim())">
                         </div>
                     </div>
                 </div>
