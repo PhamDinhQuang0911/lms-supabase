@@ -624,6 +624,36 @@
         .dark .math-content {
             color: #F1F5F9 !important;
         }
+        /* TỐI ƯU HIỂN THỊ CÂU HỎI TRÊN MOBILE & IPAD TRÁNH BỊ LẸM / CẮT CHỮ */
+        .math-content, #questionPreviewContent {
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+            max-width: 100% !important;
+        }
+        .math-content mjx-container,
+        #questionPreviewContent mjx-container {
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            vertical-align: middle !important;
+        }
+        .math-content mjx-container[display="true"],
+        #questionPreviewContent mjx-container[display="true"] {
+            display: block !important;
+            padding: 0.25rem 0 !important;
+        }
+        .math-content img,
+        #questionPreviewContent img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+        .math-content table,
+        #questionPreviewContent table {
+            max-width: 100% !important;
+            display: block !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
         .dark .math-content svg:not(.lucide):not(.fa-solid):not(.fa-regular):not([class*="fa-"]),
         .dark #overwritePreviewBox svg:not(.lucide):not(.fa-solid):not(.fa-regular):not([class*="fa-"]),
         .dark #questionPreviewContent svg:not(.lucide):not(.fa-solid):not(.fa-regular):not([class*="fa-"]),
@@ -2305,7 +2335,7 @@
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
-                <div class="flex-1 overflow-y-auto p-6 custom-scrollbar" id="questionPreviewContent">
+                <div class="flex-1 overflow-y-auto p-3.5 sm:p-5 md:p-6 custom-scrollbar" id="questionPreviewContent">
                     <div class="flex justify-center py-10"><i class="fa-solid fa-spinner fa-spin text-3xl text-primary-500"></i></div>
                 </div>
                 <div class="p-3 md:p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-between items-center shrink-0 gap-1.5 md:gap-2">
@@ -12914,7 +12944,7 @@ function renderTagFilterUI() {
                 <div class="flex items-center gap-2 mb-4">
                     <span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-lg text-sm font-bold uppercase"><i class="fa-regular fa-lightbulb mr-2"></i>Lời giải chi tiết</span>
                 </div>
-                <div class="bg-gray-50/80 p-6 rounded-2xl border border-gray-200 text-gray-800 dark:text-gray-200 dark:bg-gray-800/80 dark:border-gray-700 math-content text-base leading-loose text-justify overflow-x-auto break-words">
+                <div class="bg-gray-50/80 p-4 sm:p-6 rounded-2xl border border-gray-200 text-gray-800 dark:text-gray-200 dark:bg-gray-800/80 dark:border-gray-700 math-content text-sm sm:text-base leading-relaxed sm:leading-loose text-left overflow-x-auto break-words max-w-full">
                     ${window.formatContent ? window.formatContent(q.solution) : q.solution}
                 </div>
             </div>` : '';
@@ -12995,7 +13025,7 @@ function renderTagFilterUI() {
             </div>
             
             ${masterAliasNoticeHtml}
-            <div class="text-gray-900 text-lg leading-loose math-content font-medium text-justify mb-6">
+            <div class="text-gray-900 dark:text-gray-100 text-base sm:text-lg leading-relaxed sm:leading-loose math-content font-medium text-left break-words overflow-x-auto max-w-full mb-6">
                 ${contentHtml}
             </div>
 

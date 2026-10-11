@@ -287,39 +287,69 @@ const initTikzIframe = () => {
                     container.id = 'container-' + id;
                     document.body.appendChild(container);
 
-                    const script = document.createElement('script');
-                    script.type = 'text/tikz';
-                    script.textContent = code;
-                    container.appendChild(script);
+                    let isHandled = false;
+                    let pollInterval = null;
+                    let observer = null;
 
-                    try {
-                        let waitTries = 0;
-                        while (typeof window.onload !== 'function' && waitTries < 50) {
-                            await new Promise(r => setTimeout(r, 100));
-                            waitTries++;
-                        }
-                        if (typeof window.onload !== 'function') {
-                            throw new Error("TikzJax WebAssembly chưa sẵn sàng");
-                        }
+                    const cleanup = () => {
+                        if (isHandled) return;
+                        isHandled = true;
+                        if (observer) { try { observer.disconnect(); } catch(e) {} }
+                        if (pollInterval) { try { clearInterval(pollInterval); } catch(e) {} }
+                        try { container.remove(); } catch(e) {}
+                    };
 
-                        // Gọi trực tiếp hàm xử lý của TikzJax
-                        await window.onload();
-
-                        const svg = container.querySelector('svg');
-                        if (svg) {
+                    const handleSvgFound = (svg) => {
+                        if (isHandled) return;
+                        isHandled = true;
+                        if (observer) { try { observer.disconnect(); } catch(e) {} }
+                        if (pollInterval) { try { clearInterval(pollInterval); } catch(e) {} }
+                        try {
                             const serializer = new XMLSerializer();
                             let svgString = serializer.serializeToString(svg);
                             if (!svgString.match(/^<svg[^>]+xmlns="http:\\/\\/www\\.w3\\.org\\/2000\\/svg"/)) {
                                 svgString = svgString.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
                             }
                             window.parent.postMessage({ type: 'tikz-result', id: id, svg: svgString }, '*');
-                        } else {
-                            throw new Error("Không tạo được phần tử SVG từ mã TikZ");
+                        } catch(err) {
+                            window.parent.postMessage({ type: 'tikz-error', id: id, error: err.message }, '*');
+                        } finally {
+                            try { container.remove(); } catch(e) {}
+                        }
+                    };
+
+                    try {
+                        observer = new MutationObserver(function() {
+                            const svg = container.querySelector('svg');
+                            if (svg) handleSvgFound(svg);
+                        });
+                        observer.observe(container, { childList: true, subtree: true });
+
+                        const script = document.createElement('script');
+                        script.type = 'text/tikz';
+                        script.textContent = code;
+                        container.appendChild(script);
+
+                        // Polling song song dự phòng MutationObserver
+                        let pollElapsed = 0;
+                        pollInterval = setInterval(function() {
+                            pollElapsed += 50;
+                            const svg = container.querySelector('svg');
+                            if (svg) {
+                                handleSvgFound(svg);
+                            } else if (pollElapsed >= 9000) {
+                                cleanup();
+                                window.parent.postMessage({ type: 'tikz-error', id: id, error: 'TikZJax timeout: Không nhận được SVG sau 9s' }, '*');
+                            }
+                        }, 50);
+
+                        // Kích hoạt TikzJax xử lý thẻ script
+                        if (typeof window.onload === 'function') {
+                            window.onload();
                         }
                     } catch(err) {
+                        cleanup();
                         window.parent.postMessage({ type: 'tikz-error', id: id, error: err.message }, '*');
-                    } finally {
-                        container.remove();
                     }
                 });
             </script>
@@ -390,16 +420,16 @@ export const compileTikzLocalViaTikzJax = async (code) => {
         const timeoutHandle = setTimeout(() => {
             if (_tikzCurrentTask && _tikzCurrentTask.id === id) {
                 _tikzCurrentTask = null;
-                reject(new Error("TikzJax timeout sau 4s"));
+                reject(new Error("TikzJax timeout sau 10s"));
                 processNextTikzTask();
             } else {
                 const idx = _tikzTaskQueue.findIndex(t => t.id === id);
                 if (idx !== -1) {
                     _tikzTaskQueue.splice(idx, 1);
-                    reject(new Error("TikzJax timeout sau 4s"));
+                    reject(new Error("TikzJax timeout sau 10s"));
                 }
             }
-        }, 4000);
+        }, 10000);
 
         _tikzTaskQueue.push({
             id,

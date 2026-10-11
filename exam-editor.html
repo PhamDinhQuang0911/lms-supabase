@@ -4085,8 +4085,8 @@
 
                 const runLocalWorker = async () => {
                     while (localQueue.length > 0) {
-                        if (consecutiveFailures >= 2) {
-                            // Fast Circuit Breaker: TikZJax không tương thích hoặc WebAssembly lỗi
+                        if (consecutiveFailures >= 4) {
+                            // Fast Circuit Breaker: Nhiều hình liên tiếp không tương thích WebAssembly
                             break;
                         }
                         const item = localQueue.shift();

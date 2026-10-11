@@ -106,6 +106,36 @@
         .dark .math-content {
             color: #f8fafc !important;
         }
+        /* TỐI ƯU HIỂN THỊ CÂU HỎI TRÊN MOBILE & IPAD TRÁNH BỊ LẸM / CẮT CHỮ */
+        .math-content, #lookupQuestionContent {
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+            max-width: 100% !important;
+        }
+        .math-content mjx-container,
+        #lookupQuestionContent mjx-container {
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            vertical-align: middle !important;
+        }
+        .math-content mjx-container[display="true"],
+        #lookupQuestionContent mjx-container[display="true"] {
+            display: block !important;
+            padding: 0.25rem 0 !important;
+        }
+        .math-content img,
+        #lookupQuestionContent img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+        .math-content table,
+        #lookupQuestionContent table {
+            max-width: 100% !important;
+            display: block !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
         .dark mjx-container,
         .dark mjx-container *,
         .dark .mjx-chtml,
@@ -5623,7 +5653,7 @@
                                     </div>
                                     <span>Lời giải chi tiết</span>
                                 </div>
-                                <div class="text-gray-800 dark:text-slate-100 text-sm md:text-base leading-relaxed math-content font-medium text-justify">
+                                <div class="text-gray-800 dark:text-slate-100 text-sm md:text-base leading-relaxed math-content font-medium text-left break-words overflow-x-auto max-w-full">
                                     ${formatMathContent(q.solution)}
                                 </div>
                             </div>
@@ -6396,7 +6426,7 @@
             </div>
 
             <!-- Result Body -->
-            <div id="lookupModalBody" class="p-5 md:p-6 overflow-y-auto flex-1 custom-scrollbar">
+            <div id="lookupModalBody" class="p-3.5 sm:p-5 md:p-6 overflow-y-auto flex-1 custom-scrollbar">
                 <!-- Initial / Empty State -->
                 <div id="lookupInitialState" class="text-center py-12 text-gray-400 dark:text-gray-500">
                     <div class="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-400 flex items-center justify-center mx-auto mb-3 text-2xl">
@@ -6434,7 +6464,7 @@
                     </div>
 
                     <!-- Question Content -->
-                    <div class="text-gray-900 dark:text-slate-100 text-base leading-relaxed math-content font-medium text-justify" id="lookupQuestionContent">
+                    <div class="text-gray-900 dark:text-slate-100 text-sm sm:text-base leading-relaxed math-content font-medium text-left break-words overflow-x-auto max-w-full" id="lookupQuestionContent">
                     </div>
 
                     <!-- Question Answer / Options Section -->
