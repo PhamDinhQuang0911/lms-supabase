@@ -1,5 +1,5 @@
 // topic-parser.js - Parser cấu trúc LaTeX cho Kho Chuyên Đề
-import { compileTikZToImage, cleanTikzCode } from './utils.js';
+import { compileTikZToImage, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode } from './utils.js';
 
 // Cloudflare Upload Endpoint (Từ exam-editor.html)
 const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
@@ -249,21 +249,20 @@ export async function parseTopicFromTex(texFiles, imgFiles, updateProgressCallba
         
         resultStr = parseImmini(resultStr);
         
-        // 4.1. TikZ
-        // 4.1. TikZ
+        // 4.1. TikZ (Phân loại theo Lựa chọn 1: VPS vs Lựa chọn 2: TikZJax)
         const tikzRegex = /\\begin\{tikzpicture\}([\s\S]*?)\\end\{tikzpicture\}/g;
+        const currentMode = getTikzRenderMode ? getTikzRenderMode() : 'vps';
+
         resultStr = resultStr.replace(tikzRegex, (match) => {
-            // Kiểm tra xem có chứa tkz-euclide không
-            if (match.includes('tkz') || match.includes('tkzDefPoint') || match.includes('tkzDraw')) {
-                // Chứa tkz -> Bắt buộc dùng VPS
+            const isPure = canRenderWithTikzJax ? canRenderWithTikzJax(match) : !match.includes('tkz');
+            if (currentMode === 'tikzjax' && isPure) {
+                // Lựa chọn 2: Dùng TikZJax cho mã TikZ thuần (render trực tiếp trên client)
+                return `\n<script type="text/tikz">\n${match}\n</script>\n`;
+            } else {
+                // Lựa chọn 1: Biên dịch bằng VPS (hoặc hình phức tạp tkz-euclide)
                 let marker = `___IMG_MARKER_${imgCounter++}___`;
                 imageTasks.push({ id: marker, type: 'tikz_vps', content: match });
                 return marker;
-            } else {
-                // Không chứa tkz -> Dùng thẳng TikZJax
-                // TikZJax yêu cầu nằm trong thẻ <script type="text/tikz">
-                // Tránh escape bị lỗi khi render HTML
-                return `\n<script type="text/tikz">\n${match}\n</script>\n`;
             }
         });
 

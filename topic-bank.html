@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -146,16 +146,39 @@
                     </div>
                 </div>
 
-                <!-- Cấu hình VPS -->
+                <!-- Cấu hình Công nghệ Biên dịch TikZ (2 Lựa chọn: VPS hoặc TikZJax) -->
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mt-4">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Máy chủ Biên dịch Hình ảnh (VPS TikZ)</label>
-                    <select id="vpsModeSelector" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none font-bold text-sm mb-2" onchange="document.getElementById('vpsUrlContainer').classList.toggle('hidden', this.value === 'free')">
-                        <option value="free">VPS Free Tier (Mặc định - Tuần tự, an toàn)</option>
-                        <option value="personal">VPS Cá nhân (Batching - Nhanh gấp 10 lần)</option>
-                    </select>
-                    <div id="vpsUrlContainer" class="hidden mt-2">
-                        <label class="block text-xs text-gray-500 mb-1">Địa chỉ API VPS Cá nhân (IP & Port):</label>
-                        <input type="text" id="vpsCustomUrl" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none font-mono text-sm" placeholder="VD: https://api.qmath.io.vn">
+                    <label class="block text-sm font-bold text-gray-800 mb-2.5">Công nghệ Biên dịch Hình vẽ TikZ</label>
+                    <div class="space-y-2 mb-3">
+                        <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-100/70 cursor-pointer transition shadow-xs">
+                            <input type="radio" name="topicTikzEngineChoice" value="vps" id="topicRadioTikzVps" class="mt-0.5 text-brand" onchange="window.handleTopicTikzEngineChange('vps')" checked>
+                            <div>
+                                <span class="text-xs font-bold text-gray-800 block">🖥️ Lựa chọn 1: Biên dịch bằng VPS (Mặc định - Ổn định)</span>
+                                <span class="text-[11px] text-gray-500 block leading-tight mt-0.5">Biên dịch toàn bộ mã TikZ qua máy chủ VPS, xuất ảnh sắc nét và lưu an toàn trên Cloudflare R2.</span>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-100/70 cursor-pointer transition shadow-xs">
+                            <input type="radio" name="topicTikzEngineChoice" value="tikzjax" id="topicRadioTikzJax" class="mt-0.5 text-brand" onchange="window.handleTopicTikzEngineChange('tikzjax')">
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs font-bold text-gray-800 block">⚡ Lựa chọn 2: Dùng TikZJax (Web Client - Đang phát triển)</span>
+                                    <span class="text-[9px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.5 rounded">Beta</span>
+                                </div>
+                                <span class="text-[11px] text-gray-500 block leading-tight mt-0.5">Vẽ trực tiếp hình TikZ thuần trên trình duyệt của học sinh (nhẹ, không chờ server). Tự động chuyển VPS cho hình phức tạp (tkz-euclide, bảng biến thiên).</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div id="topicVpsSettingsBlock" class="pt-2 border-t border-gray-100">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Máy chủ VPS:</label>
+                        <select id="vpsModeSelector" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none font-bold text-sm mb-2" onchange="document.getElementById('vpsUrlContainer').classList.toggle('hidden', this.value === 'free')">
+                            <option value="free">VPS Free Tier (Mặc định - Tuần tự, an toàn)</option>
+                            <option value="personal">VPS Cá nhân (Batching - Nhanh gấp 10 lần)</option>
+                        </select>
+                        <div id="vpsUrlContainer" class="hidden mt-2">
+                            <label class="block text-xs text-gray-500 mb-1">Địa chỉ API VPS Cá nhân (IP & Port):</label>
+                            <input type="text" id="vpsCustomUrl" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none font-mono text-sm" placeholder="VD: https://api.qmath.io.vn">
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-6">
@@ -225,7 +248,15 @@
             const m = document.getElementById('importModal');
             const mc = document.getElementById('importModalContent');
             
-            // Load VPS settings from localStorage
+            // Load TikZ engine & VPS settings from localStorage
+            const engineMode = localStorage.getItem('tikzRenderMode') || 'vps';
+            const rVps = document.getElementById('topicRadioTikzVps');
+            const rTikzJax = document.getElementById('topicRadioTikzJax');
+            if (rVps && rTikzJax) {
+                if (engineMode === 'tikzjax') rTikzJax.checked = true;
+                else rVps.checked = true;
+            }
+
             const vpsMode = localStorage.getItem('tikzVpsMode') || 'personal';
             const vpsUrl = localStorage.getItem('tikzVpsUrl') || 'https://api.qmath.io.vn';
             document.getElementById('vpsModeSelector').value = vpsMode;
@@ -246,6 +277,10 @@
             mc.classList.remove('scale-100');
             mc.classList.add('scale-95');
             setTimeout(() => { m.classList.add('hidden'); }, 300);
+        };
+
+        window.handleTopicTikzEngineChange = (engine) => {
+            localStorage.setItem('tikzRenderMode', engine);
         };
 
         // --- FILE SELECTION STATE ---

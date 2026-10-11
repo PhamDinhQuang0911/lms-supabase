@@ -3417,6 +3417,9 @@
             });
 
             window.safeTypeset();
+            setTimeout(() => {
+                if (window.renderTikz) window.renderTikz();
+            }, 300);
         };
 
         window.confirmExitPractice = async () => {
@@ -3533,6 +3536,7 @@
                     <div class="text-xs text-gray-800 dark:text-slate-200 math-content leading-relaxed font-medium">${window.formatContent(q.solution)}</div>`;
                 qDiv.appendChild(hintDiv);
                 window.safeTypeset(hintDiv);
+                setTimeout(() => { if (window.renderTikz) window.renderTikz(hintDiv); }, 300);
             }
         };
 
