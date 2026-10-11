@@ -1803,7 +1803,86 @@
     </div>
     
     
-    <div id="toastContainer" class="fixed top-5 right-5 z-[110] flex flex-col gap-3 pointer-events-none"></div>
+    <div id="toastContainer" class="fixed top-5 right-5 z-[110] flex flex-col gap-2.5 pointer-events-none"></div>
+    <script>
+        // Hệ thống Toast thông báo hiện đại: có nút đóng x, tự tắt sau 3s, phân loại màu sắc, tối đa 3 toast
+        window.showToast = function(message, type = 'success', duration = 3200) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+
+            // Xóa bớt thông báo cũ nhất nếu đang có từ 3 thông báo trở lên
+            while (container.children.length >= 3) {
+                container.firstElementChild.remove();
+            }
+
+            const typeConfig = {
+                success: {
+                    border: 'border-emerald-500',
+                    icon: '<i class="fa-solid fa-circle-check text-emerald-500 text-base"></i>',
+                    title: 'Thành công'
+                },
+                error: {
+                    border: 'border-rose-500',
+                    icon: '<i class="fa-solid fa-circle-xmark text-rose-500 text-base"></i>',
+                    title: 'Lỗi'
+                },
+                warning: {
+                    border: 'border-amber-500',
+                    icon: '<i class="fa-solid fa-triangle-exclamation text-amber-500 text-base"></i>',
+                    title: 'Cảnh báo'
+                },
+                info: {
+                    border: 'border-sky-500',
+                    icon: '<i class="fa-solid fa-circle-info text-sky-500 text-base"></i>',
+                    title: 'Thông báo'
+                }
+            };
+
+            const cfg = typeConfig[type] || typeConfig.info;
+
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto bg-white border-l-4 ${cfg.border} shadow-xl rounded-xl p-3 flex items-start gap-2.5 min-w-[280px] max-w-[380px] transform translate-x-full opacity-0 transition-all duration-300 select-none`;
+            
+            toast.innerHTML = `
+                <div class="shrink-0 mt-0.5">${cfg.icon}</div>
+                <div class="flex-1 min-w-0 pr-1">
+                    <h4 class="font-bold text-gray-800 text-[11px] uppercase tracking-wide leading-tight mb-0.5">${cfg.title}</h4>
+                    <p class="text-xs text-gray-600 leading-snug break-words">${message}</p>
+                </div>
+                <button type="button" class="shrink-0 text-gray-400 hover:text-gray-700 w-5 h-5 flex items-center justify-center rounded-md hover:bg-gray-100 transition cursor-pointer text-xs" title="Đóng thông báo">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+
+            const closeBtn = toast.querySelector('button');
+            let isDismissed = false;
+            const dismiss = () => {
+                if (isDismissed) return;
+                isDismissed = true;
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            };
+
+            closeBtn.onclick = (e) => {
+                e.stopPropagation();
+                dismiss();
+            };
+
+            container.appendChild(toast);
+
+            // Hiệu ứng trượt vào
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-full', 'opacity-0');
+            });
+
+            // Tự động tắt sau khoảng thời gian
+            let timeoutId = setTimeout(dismiss, duration);
+
+            // Dừng timer khi rê chuột vào để đọc, tiếp tục đếm khi rời chuột
+            toast.addEventListener('mouseenter', () => clearTimeout(timeoutId));
+            toast.addEventListener('mouseleave', () => { timeoutId = setTimeout(dismiss, 1200); });
+        };
+    </script>
     
     <input type="file" id="imgUploadInput" accept="image/*" class="hidden">
     <input type="file" id="batchFileInput" accept="image/*" class="hidden">
@@ -3910,7 +3989,11 @@
             window.finishImportProcess(); 
         };
 
-        window.handleAutoCompileAll = async () => {
+        window.handleAutoCompileAll = async (forcedEngine = null) => {
+            if (forcedEngine) {
+                if (window.setTikzRenderMode) window.setTikzRenderMode(forcedEngine);
+                else localStorage.setItem('tikzRenderMode', forcedEngine);
+            }
             document.getElementById('importModeModal').classList.add('opacity-0', 'pointer-events-none');
             const pm = document.getElementById('progressModal');
             pm.classList.remove('opacity-0', 'pointer-events-none');
@@ -3918,6 +4001,17 @@
             let rawQueue = pendingImageUploads.filter(i => i.type === 'tikz' && !i._done).map(item => ({ ...item, retries: 0 }));
             const total = rawQueue.length;
             let finishedCount = 0;
+
+            const engineMode = forcedEngine || (window.getTikzRenderMode ? window.getTikzRenderMode() : localStorage.getItem('tikzRenderMode')) || 'vps';
+            const useTikzJax = (engineMode === 'tikzjax');
+            const vpsMode = localStorage.getItem('tikzVpsMode') || 'personal';
+
+            const engineIndicator = document.getElementById('compileEngineText');
+            if (engineIndicator) {
+                engineIndicator.innerText = useTikzJax 
+                    ? "⚡ Đang xử lý bằng TikZJax (Client Web)..." 
+                    : "🖥️ Đang gửi sang máy chủ VPS...";
+            }
 
             const updateUI = () => {
                 const pct = total > 0 ? Math.round((finishedCount / total) * 100) : 100;
@@ -3927,10 +4021,6 @@
                 if (window.renderMissingImagesPanel) window.renderMissingImagesPanel(); 
             };
             if (window.renderMissingImagesPanel) window.renderMissingImagesPanel();
-
-            const engineMode = (window.getTikzRenderMode ? window.getTikzRenderMode() : localStorage.getItem('tikzRenderMode')) || 'vps';
-            const useTikzJax = (engineMode === 'tikzjax') || document.getElementById('useTikzJaxCheckbox')?.checked || false;
-            const vpsMode = localStorage.getItem('tikzVpsMode') || 'personal';
 
             let localQueue = [];
             let vpsQueue = [];
@@ -3988,8 +4078,13 @@
                         const url = await compileTikzLocalViaTikzJax(item.contentCode);
                         processSuccessItem(item, url);
                     } catch(e) {
-                        console.warn(`[TikzJax] Lỗi ảnh ${item.questionIdx+1}, đẩy sang VPS: ${e.message}`);
-                        vpsQueue.push(item); 
+                        console.warn(`[TikzJax] Lỗi ảnh ${item.questionIdx+1}, tự động chuyển sang VPS: ${e.message}`);
+                        try {
+                            const vpsUrl = await compileTikZToImage(item.contentCode);
+                            processSuccessItem(item, vpsUrl);
+                        } catch(vpsErr) {
+                            processFailItem(item, vpsErr.message);
+                        }
                     }
                 }
             };
@@ -4097,9 +4192,9 @@
                 
                 const failed = pendingImageUploads.filter(i => i.type === 'tikz' && !i._done);
                 if (failed.length === 0) {
-                    window.showToast("Xuất sắc! Đã biên dịch xong 100%.", "success");
+                    window.showToast("Xuất sắc! Đã biên dịch xong 100% hình vẽ TikZ.", "success");
                 } else {
-                    window.showToast(`Hoàn tất. Có ${failed.length} ảnh bị lỗi (Màu đỏ).`, "warning");
+                    window.showToast(`Hoàn tất. Có ${failed.length} ảnh cần kiểm tra lại (bấm ô chờ để tải ảnh).`, "warning");
                 }
             }, 800);
         };
@@ -6467,7 +6562,6 @@
                 if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gửi Zalo'; }
             }
         };
-        window.showToast = (message, type='success') => { const c = document.getElementById('toastContainer'); const d = document.createElement('div'); d.className = `bg-white border-l-4 border-green-500 shadow-xl rounded-lg p-4 flex items-center gap-3 min-w-[300px] transform translate-x-full transition-transform duration-300`; d.innerHTML = `<div><h4 class="font-bold text-gray-800 text-sm">THÔNG BÁO</h4><p class="text-sm text-gray-600">${message}</p></div>`; c.appendChild(d); requestAnimationFrame(()=>d.classList.remove('translate-x-full')); setTimeout(()=>{d.classList.add('translate-x-full'); setTimeout(()=>d.remove(), 500);}, 3000); };
         window.togglePrivasySettings = (type) => { document.getElementById('classSelectionArea').className = type === 'class' ? 'pl-6 block mt-2' : 'hidden'; };
 
         window.applyPendingClassSelection = () => {
@@ -11360,76 +11454,112 @@ Vậy max f(x) = 4 tại x = 2; min f(x) = 0 tại x = 1.`;
     </script>
 
     <div id="importModeModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[150] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4">
-        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl transform scale-95 transition-transform duration-300">
-            <div class="p-6 text-center">
-                <div class="w-16 h-16 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fa-brands fa-searchengin"></i></div>
-                <h3 class="text-xl font-black text-gray-800 mb-2">Phát hiện <span id="detectTikzCount" class="text-primary-600">0</span> hình TikZ</h3>
-                <p class="text-gray-500 mb-6 text-sm">Hệ thống phát hiện mã nguồn hình vẽ trong file LaTeX.<br>Bạn muốn xử lý chúng như thế nào?</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button onclick="handleAutoCompileAll()" class="group relative p-4 border-2 border-green-500 bg-green-50 rounded-xl hover:bg-green-100 transition-all text-left">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-bolt"></i></span>
-                            <span class="font-bold text-green-700">Tự động (VPS)</span>
+        <div class="bg-white rounded-3xl w-full max-w-3xl md:max-w-4xl shadow-2xl transform scale-95 transition-all duration-300 flex flex-col max-h-[92vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 pt-5 pb-3 text-center border-b border-gray-100 relative shrink-0">
+                <button type="button" onclick="window.handleManualImport()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition cursor-pointer" title="Đóng">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+                <div class="w-12 h-12 bg-primary-100 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-2 text-2xl shadow-xs">
+                    <i class="fa-brands fa-searchengin"></i>
+                </div>
+                <h3 class="text-xl font-black text-gray-800">Phát hiện <span id="detectTikzCount" class="text-primary-600 font-extrabold">0</span> hình TikZ</h3>
+                <p class="text-gray-500 text-xs mt-1 max-w-xl mx-auto">Hệ thống phát hiện mã nguồn hình vẽ trong file LaTeX. Vui lòng chọn cách thức biên dịch bạn muốn sử dụng:</p>
+            </div>
+
+            <!-- Modal Body (Mở rộng bề ngang + Con lăn bề dọc) -->
+            <div class="overflow-y-auto px-6 py-5 space-y-4 flex-1">
+                <!-- 3 Lựa Chọn Hành Động Nằm Ngang -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                    <!-- Lựa chọn 1: Biên dịch bằng VPS -->
+                    <button type="button" onclick="window.handleAutoCompileAll('vps')" class="group relative p-4 border-2 border-emerald-500 bg-emerald-50/70 hover:bg-emerald-100/90 rounded-2xl hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-2.5">
+                                <span class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-sm shadow-xs group-hover:scale-105 transition-transform">
+                                    <i class="fa-solid fa-server"></i>
+                                </span>
+                                <span class="text-[10px] bg-emerald-200 text-emerald-900 font-extrabold px-2 py-0.5 rounded-full">Ổn định</span>
+                            </div>
+                            <span class="font-extrabold text-emerald-950 text-sm block">1. Dùng VPS (Server)</span>
+                            <p class="text-[11px] text-emerald-900/80 mt-1.5 leading-relaxed">Gửi mã sang máy chủ VPS biên dịch, hỗ trợ 100% gói TikZ phức tạp (tkz-euclide, bảng biến thiên), xuất ảnh Cloudflare R2 sắc nét.</p>
                         </div>
-                        <p class="text-xs text-gray-600">Gửi sang VPS vẽ và tự động chèn ảnh vào đề.</p>
-                        <span class="absolute top-2 right-2 text-[10px] bg-green-200 text-green-800 px-1.5 py-0.5 rounded font-bold">Mới</span>
+                        <div class="mt-3.5 pt-2.5 border-t border-emerald-200/80 text-xs font-bold text-emerald-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                            Biên dịch bằng VPS <i class="fa-solid fa-arrow-right text-[11px]"></i>
+                        </div>
                     </button>
-                    <button onclick="handleManualImport()" class="p-4 border-2 border-gray-200 hover:border-primary-400 bg-white hover:bg-primary-50 rounded-xl transition-all text-left">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-xs"><i class="fa-regular fa-hand-point-up"></i></span>
-                            <span class="font-bold text-gray-700">Thủ công</span>
+
+                    <!-- Lựa chọn 2: Biên dịch bằng TikZJax -->
+                    <button type="button" onclick="window.handleAutoCompileAll('tikzjax')" class="group relative p-4 border-2 border-indigo-500 bg-indigo-50/70 hover:bg-indigo-100/90 rounded-2xl hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-2.5">
+                                <span class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs group-hover:scale-105 transition-transform">
+                                    <i class="fa-solid fa-bolt"></i>
+                                </span>
+                                <span class="text-[10px] bg-amber-200 text-amber-900 font-extrabold px-2 py-0.5 rounded-full">Beta Siêu Tốc</span>
+                            </div>
+                            <span class="font-extrabold text-indigo-950 text-sm block">2. Dùng TikZJax (Web)</span>
+                            <p class="text-[11px] text-indigo-900/80 mt-1.5 leading-relaxed">Vẽ trực tiếp trên trình duyệt bằng WebAssembly, siêu nhanh cho TikZ thuần. Hình phức tạp (tkz-euclide) tự động chuyển sang VPS.</p>
                         </div>
-                        <p class="text-xs text-gray-500">Giữ nguyên ô chờ. Bạn tự tải ảnh lên sau.</p>
+                        <div class="mt-3.5 pt-2.5 border-t border-indigo-200/80 text-xs font-bold text-indigo-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                            Biên dịch bằng TikZJax <i class="fa-solid fa-arrow-right text-[11px]"></i>
+                        </div>
+                    </button>
+
+                    <!-- Lựa chọn 3: Thủ công -->
+                    <button type="button" onclick="window.handleManualImport()" class="group relative p-4 border-2 border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50 rounded-2xl hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-2.5">
+                                <span class="w-9 h-9 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center font-bold text-sm shadow-xs group-hover:scale-105 transition-transform">
+                                    <i class="fa-regular fa-hand"></i>
+                                </span>
+                                <span class="text-[10px] bg-gray-200 text-gray-700 font-extrabold px-2 py-0.5 rounded-full">Tự dán</span>
+                            </div>
+                            <span class="font-extrabold text-gray-800 text-sm block">3. Thủ công</span>
+                            <p class="text-[11px] text-gray-500 mt-1.5 leading-relaxed">Giữ nguyên các khung ô chờ ảnh trong đề. Bạn có thể tự dán ảnh (Ctrl+V) hoặc chọn file từ máy tính để tải lên sau.</p>
+                        </div>
+                        <div class="mt-3.5 pt-2.5 border-t border-gray-100 text-xs font-bold text-gray-500 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                            Giữ ô chờ thủ công <i class="fa-solid fa-arrow-right text-[11px]"></i>
+                        </div>
                     </button>
                 </div>
-                
-                <!-- Cấu hình Công nghệ Biên dịch TikZ (2 Lựa chọn: VPS hoặc TikZJax) -->
-                <div class="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200 text-left">
-                    <label class="block text-sm font-bold text-gray-800 mb-2.5">Công nghệ Biên dịch Hình vẽ TikZ</label>
-                    <div class="space-y-2 mb-3">
-                        <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 cursor-pointer transition shadow-xs">
-                            <input type="radio" name="tikzEngineChoice" value="vps" id="radioTikzVps" class="mt-0.5 text-brand" onchange="window.handleTikzEngineChange('vps')" checked>
-                            <div>
-                                <span class="text-xs font-bold text-gray-800 block">🖥️ Lựa chọn 1: Biên dịch bằng VPS (Mặc định - Ổn định)</span>
-                                <span class="text-[11px] text-gray-500 block leading-tight mt-0.5">Biên dịch toàn bộ mã TikZ qua máy chủ VPS, xuất ảnh sắc nét và lưu an toàn trên Cloudflare R2.</span>
-                            </div>
-                        </label>
-                        <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 cursor-pointer transition shadow-xs">
-                            <input type="radio" name="tikzEngineChoice" value="tikzjax" id="radioTikzJax" class="mt-0.5 text-brand" onchange="window.handleTikzEngineChange('tikzjax')">
-                            <div>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-xs font-bold text-gray-800 block">⚡ Lựa chọn 2: Dùng TikZJax (Web Client - Đang phát triển)</span>
-                                    <span class="text-[9px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.5 rounded">Beta</span>
-                                </div>
-                                <span class="text-[11px] text-gray-500 block leading-tight mt-0.5">Vẽ trực tiếp hình TikZ thuần trên trình duyệt (nhẹ, không cần chờ server). Tự động chuyển VPS cho hình phức tạp (tkz-euclide, bảng biến thiên).</span>
-                            </div>
-                        </label>
-                    </div>
 
-                    <!-- Ẩn/hiện checkbox phụ để đồng bộ backward-compatibility -->
-                    <input type="checkbox" id="useTikzJaxCheckbox" class="hidden">
+                <!-- Cấu hình Máy chủ VPS (Khi dùng VPS hoặc tự động Fallback từ TikZJax) -->
+                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-left space-y-3">
+                    <label class="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
+                        <i class="fa-solid fa-sliders text-primary-600"></i> Cấu hình Máy chủ VPS (Dùng cho Lựa chọn 1 & Fallback tự động)
+                    </label>
 
-                    <div id="vpsSettingsBlock" class="pt-2 border-t border-gray-200/80">
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Máy chủ VPS:</label>
-                        <select id="vpsModeSelector" class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2 text-sm font-bold bg-white" onchange="document.getElementById('vpsUrlContainer').classList.toggle('hidden', this.value === 'free')">
-                            <option value="free">VPS Free Tier (Mặc định - Tuần tự, an toàn)</option>
-                            <option value="personal">VPS Cá nhân (Batching - Nhanh x10)</option>
-                        </select>
-                        <div id="vpsUrlContainer" class="hidden mt-2">
-                            <label class="block text-xs text-gray-500 mb-1">Địa chỉ API VPS Cá nhân:</label>
-                            <input type="text" id="vpsCustomUrl" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-3 bg-white" placeholder="http://103.14.x.x:3000">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Máy chủ VPS:</label>
+                            <select id="vpsModeSelector" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-bold bg-white" onchange="document.getElementById('vpsUrlContainer').classList.toggle('hidden', this.value === 'free')">
+                                <option value="free">VPS Free Tier (Mặc định - Tuần tự, an toàn)</option>
+                                <option value="personal">VPS Cá nhân (Batching - Nhanh x10)</option>
+                            </select>
+                        </div>
+                        <div id="vpsUrlContainer" class="hidden">
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Địa chỉ API VPS Cá nhân:</label>
+                            <input type="text" id="vpsCustomUrl" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs bg-white" placeholder="https://api.qmath.io.vn">
                         </div>
                     </div>
                 </div>
 
                 <!-- Tùy chọn giữ nguyên thứ tự sách in -->
-                <label class="flex items-center gap-2.5 mt-3 cursor-pointer p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-left hover:bg-amber-100 transition shadow-xs">
+                <label class="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-2xl text-left hover:bg-amber-100 transition cursor-pointer shadow-2xs">
                     <input type="checkbox" id="modalKeepOriginalOrder" class="w-4 h-4 text-amber-600 rounded border-amber-300 focus:ring-amber-500 accent-amber-600 shrink-0" onchange="window.handleKeepOriginalOrderChange(this.checked)">
                     <div>
                         <span class="text-xs font-bold text-amber-900 block">📖 Giữ nguyên thứ tự câu hỏi & đáp án như file gốc</span>
                         <span class="text-[11px] text-amber-700 block">Đồng bộ tuyệt đối với sách in số hóa (không đảo đề & phương án)</span>
                     </div>
                 </label>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 shrink-0">
+                <span><i class="fa-solid fa-circle-info text-primary-500 mr-1"></i>Hệ thống tự động lưu lựa chọn của bạn cho các lần nhập sau.</span>
+                <button type="button" onclick="window.handleManualImport()" class="px-3.5 py-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold transition cursor-pointer">
+                    Đóng
+                </button>
             </div>
         </div>
     </div>
@@ -11438,9 +11568,10 @@ Vậy max f(x) = 4 tại x = 2; min f(x) = 0 tại x = 1.`;
         <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 text-center">
             <div class="mb-4"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-primary-600"></i></div>
             <h3 class="font-bold text-gray-800 text-lg mb-1">Đang biên dịch hình vẽ...</h3>
-            <p class="text-gray-500 text-sm mb-4">Vui lòng giữ nguyên kết nối.</p>
-            <div class="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
-                <div id="compileProgressBar" class="bg-primary-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+            <p id="compileEngineText" class="text-xs text-primary-600 font-semibold mb-2">Đang xử lý...</p>
+            <p class="text-gray-500 text-xs mb-4">Vui lòng giữ nguyên kết nối trình duyệt.</p>
+            <div class="w-full bg-gray-200 rounded-full h-3 mb-2 overflow-hidden">
+                <div id="compileProgressBar" class="bg-primary-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
             </div>
             <div class="flex justify-between text-xs font-bold text-gray-600">
                 <span id="compileProgressText">0/0</span><span id="compilePercent">0%</span>
