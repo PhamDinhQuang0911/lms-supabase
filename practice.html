@@ -987,9 +987,12 @@
                         <!-- Status & Clear -->
                         <div class="flex items-center gap-2">
                             <div id="selectionStatus" class="text-xs font-bold bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 shadow-2xs">
-                                <i class="fa-solid fa-shuffle mr-1 theme-season-text"></i> Ngẫu nhiên cả khối
+                                <span class="text-amber-600 dark:text-amber-400 font-bold"><i class="fa-solid fa-circle-exclamation mr-1"></i> Chưa chọn dạng bài</span>
                             </div>
-                            <button onclick="clearAllTreeChecks()" class="text-xs font-bold text-red-500 hover:text-red-700 px-2 py-1 bg-red-50 dark:bg-red-950/40 rounded-lg transition-colors" title="Bỏ chọn tất cả">
+                            <button onclick="selectAllTree()" class="text-xs font-bold text-teal-600 hover:text-teal-700 px-2.5 py-1.5 bg-teal-50 dark:bg-teal-950/40 rounded-xl transition-colors border border-teal-200 dark:border-teal-800" title="Chọn tất cả dạng bài">
+                                <i class="fa-solid fa-check-double mr-1"></i> Chọn hết
+                            </button>
+                            <button onclick="clearAllTreeChecks()" class="text-xs font-bold text-red-500 hover:text-red-700 px-2.5 py-1.5 bg-red-50 dark:bg-red-950/40 rounded-xl transition-colors border border-red-200 dark:border-red-900" title="Bỏ chọn tất cả">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
@@ -2007,8 +2010,8 @@
             document.querySelectorAll('.qcount-badge').forEach(el => {
                 const n = counts[baseOf(el.dataset.mid)] || 0;
                 el.innerText = n > 0 ? (n + ' câu') : '0 câu';
-                el.className = 'qcount-badge text-[10px] font-black px-1.5 py-0.5 rounded-md align-middle ' + 
-                    (n > 0 ? 'text-teal-700 bg-teal-50 dark:bg-teal-950/60' : 'text-gray-300 dark:text-gray-600 bg-gray-50 dark:bg-slate-800');
+                el.className = 'qcount-badge h-[22px] text-[10px] font-black px-2 rounded-md shrink-0 border ml-auto whitespace-nowrap inline-flex items-center justify-center leading-none ' + 
+                    (n > 0 ? 'text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 border-teal-200 dark:border-teal-800' : 'text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700');
             });
         };
 
@@ -2085,17 +2088,19 @@
                         // CẤP 3: DẠNG BÀI (DẠNG 1, DẠNG 2...)
                         const dangNum = idx + 1;
                         const hasDang = /^dạng\s*\d*[:\s-]/i.test(formattedName.trim());
-                        const dangBadge = `<span class="px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-[10px] font-black shrink-0 shadow-2xs">Dạng ${dangNum}</span>`;
+                        const dangBadge = `<span class="h-[22px] px-2 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-[10px] font-black shrink-0 inline-flex items-center justify-center shadow-2xs leading-none">Dạng ${dangNum}</span>`;
                         const dangTitle = hasDang ? formattedName.replace(/^dạng\s*\d*[:\s-]*/i, '').trim() : formattedName;
 
                         html += `
                             <div class="tree-branch mt-0.5 pl-2 sm:pl-3">
                                 <div class="tree-item group flex items-start gap-2.5 p-1.5 sm:p-2 rounded-xl hover:bg-orange-50/50 dark:hover:bg-slate-700/40 border border-transparent hover:border-orange-200/50 dark:hover:border-slate-600 transition-colors">
-                                    <input type="checkbox" id="${cbId}" value="${currentId}" class="map-check w-4 h-4 mt-0.5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer shrink-0" onchange="handleCheckTree(this)">
-                                    <label for="${cbId}" class="map-text cursor-pointer flex-1 flex flex-wrap items-center gap-1.5 leading-snug">
+                                    <div class="flex items-center justify-center w-5 h-[22px] shrink-0">
+                                        <input type="checkbox" id="${cbId}" value="${currentId}" class="map-check w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer" onchange="handleCheckTree(this)">
+                                    </div>
+                                    <label for="${cbId}" class="map-text cursor-pointer flex-1 flex items-start gap-2 select-none min-w-0">
                                         ${dangBadge}
-                                        <span class="text-xs text-gray-700 dark:text-slate-300 math-content flex-1">${dangTitle}</span>
-                                        <span class="qcount-badge text-[10px] font-black text-teal-700 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-md shrink-0 border border-teal-200 dark:border-teal-800 ml-auto whitespace-nowrap" data-mid="${currentId}"></span>
+                                        <span class="text-xs text-gray-700 dark:text-slate-300 math-content flex-1 leading-[22px]">${dangTitle}</span>
+                                        <span class="qcount-badge h-[22px] text-[10px] font-black text-teal-700 bg-teal-50 dark:bg-teal-950/60 px-2 rounded-md shrink-0 border border-teal-200 dark:border-teal-800 ml-auto whitespace-nowrap inline-flex items-center justify-center leading-none" data-mid="${currentId}"></span>
                                     </label>
                                 </div>
                             </div>`;
@@ -2181,17 +2186,22 @@
         };
 
         window.updateSelectionStatus = () => {
-            const count = document.querySelectorAll('.map-check:checked').length;
+            const count = document.querySelectorAll('#treeContainer .map-check:checked').length;
             const statusEl = document.getElementById('selectionStatus');
             if (statusEl) {
-                if (count === 0) statusEl.innerHTML = '<i class="fa-solid fa-shuffle mr-1 text-teal-500"></i> Ngẫu nhiên cả khối';
-                else statusEl.innerHTML = `Đã chọn: <b class="text-teal-600">${count} dạng bài</b>`;
+                if (count === 0) statusEl.innerHTML = '<span class="text-amber-600 dark:text-amber-400 font-bold"><i class="fa-solid fa-circle-exclamation mr-1"></i> Chưa chọn dạng bài</span>';
+                else statusEl.innerHTML = `<span class="text-teal-600 dark:text-teal-400 font-bold"><i class="fa-solid fa-circle-check mr-1"></i> Đã chọn: ${count} dạng bài</span>`;
             }
             updateMobileSummary();
         };
 
         window.clearAllTreeChecks = () => {
             document.querySelectorAll('#treeContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
+            updateSelectionStatus();
+        };
+
+        window.selectAllTree = () => {
+            document.querySelectorAll('#treeContainer input[type="checkbox"]').forEach(cb => cb.checked = true);
             updateSelectionStatus();
         };
 
@@ -2338,7 +2348,7 @@
             const summaryEl = document.getElementById('mobileSelectedSummary');
             const subEl = document.getElementById('mobileSelectionSub');
             if (summaryEl) summaryEl.innerText = `Lớp ${grade} • ${subMap[window.currentConfig.subject] || 'Toán'} • ${qCount} câu`;
-            if (subEl) subEl.innerText = checkedTreeCount > 0 ? `Đã chọn ${checkedTreeCount} dạng bài cụ thể` : 'Ngẫu nhiên tất cả chuyên đề';
+            if (subEl) subEl.innerText = checkedTreeCount > 0 ? `Đã chọn ${checkedTreeCount} dạng bài cụ thể` : 'Chưa chọn dạng bài nào';
         };
 
         // --- LOAD ROADMAPS (CUSTOM_TOPICS FROM XƯỞNG CHUYÊN ĐỀ) ---
@@ -2683,7 +2693,7 @@
                     });
                 }
                 clearAllTreeChecks();
-                startPractice();
+                startPractice(false, true);
             }, 300);
         };
 
@@ -2694,7 +2704,7 @@
         };
 
         // --- START CUSTOM PRACTICE (0ms IN-MEMORY FILTERING) ---
-        window.startPractice = async (isExportPdf = false) => {
+        window.startPractice = async (isExportPdf = false, allowRandomAll = false) => {
             try {
                 const practiceId = (document.getElementById('inputPracticeId')?.value || '').trim();
                 const grade = window.currentConfig.grade;
@@ -2709,9 +2719,20 @@
                 const reqTheory = document.getElementById('filterTheory')?.checked;
                 const reqRealWorld = document.getElementById('filterRealWorld')?.checked;
 
-                const checkedMapIds = Array.from(document.querySelectorAll('.tree-item .map-check:checked'))
+                const checkedMapIds = Array.from(document.querySelectorAll('#treeContainer input[type="checkbox"]:checked'))
                     .map(cb => cb.value)
                     .filter(Boolean);
+
+                if (!practiceId && !allowRandomAll && checkedMapIds.length === 0) {
+                    alert("Bạn chưa chọn chuyên đề hoặc dạng bài nào!\n\nVui lòng tích chọn ít nhất 1 bài học hoặc dạng bài ở cây bên phải trước khi bắt đầu luyện tập.");
+                    const treeEl = document.getElementById('treeContainer');
+                    if (treeEl) {
+                        treeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        treeEl.classList.add('ring-2', 'ring-orange-400');
+                        setTimeout(() => treeEl.classList.remove('ring-2', 'ring-orange-400'), 2500);
+                    }
+                    return;
+                }
 
                 const getBaseIdForMatch = (id) => {
                     let raw = String(id || "").split('_')[0];
