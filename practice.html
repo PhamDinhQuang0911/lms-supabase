@@ -914,7 +914,7 @@
                         <div>
                             <label class="block text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1">Số lượng câu</label>
                             <div class="flex items-center gap-1">
-                                <input type="number" id="inputQCount" value="10" min="1" max="100" class="w-full px-3 py-2 text-center text-sm font-black bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-300">
+                                <input type="number" id="inputQCount" value="10" min="1" max="100" class="w-full px-3 py-2 text-center text-sm font-black bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-300" oninput="handleQCountChange()">
                             </div>
                             <div class="flex items-center justify-between gap-1 mt-1.5">
                                 <button type="button" onclick="setQCount(5)" class="qcount-btn text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-700">5c</button>
@@ -926,8 +926,8 @@
                         </div>
                         <div>
                             <label class="block text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1">Thời gian (phút)</label>
-                            <input type="number" id="inputTime" value="0" min="0" placeholder="0 = Tự động" class="w-full px-3 py-2 text-center text-sm font-black bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-300">
-                            <p class="text-[10px] text-gray-400 text-center mt-1.5 italic">0: Tự động tính phút</p>
+                            <input type="number" id="inputTime" value="26" min="1" placeholder="Số phút" class="w-full px-3 py-2 text-center text-sm font-black bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-300">
+                            <p id="timeRatioHint" class="text-[10px] text-gray-400 text-center mt-1.5 italic">Tự tính: 26 phút (chuẩn 90p / 34 câu). Có thể tự sửa.</p>
                         </div>
                     </div>
 
@@ -1175,14 +1175,17 @@
             <!-- Bottom Question Palette -->
             <div class="mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 shrink-0 overflow-hidden">
                 <div class="flex justify-between items-center p-2.5 px-4 bg-gray-50 dark:bg-slate-900 border-b border-gray-100 dark:border-slate-700 cursor-pointer select-none" onclick="window.togglePalette()">
-                    <span class="text-[11px] font-black text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-list-ol theme-season-text"></i> Danh sách câu hỏi (<span id="paletteCount">0</span> câu)
-                    </span>
-                    <button class="w-6 h-6 rounded-full bg-white dark:bg-slate-800 text-gray-500 flex items-center justify-center text-xs">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-[11px] font-black text-gray-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-list-ol theme-season-text text-xs"></i> Danh sách câu hỏi (<span id="paletteCount">0</span> câu)
+                        </span>
+                        <span id="paletteAnsweredBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">Đã làm: 0/0</span>
+                    </div>
+                    <button type="button" class="w-6 h-6 rounded-full bg-white dark:bg-slate-800 text-gray-500 hover:text-gray-700 flex items-center justify-center text-xs shadow-2xs">
                         <i id="paletteIcon" class="fa-solid fa-chevron-down transition-transform duration-300"></i>
                     </button>
                 </div>
-                <div id="questionPalette" class="grid grid-cols-6 sm:grid-cols-10 md:grid-cols-15 lg:grid-cols-20 gap-1.5 max-h-36 overflow-y-auto custom-scrollbar p-3"></div>
+                <div id="questionPalette" class="flex flex-wrap items-center gap-2 max-h-44 overflow-y-auto custom-scrollbar p-3 sm:p-4 bg-white dark:bg-slate-800/80"></div>
             </div>
         </section>
 
@@ -2027,35 +2030,72 @@
                 return;
             }
 
-            const renderRecursiveChildren = (nodes, parentId = '') => {
+            const renderRecursiveChildren = (nodes, parentId = '', depth = 1) => {
                 if (!nodes || nodes.length === 0) return '';
                 let html = '';
-                nodes.forEach(child => {
+                nodes.forEach((child, idx) => {
                     const hasChildren = child.children && child.children.length > 0;
                     const currentId = parentId ? (parentId + '|' + child.id) : child.id;
                     const cbId = 'cb-' + currentId.replace(/[^a-zA-Z0-9_-]/g, '_');
-                    const formattedName = child.name;
+                    const formattedName = child.name || '';
 
                     if (hasChildren) {
-                        html += `
-                            <div class="tree-branch mt-1">
-                                <details class="group" open>
-                                    <summary class="flex items-center gap-2 py-1.5 hover:text-indigo-600 select-none">
-                                        <i class="fa-solid fa-caret-right folder-icon text-gray-400 text-xs"></i>
-                                        <input type="checkbox" id="${cbId}" value="${currentId}" class="map-check-parent-node w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer" onclick="event.stopPropagation()" onchange="handleCheckTree(this)">
-                                        <span class="text-xs font-bold text-gray-700 dark:text-slate-300 math-content group-open:text-indigo-600">${formattedName}</span>
-                                    </summary>
-                                    <div class="pt-0.5">${renderRecursiveChildren(child.children, currentId)}</div>
-                                </details>
-                            </div>`;
+                        if (depth === 1) {
+                            // CẤP 1: CHƯƠNG
+                            const hasChap = /^chương\s+/i.test(formattedName.trim());
+                            const chapBadge = `<span class="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[10px] font-black uppercase tracking-wider shrink-0 flex items-center gap-1"><i class="fa-solid fa-bookmark text-[9px]"></i> ${hasChap ? formattedName.split(/[:\.-]/)[0].trim() : `Chương ${idx + 1}`}</span>`;
+                            const chapTitle = hasChap ? formattedName.replace(/^chương\s*[\w\dIVXLCDM]+[:\.-]?\s*/i, '').trim() : formattedName;
+
+                            html += `
+                                <div class="tree-chapter-card mt-2.5 mb-2.5 rounded-2xl border border-gray-200 dark:border-slate-700/80 bg-gray-50/50 dark:bg-slate-800/40 p-2.5 sm:p-3 shadow-2xs">
+                                    <details class="group" open>
+                                        <summary class="flex items-center gap-2 py-1.5 hover:text-indigo-600 select-none cursor-pointer">
+                                            <i class="fa-solid fa-chevron-right folder-icon text-gray-400 group-open:rotate-90 transition-transform duration-200 text-xs"></i>
+                                            <input type="checkbox" id="${cbId}" value="${currentId}" class="map-check-parent-node w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer shrink-0" onclick="event.stopPropagation()" onchange="handleCheckTree(this)">
+                                            <div class="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                                                ${chapBadge}
+                                                <span class="text-xs sm:text-sm font-extrabold text-gray-800 dark:text-slate-100 math-content group-open:text-indigo-600">${chapTitle || formattedName}</span>
+                                            </div>
+                                        </summary>
+                                        <div class="pt-1.5 pl-1.5 sm:pl-3 space-y-1">${renderRecursiveChildren(child.children, currentId, depth + 1)}</div>
+                                    </details>
+                                </div>`;
+                        } else {
+                            // CẤP 2: BÀI TRONG CHƯƠNG
+                            const hasBai = /^bài\s+/i.test(formattedName.trim());
+                            const baiBadge = `<span class="px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-[9px] font-bold shrink-0 flex items-center gap-1"><i class="fa-solid fa-file-lines text-[8px]"></i> ${hasBai ? formattedName.split(/[:\.-]/)[0].trim() : `Bài ${idx + 1}`}</span>`;
+                            const baiTitle = hasBai ? formattedName.replace(/^bài\s*[\w\d]+[:\.-]?\s*/i, '').trim() : formattedName;
+
+                            html += `
+                                <div class="tree-lesson-card mt-1 mb-1.5 pl-2 sm:pl-3 border-l-2 border-sky-200 dark:border-sky-800/80">
+                                    <details class="group" open>
+                                        <summary class="flex items-center gap-2 py-1 hover:text-sky-600 select-none cursor-pointer">
+                                            <i class="fa-solid fa-caret-right folder-icon text-gray-400 group-open:rotate-90 transition-transform duration-200 text-xs"></i>
+                                            <input type="checkbox" id="${cbId}" value="${currentId}" class="map-check-parent-node w-4 h-4 text-sky-600 rounded border-gray-300 focus:ring-sky-500 cursor-pointer shrink-0" onclick="event.stopPropagation()" onchange="handleCheckTree(this)">
+                                            <div class="flex items-center gap-1.5 flex-wrap flex-1 min-w-0">
+                                                ${baiBadge}
+                                                <span class="text-xs font-bold text-gray-700 dark:text-slate-200 math-content group-open:text-sky-600">${baiTitle || formattedName}</span>
+                                            </div>
+                                        </summary>
+                                        <div class="pt-1 pl-2 sm:pl-3 space-y-1">${renderRecursiveChildren(child.children, currentId, depth + 1)}</div>
+                                    </details>
+                                </div>`;
+                        }
                     } else {
+                        // CẤP 3: DẠNG BÀI (DẠNG 1, DẠNG 2...)
+                        const dangNum = idx + 1;
+                        const hasDang = /^dạng\s*\d*[:\s-]/i.test(formattedName.trim());
+                        const dangBadge = `<span class="px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-[10px] font-black shrink-0 shadow-2xs">Dạng ${dangNum}</span>`;
+                        const dangTitle = hasDang ? formattedName.replace(/^dạng\s*\d*[:\s-]*/i, '').trim() : formattedName;
+
                         html += `
-                            <div class="tree-branch mt-1 border-l-0 pl-5 relative">
-                                <div class="absolute left-0 top-1/2 w-3 h-[1px] bg-gray-300 -translate-y-1/2"></div>
-                                <div class="tree-item flex items-start gap-2">
+                            <div class="tree-branch mt-0.5 pl-2 sm:pl-3">
+                                <div class="tree-item group flex items-start gap-2.5 p-1.5 sm:p-2 rounded-xl hover:bg-orange-50/50 dark:hover:bg-slate-700/40 border border-transparent hover:border-orange-200/50 dark:hover:border-slate-600 transition-colors">
                                     <input type="checkbox" id="${cbId}" value="${currentId}" class="map-check w-4 h-4 mt-0.5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer shrink-0" onchange="handleCheckTree(this)">
-                                    <label for="${cbId}" class="map-text cursor-pointer block math-content text-xs text-gray-600 dark:text-slate-400 leading-snug">
-                                        ${formattedName} <span class="qcount-badge text-[10px] font-black text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded-md align-middle" data-mid="${currentId}"></span>
+                                    <label for="${cbId}" class="map-text cursor-pointer flex-1 flex flex-wrap items-center gap-1.5 leading-snug">
+                                        ${dangBadge}
+                                        <span class="text-xs text-gray-700 dark:text-slate-300 math-content flex-1">${dangTitle}</span>
+                                        <span class="qcount-badge text-[10px] font-black text-teal-700 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-md shrink-0 border border-teal-200 dark:border-teal-800 ml-auto whitespace-nowrap" data-mid="${currentId}"></span>
                                     </label>
                                 </div>
                             </div>`;
@@ -2097,7 +2137,7 @@
                                     <i class="fa-solid fa-chevron-down arrow-icon text-gray-400 text-xs shrink-0"></i>
                                 </div>
                                 <div class="topic-body px-3 pt-2">
-                                    ${sectionNode.children ? renderRecursiveChildren(sectionNode.children, grade + sectionNode.id) : '<p class="text-xs text-gray-400 italic p-3">Chưa có bài học nào.</p>'}
+                                    ${sectionNode.children ? renderRecursiveChildren(sectionNode.children, grade + sectionNode.id, 1) : '<p class="text-xs text-gray-400 italic p-3">Chưa có bài học nào.</p>'}
                                 </div>`;
                             container.appendChild(card);
                         }
@@ -2244,10 +2284,25 @@
             });
         };
 
-        window.setQCount = (cnt) => {
+        window.calculateTimeForQuestions = (count) => {
+            const cnt = parseInt(count) || 10;
+            return Math.max(1, Math.round(cnt * 90 / 34));
+        };
+
+        window.handleQCountChange = (newCount) => {
             const inp = document.getElementById('inputQCount');
-            if (inp) inp.value = cnt;
+            if (newCount !== undefined && inp) inp.value = newCount;
+            const cnt = parseInt(inp ? inp.value : 10) || 10;
+            const autoMin = window.calculateTimeForQuestions(cnt);
+            const timeInp = document.getElementById('inputTime');
+            if (timeInp) timeInp.value = autoMin;
+            const hint = document.getElementById('timeRatioHint');
+            if (hint) hint.innerText = `Tự tính: ${autoMin} phút (chuẩn 90p / 34 câu). Có thể tự sửa.`;
             updateMobileSummary();
+        };
+
+        window.setQCount = (cnt) => {
+            window.handleQCountChange(cnt);
         };
 
         window.resetCustomConfig = () => {
@@ -2265,7 +2320,9 @@
                 }
             });
             document.getElementById('inputQCount').value = 10;
-            document.getElementById('inputTime').value = 0;
+            document.getElementById('inputTime').value = 26;
+            const hint = document.getElementById('timeRatioHint');
+            if (hint) hint.innerText = 'Tự tính: 26 phút (chuẩn 90p / 34 câu). Có thể tự sửa.';
             document.getElementById('filterTheory').checked = false;
             document.getElementById('filterRealWorld').checked = false;
             document.getElementById('inputPracticeId').value = '';
@@ -2670,7 +2727,17 @@
                 let pool = (window.globalBankCatalog || []).filter(q => {
                     if (practiceId) return String(q.id) === practiceId || String(q.cccd) === practiceId;
                     const actualMapId = String(q.mapId || q.id || "").trim();
-                    const actualLevel = String(q.level || "").trim().toUpperCase();
+                    let actualLevel = String(q.level || "").trim().toUpperCase();
+                    if (!actualLevel && actualMapId) {
+                        const lMatch = actualMapId.match(/^\d+[a-zA-Z]\d+([NHVC])/i);
+                        if (lMatch) {
+                            const c = lMatch[1].toUpperCase();
+                            if (c === 'N') actualLevel = 'NHẬN BIẾT';
+                            else if (c === 'H') actualLevel = 'THÔNG HIỂU';
+                            else if (c === 'V') actualLevel = 'VẬN DỤNG';
+                            else if (c === 'C') actualLevel = 'VẬN DỤNG CAO';
+                        }
+                    }
                     if (!actualMapId) return false;
 
                     const qBaseId = getBaseIdForMatch(actualMapId);
@@ -2683,10 +2750,10 @@
 
                     if (checkedLevels.length > 0) {
                         const isMatch = checkedLevels.some(code => {
-                            if (code === 'NB' && (actualLevel.includes('NHẬN BIẾT') || actualLevel === 'NB')) return true;
-                            if (code === 'TH' && (actualLevel.includes('THÔNG HIỂU') || actualLevel === 'TH')) return true;
-                            if (code === 'VD' && (actualLevel === 'VẬN DỤNG' || actualLevel === 'VD')) return true;
-                            if (code === 'VDC' && (actualLevel.includes('CAO') || actualLevel === 'VDC')) return true;
+                            if (code === 'NB' && (actualLevel.includes('NHẬN BIẾT') || actualLevel === 'NB' || /^\d+[a-zA-Z]\d+N/i.test(actualMapId))) return true;
+                            if (code === 'TH' && (actualLevel.includes('THÔNG HIỂU') || actualLevel === 'TH' || /^\d+[a-zA-Z]\d+H/i.test(actualMapId))) return true;
+                            if (code === 'VD' && (actualLevel === 'VẬN DỤNG' || actualLevel === 'VD' || /^\d+[a-zA-Z]\d+V/i.test(actualMapId))) return true;
+                            if (code === 'VDC' && (actualLevel.includes('CAO') || actualLevel === 'VDC' || /^\d+[a-zA-Z]\d+C/i.test(actualMapId))) return true;
                             return false;
                         });
                         if (!isMatch) return false;
@@ -2718,6 +2785,12 @@
                     return;
                 }
 
+                if (pool.length < qCount) {
+                    const ok = confirm(`Thông báo số lượng câu hỏi:\n\nKho câu hỏi hiện có ${pool.length} câu phù hợp với các dạng bài và mức độ bạn đã chọn (yêu cầu ${qCount} câu).\n\nBạn có muốn bắt đầu làm bài với toàn bộ ${pool.length} câu này không?`);
+                    if (!ok) return;
+                    qCount = pool.length;
+                }
+
                 for (let i = pool.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -2742,10 +2815,8 @@
                 window.practiceQuestions = selected;
 
                 let totalMin = customTime;
-                if (totalMin === 0) {
-                    let totalSec = 0;
-                    selected.forEach(q => totalSec += (q.type === 'tf' ? 240 : 108));
-                    totalMin = Math.ceil(totalSec / 60);
+                if (!totalMin || totalMin <= 0) {
+                    totalMin = window.calculateTimeForQuestions(selected.length);
                 }
 
                 if (isExportPdf) {
@@ -2791,6 +2862,8 @@
             document.getElementById('progressText').innerText = `0/${total}`;
             document.getElementById('progressBar').style.width = '0%';
             document.getElementById('paletteCount').innerText = total;
+            const initBadge = document.getElementById('paletteAnsweredBadge');
+            if (initBadge) initBadge.innerText = `Đã làm: 0/${total}`;
 
             window.practiceQuestions.forEach((q, idx) => {
                 const qDiv = document.createElement('div');
@@ -2885,8 +2958,9 @@
 
                 const pBtn = document.createElement('button');
                 pBtn.id = 'p-btn-' + idx;
-                pBtn.className = "h-8 w-full rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-center font-black text-xs text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors";
+                pBtn.className = "w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/90 text-gray-600 dark:text-slate-300 flex items-center justify-center font-black text-xs hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50/50 dark:hover:bg-slate-700 transition-all cursor-pointer shadow-2xs shrink-0 select-none";
                 pBtn.textContent = idx + 1;
+                pBtn.title = `Chuyển tới câu ${idx + 1}`;
                 pBtn.onclick = () => { document.getElementById('q-' + idx)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
                 palette.appendChild(pBtn);
             });
@@ -2925,7 +2999,7 @@
 
             const btn = document.getElementById('p-btn-' + qIdx);
             if (btn) {
-                btn.className = "h-8 w-full rounded-xl btn-season-primary flex items-center justify-center font-black text-xs shadow-2xs";
+                btn.className = "w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500 text-white font-black text-xs flex items-center justify-center border border-emerald-600 shadow-xs ring-2 ring-emerald-200 dark:ring-emerald-900/60 transition-all cursor-pointer shrink-0 select-none";
             }
 
             const total = window.practiceQuestions.length;
@@ -2935,6 +3009,8 @@
             const pTxt = document.getElementById('progressText');
             if (pBar) pBar.style.width = pct + '%';
             if (pTxt) pTxt.innerText = `${done}/${total}`;
+            const pBadge = document.getElementById('paletteAnsweredBadge');
+            if (pBadge) pBadge.innerText = `Đã làm: ${done}/${total}`;
 
             if (window.currentConfig.instantFeedback && !window.instantAnswered[qIdx]) {
                 checkAndShowInstantSolution(qIdx);

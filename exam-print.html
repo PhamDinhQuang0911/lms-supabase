@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    <!-- MathJax config giống hệ thống chính -->
+    <!-- MathJax config -->
     <script>
     window.MathJax = {
         loader: { load: ['[tex]/noerrors'] },
@@ -28,11 +28,13 @@
                 R: "\\mathbb{R}",
                 N: "\\mathbb{N}",
                 Z: "\\mathbb{Z}",
+                Q: "\\mathbb{Q}",
                 vectors: ["\\overrightarrow{#1}", 1],
+                vec: ["\\overrightarrow{#1}", 1],
                 mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1]
             }
         },
-        options: { ignoreHtmlClass: 'tex2jax_ignore', processHtmlClass: 'tex2jax_process' },
+        options: { ignoreHtmlClass: 'tex2jax_ignore' },
         startup: { typeset: false }
     };
     </script>
@@ -70,10 +72,11 @@
 
         /* ===== OPTIONS PANEL ===== */
         #optionsPanel {
-            position: fixed; top: 52px; right: 0; width: 270px;
+            position: fixed; top: 52px; right: 0; width: 280px; max-width: 90vw;
             background: #1f2937; border-left: 1px solid #374151;
             height: calc(100vh - 52px); padding: 16px; overflow-y: auto; z-index: 999;
-            transition: transform 0.3s;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: -4px 0 24px rgba(0,0,0,0.35);
         }
         #optionsPanel.hidden { transform: translateX(100%); }
         .opt-section-title { font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px; }
@@ -195,9 +198,18 @@
             @page { size: A4; margin: 0; }
         }
 
+        @media (max-width: 1024px) {
+            #previewArea.panel-open { padding-right: 0 !important; }
+            #optionsPanel { width: 300px; max-width: 85vw; }
+        }
         @media (max-width: 768px) {
             .a4-page { width: 100%; min-height: auto; }
-            #optionsPanel { width: 220px; }
+            #optionsPanel { width: 280px; max-width: 90vw; }
+        }
+        @media (max-width: 640px) {
+            #toolbar { padding: 8px 12px; gap: 8px; }
+            #toolbar .title { font-size: 13px; }
+            .toolbar-btn { padding: 6px 10px; font-size: 11px; gap: 5px; }
         }
     </style>
 <meta name="view-transition" content="same-origin" /></head>
@@ -220,6 +232,15 @@
 
 <!-- Options Panel -->
 <div id="optionsPanel" class="hidden">
+    <!-- Header with title and close button -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #374151; margin-bottom: 12px;">
+        <span style="font-weight: 700; font-size: 14px; color: #f3f4f6; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-sliders" style="color: #34d399"></i> Tùy chọn in
+        </span>
+        <button type="button" onclick="togglePanel()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #d1d5db; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.2s;" title="Đóng bảng tùy chọn" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
     <div class="opt-section-title">Nội dung hiển thị</div>
     <div class="opt-row"><span class="opt-label">Bảng đáp án cuối</span><label class="toggle"><input type="checkbox" id="optAnswerTable" onchange="reRender()" checked><span class="toggle-slider"></span></label></div>
     <div class="opt-row"><span class="opt-label">In kèm đáp án</span><label class="toggle"><input type="checkbox" id="optShowAnswer" onchange="toggleAnswerKey()"><span class="toggle-slider"></span></label></div>
@@ -276,8 +297,11 @@
 </div>
 </div>
 
+<!-- Backdrop for options drawer on mobile -->
+<div id="panelBackdrop" onclick="togglePanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:998;backdrop-filter:blur(2px);transition:opacity 0.2s;"></div>
+
 <!-- Preview -->
-<div id="previewArea"></div>
+<div id="previewArea" class="math-content tex2jax_process"></div>
 
 <script type="module">
     import { 
@@ -362,7 +386,14 @@
                 }
                 renderDocument();
                 await waitForMathJax();
-                document.getElementById('optionsPanel').classList.remove('hidden');
+                await waitForImages();
+                if (window.innerWidth > 1024) {
+                    document.getElementById('optionsPanel').classList.remove('hidden');
+                    document.getElementById('previewArea').classList.add('panel-open');
+                } else {
+                    document.getElementById('optionsPanel').classList.add('hidden');
+                    document.getElementById('previewArea').classList.remove('panel-open');
+                }
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('printBtn').disabled = false;
                 return;
@@ -453,7 +484,7 @@
             document.getElementById('loadingOverlay').style.display = 'none';
             document.getElementById('printBtn').disabled = false;
             
-            // Chạy ngầm MathJax và tải ảnh
+            // Chạy MathJax và tải ảnh
             waitForMathJax().then(() => waitForImages()).catch(console.error);
         } catch(e) {
             setLoad('Lỗi: ' + e.message, 'Thử tải lại trang');
@@ -465,14 +496,22 @@
         return new Promise(resolve => {
             let attempts = 0;
             const tryIt = async () => {
-                if (window.MathJax && window.MathJax.typesetPromise) {
+                if (window.MathJax && (window.MathJax.typesetPromise || window.MathJax.startup)) {
                     try { 
                         if (window.MathJax.startup && window.MathJax.startup.promise) {
                             await window.MathJax.startup.promise;
-                        } else {
-                            await window.MathJax.typesetPromise(); 
                         }
-                    } catch(e) {}
+                        const area = document.getElementById('previewArea');
+                        if (window.MathJax.typesetPromise) {
+                            if (area) {
+                                await window.MathJax.typesetPromise([area]);
+                            } else {
+                                await window.MathJax.typesetPromise();
+                            }
+                        }
+                    } catch(e) {
+                        console.warn("MathJax typeset error:", e);
+                    }
                     if (window.renderTikz) window.renderTikz();
                     if (window.autoScaleTables) window.autoScaleTables();
                     resolve();
@@ -870,9 +909,34 @@
 
     // ===== CONTROLS =====
     window.togglePanel = function() {
-        document.getElementById('optionsPanel').classList.toggle('hidden');
-        document.getElementById('previewArea').classList.toggle('panel-open');
+        const panel = document.getElementById('optionsPanel');
+        const preview = document.getElementById('previewArea');
+        const backdrop = document.getElementById('panelBackdrop');
+        const isHidden = panel.classList.toggle('hidden');
+        if (window.innerWidth > 1024) {
+            preview.classList.toggle('panel-open', !isHidden);
+            if (backdrop) backdrop.style.display = 'none';
+        } else {
+            preview.classList.remove('panel-open');
+            if (backdrop) backdrop.style.display = isHidden ? 'none' : 'block';
+        }
     };
+
+    window.addEventListener('resize', () => {
+        const panel = document.getElementById('optionsPanel');
+        const preview = document.getElementById('previewArea');
+        const backdrop = document.getElementById('panelBackdrop');
+        if (!panel) return;
+        if (window.innerWidth > 1024) {
+            if (backdrop) backdrop.style.display = 'none';
+            if (!panel.classList.contains('hidden')) {
+                preview.classList.add('panel-open');
+            }
+        } else {
+            preview.classList.remove('panel-open');
+            if (backdrop) backdrop.style.display = panel.classList.contains('hidden') ? 'none' : 'block';
+        }
+    });
     window.toggleAnswerKey = function() { document.body.classList.toggle('show-answer-key', document.getElementById('optShowAnswer').checked); };
     window.toggleSolution = function() { document.body.classList.toggle('show-solution', document.getElementById('optShowSolution').checked); };
 
