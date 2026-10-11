@@ -5,17 +5,33 @@
 /**
  * utils.js - Phiên bản "Strict Timeout"
  */
-export const getTikzApiUrl = () => {
-    if (typeof localStorage === 'undefined') return "https://api.qmath.io.vn/compile";
+const safeStorageGet = (key, defaultVal = null) => {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            const v = window.localStorage.getItem(key);
+            return v !== null ? v : defaultVal;
+        }
+    } catch (_) {}
+    return defaultVal;
+};
 
+const safeStorageSet = (key, val) => {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(key, val);
+        }
+    } catch (_) {}
+};
+
+export const getTikzApiUrl = () => {
     // Tự động nâng cấp URL cũ trong máy người dùng lên tên miền HTTPS mới
-    if (localStorage.getItem('tikzVpsUrl') === 'http://42.96.4.216:3000') {
-        localStorage.setItem('tikzVpsUrl', 'https://api.qmath.io.vn');
+    if (safeStorageGet('tikzVpsUrl') === 'http://42.96.4.216:3000') {
+        safeStorageSet('tikzVpsUrl', 'https://api.qmath.io.vn');
     }
 
-    const mode = localStorage.getItem('tikzVpsMode') || 'personal';
+    const mode = safeStorageGet('tikzVpsMode', 'personal');
     // Đổi mặc định sang tên miền HTTPS xịn vừa tạo qua Cloudflare Tunnel
-    const customUrl = localStorage.getItem('tikzVpsUrl') || 'https://api.qmath.io.vn';
+    const customUrl = safeStorageGet('tikzVpsUrl', 'https://api.qmath.io.vn');
     
     if (mode === 'personal' && customUrl) {
         const baseUrl = customUrl.replace(/\/+$/, '');
@@ -191,7 +207,7 @@ export const compileTikZBatch = async (codesArray) => {
  * Lấy chế độ biên dịch TikZ hiện tại ('vps' hoặc 'tikzjax'). Mặc định là 'vps' (đang ổn định).
  */
 export const getTikzRenderMode = () => {
-    return localStorage.getItem('tikzRenderMode') || 'vps';
+    return safeStorageGet('tikzRenderMode', 'vps') || 'vps';
 };
 
 /**
@@ -199,7 +215,7 @@ export const getTikzRenderMode = () => {
  */
 export const setTikzRenderMode = (mode) => {
     const valid = mode === 'tikzjax' ? 'tikzjax' : 'vps';
-    localStorage.setItem('tikzRenderMode', valid);
+    safeStorageSet('tikzRenderMode', valid);
     return valid;
 };
 
@@ -229,14 +245,23 @@ let _tikzCurrentTask = null;
 
 const initTikzIframe = () => {
     if (_tikzIframeInitStarted) return;
+    if (typeof document === 'undefined') return;
     _tikzIframeInitStarted = true;
 
     _tikzIframe = document.createElement('iframe');
     _tikzIframe.style.display = 'none';
     _tikzIframe.title = 'TikzJax Isolation Sandbox';
-    document.body.appendChild(_tikzIframe);
+    const target = document.body || document.documentElement;
+    if (target) {
+        target.appendChild(_tikzIframe);
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            (document.body || document.documentElement).appendChild(_tikzIframe);
+        });
+    }
 
-    const doc = _tikzIframe.contentWindow.document;
+    const doc = _tikzIframe.contentWindow ? _tikzIframe.contentWindow.document : (_tikzIframe.contentDocument || null);
+    if (!doc) return;
     doc.open();
     doc.write(`
         <!DOCTYPE html>
@@ -1020,13 +1045,19 @@ export const reorderTfSolution = (solution, shuffleMap) => {
 };
 
 if (typeof window !== 'undefined') {
-    window.formatContent = formatContent;
-    window.autoScaleTables = autoScaleTables;
-    window.renderTikz = renderTikz;
-    window.reorderTfSolution = reorderTfSolution;
+    window.getTikzApiUrl = getTikzApiUrl;
+    window.compileTikZToImage = compileTikZToImage;
+    window.compileTikZBatch = compileTikZBatch;
+    window.compileTikzLocalViaTikzJax = compileTikzLocalViaTikzJax;
+    window.canRenderWithTikzJax = canRenderWithTikzJax;
     window.getTikzRenderMode = getTikzRenderMode;
     window.setTikzRenderMode = setTikzRenderMode;
-    window.canRenderWithTikzJax = canRenderWithTikzJax;
-    window.compileTikzLocalViaTikzJax = compileTikzLocalViaTikzJax;
+    window.formatContent = formatContent;
+    window.convertArrayToMatrix = convertArrayToMatrix;
+    window.autoScaleTables = autoScaleTables;
+    window.cleanTikzCode = cleanTikzCode;
+    window.extractNextBrace = extractNextBrace;
+    window.renderTikz = renderTikz;
+    window.reorderTfSolution = reorderTfSolution;
 }
 

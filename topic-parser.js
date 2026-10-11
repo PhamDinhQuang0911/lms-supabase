@@ -1,5 +1,5 @@
 // topic-parser.js - Parser cấu trúc LaTeX cho Kho Chuyên Đề
-import { compileTikZToImage, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode } from './utils.js';
+import { compileTikZToImage, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode } from './utils.js?v=20261011-v2';
 
 // Cloudflare Upload Endpoint (Từ exam-editor.html)
 const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
