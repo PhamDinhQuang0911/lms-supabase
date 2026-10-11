@@ -57,6 +57,156 @@
         return Promise.resolve();
     };
 
+    // --- APP NOTIFICATION & MODAL SYSTEM (REPLACES BROWSER ALERT/CONFIRM) ---
+    let _modalResolve = null;
+
+    window.closeAppModal = function(result) {
+        const overlay = document.getElementById('appModalOverlay');
+        const box = document.getElementById('appModalBox');
+        if (overlay && box) {
+            overlay.classList.add('opacity-0', 'pointer-events-none');
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+        }
+        if (_modalResolve) {
+            const res = _modalResolve;
+            _modalResolve = null;
+            res(Boolean(result));
+        }
+    };
+
+    window.customAlert = function(message, type = 'info', title = null) {
+        return new Promise(function(resolve) {
+            _modalResolve = resolve;
+            const overlay = document.getElementById('appModalOverlay');
+            const box = document.getElementById('appModalBox');
+            const iconWrap = document.getElementById('appModalIconWrapper');
+            const icon = document.getElementById('appModalIcon');
+            const titleEl = document.getElementById('appModalTitle');
+            const msgEl = document.getElementById('appModalMessage');
+            const cancelBtn = document.getElementById('appModalCancelBtn');
+            const confirmBtn = document.getElementById('appModalConfirmBtn');
+
+            if (!overlay || !box) {
+                if (window.nativeAlert) window.nativeAlert(message);
+                return resolve(true);
+            }
+
+            const defaultTitles = {
+                warning: 'Chú ý',
+                error: 'Đã xảy ra lỗi',
+                success: 'Thành công',
+                info: 'Thông báo'
+            };
+            titleEl.innerText = title || defaultTitles[type] || 'Thông báo';
+            msgEl.innerText = String(message || '');
+
+            if (type === 'warning') {
+                iconWrap.className = 'w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-2xl bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800/80 text-amber-500 shadow-sm shadow-amber-500/10';
+                icon.className = 'fa-solid fa-triangle-exclamation';
+            } else if (type === 'error') {
+                iconWrap.className = 'w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-2xl bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-800/80 text-rose-500 shadow-sm shadow-rose-500/10';
+                icon.className = 'fa-solid fa-circle-xmark';
+            } else if (type === 'success') {
+                iconWrap.className = 'w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-2xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800/80 text-emerald-500 shadow-sm shadow-emerald-500/10';
+                icon.className = 'fa-solid fa-circle-check';
+            } else {
+                iconWrap.className = 'w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-2xl bg-orange-50 dark:bg-orange-950/70 border border-orange-200 dark:border-orange-800/80 theme-season-text shadow-sm shadow-orange-500/10';
+                icon.className = 'fa-solid fa-circle-info';
+            }
+
+            cancelBtn.classList.add('hidden');
+            confirmBtn.innerText = 'Đã hiểu';
+            confirmBtn.className = 'flex-1 py-2.5 px-6 rounded-xl btn-season-primary font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+            box.classList.remove('scale-95');
+            box.classList.add('scale-100');
+        });
+    };
+
+    window.customConfirm = function(message, title = 'Xác nhận thao tác', options = {}) {
+        return new Promise(function(resolve) {
+            _modalResolve = resolve;
+            const overlay = document.getElementById('appModalOverlay');
+            const box = document.getElementById('appModalBox');
+            const iconWrap = document.getElementById('appModalIconWrapper');
+            const icon = document.getElementById('appModalIcon');
+            const titleEl = document.getElementById('appModalTitle');
+            const msgEl = document.getElementById('appModalMessage');
+            const cancelBtn = document.getElementById('appModalCancelBtn');
+            const confirmBtn = document.getElementById('appModalConfirmBtn');
+
+            if (!overlay || !box) {
+                const ok = window.nativeConfirm ? window.nativeConfirm(message) : true;
+                return resolve(ok);
+            }
+
+            titleEl.innerText = title || 'Xác nhận';
+            msgEl.innerText = String(message || '');
+
+            if (options.danger) {
+                iconWrap.className = 'w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-2xl bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-800/80 text-rose-500 shadow-sm shadow-rose-500/10';
+                icon.className = 'fa-solid fa-triangle-exclamation';
+            } else if (options.type === 'warning') {
+                iconWrap.className = 'w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-2xl bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-800/80 text-amber-500 shadow-sm shadow-amber-500/10';
+                icon.className = 'fa-solid fa-triangle-exclamation';
+            } else {
+                iconWrap.className = 'w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-2xl bg-orange-50 dark:bg-orange-950/70 border border-orange-200 dark:border-orange-800/80 theme-season-text shadow-sm shadow-orange-500/10';
+                icon.className = 'fa-solid fa-circle-question';
+            }
+
+            cancelBtn.classList.remove('hidden');
+            cancelBtn.innerText = options.cancelText || 'Hủy bỏ';
+
+            confirmBtn.innerText = options.confirmText || 'Đồng ý';
+            confirmBtn.className = 'flex-1 py-2.5 px-6 rounded-xl ' + (options.danger ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'btn-season-primary') + ' font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer';
+
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+            box.classList.remove('scale-95');
+            box.classList.add('scale-100');
+        });
+    };
+
+    window.showToast = function(message, type = 'info', duration = 3000) {
+        const container = document.getElementById('appToastContainer');
+        if (!container) return;
+        const toast = document.createElement('div');
+        const icons = {
+            success: '<i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>',
+            warning: '<i class="fa-solid fa-triangle-exclamation text-amber-400 text-sm"></i>',
+            error: '<i class="fa-solid fa-circle-xmark text-rose-400 text-sm"></i>',
+            info: '<i class="fa-solid fa-circle-info text-sky-400 text-sm"></i>'
+        };
+        toast.className = 'pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-gray-900/95 dark:bg-slate-800/95 text-white shadow-xl backdrop-blur-md border border-white/10 text-xs font-bold animate-fade-in transition-all duration-300';
+        toast.innerHTML = `${icons[type] || icons.info} <span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-10px)';
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    };
+
+    // Override browser defaults
+    window.nativeAlert = window.alert;
+    window.alert = function(msg) {
+        return window.customAlert(msg);
+    };
+    window.nativeConfirm = window.confirm;
+    window.confirm = function(msg) {
+        return window.customConfirm(msg);
+    };
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const overlay = document.getElementById('appModalOverlay');
+            if (overlay && !overlay.classList.contains('pointer-events-none')) {
+                window.closeAppModal(false);
+            }
+        }
+    });
+
     // Early declaration of Navigation to prevent 'ReferenceError'
     window.switchHubTab = function(tabName) {
         ['viewLanding', 'viewRoadmap', 'viewCustom', 'viewHistory', 'practiceStep', 'resultStep'].forEach(function(id) {
@@ -1423,6 +1573,51 @@
         </div>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- GLOBAL APP DIALOG MODAL (Alert / Confirm)                    -->
+    <!-- ============================================================ -->
+    <div id="appModalOverlay" onclick="if(event.target===this) window.closeAppModal(false)" class="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-gray-950/65 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300">
+        <div id="appModalBox" class="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl shadow-2xl shadow-black/25 w-full max-w-sm sm:max-w-md transform scale-95 transition-all duration-300 overflow-hidden relative">
+            <!-- Close (X) button -->
+            <button id="appModalCloseBtn" type="button" onclick="window.closeAppModal(false)" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-400 hover:text-gray-700 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer text-xs z-10" title="Đóng">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Body -->
+            <div class="p-6 sm:p-7 text-center">
+                <!-- Icon Badge -->
+                <div id="appModalIconWrapper" class="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-2xl transition-colors">
+                    <i id="appModalIcon" class="fa-solid fa-circle-info"></i>
+                </div>
+
+                <!-- Title -->
+                <h3 id="appModalTitle" class="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-snug">
+                    Thông báo
+                </h3>
+
+                <!-- Message -->
+                <p id="appModalMessage" class="mt-2.5 text-xs sm:text-sm text-gray-600 dark:text-slate-300 font-medium leading-relaxed whitespace-pre-line text-center">
+                    Nội dung thông báo
+                </p>
+            </div>
+
+            <!-- Footer Actions -->
+            <div id="appModalFooter" class="p-4 sm:p-5 bg-gray-50/80 dark:bg-slate-900/90 border-t border-gray-100 dark:border-slate-800/80 flex items-center justify-end gap-2.5">
+                <button id="appModalCancelBtn" type="button" onclick="window.closeAppModal(false)" class="hidden py-2.5 px-5 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 font-bold text-xs sm:text-sm transition-all cursor-pointer">
+                    Hủy bỏ
+                </button>
+                <button id="appModalConfirmBtn" type="button" onclick="window.closeAppModal(true)" class="flex-1 py-2.5 px-6 rounded-xl btn-season-primary font-black text-xs sm:text-sm shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                    Đã hiểu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- GLOBAL TOAST CONTAINER                                       -->
+    <!-- ============================================================ -->
+    <div id="appToastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 z-[100001] flex flex-col items-center gap-2 pointer-events-none w-full max-w-sm px-4"></div>
+
     <!-- MODAL CỬA HÀNG NẠP QPOINT HỌC TẬP (2 BƯỚC CHUẨN MUA HÀNG & QUÉT TỰ ĐỘNG) -->
     <div id="qpointShopModal" class="hidden fixed inset-0 z-[120] overflow-y-auto p-2 sm:p-4 md:p-6 bg-gray-900/75 backdrop-blur-sm flex justify-center items-start sm:items-center">
         <div class="relative bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[92vh] sm:max-h-[88vh] my-auto rounded-3xl shadow-2xl border border-gray-200 dark:border-slate-800 overflow-hidden flex flex-col">
@@ -2667,7 +2862,7 @@
                 startTimer(totalMin * 60);
 
             } catch (err) {
-                alert(err.message);
+                await window.customAlert(err.message, 'error', 'Lỗi Khởi Tạo');
             } finally {
                 if (btn) { btn.innerHTML = ogHtml; btn.disabled = false; }
             }
@@ -2697,9 +2892,9 @@
             }, 300);
         };
 
-        window.quickLookupFromLanding = function() {
+        window.quickLookupFromLanding = async function() {
             const val = (document.getElementById('landingLookupInput')?.value || '').trim();
-            if (!val) { alert("Vui lòng nhập mã ID câu hỏi!"); return; }
+            if (!val) { await window.customAlert("Vui lòng nhập mã ID câu hỏi!", "warning", "Thiếu Mã ID"); return; }
             window.openQuestionLookupModal(val);
         };
 
@@ -2724,7 +2919,7 @@
                     .filter(Boolean);
 
                 if (!practiceId && !allowRandomAll && checkedMapIds.length === 0) {
-                    alert("Bạn chưa chọn chuyên đề hoặc dạng bài nào!\n\nVui lòng tích chọn ít nhất 1 bài học hoặc dạng bài ở cây bên phải trước khi bắt đầu luyện tập.");
+                    await window.customAlert("Bạn chưa chọn chuyên đề hoặc dạng bài nào!\n\nVui lòng tích chọn ít nhất 1 bài học hoặc dạng bài ở cây bên phải trước khi bắt đầu luyện tập.", "warning", "Chưa Chọn Dạng Bài");
                     const treeEl = document.getElementById('treeContainer');
                     if (treeEl) {
                         treeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2802,12 +2997,12 @@
                 });
 
                 if (pool.length === 0) {
-                    alert("Không tìm thấy câu hỏi phù hợp với tiêu chí đã chọn. Hãy thử nới lỏng mức độ hoặc chọn thêm bài học nhé!");
+                    await window.customAlert("Không tìm thấy câu hỏi phù hợp với tiêu chí đã chọn.\n\nHãy thử nới lỏng mức độ hoặc chọn thêm bài học/dạng bài khác nhé!", "info", "Không Tìm Thấy Câu Hỏi");
                     return;
                 }
 
                 if (pool.length < qCount) {
-                    const ok = confirm(`Thông báo số lượng câu hỏi:\n\nKho câu hỏi hiện có ${pool.length} câu phù hợp với các dạng bài và mức độ bạn đã chọn (yêu cầu ${qCount} câu).\n\nBạn có muốn bắt đầu làm bài với toàn bộ ${pool.length} câu này không?`);
+                    const ok = await window.customConfirm(`Kho câu hỏi hiện có ${pool.length} câu phù hợp với các dạng bài và mức độ bạn đã chọn (yêu cầu ${qCount} câu).\n\nBạn có muốn bắt đầu làm bài với toàn bộ ${pool.length} câu này không?`, "Số Lượng Câu Hỏi", { confirmText: "Làm bài ngay", cancelText: "Chọn thêm dạng", type: "warning" });
                     if (!ok) return;
                     qCount = pool.length;
                 }
@@ -2865,7 +3060,7 @@
 
             } catch (err) {
                 console.error("Lỗi bắt đầu luyện tập:", err);
-                alert("Lỗi: " + err.message);
+                await window.customAlert("Lỗi khởi tạo bài tập: " + err.message, "error", "Đã Xảy Ra Lỗi");
             }
         };
 
@@ -3081,7 +3276,7 @@
                 if (remaining < 60 && display) display.classList.add('text-red-600');
                 if (remaining <= 0) {
                     clearInterval(timerInterval);
-                    alert("Đã hết thời gian làm bài!");
+                    window.customAlert("Đã hết thời gian làm bài!\n\nHệ thống đang tự động nộp bài và tổng kết kết quả của bạn.", "warning", "Hết Giờ Làm Bài");
                     finishPractice();
                 }
                 remaining--;
@@ -3224,8 +3419,13 @@
             window.safeTypeset();
         };
 
-        window.confirmExitPractice = () => {
-            if (confirm("Bạn có chắc muốn thoát khỏi bài làm dở không?")) {
+        window.confirmExitPractice = async () => {
+            const ok = await window.customConfirm(
+                "Bạn có chắc muốn thoát khỏi bài luyện tập dở không?\n\nTiến độ làm bài hiện tại sẽ không được lưu lại.",
+                "Thoát Luyện Tập",
+                { confirmText: "Thoát ra", cancelText: "Làm tiếp", danger: true }
+            );
+            if (ok) {
                 if (timerInterval) clearInterval(timerInterval);
                 switchHubTab('landing');
             }
@@ -3266,7 +3466,12 @@
                 if (!window.QP.loaded) await window.QP.load();
                 const r = await window.QP.spend(cost, 'use_5050', { qId: q.id });
                 if (!r.ok) {
-                    if (confirm(`Không đủ QPoint (cần ${cost} QPoint, bạn hiện có ${window.QP.balance || 0} QPoint).\nBạn có muốn mở Cửa hàng QPoint để nạp thêm điểm không?`)) {
+                    const ok = await window.customConfirm(
+                        `Không đủ QPoint (cần ${cost} QPoint, bạn hiện có ${window.QP.balance || 0} QPoint).\n\nBạn có muốn mở Cửa hàng QPoint để nạp thêm điểm không?`,
+                        "Không Đủ QPoint",
+                        { confirmText: "Nạp QPoint ngay", cancelText: "Để sau" }
+                    );
+                    if (ok) {
                         window.openQPointShopModal();
                     }
                     return;
@@ -3303,7 +3508,12 @@
                 if (!window.QP.loaded) await window.QP.load();
                 const r = await window.QP.spend(cost, 'ai_hint', { qId: q.id });
                 if (!r.ok) {
-                    if (confirm(`Không đủ QPoint (cần ${cost} QPoint, bạn hiện có ${window.QP.balance || 0} QPoint).\nBạn có muốn mở Cửa hàng QPoint để nạp thêm điểm không?`)) {
+                    const ok = await window.customConfirm(
+                        `Không đủ QPoint (cần ${cost} QPoint, bạn hiện có ${window.QP.balance || 0} QPoint).\n\nBạn có muốn mở Cửa hàng QPoint để nạp thêm điểm không?`,
+                        "Không Đủ QPoint",
+                        { confirmText: "Nạp QPoint ngay", cancelText: "Để sau" }
+                    );
+                    if (ok) {
                         window.openQPointShopModal();
                     }
                     return;
@@ -3607,7 +3817,7 @@
         window.submitReport = async () => {
             const cat = document.getElementById('reportCategory')?.value || 'Lỗi câu hỏi';
             const desc = (document.getElementById('reportDescription')?.value || '').trim();
-            if (!desc) { alert("Vui lòng nhập mô tả lỗi!"); return; }
+            if (!desc) { await window.customAlert("Vui lòng nhập mô tả chi tiết lỗi bạn gặp phải!", "warning", "Thiếu Nội Dung"); return; }
 
             const btn = document.getElementById('btnSubmitReport');
             const og = btn ? btn.innerHTML : '';
@@ -3627,10 +3837,10 @@
                     createdAt: new Date().toISOString(),
                     status: 'pending'
                 });
-                alert("Cảm ơn bạn! Báo cáo lỗi đã được gửi đến thầy cô. Khi phản ánh được duyệt, bạn sẽ nhận được phần thưởng QPoint!");
+                await window.customAlert("Cảm ơn bạn! Báo cáo lỗi đã được gửi đến thầy cô.\n\nKhi phản ánh được duyệt, bạn sẽ nhận được phần thưởng QPoint!", "success", "Gửi Báo Cáo Thành Công");
                 window.closeReportModal();
             } catch(e) {
-                alert("Lỗi gửi báo cáo: " + e.message);
+                await window.customAlert("Lỗi gửi báo cáo: " + e.message, "error", "Không Thể Gửi Báo Cáo");
             } finally {
                 if (btn) { btn.innerHTML = og; btn.disabled = false; }
             }
@@ -3820,7 +4030,7 @@
 
         window.proceedToQpPaymentStep = async () => {
             if (!currentSelectedPkg) {
-                alert("Vui lòng chọn 1 gói QPoint để tiếp tục!");
+                await window.customAlert("Vui lòng chọn 1 gói QPoint để tiếp tục thanh toán!", "warning", "Chưa Chọn Gói");
                 return;
             }
 
@@ -3951,7 +4161,7 @@
 
             } catch(e) {
                 console.error("Lỗi chuyển sang thanh toán:", e);
-                alert("Lỗi: " + e.message);
+                await window.customAlert("Lỗi khởi tạo thanh toán: " + e.message, "error", "Lỗi Thanh Toán");
             } finally {
                 if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
             }
@@ -4134,7 +4344,7 @@
             if (statusBox) {
                 statusBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
-            alert("⚡ Đã gửi yêu cầu đối soát tới ngân hàng! Vui lòng giữ cửa sổ trong 1-2 phút.");
+            window.showToast("⚡ Đã gửi yêu cầu đối soát tới ngân hàng! Vui lòng giữ cửa sổ trong 1-2 phút.", "info", 4000);
         };
 
         window.recheckQpPayment = async () => {
@@ -4186,11 +4396,11 @@
                 if (isSuccess) {
                     window.showQpPaymentSuccessState(totalPoints);
                 } else {
-                    alert("Hệ thống đang tiếp tục đối soát với ngân hàng. Vui lòng thử lại sau 30 giây!");
+                    window.showToast("Hệ thống đang tiếp tục đối soát với ngân hàng. Vui lòng thử lại sau 30 giây!", "warning", 3500);
                 }
             } catch(e) {
                 console.error("Lỗi recheckQpPayment:", e);
-                alert("Lỗi kiểm tra đơn: " + e.message);
+                await window.customAlert("Lỗi kiểm tra đơn: " + e.message, "error", "Lỗi Đối Soát");
             } finally {
                 if (btn) {
                     btn.disabled = false;
@@ -4203,24 +4413,49 @@
             const el = document.getElementById(elementId);
             const text = el ? (el.innerText || el.textContent || '').trim() : '';
             if (!text || text === '...') {
-                alert("Chưa có thông tin để sao chép!");
+                window.showToast("Chưa có thông tin để sao chép!", "warning");
                 return;
             }
+            const onSuccess = () => {
+                window.showToast(`Đã sao chép ${labelName}: ${text}`, "success");
+            };
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                    alert(`Đã sao chép ${labelName}: ${text}`);
-                }).catch(() => {
-                    prompt(`Sao chép ${labelName}:`, text);
+                navigator.clipboard.writeText(text).then(onSuccess).catch(() => {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try {
+                        document.execCommand('copy');
+                        onSuccess();
+                    } catch(err) {
+                        window.showToast(`Mã ${labelName}: ${text}`, "info", 5000);
+                    }
+                    document.body.removeChild(ta);
                 });
             } else {
-                prompt(`Sao chép ${labelName}:`, text);
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try {
+                    document.execCommand('copy');
+                    onSuccess();
+                } catch(err) {
+                    window.showToast(`Mã ${labelName}: ${text}`, "info", 5000);
+                }
+                document.body.removeChild(ta);
             }
         };
 
         window.downloadQpQrCode = () => {
             const qrImg = document.getElementById('qpVietQrImage');
             if (!qrImg || !qrImg.src) {
-                alert("Chưa có mã QR để tải!");
+                window.showToast("Chưa có mã QR để tải!", "warning");
                 return;
             }
             try {
@@ -4231,6 +4466,7 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                window.showToast("Đang tải ảnh mã VietQR xuống thiết bị...", "success");
             } catch(e) {
                 window.open(qrImg.src, '_blank');
             }

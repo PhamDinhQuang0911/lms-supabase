@@ -342,7 +342,26 @@
             duration: document.getElementById('optDuration').value
         };
         localStorage.setItem('qmath_print_config', JSON.stringify(config));
-        alert('Đã lưu cấu hình làm mặc định cho các lần sau!');
+        window.showToast('Đã lưu cấu hình in làm mặc định cho các lần sau!');
+    };
+
+    window.showToast = function(message, type = 'success') {
+        let toast = document.getElementById('printToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'printToast';
+            toast.className = 'no-print';
+            toast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:12px;background:#111827;color:#fff;font-size:13px;font-weight:700;box-shadow:0 10px 25px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);transition:all 0.3s;opacity:0;transform:translateY(10px);pointer-events:none;';
+            document.body.appendChild(toast);
+        }
+        const icon = type === 'success' ? '✅' : 'ℹ️';
+        toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+        }, 3000);
     };
 
     window.loadPrintConfig = function() {
