@@ -1562,7 +1562,7 @@ export async function setDoc(docRef, data, options = {}) {
     const payload = toSupabasePayload(table, docRef.id, data);
 
     if (table === 'orders') {
-        syncOrderToFirebase(docRef.id, { id: docRef.id, ...data }, !!options.merge);
+        await syncOrderToFirebase(docRef.id, { id: docRef.id, ...data }, !!options.merge);
     }
 
     try {
@@ -1831,7 +1831,7 @@ export async function updateDoc(docRef, updates) {
             cleanUpdates[k] = v;
         }
         if (payload.updated_at) cleanUpdates.updatedAt = payload.updated_at;
-        syncOrderToFirebase(docRef.id, cleanUpdates, true);
+        await syncOrderToFirebase(docRef.id, cleanUpdates, true);
     }
     return docRef;
 }
@@ -1875,7 +1875,7 @@ export async function addDoc(colRef, data) {
         if (error) throw error;
         const resId = inserted ? (inserted.id || inserted.key) : newId;
         if (table === 'orders') {
-            syncOrderToFirebase(resId, { id: resId, ...data });
+            await syncOrderToFirebase(resId, { id: resId, ...data });
         }
         return { id: resId };
     } catch (err) {
@@ -1894,7 +1894,7 @@ export async function addDoc(colRef, data) {
         const fallback = { id: newId, raw_data: data };
         await supabase.from(table).insert(fallback);
         if (table === 'orders') {
-            syncOrderToFirebase(newId, { id: newId, ...data });
+            await syncOrderToFirebase(newId, { id: newId, ...data });
         }
         return { id: newId };
     }
@@ -1904,7 +1904,7 @@ export async function deleteDoc(docRef) {
     const table = docRef.table;
     const pkCol = getPrimaryKeyCol(table);
     if (table === 'orders') {
-        deleteOrderFromFirebase(docRef.id);
+        await deleteOrderFromFirebase(docRef.id);
     }
     try {
         const { error } = await supabase
