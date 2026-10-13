@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -241,9 +241,14 @@
                 </div>
 
                 <div>
-                    <div class="flex items-center justify-between mb-2 ml-1">
-                        <label class="block text-xs font-black text-gray-500 uppercase">Ảnh bìa sản phẩm / Sách / Khóa học</label>
-                        <span class="text-[11px] font-bold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Tự động căn chỉnh thông minh</span>
+                    <div class="flex items-center justify-between mb-2 ml-1 flex-wrap gap-2">
+                        <label class="block text-xs font-black text-gray-700 uppercase flex items-center gap-1.5">
+                            <i class="fa-solid fa-images text-teal-600"></i> Ảnh minh họa / Ảnh bìa sản phẩm
+                            <span id="courseImageCountBadge" class="bg-teal-100 text-teal-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full ml-1">0 ảnh</span>
+                        </label>
+                        <span class="text-[11px] font-bold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Tự động chiếu Slide ngoài trang chủ
+                        </span>
                     </div>
 
                     <!-- Bảng hướng dẫn kích thước chuẩn chi tiết -->
@@ -266,28 +271,48 @@
                             </div>
                         </div>
                         <p class="text-[11px] text-amber-800 mt-2 font-medium">
-                            💡 <b>Tính năng tự động:</b> Nếu ảnh của bạn khác kích thước trên, hệ thống sẽ tự động tạo phông nền nghệ thuật (Blur) ôm trọn ảnh hoặc cho phép cắt lấy bìa trước, <b>cam kết không bao giờ bị cắt lẹm mất chữ hay mất viền</b>!
+                            💡 <b>Trình chiếu slide tự động:</b> Bạn có thể thêm <b>nhiều ảnh minh họa</b> (ảnh bìa, mục lục, trang mẫu, hình ảnh thực tế...). Ngoài trang chủ, thẻ khóa học/sách sẽ <b>tự động lướt lần lượt qua từng ảnh kiểu slide lặp đi lặp lại</b>! Ảnh đầu tiên (#1) sẽ là ảnh đại diện chính.
                         </p>
                     </div>
 
-                    <div class="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center hover:border-brand hover:bg-teal-50/30 transition-all group relative cursor-pointer" onclick="document.getElementById('cThumbInput').click()">
-                        <input type="file" id="cThumbInput" hidden accept="image/*" onchange="window.handleThumbUpload(this)">
-                        <input type="text" id="cThumb" class="hidden"> 
-                        <div id="thumbPreviewBox" class="hidden relative w-full aspect-video rounded-xl overflow-hidden shadow-sm mb-2 mx-auto max-w-sm bg-slate-100 flex items-center justify-center p-2 border border-gray-200">
-                            <img id="previewThumb" class="max-h-full max-w-full object-contain rounded drop-shadow-md">
-                            <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                                <span class="text-white font-bold text-sm"><i class="fa-solid fa-pen mr-1"></i> Thay đổi ảnh</span>
-                            </div>
-                        </div>
+                    <!-- Hidden inputs -->
+                    <input type="file" id="cThumbInput" hidden accept="image/*" multiple onchange="window.handleThumbUpload(this)">
+                    <input type="text" id="cThumb" class="hidden">
 
-                        <div id="thumbEmptyState">
-                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 text-gray-400 group-hover:text-brand group-hover:bg-white transition-colors">
-                                <i class="fa-solid fa-image text-2xl"></i>
-                            </div>
-                            <p class="text-sm font-bold text-gray-600">Nhấn để tải ảnh lên</p>
-                            <p class="text-xs text-gray-400 mt-1">Hỗ trợ JPG, PNG, WebP (Tự động tối ưu hoá)</p>
-                        </div>
+                    <!-- Danh sách ảnh minh họa (Gallery Grid) -->
+                    <div id="courseImagesGallery" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-3">
+                        <!-- Sẽ được điền động bằng JavaScript -->
                     </div>
+
+                    <!-- Vùng kéo thả bổ sung khi chưa có ảnh nào -->
+                    <div id="courseImagesEmptyDropzone" class="border-2 border-dashed border-gray-300 hover:border-teal-500 hover:bg-teal-50/20 rounded-2xl p-6 text-center transition-all cursor-pointer mb-3" onclick="document.getElementById('cThumbInput').click()">
+                        <div class="w-12 h-12 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-2 text-xl shadow-xs">
+                            <i class="fa-solid fa-images"></i>
+                        </div>
+                        <p class="text-xs font-bold text-gray-700">Chưa có ảnh minh họa nào</p>
+                        <p class="text-[11px] text-gray-400 mt-0.5">Nhấp vào đây để chọn 1 hoặc nhiều ảnh từ máy tính / điện thoại</p>
+                    </div>
+
+                    <!-- Thanh công cụ Upload / Thêm URL -->
+                    <div class="flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-xl border border-gray-200 bg-gray-50/70">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="document.getElementById('cThumbInput').click()" class="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Tải ảnh lên (Chọn 1 hoặc nhiều ảnh)
+                            </button>
+                            <button type="button" onclick="window.promptAddCourseImageUrl()" class="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer">
+                                <i class="fa-solid fa-link text-teal-600"></i> Thêm từ Link URL
+                            </button>
+                        </div>
+                        <span class="text-[11px] text-gray-500 font-medium flex items-center gap-1">
+                            <i class="fa-solid fa-circle-info text-teal-600"></i> Hỗ trợ JPG, PNG, WebP (Tự động nén tối ưu)
+                        </span>
+                    </div>
+
+                    <!-- Giữ các element cũ ẩn để tương thích mã cũ -->
+                    <div id="thumbPreviewBox" class="hidden">
+                        <img id="previewThumb" class="hidden">
+                    </div>
+                    <div id="thumbEmptyState" class="hidden"></div>
                 </div>
             </div>
 
@@ -892,6 +917,8 @@
             if (getEl('cShippingFee')) getEl('cShippingFee').value = '';
             if (getEl('cPreviewLink')) getEl('cPreviewLink').value = '';
             if (getEl('cThumb')) getEl('cThumb').value = '';
+            window.currentCourseImages = [];
+            if (window.renderCourseImagesGallery) window.renderCourseImagesGallery();
             if (getEl('thumbPreviewBox')) getEl('thumbPreviewBox').classList.add('hidden');
             if (getEl('thumbEmptyState')) getEl('thumbEmptyState').classList.remove('hidden');
             if (window.toggleProductFields) window.toggleProductFields();
@@ -978,7 +1005,10 @@
                 // --- RENDER LIST ROW ---
                 listTable.innerHTML += `
                 <tr class="hover:bg-gray-50 border-b border-gray-100 group transition-colors ${isSoldOut ? 'bg-red-50/20' : ''}">
-                    <td class="p-4"><img src="${thumb}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 shadow-sm"></td>
+                    <td class="p-4">
+                        <img src="${thumb}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 shadow-sm">
+                        ${(c.images && c.images.length > 1) ? `<div class="text-[10px] text-teal-600 font-bold mt-0.5 whitespace-nowrap"><i class="fa-solid fa-images mr-0.5"></i>${c.images.length} ảnh</div>` : ''}
+                    </td>
                     <td class="p-4"><div class="font-bold text-gray-800 group-hover:text-brand transition-colors">${c.title}</div>${typeBadge}${soldOutBadge}</td>
                     <td class="p-4 text-xs text-gray-500 font-bold">${strucText}</td>
                     <td class="p-4 text-center"><span class="bg-primary-50 text-primary-700 px-2.5 py-1 rounded-full text-xs font-bold border border-primary-100">${c.students || 0} lượt</span></td>
@@ -1000,6 +1030,7 @@
                     <div class="h-40 bg-gray-100 relative overflow-hidden">
                         <img src="${thumb}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                         ${isSoldOut ? '<div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg shadow"><i class="fa-solid fa-ban mr-0.5"></i> BÁN HẾT</div>' : ''}
+                        ${(c.images && c.images.length > 1) ? `<div class="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs flex items-center gap-1 shadow"><i class="fa-solid fa-images"></i> ${c.images.length} ảnh</div>` : ''}
                         <div class="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg backdrop-blur-sm"><i class="fa-solid fa-shopping-cart"></i> ${c.students||0}</div>
                     </div>
                     <div class="p-5 flex flex-col flex-1">
@@ -1156,45 +1187,219 @@
             }
         };
 
-        window.handleThumbUpload = (input) => {
-            const file = input.files[0];
-            if (!file) return;
+        // --- QUẢN LÝ NHIỀU ẢNH MINH HỌA & TRÌNH CHIẾU SLIDE ---
+        window.currentCourseImages = [];
 
-            _pendingRawFile = file;
+        window.renderCourseImagesGallery = () => {
+            const gallery = document.getElementById('courseImagesGallery');
+            const badge = document.getElementById('courseImageCountBadge');
+            const emptyDropzone = document.getElementById('courseImagesEmptyDropzone');
+            const cThumb = document.getElementById('cThumb');
+            
+            if (!Array.isArray(window.currentCourseImages)) window.currentCourseImages = [];
+            
+            // Cập nhật giá trị cThumb ẩn (luôn là ảnh đầu tiên) để tương thích ngược
+            if (cThumb) cThumb.value = window.currentCourseImages[0] || '';
+            if (badge) badge.innerText = `${window.currentCourseImages.length} ảnh`;
+            
+            if (!gallery) return;
+            
+            if (window.currentCourseImages.length === 0) {
+                gallery.innerHTML = '';
+                gallery.classList.add('hidden');
+                if (emptyDropzone) emptyDropzone.classList.remove('hidden');
+                return;
+            }
+            
+            gallery.classList.remove('hidden');
+            if (emptyDropzone) emptyDropzone.classList.add('hidden');
+            
+            gallery.innerHTML = window.currentCourseImages.map((imgUrl, idx) => {
+                const isPrimary = (idx === 0);
+                return `
+                    <div class="relative group rounded-xl overflow-hidden border ${isPrimary ? 'border-teal-500 ring-2 ring-teal-500/30' : 'border-gray-200'} bg-slate-900 shadow-sm aspect-video flex items-center justify-center select-none transition-all">
+                        <!-- Nền mờ nghệ thuật -->
+                        <div class="absolute inset-0 overflow-hidden pointer-events-none select-none">
+                            <img src="${imgUrl}" alt="" class="w-full h-full object-cover blur-sm opacity-50 scale-110">
+                        </div>
+                        <!-- Ảnh chính -->
+                        <img src="${imgUrl}" alt="Ảnh ${idx + 1}" class="relative max-h-full max-w-full object-contain rounded drop-shadow-md z-10">
+                        
+                        <!-- Badge chỉ số / Bìa chính góc trên bên trái -->
+                        <div class="absolute top-1.5 left-1.5 z-20">
+                            ${isPrimary ? `
+                                <span class="bg-teal-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-md flex items-center gap-1">
+                                    <i class="fa-solid fa-star text-amber-300 text-[9px]"></i> Bìa chính
+                                </span>
+                            ` : `
+                                <span class="bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                                    #${idx + 1}
+                                </span>
+                            `}
+                        </div>
+                        
+                        <!-- Nút xóa góc trên bên phải -->
+                        <button type="button" onclick="event.stopPropagation(); window.removeCourseImage(${idx})" class="absolute top-1.5 right-1.5 z-20 w-6 h-6 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center text-xs shadow-md transition-transform hover:scale-110 cursor-pointer" title="Xóa ảnh này">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        
+                        <!-- Thanh công cụ điều hướng / Đặt làm bìa chính ở chân thẻ ảnh -->
+                        <div class="absolute bottom-1.5 inset-x-1.5 z-20 flex items-center justify-between gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                            ${!isPrimary ? `
+                                <button type="button" onclick="event.stopPropagation(); window.setPrimaryCourseImage(${idx})" class="bg-teal-600/90 hover:bg-teal-700 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm transition-all cursor-pointer" title="Đưa ảnh này lên vị trí đầu làm ảnh bìa chính">
+                                    Làm bìa
+                                </button>
+                            ` : `<div></div>`}
+                            
+                            <div class="flex items-center gap-1 ml-auto">
+                                ${idx > 0 ? `
+                                    <button type="button" onclick="event.stopPropagation(); window.moveCourseImage(${idx}, -1)" class="w-5 h-5 rounded bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center text-[10px] shadow-sm transition-transform hover:scale-105 cursor-pointer" title="Di chuyển lên trước">
+                                        <i class="fa-solid fa-chevron-left"></i>
+                                    </button>
+                                ` : ''}
+                                ${idx < window.currentCourseImages.length - 1 ? `
+                                    <button type="button" onclick="event.stopPropagation(); window.moveCourseImage(${idx}, 1)" class="w-5 h-5 rounded bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center text-[10px] shadow-sm transition-transform hover:scale-105 cursor-pointer" title="Di chuyển về sau">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
 
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (e) => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = () => {
-                    _loadedImg = img;
-                    const iw = img.naturalWidth || img.width;
-                    const ih = img.naturalHeight || img.height;
-                    const ratio = iw / ih;
+        window.removeCourseImage = (idx) => {
+            if (!window.currentCourseImages || idx < 0 || idx >= window.currentCourseImages.length) return;
+            window.currentCourseImages.splice(idx, 1);
+            window.renderCourseImagesGallery();
+            window.showToast("Đã xóa ảnh khỏi danh sách.");
+        };
 
-                    const badge = document.getElementById('imageRatioBadge');
-                    const notice = document.getElementById('imageRatioNotice');
+        window.setPrimaryCourseImage = (idx) => {
+            if (!window.currentCourseImages || idx <= 0 || idx >= window.currentCourseImages.length) return;
+            const [selected] = window.currentCourseImages.splice(idx, 1);
+            window.currentCourseImages.unshift(selected);
+            window.renderCourseImagesGallery();
+            window.showToast("Đã đặt làm ảnh bìa chính (#1)!");
+        };
 
-                    let ratioText = '';
-                    if (ratio > 1.6 && ratio < 1.85) {
-                        ratioText = 'Chuẩn 16:9';
-                        if (badge) badge.className = 'text-[10px] font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded';
-                    } else if (ratio > 1.2) {
-                        ratioText = 'Bìa ngang / Trải rộng (' + iw + ' × ' + ih + 'px)';
-                        if (badge) badge.className = 'text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded';
-                    } else {
-                        ratioText = 'Bìa đứng (' + iw + ' × ' + ih + 'px)';
-                        if (badge) badge.className = 'text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded';
-                    }
-                    if (badge) badge.innerText = ratioText;
-                    if (notice) notice.innerText = `Kích thước tệp gốc: ${iw} × ${ih} px (Tỉ lệ ${(ratio).toFixed(2)}:1)`;
+        window.moveCourseImage = (idx, dir) => {
+            if (!window.currentCourseImages) return;
+            const targetIdx = idx + dir;
+            if (targetIdx < 0 || targetIdx >= window.currentCourseImages.length) return;
+            const temp = window.currentCourseImages[idx];
+            window.currentCourseImages[idx] = window.currentCourseImages[targetIdx];
+            window.currentCourseImages[targetIdx] = temp;
+            window.renderCourseImagesGallery();
+        };
 
-                    // Open adjustment modal
-                    document.getElementById('imageAdjustModal').classList.remove('hidden');
-                    window.applyAdjustMode('smart_blur');
+        window.promptAddCourseImageUrl = () => {
+            const url = prompt("Nhập đường dẫn URL ảnh minh họa (http/https):");
+            if (!url || !url.trim()) return;
+            const cleanUrl = url.trim();
+            if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+                window.showToast("Đường dẫn ảnh phải bắt đầu bằng http:// hoặc https://", "error");
+                return;
+            }
+            if (!window.currentCourseImages) window.currentCourseImages = [];
+            window.currentCourseImages.push(cleanUrl);
+            window.renderCourseImagesGallery();
+            window.showToast("🎉 Đã thêm ảnh từ link URL!");
+        };
+
+        window.handleThumbUpload = async (input) => {
+            const files = Array.from(input.files || []);
+            if (files.length === 0) return;
+
+            // Nếu chỉ chọn 1 file -> Mở modal xem trước & tối ưu hóa ảnh thông minh
+            if (files.length === 1) {
+                const file = files[0];
+                _pendingRawFile = file;
+
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        _loadedImg = img;
+                        const iw = img.naturalWidth || img.width;
+                        const ih = img.naturalHeight || img.height;
+                        const ratio = iw / ih;
+
+                        const badge = document.getElementById('imageRatioBadge');
+                        const notice = document.getElementById('imageRatioNotice');
+
+                        let ratioText = '';
+                        if (ratio > 1.6 && ratio < 1.85) {
+                            ratioText = 'Chuẩn 16:9';
+                            if (badge) badge.className = 'text-[10px] font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded';
+                        } else if (ratio > 1.2) {
+                            ratioText = 'Bìa ngang / Trải rộng (' + iw + ' × ' + ih + 'px)';
+                            if (badge) badge.className = 'text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded';
+                        } else {
+                            ratioText = 'Bìa đứng (' + iw + ' × ' + ih + 'px)';
+                            if (badge) badge.className = 'text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded';
+                        }
+                        if (badge) badge.innerText = ratioText;
+                        if (notice) notice.innerText = `Kích thước tệp gốc: ${iw} × ${ih} px (Tỉ lệ ${(ratio).toFixed(2)}:1)`;
+
+                        // Mở modal điều chỉnh
+                        document.getElementById('imageAdjustModal').classList.remove('hidden');
+                        window.applyAdjustMode('smart_blur');
+                    };
                 };
-            };
+                return;
+            }
+
+            // Nếu người dùng chọn NHIỀU file cùng lúc: Nén & tải lên hàng loạt
+            window.showToast(`Đang nén và tải lên ${files.length} ảnh...`, "info");
+            let successCount = 0;
+
+            try {
+                for (let i = 0; i < files.length; i++) {
+                    const f = files[i];
+                    try {
+                        const blobToUpload = await window.compressImage(f, 0.88, 1280);
+                        const now = new Date();
+                        const year = now.getFullYear();
+                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                        const timestamp = now.getTime() + i;
+                        const cleanName = f.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+                        const fileName = `courses/${year}/${month}/${timestamp}_banner_${cleanName}`;
+
+                        const formData = new FormData();
+                        formData.append('file', blobToUpload, fileName);
+
+                        const res = await fetch("https://upload-helper.phamngockhanh-942001.workers.dev/", {
+                            method: 'PUT',
+                            body: formData
+                        });
+                        if (!res.ok) throw new Error("Lỗi Cloudflare");
+                        const data = await res.json();
+                        if (data && data.url) {
+                            if (!window.currentCourseImages) window.currentCourseImages = [];
+                            window.currentCourseImages.push(data.url);
+                            successCount++;
+                        }
+                    } catch(errFile) {
+                        console.error("Lỗi tải tệp " + f.name, errFile);
+                    }
+                }
+
+                window.renderCourseImagesGallery();
+                if (successCount > 0) {
+                    window.showToast(`🎉 Đã tải lên thành công ${successCount}/${files.length} ảnh minh họa!`);
+                } else {
+                    window.showToast("Không thể tải ảnh lên. Vui lòng thử lại!", "error");
+                }
+            } catch(e) {
+                console.error("Lỗi upload hàng loạt:", e);
+                window.showToast("Lỗi upload: " + e.message, "error");
+            } finally {
+                input.value = '';
+            }
         };
 
         window.confirmAndUploadAdjusted = async () => {
@@ -1205,8 +1410,6 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải lên...';
             btn.disabled = true;
 
-            const previewBox = document.getElementById('thumbPreviewBox');
-            const emptyState = document.getElementById('thumbEmptyState');
             const previewImg = document.getElementById('previewThumb');
             const previewBlur = document.getElementById('previewThumbBlur');
 
@@ -1240,19 +1443,18 @@
                 const data = await res.json();
                 const finalUrl = data.url;
 
-                const previousUrl = document.getElementById('cThumb').value;
-                if (previousUrl && previousUrl.startsWith('http') && previousUrl !== finalUrl) {
-                    await window.deleteFileFromR2(previousUrl);
-                }
+                if (!window.currentCourseImages) window.currentCourseImages = [];
+                window.currentCourseImages.push(finalUrl);
 
-                previewImg.src = finalUrl;
+                if (previewImg) previewImg.src = finalUrl;
                 if (previewBlur) previewBlur.src = finalUrl;
-                document.getElementById('cThumb').value = finalUrl;
-                previewBox.classList.remove('hidden');
-                emptyState.classList.add('hidden');
+                if (document.getElementById('cThumb')) {
+                    document.getElementById('cThumb').value = window.currentCourseImages[0] || '';
+                }
+                window.renderCourseImagesGallery();
 
                 window.closeImageAdjustModal();
-                window.showToast("🎉 Đã tối ưu và tải ảnh bìa lên thành công!");
+                window.showToast("🎉 Đã tối ưu và tải ảnh lên thành công!");
 
             } catch (e) {
                 console.error("Lỗi upload:", e);
@@ -1309,7 +1511,22 @@ window.editCourse = async (id) => {
         
         document.getElementById('cStudents').value = dt.students || 0;
         document.getElementById('cDesc').value = dt.desc || '';
-        document.getElementById('cThumb').value = dt.thumbnail || '';
+        
+        // Nạp mảng ảnh minh họa
+        if (Array.isArray(dt.images) && dt.images.length > 0) {
+            window.currentCourseImages = dt.images.filter(x => typeof x === 'string' && x.trim());
+        } else if (dt.thumbnail) {
+            window.currentCourseImages = [dt.thumbnail];
+        } else if (dt.image) {
+            window.currentCourseImages = [dt.image];
+        } else {
+            window.currentCourseImages = [];
+        }
+        
+        if (document.getElementById('cThumb')) {
+            document.getElementById('cThumb').value = window.currentCourseImages[0] || '';
+        }
+        if (window.renderCourseImagesGallery) window.renderCourseImagesGallery();
         
         if(document.getElementById('cDocFileUrl')) document.getElementById('cDocFileUrl').value = dt.fileUrl || '';
         if(document.getElementById('cBookWeight')) document.getElementById('cBookWeight').value = dt.weight || '';
@@ -1320,16 +1537,6 @@ window.editCourse = async (id) => {
         window.toggleProductFields();
         if(document.getElementById('cAntiScreenshot')) document.getElementById('cAntiScreenshot').checked = (dt.antiScreenshot !== false);
         
-        if(dt.thumbnail) {
-            document.getElementById('previewThumb').src = dt.thumbnail;
-            const blurImg = document.getElementById('previewThumbBlur');
-            if (blurImg) blurImg.src = dt.thumbnail;
-            document.getElementById('thumbPreviewBox').classList.remove('hidden');
-            document.getElementById('thumbEmptyState').classList.add('hidden');
-        } else {
-            document.getElementById('thumbPreviewBox').classList.add('hidden');
-            document.getElementById('thumbEmptyState').classList.remove('hidden');
-        }
         window.toggleModal('courseModal', true);
     }
 };
@@ -1345,6 +1552,11 @@ window.saveCourseBasic = async () => {
     const statusVal = document.getElementById('cStatus')?.value || 'active';
     const isSoldOutVal = (statusVal === 'sold_out');
     
+    const validImages = Array.isArray(window.currentCourseImages)
+        ? window.currentCourseImages.filter(x => typeof x === 'string' && x.trim())
+        : [];
+    const primaryThumb = validImages[0] || document.getElementById('cThumb')?.value || '';
+
     const data = {
         type: type, // <-- BẮT BUỘC PHẢI LƯU TRƯỜNG NÀY ĐỂ INDEX.HTML HIỂU ĐƯỢC
         status: statusVal,
@@ -1354,7 +1566,8 @@ window.saveCourseBasic = async () => {
         price: parseInt(document.getElementById('cPrice').value) || 0,
         students: parseInt(document.getElementById('cStudents').value) || 0,
         desc: document.getElementById('cDesc').value,
-        thumbnail: document.getElementById('cThumb').value,
+        images: validImages,
+        thumbnail: primaryThumb,
         antiScreenshot: document.getElementById('cAntiScreenshot') ? document.getElementById('cAntiScreenshot').checked : true,
         
         // Lưu trường đặc thù tùy theo phân loại
@@ -1960,9 +2173,16 @@ function renderCurriculumTree() {
 
                 await batch.commit();
 
-                // 3. Xóa file ảnh vật lý trên Cloudflare R2
-                if (bannerUrl && bannerUrl.startsWith('http')) {
-                    await window.deleteFileFromR2(bannerUrl);
+                // 3. Xóa các file ảnh vật lý trên Cloudflare R2
+                const urlsToDelete = new Set();
+                if (bannerUrl && bannerUrl.startsWith('http')) urlsToDelete.add(bannerUrl);
+                if (courseSnap.exists() && Array.isArray(courseSnap.data().images)) {
+                    courseSnap.data().images.forEach(u => {
+                        if (u && typeof u === 'string' && u.startsWith('http')) urlsToDelete.add(u);
+                    });
+                }
+                for (const u of urlsToDelete) {
+                    try { await window.deleteFileFromR2(u); } catch(errR2) { console.warn("Lỗi xóa file R2:", u, errR2); }
                 }
 
                 window.showToast("Đã xóa sạch dữ liệu khóa học và ảnh banner!");

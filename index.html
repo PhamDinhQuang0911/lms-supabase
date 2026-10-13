@@ -84,6 +84,9 @@
         
         .course-card { transition: all 0.3s ease; }
         .course-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+        .course-slider-track { will-change: transform; }
+        .course-card:hover .group\/slider button,
+        .group\/slider:hover button { opacity: 1 !important; }
 
         /* Animation cho khung quét thanh toán Realtime */
         @keyframes scanning-bar {
@@ -1150,7 +1153,93 @@
             window.location.href = `exam.html?id=${encodeURIComponent(examId)}${courseId ? `&courseId=${encodeURIComponent(courseId)}` : ''}&trial=1`;
         };
 
-        // 2. RENDER COURSES (CÓ GIẢM GIÁ & SWR CACHE)
+        // --- 2. TRÌNH CHIẾU SLIDE ẢNH KHÓA HỌC / SÁCH TRÊN TRANG CHỦ (TỰ ĐỘNG & LẶP ĐI LẶP LẠI) ---
+        window._courseCardSliders = window._courseCardSliders || {};
+
+        window.clearAllCourseCardSliders = () => {
+            if (window._courseCardSliders) {
+                Object.values(window._courseCardSliders).forEach(s => {
+                    if (s && s.interval) clearInterval(s.interval);
+                });
+            }
+            window._courseCardSliders = {};
+        };
+
+        window.goToCourseCardSlide = (sliderId, targetIdx) => {
+            const s = window._courseCardSliders[sliderId];
+            if (!s) return;
+            const track = document.getElementById(sliderId + '-track');
+            const counter = document.getElementById(sliderId + '-counter');
+            const dotsContainer = document.getElementById(sliderId + '-dots');
+            if (!track) return;
+
+            s.current = (targetIdx + s.total) % s.total;
+            track.style.transform = `translateX(-${s.current * 100}%)`;
+
+            if (counter) counter.innerText = `${s.current + 1}/${s.total}`;
+
+            if (dotsContainer) {
+                const dots = dotsContainer.querySelectorAll('.course-slide-dot');
+                dots.forEach((dot, idx) => {
+                    if (idx === s.current) {
+                        dot.className = 'course-slide-dot inline-block h-1.5 rounded-full transition-all duration-300 cursor-pointer w-4 bg-teal-400 shadow-sm';
+                    } else {
+                        dot.className = 'course-slide-dot inline-block h-1.5 rounded-full transition-all duration-300 cursor-pointer w-1.5 bg-white/60 hover:bg-white';
+                    }
+                });
+            }
+        };
+
+        window.nextCourseCardSlide = (sliderId) => {
+            const s = window._courseCardSliders[sliderId];
+            if (!s) return;
+            window.goToCourseCardSlide(sliderId, s.current + 1);
+        };
+
+        window.prevCourseCardSlide = (sliderId) => {
+            const s = window._courseCardSliders[sliderId];
+            if (!s) return;
+            window.goToCourseCardSlide(sliderId, s.current - 1);
+        };
+
+        window.pauseCourseCardSlide = (sliderId) => {
+            const s = window._courseCardSliders[sliderId];
+            if (s) s.isPaused = true;
+        };
+
+        window.resumeCourseCardSlide = (sliderId) => {
+            const s = window._courseCardSliders[sliderId];
+            if (s) s.isPaused = false;
+        };
+
+        window.startCourseCardAutoSlide = () => {
+            window.clearAllCourseCardSliders();
+            const sliderEls = document.querySelectorAll('[data-course-slider-id]');
+            sliderEls.forEach((el, index) => {
+                const sliderId = el.getAttribute('data-course-slider-id');
+                const total = parseInt(el.getAttribute('data-total-slides')) || 1;
+                if (!sliderId || total <= 1) return;
+
+                const s = {
+                    id: sliderId,
+                    current: 0,
+                    total: total,
+                    isPaused: false,
+                    interval: null
+                };
+                window._courseCardSliders[sliderId] = s;
+
+                // Tự động chuyển slide mỗi 3.5s - 4.2s (chạy so le giữa các thẻ để nhìn mượt mà)
+                const delay = 3500 + (index % 4) * 350;
+                s.interval = setInterval(() => {
+                    if (!s.isPaused) {
+                        window.nextCourseCardSlide(sliderId);
+                    }
+                }, delay);
+            });
+        };
+
+        // 2. RENDER COURSES (CÓ GIẢM GIÁ & SWR CACHE & AUTO SLIDER)
         window.renderMainItems = () => {
             if (!window.allPublicItems || !Array.isArray(window.allPublicItems)) return;
             const courses = window.allPublicItems.filter(c => c.type !== 'document_hard' && c.type !== 'book');
@@ -1182,7 +1271,15 @@
                         priceHtml = `<span class="text-base font-bold text-brand">${price > 0 ? price.toLocaleString('vi-VN') + 'đ' : 'Miễn phí'}</span>`;
                     }
 
-                    const imgSrc = c.image || c.thumbnail || 'https://placehold.co/400x200?text=No+Image';
+                    // Chuẩn bị danh sách ảnh cho thẻ sản phẩm
+                    const courseImages = (Array.isArray(c.images) && c.images.length > 0)
+                        ? c.images.filter(x => typeof x === 'string' && x.trim())
+                        : (c.thumbnail ? [c.thumbnail] : (c.image ? [c.image] : []));
+                    
+                    if (courseImages.length === 0) {
+                        courseImages.push('https://placehold.co/400x200?text=No+Image');
+                    }
+
                     const isBookType = (c.type === 'document_hard' || c.type === 'book');
                     const isExamPack = (c.type === 'exam_pack');
                     const previewExam = getPreviewExamInfo(c);
@@ -1195,25 +1292,92 @@
                         </div>
                     ` : '';
 
-                    const imageContainerHtml = isBookType ? `
-                        <div class="relative h-48 overflow-hidden rounded-t-2xl flex items-center justify-center p-2.5 bg-slate-900 select-none border-b border-gray-100">
-                            ${soldOutBadge}
-                            <!-- Nền mờ nghệ thuật chuẩn theo tỉ lệ cài đặt khóa học (Ảnh 2) -->
-                            <div class="absolute inset-0 overflow-hidden pointer-events-none select-none">
-                                <img src="${imgSrc}" alt="" aria-hidden="true" class="w-full h-full object-cover pointer-events-none select-none" style="filter: blur(8px) brightness(0.85); transform: scale(1.15);">
+                    let imageContainerHtml = '';
+                    if (courseImages.length === 1) {
+                        const singleImg = courseImages[0];
+                        imageContainerHtml = isBookType ? `
+                            <div class="relative h-48 overflow-hidden rounded-t-2xl flex items-center justify-center p-2.5 bg-slate-900 select-none border-b border-gray-100">
+                                ${soldOutBadge}
+                                <!-- Nền mờ nghệ thuật chuẩn theo tỉ lệ cài đặt khóa học -->
+                                <div class="absolute inset-0 overflow-hidden pointer-events-none select-none">
+                                    <img src="${singleImg}" alt="" aria-hidden="true" class="w-full h-full object-cover pointer-events-none select-none" style="filter: blur(8px) brightness(0.85); transform: scale(1.15);">
+                                </div>
+                                <!-- Ảnh bìa sách chính hiển thị trọn vẹn 100%, sắc nét, đổ bóng 3D -->
+                                <img src="${singleImg}" alt="${c.title}" loading="lazy" decoding="async" class="relative max-h-full max-w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 z-10" style="filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));">
+                                ${discountBadge}
                             </div>
-                            <!-- Ảnh bìa sách chính hiển thị trọn vẹn 100%, sắc nét, đổ bóng 3D -->
-                            <img src="${imgSrc}" alt="${c.title}" loading="lazy" decoding="async" class="relative max-h-full max-w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 z-10" style="filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));">
-                            ${discountBadge}
-                        </div>
-                    ` : `
-                        <div class="relative h-48 overflow-hidden bg-slate-900 flex items-center justify-center">
-                            ${soldOutBadge}
-                            <img src="${imgSrc}" alt="${c.title}" loading="lazy" decoding="async" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
-                            ${discountBadge}
-                            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
-                        </div>
-                    `;
+                        ` : `
+                            <div class="relative h-48 overflow-hidden bg-slate-900 flex items-center justify-center">
+                                ${soldOutBadge}
+                                <img src="${singleImg}" alt="${c.title}" loading="lazy" decoding="async" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                                ${discountBadge}
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"></div>
+                            </div>
+                        `;
+                    } else {
+                        // NHIỀU ẢNH: TỰ ĐỘNG CHIẾU SLIDE LƯỚT LẦN LƯỢT LẶP ĐI LẶP LẠI
+                        const sliderId = 'c-slider-' + (c.id || Math.random().toString(36).substring(2, 9));
+                        const slidesHtml = courseImages.map((img, idx) => {
+                            if (isBookType) {
+                                return `
+                                    <div class="w-full h-full shrink-0 relative flex items-center justify-center p-2.5 overflow-hidden">
+                                        <div class="absolute inset-0 overflow-hidden pointer-events-none select-none">
+                                            <img src="${img}" alt="" aria-hidden="true" class="w-full h-full object-cover pointer-events-none select-none" style="filter: blur(8px) brightness(0.85); transform: scale(1.15);">
+                                        </div>
+                                        <img src="${img}" alt="${c.title} - Ảnh ${idx + 1}" loading="lazy" decoding="async" class="relative max-h-full max-w-full object-contain rounded-lg z-10 transition-transform duration-300" style="filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));">
+                                    </div>
+                                `;
+                            } else {
+                                return `
+                                    <div class="w-full h-full shrink-0 relative overflow-hidden flex items-center justify-center">
+                                        <img src="${img}" alt="${c.title} - Ảnh ${idx + 1}" loading="lazy" decoding="async" class="w-full h-full object-cover">
+                                        <div class="absolute inset-0 bg-black/0 group-hover/slider:bg-black/10 transition-colors pointer-events-none"></div>
+                                    </div>
+                                `;
+                            }
+                        }).join('');
+
+                        const dotsHtml = courseImages.map((_, idx) => `
+                            <button type="button" onclick="event.stopPropagation(); window.goToCourseCardSlide('${sliderId}', ${idx})" class="course-slide-dot inline-block h-1.5 rounded-full transition-all duration-300 cursor-pointer ${idx === 0 ? 'w-4 bg-teal-400 shadow-sm' : 'w-1.5 bg-white/60 hover:bg-white'}" data-slide-index="${idx}" title="Ảnh ${idx + 1}"></button>
+                        `).join('');
+
+                        imageContainerHtml = `
+                            <div class="relative h-48 overflow-hidden ${isBookType ? 'rounded-t-2xl border-b border-gray-100' : ''} bg-slate-900 select-none group/slider"
+                                 id="${sliderId}"
+                                 data-course-slider-id="${sliderId}"
+                                 data-total-slides="${courseImages.length}"
+                                 onmouseenter="window.pauseCourseCardSlide('${sliderId}')"
+                                 onmouseleave="window.resumeCourseCardSlide('${sliderId}')">
+                                
+                                ${soldOutBadge}
+                                ${discountBadge}
+
+                                <!-- Badge số lượng ảnh góc phải -->
+                                <div class="absolute top-3 right-3 z-20 bg-black/60 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1 shadow-sm pointer-events-none">
+                                    <i class="fa-solid fa-images text-[9px] text-teal-300"></i>
+                                    <span id="${sliderId}-counter">1/${courseImages.length}</span>
+                                </div>
+
+                                <!-- TRACK TRƯỢT SLIDE NGANG -->
+                                <div class="course-slider-track flex h-full w-full transition-transform duration-700 ease-in-out" id="${sliderId}-track" style="transform: translateX(0%);">
+                                    ${slidesHtml}
+                                </div>
+
+                                <!-- Nút mũi tên lướt ảnh trái / phải -->
+                                <button type="button" onclick="event.stopPropagation(); window.prevCourseCardSlide('${sliderId}')" class="absolute left-1.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-black/50 hover:bg-teal-600 text-white flex items-center justify-center text-xs opacity-0 group-hover/slider:opacity-100 transition-all cursor-pointer shadow-md" title="Ảnh trước">
+                                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                                </button>
+                                <button type="button" onclick="event.stopPropagation(); window.nextCourseCardSlide('${sliderId}')" class="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-black/50 hover:bg-teal-600 text-white flex items-center justify-center text-xs opacity-0 group-hover/slider:opacity-100 transition-all cursor-pointer shadow-md" title="Ảnh tiếp theo">
+                                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                                </button>
+
+                                <!-- Dải chấm tròn (Dots) -->
+                                <div class="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex gap-1 px-2 py-0.5 rounded-full bg-black/45 backdrop-blur-xs" id="${sliderId}-dots">
+                                    ${dotsHtml}
+                                </div>
+                            </div>
+                        `;
+                    }
 
                     html += `
                     <div class="course-card bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm flex flex-col h-full group hover:shadow-xl transition-all duration-300">
@@ -1252,6 +1416,9 @@
             
             renderGrid(courses, courseContainer, "Chưa có khóa học nào được đăng.");
             renderGrid(books, bookContainer, "Chưa có sách nào được đăng.");
+
+            // Kích hoạt tự động lướt slide các thẻ có nhiều ảnh
+            if (window.startCourseCardAutoSlide) window.startCourseCardAutoSlide();
         };
 
         async function renderCoursesFromDB() {
