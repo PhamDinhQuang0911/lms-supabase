@@ -816,7 +816,7 @@
         import { 
             supabase, initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile, onAuthStateChanged, sendPasswordResetEmail,
             getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, onSnapshot, increment
-        } from "./supabase-db-compat.js?v=25";
+        } from "./supabase-db-compat.js?v=26";
 
         // Khởi tạo Supabase
         let app = initializeApp({});
@@ -1272,10 +1272,18 @@
                     }
 
                     // Chuẩn bị danh sách ảnh cho thẻ sản phẩm
-                    const courseImages = (Array.isArray(c.images) && c.images.length > 0)
-                        ? c.images.filter(x => typeof x === 'string' && x.trim())
-                        : (c.thumbnail ? [c.thumbnail] : (c.image ? [c.image] : []));
-                    
+                    let courseImages = [];
+                    if (Array.isArray(c.images) && c.images.length > 0) {
+                        courseImages = c.images.filter(x => typeof x === 'string' && x.trim());
+                    } else if (c.raw_data && Array.isArray(c.raw_data.images) && c.raw_data.images.length > 0) {
+                        courseImages = c.raw_data.images.filter(x => typeof x === 'string' && x.trim());
+                    }
+                    if (courseImages.length === 0) {
+                        const singleFallback = c.thumbnail || (c.raw_data && c.raw_data.thumbnail) || c.image || (c.raw_data && c.raw_data.image);
+                        if (singleFallback && typeof singleFallback === 'string' && singleFallback.trim()) {
+                            courseImages.push(singleFallback.trim());
+                        }
+                    }
                     if (courseImages.length === 0) {
                         courseImages.push('https://placehold.co/400x200?text=No+Image');
                     }
@@ -1316,7 +1324,8 @@
                         `;
                     } else {
                         // NHIỀU ẢNH: TỰ ĐỘNG CHIẾU SLIDE LƯỚT LẦN LƯỢT LẶP ĐI LẶP LẠI
-                        const sliderId = 'c-slider-' + (c.id || Math.random().toString(36).substring(2, 9));
+                        const safeId = String(c.id || Math.random().toString(36).substring(2, 9)).replace(/[^a-zA-Z0-9_-]/g, '_');
+                        const sliderId = 'c-slider-' + safeId;
                         const slidesHtml = courseImages.map((img, idx) => {
                             if (isBookType) {
                                 return `

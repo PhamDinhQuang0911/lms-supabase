@@ -872,6 +872,23 @@ function unwrapRecord(r) {
         } catch(e) {}
     }
 
+    // HỖ TRỢ ĐA ẢNH (IMAGES GALLERY) & ẢNH BÌA CHO PUBLIC_COURSES
+    if (raw.images !== undefined && res.images === undefined) {
+        res.images = raw.images;
+    }
+    if (typeof res.images === 'string' && res.images.trim().startsWith('[')) {
+        try { res.images = JSON.parse(res.images); } catch(e){}
+    }
+    if (Array.isArray(res.images)) {
+        res.images = res.images.filter(x => typeof x === 'string' && x.trim());
+    }
+    if ((!res.images || res.images.length === 0) && (res.thumbnail || res.image)) {
+        res.images = [res.thumbnail || res.image];
+    }
+    if ((!res.thumbnail || !res.thumbnail.trim()) && Array.isArray(res.images) && res.images.length > 0) {
+        res.thumbnail = res.images[0];
+    }
+
     // Unpack site_settings value
     if (r.key !== undefined && r.value !== undefined && typeof r.value === 'object' && !Array.isArray(r.value)) {
         Object.assign(res, r.value);
@@ -1078,7 +1095,7 @@ export async function getDoc(docRef) {
         if (error) throw error;
 
         let docData = unwrapRecord(data);
-        if (!docData && table === 'public_courses') {
+        if (table === 'public_courses') {
             try {
                 const { data: confData } = await supabase
                     .from('configurations')
@@ -1086,7 +1103,14 @@ export async function getDoc(docRef) {
                     .eq('id', 'course_' + docRef.id)
                     .maybeSingle();
                 if (confData && confData.raw_data) {
-                    docData = unwrapRecord(confData.raw_data);
+                    const confDocData = unwrapRecord({ ...confData.raw_data, id: confData.raw_data.id || docRef.id });
+                    docData = docData ? { ...confDocData, ...docData } : confDocData;
+                    if (confDocData.images && (!docData.images || docData.images.length === 0)) {
+                        docData.images = confDocData.images;
+                    }
+                    if (confDocData.thumbnail && !docData.thumbnail) {
+                        docData.thumbnail = confDocData.thumbnail;
+                    }
                 }
             } catch(e) {}
         }
@@ -1417,10 +1441,32 @@ export async function setDoc(docRef, data, options = {}) {
             else console.log(`[Supabase setDoc] Đã lưu cài đặt setting_${docRef.id} vào bảng configurations thành công!`);
         }
 
+        if (table === 'public_courses') {
+            try {
+                const confPayload = {
+                    id: 'course_' + docRef.id,
+                    raw_data: { id: docRef.id, ...data, updatedAt: new Date().toISOString() },
+                    updated_at: new Date().toISOString()
+                };
+                if ((!confPayload.raw_data.thumbnail || !confPayload.raw_data.thumbnail.trim()) && Array.isArray(confPayload.raw_data.images) && confPayload.raw_data.images.length > 0) {
+                    confPayload.raw_data.thumbnail = confPayload.raw_data.images[0];
+                }
+                if ((!confPayload.raw_data.images || confPayload.raw_data.images.length === 0) && confPayload.raw_data.thumbnail) {
+                    confPayload.raw_data.images = [confPayload.raw_data.thumbnail];
+                }
+                await supabase
+                    .from('configurations')
+                    .upsert(confPayload, { onConflict: 'id' });
+                console.log(`[Supabase setDoc] Đã lưu khóa học ${docRef.id} vào configurations thành công!`);
+            } catch(e) {
+                console.warn('[Supabase setDoc configurations sync]:', e);
+            }
+        }
+
         const { error } = await supabase
             .from(table)
             .upsert(payload, { onConflict: pkCol });
-        if (error && table !== 'site_settings') throw error;
+        if (error && table !== 'site_settings' && table !== 'public_courses') throw error;
         return docRef;
     } catch (err) {
         console.warn(`[Supabase setDoc retry] Lỗi upsert vào ${table}:`, err);
@@ -1528,6 +1574,38 @@ export async function updateDoc(docRef, updates) {
                     .upsert({ id: confId, raw_data: mergedRaw, updated_at: new Date().toISOString() }, { onConflict: 'id' });
             } catch(e) {}
         }
+        if (table === 'public_courses') {
+            try {
+                const confId = 'course_' + docRef.id;
+                const { data: existing } = await supabase
+                    .from('configurations')
+                    .select('raw_data')
+                    .eq('id', confId)
+                    .maybeSingle();
+                const currRaw = (existing && existing.raw_data && typeof existing.raw_data === 'object') ? existing.raw_data : {};
+                const mergedRaw = { ...currRaw, ...updates, id: docRef.id, updatedAt: new Date().toISOString() };
+                if ((!mergedRaw.thumbnail || !mergedRaw.thumbnail.trim()) && Array.isArray(mergedRaw.images) && mergedRaw.images.length > 0) {
+                    mergedRaw.thumbnail = mergedRaw.images[0];
+                }
+                if ((!mergedRaw.images || mergedRaw.images.length === 0) && mergedRaw.thumbnail) {
+                    mergedRaw.images = [mergedRaw.thumbnail];
+                }
+                await supabase
+                    .from('configurations')
+                    .upsert({ id: confId, raw_data: mergedRaw, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                console.log(`[Supabase updateDoc] Đã đồng bộ khóa học ${docRef.id} vào bảng configurations thành công!`);
+            } catch(e) {
+                console.warn("[Supabase updateDoc configurations sync error]:", e);
+            }
+
+            try {
+                const { data: cDoc } = await supabase.from('public_courses').select('raw_data').eq(pkCol, docRef.id).maybeSingle();
+                if (cDoc) {
+                    const currRaw = (cDoc.raw_data && typeof cDoc.raw_data === 'object') ? cDoc.raw_data : {};
+                    payload.raw_data = { ...currRaw, ...updates, id: docRef.id, updatedAt: payload.updated_at || new Date().toISOString() };
+                }
+            } catch(e) {}
+        }
         if (table === 'users' && updates.password) {
             try {
                 const { data: uDoc } = await supabase.from('users').select('raw_data').eq(pkCol, docRef.id).maybeSingle();
@@ -1553,7 +1631,7 @@ export async function updateDoc(docRef, updates) {
             .from(table)
             .update(payload)
             .eq(pkCol, docRef.id);
-        if (error && table !== 'site_settings') throw error;
+        if (error && table !== 'site_settings' && table !== 'public_courses') throw error;
     } catch (err) {
         console.warn(`[Supabase updateDoc retry] Fallback update ${table}:`, err);
         if (table === 'site_settings') {

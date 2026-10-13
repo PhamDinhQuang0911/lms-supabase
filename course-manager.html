@@ -728,7 +728,7 @@
             supabase, initializeApp, getAuth, onAuthStateChanged,
             getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, onSnapshot, increment, writeBatch,
             getStorage, ref, uploadBytes, getDownloadURL
-        } from "./supabase-db-compat.js?v=25";
+        } from "./supabase-db-compat.js?v=26";
 
         // CẤU HÌNH SUPABASE
         const app = initializeApp({});
@@ -978,7 +978,8 @@
                 // Đếm item
                 let itemCount = 0;
                 if(c.curriculum) c.curriculum.forEach(ch => { if(ch.lessons) ch.lessons.forEach(l => { if(l.items) itemCount += l.items.length; }) });
-                const thumb = c.thumbnail || 'https://placehold.co/100';
+                const thumb = c.thumbnail || (Array.isArray(c.images) && c.images[0]) || (c.raw_data && c.raw_data.thumbnail) || (c.raw_data && Array.isArray(c.raw_data.images) && c.raw_data.images[0]) || c.image || 'https://placehold.co/100';
+                const totalImgCount = (Array.isArray(c.images) && c.images.length > 0) ? c.images.length : (c.raw_data && Array.isArray(c.raw_data.images) ? c.raw_data.images.length : (c.thumbnail ? 1 : 0));
 
                 // Format hiển thị theo Loại sản phẩm
                 let typeBadge = '<span class="bg-teal-100 text-teal-700 px-2 py-0.5 rounded text-[10px] font-bold inline-block mt-1"><i class="fa-solid fa-video"></i> KHÓA HỌC</span>';
@@ -1007,7 +1008,7 @@
                 <tr class="hover:bg-gray-50 border-b border-gray-100 group transition-colors ${isSoldOut ? 'bg-red-50/20' : ''}">
                     <td class="p-4">
                         <img src="${thumb}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 shadow-sm">
-                        ${(c.images && c.images.length > 1) ? `<div class="text-[10px] text-teal-600 font-bold mt-0.5 whitespace-nowrap"><i class="fa-solid fa-images mr-0.5"></i>${c.images.length} ảnh</div>` : ''}
+                        ${totalImgCount > 1 ? `<div class="text-[10px] text-teal-600 font-bold mt-0.5 whitespace-nowrap"><i class="fa-solid fa-images mr-0.5"></i>${totalImgCount} ảnh</div>` : ''}
                     </td>
                     <td class="p-4"><div class="font-bold text-gray-800 group-hover:text-brand transition-colors">${c.title}</div>${typeBadge}${soldOutBadge}</td>
                     <td class="p-4 text-xs text-gray-500 font-bold">${strucText}</td>
@@ -1030,7 +1031,7 @@
                     <div class="h-40 bg-gray-100 relative overflow-hidden">
                         <img src="${thumb}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                         ${isSoldOut ? '<div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg shadow"><i class="fa-solid fa-ban mr-0.5"></i> BÁN HẾT</div>' : ''}
-                        ${(c.images && c.images.length > 1) ? `<div class="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs flex items-center gap-1 shadow"><i class="fa-solid fa-images"></i> ${c.images.length} ảnh</div>` : ''}
+                        ${totalImgCount > 1 ? `<div class="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs flex items-center gap-1 shadow"><i class="fa-solid fa-images"></i> ${totalImgCount} ảnh</div>` : ''}
                         <div class="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg backdrop-blur-sm"><i class="fa-solid fa-shopping-cart"></i> ${c.students||0}</div>
                     </div>
                     <div class="p-5 flex flex-col flex-1">
@@ -1513,12 +1514,15 @@ window.editCourse = async (id) => {
         document.getElementById('cDesc').value = dt.desc || '';
         
         // Nạp mảng ảnh minh họa
-        if (Array.isArray(dt.images) && dt.images.length > 0) {
-            window.currentCourseImages = dt.images.filter(x => typeof x === 'string' && x.trim());
-        } else if (dt.thumbnail) {
-            window.currentCourseImages = [dt.thumbnail];
-        } else if (dt.image) {
-            window.currentCourseImages = [dt.image];
+        const rawImgs = (Array.isArray(dt.images) && dt.images.length > 0)
+            ? dt.images
+            : (dt.raw_data && Array.isArray(dt.raw_data.images) && dt.raw_data.images.length > 0 ? dt.raw_data.images : []);
+        const rawThumb = dt.thumbnail || (dt.raw_data && dt.raw_data.thumbnail) || dt.image || (dt.raw_data && dt.raw_data.image) || '';
+        
+        if (rawImgs.length > 0) {
+            window.currentCourseImages = rawImgs.filter(x => typeof x === 'string' && x.trim());
+        } else if (rawThumb) {
+            window.currentCourseImages = [rawThumb];
         } else {
             window.currentCourseImages = [];
         }
@@ -1552,9 +1556,21 @@ window.saveCourseBasic = async () => {
     const statusVal = document.getElementById('cStatus')?.value || 'active';
     const isSoldOutVal = (statusVal === 'sold_out');
     
-    const validImages = Array.isArray(window.currentCourseImages)
+    // 1. Đọc mảng ảnh từ window.currentCourseImages
+    let validImages = Array.isArray(window.currentCourseImages)
         ? window.currentCourseImages.filter(x => typeof x === 'string' && x.trim())
         : [];
+    
+    // 2. Dự phòng: nếu mảng bị rỗng nhưng trên giao diện DOM gallery đang hiển thị ảnh
+    if (validImages.length === 0) {
+        const domImgs = Array.from(document.querySelectorAll('#courseImagesGallery img'))
+            .map(el => el.getAttribute('src') || el.src)
+            .filter(src => src && (src.startsWith('http://') || src.startsWith('https://')));
+        if (domImgs.length > 0) {
+            validImages = domImgs;
+            window.currentCourseImages = domImgs;
+        }
+    }
     const primaryThumb = validImages[0] || document.getElementById('cThumb')?.value || '';
 
     const data = {
@@ -1594,6 +1610,13 @@ window.saveCourseBasic = async () => {
             data.createdAt = new Date().toISOString(); 
             await setDoc(doc(collection(db, "public_courses")), data); 
         }
+
+        // Xóa cache bộ nhớ tạm để trang index.html cập nhật tức thì
+        try {
+            localStorage.removeItem('qm_cached_public_courses');
+            sessionStorage.removeItem('cached_courses_v2');
+        } catch(e) {}
+
         window.showToast("Đã lưu thiết lập thành công!");
         window.toggleModal('courseModal', false);
         loadCourses();
