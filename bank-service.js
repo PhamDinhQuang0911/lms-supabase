@@ -438,27 +438,69 @@
 
             let target = null;
 
-            // 1. Kiểm tra trong window.globalBankQuestions (nếu có)
-            if (!forceRemote && typeof window !== 'undefined' && Array.isArray(window.globalBankQuestions)) {
-                const found = window.globalBankQuestions.find(q => String(q.id) === queryId || String(q.cccd) === queryId);
-                if (found && found.content) target = found;
+            // 1. Nếu forceRemote = true, bỏ qua cache và nạp trực tiếp từ Cloudflare R2 để lấy dữ liệu mới nhất
+            if (forceRemote) {
+                try {
+                    const res = await fetch(`https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank/${encodeURIComponent(queryId)}.json?t=${Date.now()}`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && (data.id || data.content)) {
+                            this.updateLocalBankCache([data]);
+                            target = data;
+                        }
+                    }
+                } catch(e) {}
+
+                if (!target) {
+                    try {
+                        const res = await fetch(`${WORKER_BANK_URL}?id=${encodeURIComponent(queryId)}&t=${Date.now()}`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data && (data.id || data.content)) {
+                                this.updateLocalBankCache([data]);
+                                target = data;
+                            }
+                        }
+                    } catch(e) {}
+                }
             }
 
-            // 2. Kiểm tra trong cache cục bộ
-            if (!target && !forceRemote) {
+            // 2. Nếu chưa có và forceRemote = false: Kiểm tra cache RAM và LocalStorage
+            if (!target) {
+                if (typeof window !== 'undefined' && Array.isArray(window.globalBankQuestions)) {
+                    const found = window.globalBankQuestions.find(q => String(q.id) === queryId || String(q.cccd) === queryId);
+                    if (found && found.content) target = found;
+                }
+
+                if (!target) {
+                    try {
+                        const cached = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
+                        if (cached) {
+                            const list = JSON.parse(cached);
+                            if (Array.isArray(list)) {
+                                const found = list.find(q => String(q.id) === queryId || String(q.cccd) === queryId);
+                                if (found && found.content) target = found;
+                            }
+                        }
+                    } catch(e) {}
+                }
+            }
+
+            // 3. Nếu tìm thấy trong cache nhưng câu này không có lời giải (solution rỗng), thử fetch R2 để lấy lời giải mới nhất
+            if (target && !target.solution) {
                 try {
-                    const cached = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
-                    if (cached) {
-                        const list = JSON.parse(cached);
-                        if (Array.isArray(list)) {
-                            const found = list.find(q => String(q.id) === queryId || String(q.cccd) === queryId);
-                            if (found && found.content) target = found;
+                    const res = await fetch(`https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank/${encodeURIComponent(queryId)}.json?t=${Date.now()}`, { cache: 'no-store' });
+                    if (res.ok) {
+                        const freshData = await res.json();
+                        if (freshData && (freshData.solution || freshData.content)) {
+                            this.updateLocalBankCache([freshData]);
+                            target = freshData;
                         }
                     }
                 } catch(e) {}
             }
 
-            // 3. Fetch trực tiếp từ Cloudflare R2 (tốc độ cao ~50ms)
+            // 4. Nếu vẫn chưa có target, fetch từ Cloudflare R2
             if (!target) {
                 try {
                     const res = await fetch(`https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank/${encodeURIComponent(queryId)}.json?t=${Date.now()}`, { cache: 'no-store' });
@@ -472,7 +514,7 @@
                 } catch(e) {}
             }
 
-            // 4. Fetch từ Cloudflare R2 qua Worker nếu chưa có
+            // 5. Fetch từ Cloudflare R2 qua Worker nếu chưa có
             if (!target) {
                 try {
                     const res = await fetch(`${WORKER_BANK_URL}?id=${encodeURIComponent(queryId)}&t=${Date.now()}`, { cache: 'no-store' });
@@ -486,6 +528,20 @@
                 } catch(e) {
                     console.warn(`Lỗi fetch câu hỏi ${queryId} từ R2:`, e);
                 }
+            }
+
+            // 6. Nếu remote fetch thất bại (ví dụ mất mạng offline) và forceRemote=true, thử lấy từ cache dự phòng
+            if (!target && forceRemote) {
+                try {
+                    const cached = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
+                    if (cached) {
+                        const list = JSON.parse(cached);
+                        if (Array.isArray(list)) {
+                            const found = list.find(q => String(q.id) === queryId || String(q.cccd) === queryId);
+                            if (found && found.content) target = found;
+                        }
+                    }
+                } catch(e) {}
             }
 
             if (!target) return null;

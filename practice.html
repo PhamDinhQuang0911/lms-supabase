@@ -3715,7 +3715,59 @@
             modal.querySelector('.modal-content')?.classList.add('scale-95');
         };
 
-        window.executeStudentLookup = async (forcedId = null) => {
+        // Tối ưu hiển thị ảnh trong modal tra cứu practice.html
+        function optimizePracticeLookupImages(container) {
+            if (!container) return;
+            const imgs = container.querySelectorAll('img');
+            imgs.forEach(img => {
+                img.removeAttribute('loading');
+                img.setAttribute('loading', 'eager');
+                img.setAttribute('decoding', 'async');
+                if (img.src && img.src.startsWith('http://')) {
+                    img.src = img.src.replace(/^http:\/\//i, 'https://');
+                }
+                img.onerror = function() {
+                    if (!this.dataset.retried) {
+                        this.dataset.retried = "1";
+                        const originalSrc = this.src;
+                        const sep = originalSrc.includes('?') ? '&' : '?';
+                        this.src = originalSrc + sep + 'retry=1&t=' + Date.now();
+                        return;
+                    }
+                    if (this.nextElementSibling && this.nextElementSibling.classList.contains('img-fallback-box')) return;
+                    const fallbackDiv = document.createElement('div');
+                    fallbackDiv.className = "img-fallback-box my-3 p-3 rounded-xl border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-slate-800 text-center text-xs text-amber-800 dark:text-amber-300 max-w-md mx-auto";
+                    fallbackDiv.innerHTML = `
+                        <div class="flex items-center justify-center gap-1.5 font-bold mb-1">
+                            <i class="fa-solid fa-image text-amber-500"></i>
+                            <span>Chưa tải được hình vẽ</span>
+                        </div>
+                        <div class="flex items-center justify-center gap-2 mt-1.5">
+                            <button type="button" class="btn-retry-img px-2.5 py-1 bg-amber-500 text-white font-bold rounded-lg text-xs shadow-xs">
+                                <i class="fa-solid fa-rotate-right mr-1"></i> Thử lại
+                            </button>
+                            <a href="${this.src}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-200 border rounded-lg text-xs">
+                                <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Mở ảnh
+                            </a>
+                        </div>
+                    `;
+                    const retryBtn = fallbackDiv.querySelector('.btn-retry-img');
+                    if (retryBtn) {
+                        retryBtn.onclick = () => {
+                            this.dataset.retried = '';
+                            const sep = this.src.includes('?') ? '&' : '?';
+                            this.src = this.src.split('?')[0] + sep + 't=' + Date.now();
+                            this.style.display = '';
+                            fallbackDiv.remove();
+                        };
+                    }
+                    this.style.display = 'none';
+                    this.parentNode.insertBefore(fallbackDiv, this.nextSibling);
+                };
+            });
+        }
+
+        window.executeStudentLookup = async (forcedId = null, forceRefresh = true) => {
             const input = document.getElementById('modalLookupInput');
             const qId = String(forcedId || (input ? input.value : '')).trim();
             if (!qId) return;
@@ -3732,17 +3784,39 @@
 
             try {
                 let q = null;
-                if (window.globalBankCatalog && window.globalBankCatalog.length > 0) {
+                // 1. Luôn ưu tiên nạp từ Cloudflare R2 với timestamp để tránh cache cũ
+                try {
+                    const r = await fetch(`https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank/${encodeURIComponent(qId)}.json?t=${Date.now()}`, { cache: 'no-store' });
+                    if (r.ok) {
+                        q = await r.json();
+                    }
+                } catch(e) {}
+
+                // 2. Dự phòng catalog nếu R2 trực tiếp không phản hồi
+                if (!q && window.globalBankCatalog && window.globalBankCatalog.length > 0) {
                     q = window.globalBankCatalog.find(item => String(item.id) === qId || String(item.cccd) === qId);
                 }
 
+                // 3. Dự phòng Worker
                 if (!q || !q.content) {
                     try {
                         const targetId = (q && (q.id || q.cccd)) || qId;
-                        const r = await fetch(`https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank/${encodeURIComponent(targetId)}.json?t=${Date.now()}`);
+                        const res = await fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/bank?id=${encodeURIComponent(targetId)}&t=${Date.now()}`, { cache: 'no-store' });
+                        if (res.ok) {
+                            const full = await res.json();
+                            q = q ? { ...q, ...full } : full;
+                        }
+                    } catch(e) {}
+                }
+
+                // 4. Nếu câu hỏi thiếu lời giải, ép fetch R2 một lần nữa
+                if (q && !q.solution) {
+                    try {
+                        const targetId = (q && (q.id || q.cccd)) || qId;
+                        const r = await fetch(`https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank/${encodeURIComponent(targetId)}.json?t=${Date.now()}`, { cache: 'no-store' });
                         if (r.ok) {
                             const full = await r.json();
-                            q = q ? { ...q, ...full } : full;
+                            if (full && (full.solution || full.content)) q = full;
                         }
                     } catch(e) {}
                 }
@@ -3759,14 +3833,18 @@
 
                 const badgesBox = document.getElementById('lookupBadgesContainer');
                 if (badgesBox) {
+                    const cccdNum = q.cccd || q.id;
                     badgesBox.innerHTML = `
                         <span class="text-xs font-mono font-black text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-200">
-                            ID: #${q.cccd || q.id}
+                            ID: #${cccdNum}
                         </span>
                         ${q.mapId ? `<span class="text-xs font-mono font-black text-teal-700 bg-teal-50 px-2.5 py-1 rounded-xl border border-teal-200">${q.mapId}</span>` : ''}
                         <span class="text-xs font-black text-gray-700 bg-gray-100 px-2.5 py-1 rounded-xl border border-gray-200">
                             ${q.level || 'Thông hiểu'}
-                        </span>`;
+                        </span>
+                        <button type="button" onclick="window.executeStudentLookup('${cccdNum}', true)" class="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-bold transition-all flex items-center gap-1" title="Làm mới dữ liệu">
+                            <i class="fa-solid fa-rotate"></i> Làm mới
+                        </button>`;
                 }
 
                 const contentEl = document.getElementById('lookupQuestionContent');
@@ -3796,7 +3874,7 @@
 
                 const solEl = document.getElementById('lookupSolutionSection');
                 if (solEl) {
-                    if (q.solution) {
+                    if (q.solution && q.solution.trim()) {
                         solEl.innerHTML = `
                             <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4">
                                 <div class="font-black text-amber-900 text-xs uppercase mb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-lightbulb"></i> Lời giải chi tiết</div>
@@ -3807,7 +3885,9 @@
                     }
                 }
 
+                optimizePracticeLookupImages(resultEl);
                 window.safeTypeset(resultEl);
+                setTimeout(() => optimizePracticeLookupImages(resultEl), 200);
 
             } catch(e) {
                 console.error("Lookup error:", e);

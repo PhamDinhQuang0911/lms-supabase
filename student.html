@@ -29,7 +29,7 @@
     <script>
     // Tự động giải phóng Service Worker & Cache cũ để cập nhật phiên bản mới
     (function() {
-        const CACHE_RESET_ID = 'qmath_student_v17_reset';
+        const CACHE_RESET_ID = 'qmath_student_v18_reset';
         if (localStorage.getItem('qm_reset_cache_student') !== CACHE_RESET_ID) {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -41,6 +41,11 @@
                     for (const k of keys) caches.delete(k);
                 });
             }
+            try {
+                localStorage.removeItem('lms_cached_bank');
+                localStorage.removeItem('lms_cached_bank_v2');
+                localStorage.removeItem('lms_bank_questions_cache');
+            } catch(e) {}
             localStorage.setItem('qm_reset_cache_student', CACHE_RESET_ID);
         }
     })();
@@ -5423,7 +5428,65 @@
             window.studentOpenLookupModal(val);
         };
 
-        window.executeStudentLookup = async (forcedId = null) => {
+        // Tối ưu hiển thị ảnh trong modal tra cứu: gỡ lazy loading, sửa http/https, và fallback khi mất mạng/ảnh lỗi
+        function optimizeLookupImages(container) {
+            if (!container) return;
+            const imgs = container.querySelectorAll('img');
+            imgs.forEach(img => {
+                // 1. Ép load ngay lập tức trên mobile, tránh lỗi lazy-load bị treo trong modal
+                img.removeAttribute('loading');
+                img.setAttribute('loading', 'eager');
+                img.setAttribute('decoding', 'async');
+
+                // 2. Tự sửa mixed-content http -> https
+                if (img.src && img.src.startsWith('http://')) {
+                    img.src = img.src.replace(/^http:\/\//i, 'https://');
+                }
+
+                // 3. Fallback xử lý khi ảnh bị lỗi (mạng chập chờn, lỗi ISP, hoặc URL cũ)
+                img.onerror = function() {
+                    if (!this.dataset.retried) {
+                        this.dataset.retried = "1";
+                        const originalSrc = this.src;
+                        const sep = originalSrc.includes('?') ? '&' : '?';
+                        this.src = originalSrc + sep + 'retry=1&t=' + Date.now();
+                        return;
+                    }
+                    if (this.nextElementSibling && this.nextElementSibling.classList.contains('img-fallback-box')) return;
+                    const fallbackDiv = document.createElement('div');
+                    fallbackDiv.className = "img-fallback-box my-3 p-3.5 rounded-2xl border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-slate-800 text-center text-xs text-amber-800 dark:text-amber-300 max-w-md mx-auto";
+                    fallbackDiv.innerHTML = `
+                        <div class="flex items-center justify-center gap-2 font-bold mb-1">
+                            <i class="fa-solid fa-image text-amber-500 text-base"></i>
+                            <span>Chưa tải được hình vẽ</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 mb-2">Đường truyền mạng hoặc kết nối máy chủ ảnh bị gián đoạn.</p>
+                        <div class="flex items-center justify-center gap-2">
+                            <button type="button" class="btn-retry-img px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-xs transition-all">
+                                <i class="fa-solid fa-rotate-right mr-1"></i> Tải lại ảnh
+                            </button>
+                            <a href="${this.src}" target="_blank" rel="noopener noreferrer" class="px-3 py-1 bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-600 font-bold rounded-lg text-xs hover:bg-gray-50">
+                                <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Mở link
+                            </a>
+                        </div>
+                    `;
+                    const retryBtn = fallbackDiv.querySelector('.btn-retry-img');
+                    if (retryBtn) {
+                        retryBtn.onclick = () => {
+                            this.dataset.retried = '';
+                            const sep = this.src.includes('?') ? '&' : '?';
+                            this.src = this.src.split('?')[0] + sep + 't=' + Date.now();
+                            this.style.display = '';
+                            fallbackDiv.remove();
+                        };
+                    }
+                    this.style.display = 'none';
+                    this.parentNode.insertBefore(fallbackDiv, this.nextSibling);
+                };
+            });
+        }
+
+        window.executeStudentLookup = async (forcedId = null, forceRefresh = true) => {
             const input = document.getElementById('modalLookupInput');
             const qId = String(forcedId || (input ? input.value : '')).trim();
             if (!qId) return;
@@ -5440,15 +5503,45 @@
 
             try {
                 let q = null;
+                // 1. Luôn ưu tiên nạp từ Cloudflare R2 với forceRemote = true để lấy dữ liệu mới nhất
                 if (window.BankService) {
-                    q = await window.BankService.getQuestionById(qId, false);
+                    q = await window.BankService.getQuestionById(qId, forceRefresh);
                 }
+
+                // 2. Dự phòng nạp trực tiếp R2 nếu chưa có
                 if (!q) {
-                    // Thử fetch trực tiếp R2
-                    const res = await fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/bank?id=${encodeURIComponent(qId)}`);
-                    if (res.ok) {
-                        q = await res.json();
-                    }
+                    try {
+                        const r2Res = await fetch(`https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank/${encodeURIComponent(qId)}.json?t=${Date.now()}`, { cache: 'no-store' });
+                        if (r2Res.ok) {
+                            q = await r2Res.json();
+                            if (window.BankService) window.BankService.updateLocalBankCache([q]);
+                        }
+                    } catch(e) {}
+                }
+
+                // 3. Dự phòng nạp qua Worker nếu R2 trực tiếp không phản hồi
+                if (!q) {
+                    try {
+                        const res = await fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/bank?id=${encodeURIComponent(qId)}&t=${Date.now()}`, { cache: 'no-store' });
+                        if (res.ok) {
+                            q = await res.json();
+                            if (window.BankService) window.BankService.updateLocalBankCache([q]);
+                        }
+                    } catch(e) {}
+                }
+
+                // 4. Nếu câu hỏi chưa có lời giải (hoặc cache cũ thiếu lời giải), thử ép fetch R2 một lần nữa
+                if (q && !q.solution) {
+                    try {
+                        const r2Res = await fetch(`https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank/${encodeURIComponent(qId)}.json?t=${Date.now()}`, { cache: 'no-store' });
+                        if (r2Res.ok) {
+                            const freshQ = await r2Res.json();
+                            if (freshQ && (freshQ.solution || freshQ.content)) {
+                                q = freshQ;
+                                if (window.BankService) window.BankService.updateLocalBankCache([q]);
+                            }
+                        }
+                    } catch(e) {}
                 }
 
                 if (!q) {
@@ -5501,6 +5594,12 @@
                             </span>
                         `;
                     }
+                    // Nút làm mới dữ liệu từ máy chủ
+                    badgesHtml += `
+                        <button type="button" onclick="window.executeStudentLookup('${cccdNum}', true)" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-2xs" title="Tải lại từ máy chủ để lấy lời giải và hình vẽ mới nhất">
+                            <i class="fa-solid fa-rotate"></i> Làm mới
+                        </button>
+                    `;
                     badgesContainer.innerHTML = badgesHtml;
                 }
 
@@ -5667,12 +5766,16 @@
                     }
                 }
 
+                // Tối ưu tải ảnh và hiển thị
+                optimizeLookupImages(resultEl);
+
                 // Typeset MathJax
                 loadingEl?.classList.add('hidden');
                 resultEl?.classList.remove('hidden');
 
                 if (window.MathJax && window.MathJax.typesetPromise) {
                     MathJax.typesetPromise([resultEl]).then(() => {
+                        optimizeLookupImages(resultEl);
                         if (window.renderTikz) window.renderTikz();
                         if (window.autoScaleTables) window.autoScaleTables();
                     }).catch(() => {});
