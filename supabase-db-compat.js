@@ -1128,6 +1128,25 @@ export async function getDoc(docRef) {
             } catch(e) {}
         }
 
+        if (table === 'orders') {
+            const currentStatus = String((docData && docData.status) || '').toLowerCase().trim();
+            if (!docData || currentStatus === 'pending') {
+                try {
+                    const fbOrder = await getOrderFromFirebase(docRef.id);
+                    if (fbOrder) {
+                        const fbStatus = String(fbOrder.status || '').toLowerCase().trim();
+                        if (fbStatus === 'paid' || fbStatus === 'completed' || fbStatus === 'approved' || fbStatus === 'success') {
+                            console.log(`[Dual-DB Sync] Đơn hàng ${docRef.id} đã hoàn tất trên Firebase. Đồng bộ về Supabase!`);
+                            await supabase.from('orders').update({ status: fbOrder.status, updated_at: new Date().toISOString() }).eq(pkCol, docRef.id);
+                            docData = docData ? { ...docData, ...fbOrder } : fbOrder;
+                        } else if (!docData) {
+                            docData = fbOrder;
+                        }
+                    }
+                } catch(e) {}
+            }
+        }
+
         return {
             id: docRef.id,
             exists: () => docData !== null && docData !== undefined,
@@ -1135,6 +1154,18 @@ export async function getDoc(docRef) {
         };
     } catch (err) {
         console.warn(`[Supabase getDoc] Lỗi đọc ${docRef.table}/${docRef.id}:`, err);
+        if (docRef.table === 'orders') {
+            try {
+                const fbOrder = await getOrderFromFirebase(docRef.id);
+                if (fbOrder) {
+                    return {
+                        id: docRef.id,
+                        exists: () => true,
+                        data: () => fbOrder
+                    };
+                }
+            } catch(e) {}
+        }
         if (docRef.table === 'site_settings') {
             try {
                 const { data: confData } = await supabase
@@ -1403,6 +1434,124 @@ export async function getDocs(queryOrColRef) {
     }
 }
 
+// ==========================================
+// FIREBASE FIRESTORE ORDERS DUAL-STORAGE BRIDGE
+// ==========================================
+const FIREBASE_REST_CONFIG = {
+    apiKey: "AIzaSyCqAX3x1MbJ3do7m3EaH9JA4kFuVhlAc78",
+    projectId: "lms-thitracnghiem"
+};
+
+function toFirestoreFields(obj) {
+    if (!obj || typeof obj !== 'object') return {};
+    const fields = {};
+    for (const [key, val] of Object.entries(obj)) {
+        if (val === undefined || val === null) {
+            fields[key] = { nullValue: null };
+        } else if (val instanceof Date) {
+            fields[key] = { timestampValue: val.toISOString() };
+        } else if (typeof val === 'boolean') {
+            fields[key] = { booleanValue: val };
+        } else if (typeof val === 'number') {
+            if (Number.isInteger(val)) {
+                fields[key] = { integerValue: String(val) };
+            } else {
+                fields[key] = { doubleValue: val };
+            }
+        } else if (typeof val === 'string') {
+            fields[key] = { stringValue: val };
+        } else if (Array.isArray(val)) {
+            fields[key] = {
+                arrayValue: {
+                    values: val.map(item => {
+                        if (item === undefined || item === null) return { nullValue: null };
+                        if (item instanceof Date) return { timestampValue: item.toISOString() };
+                        if (typeof item === 'string') return { stringValue: item };
+                        if (typeof item === 'number') return Number.isInteger(item) ? { integerValue: String(item) } : { doubleValue: item };
+                        if (typeof item === 'boolean') return { booleanValue: item };
+                        if (typeof item === 'object') return { mapValue: { fields: toFirestoreFields(item) } };
+                        return { stringValue: String(item) };
+                    })
+                }
+            };
+        } else if (typeof val === 'object') {
+            fields[key] = { mapValue: { fields: toFirestoreFields(val) } };
+        }
+    }
+    return fields;
+}
+
+function fromFirestoreFields(fields) {
+    if (!fields) return {};
+    const obj = {};
+    for (const [key, valObj] of Object.entries(fields)) {
+        if ('stringValue' in valObj) obj[key] = valObj.stringValue;
+        else if ('integerValue' in valObj) obj[key] = Number(valObj.integerValue);
+        else if ('doubleValue' in valObj) obj[key] = Number(valObj.doubleValue);
+        else if ('booleanValue' in valObj) obj[key] = valObj.booleanValue;
+        else if ('nullValue' in valObj) obj[key] = null;
+        else if ('timestampValue' in valObj) obj[key] = valObj.timestampValue;
+        else if ('arrayValue' in valObj) {
+            obj[key] = (valObj.arrayValue.values || []).map(v => {
+                if ('stringValue' in v) return v.stringValue;
+                if ('integerValue' in v) return Number(v.integerValue);
+                if ('doubleValue' in v) return Number(v.doubleValue);
+                if ('booleanValue' in v) return v.booleanValue;
+                if ('mapValue' in v) return fromFirestoreFields(v.mapValue.fields);
+                return null;
+            });
+        }
+        else if ('mapValue' in valObj) obj[key] = fromFirestoreFields(valObj.mapValue.fields);
+    }
+    return obj;
+}
+
+async function syncOrderToFirebase(orderId, orderData, isPartial = false) {
+    if (!orderId || !orderData) return;
+    try {
+        let url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_REST_CONFIG.projectId}/databases/(default)/documents/orders/${encodeURIComponent(orderId)}?key=${FIREBASE_REST_CONFIG.apiKey}`;
+        const fields = toFirestoreFields(orderData);
+        if (isPartial) {
+            const keys = Object.keys(fields);
+            if (keys.length > 0) {
+                const maskParams = keys.map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join('&');
+                url += `&${maskParams}`;
+            }
+        }
+        await fetch(url, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields })
+        });
+        console.log(`[Dual-DB Sync] Đã đồng bộ đơn hàng ${orderId} lên Firebase Firestore! (partial=${isPartial})`);
+    } catch(err) {
+        console.warn(`[Dual-DB Sync] Lỗi đồng bộ đơn hàng ${orderId} lên Firebase:`, err);
+    }
+}
+
+async function deleteOrderFromFirebase(orderId) {
+    if (!orderId) return;
+    try {
+        const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_REST_CONFIG.projectId}/databases/(default)/documents/orders/${encodeURIComponent(orderId)}?key=${FIREBASE_REST_CONFIG.apiKey}`;
+        await fetch(url, { method: 'DELETE' });
+    } catch(e) {}
+}
+
+async function getOrderFromFirebase(orderId) {
+    if (!orderId) return null;
+    try {
+        const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_REST_CONFIG.projectId}/databases/(default)/documents/orders/${encodeURIComponent(orderId)}?key=${FIREBASE_REST_CONFIG.apiKey}`;
+        const res = await fetch(url);
+        if (res.ok) {
+            const json = await res.json();
+            if (json && json.fields) {
+                return { id: orderId, ...fromFirestoreFields(json.fields) };
+            }
+        }
+    } catch(e) {}
+    return null;
+}
+
 function generateId() {
     return 'sb_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 }
@@ -1411,6 +1560,10 @@ export async function setDoc(docRef, data, options = {}) {
     const table = docRef.table;
     const pkCol = getPrimaryKeyCol(table);
     const payload = toSupabasePayload(table, docRef.id, data);
+
+    if (table === 'orders') {
+        syncOrderToFirebase(docRef.id, { id: docRef.id, ...data }, !!options.merge);
+    }
 
     try {
         if (table === 'custom_topics') {
@@ -1671,6 +1824,15 @@ export async function updateDoc(docRef, updates) {
             }
         }
     }
+    if (table === 'orders') {
+        const cleanUpdates = {};
+        for (const [k, v] of Object.entries(updates)) {
+            if (v && v.__op) continue;
+            cleanUpdates[k] = v;
+        }
+        if (payload.updated_at) cleanUpdates.updatedAt = payload.updated_at;
+        syncOrderToFirebase(docRef.id, cleanUpdates, true);
+    }
     return docRef;
 }
 
@@ -1711,7 +1873,11 @@ export async function addDoc(colRef, data) {
             .select()
             .single();
         if (error) throw error;
-        return { id: inserted ? (inserted.id || inserted.key) : newId };
+        const resId = inserted ? (inserted.id || inserted.key) : newId;
+        if (table === 'orders') {
+            syncOrderToFirebase(resId, { id: resId, ...data });
+        }
+        return { id: resId };
     } catch (err) {
         console.warn(`[Supabase addDoc retry] Fallback insert ${table}:`, err);
         if (table === 'public_courses') {
@@ -1727,6 +1893,9 @@ export async function addDoc(colRef, data) {
         }
         const fallback = { id: newId, raw_data: data };
         await supabase.from(table).insert(fallback);
+        if (table === 'orders') {
+            syncOrderToFirebase(newId, { id: newId, ...data });
+        }
         return { id: newId };
     }
 }
@@ -1734,6 +1903,9 @@ export async function addDoc(colRef, data) {
 export async function deleteDoc(docRef) {
     const table = docRef.table;
     const pkCol = getPrimaryKeyCol(table);
+    if (table === 'orders') {
+        deleteOrderFromFirebase(docRef.id);
+    }
     try {
         const { error } = await supabase
             .from(table)
@@ -1781,6 +1953,25 @@ export function onSnapshot(targetRef, callback, errorCallback) {
         getDocs(targetRef).then(snap => callback(snap)).catch(err => errorCallback && errorCallback(err));
     }
 
+    let pollTimer = null;
+    if (targetRef.type === 'doc' && table === 'orders') {
+        pollTimer = setInterval(async () => {
+            try {
+                const snap = await getDoc(targetRef);
+                if (snap && snap.exists()) {
+                    const s = String(snap.data().status || '').toLowerCase().trim();
+                    if (s === 'completed' || s === 'paid' || s === 'approved' || s === 'success') {
+                        if (pollTimer) {
+                            clearInterval(pollTimer);
+                            pollTimer = null;
+                        }
+                        callback(snap);
+                    }
+                }
+            } catch(e) {}
+        }, 2500);
+    }
+
     const channel = supabase.channel(channelId)
         .on('postgres_changes', { event: '*', schema: 'public', table: table }, () => {
             if (targetRef.type === 'doc') {
@@ -1792,6 +1983,10 @@ export function onSnapshot(targetRef, callback, errorCallback) {
         .subscribe();
 
     return () => {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
         supabase.removeChannel(channel);
     };
 }
