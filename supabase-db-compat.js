@@ -1086,6 +1086,27 @@ export async function getDoc(docRef) {
             }
         }
 
+        if (table === 'vouchers') {
+            try {
+                const confId = docRef.id.startsWith('voucher_') ? docRef.id : ('voucher_' + docRef.id);
+                const { data: confData } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .eq('id', confId)
+                    .maybeSingle();
+                if (confData && confData.raw_data) {
+                    const docData = unwrapRecord({ ...confData.raw_data, id: confData.raw_data.id || docRef.id });
+                    return {
+                        id: docRef.id,
+                        exists: () => true,
+                        data: () => docData
+                    };
+                }
+            } catch(e) {
+                console.warn("[Supabase getDoc] Lỗi đọc configurations cho vouchers:", e);
+            }
+        }
+
         const { data, error } = await supabase
             .from(table)
             .select('*')
@@ -1196,6 +1217,24 @@ export async function getDoc(docRef) {
                         id: docRef.id,
                         exists: () => true,
                         data: () => docData || {}
+                    };
+                }
+            } catch(e) {}
+        }
+        if (docRef.table === 'vouchers') {
+            try {
+                const confId = docRef.id.startsWith('voucher_') ? docRef.id : ('voucher_' + docRef.id);
+                const { data: confData } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .eq('id', confId)
+                    .maybeSingle();
+                if (confData && confData.raw_data) {
+                    const docData = unwrapRecord({ ...confData.raw_data, id: confData.raw_data.id || docRef.id });
+                    return {
+                        id: docRef.id,
+                        exists: () => true,
+                        data: () => docData
                     };
                 }
             } catch(e) {}
@@ -1386,6 +1425,28 @@ export async function getDocs(queryOrColRef) {
                 console.warn("[Supabase getDocs] Lỗi đọc fallback courses từ configurations:", e);
             }
         }
+        if (table === 'vouchers') {
+            try {
+                const { data: confVouchers } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .like('id', 'voucher_%');
+                if (Array.isArray(confVouchers)) {
+                    confVouchers.forEach(r => {
+                        const raw = (r.raw_data && typeof r.raw_data === 'object') ? r.raw_data : {};
+                        const voucherId = raw.id || r.id.replace(/^voucher_/, '');
+                        const existingIdx = resultRows.findIndex(x => (x.id || x.key) === voucherId);
+                        if (existingIdx === -1) {
+                            resultRows.push({ id: voucherId, ...raw });
+                        } else {
+                            resultRows[existingIdx] = { ...resultRows[existingIdx], ...raw };
+                        }
+                    });
+                }
+            } catch(e) {
+                console.warn("[Supabase getDocs] Lỗi đọc fallback vouchers từ configurations:", e);
+            }
+        }
 
         const docs = resultRows.map(r => {
             const docData = unwrapRecord(r);
@@ -1425,6 +1486,32 @@ export async function getDocs(queryOrColRef) {
         };
     } catch (err) {
         console.warn(`[Supabase getDocs] Lỗi truy vấn bảng ${queryOrColRef.table}:`, err);
+        if (queryOrColRef.table === 'vouchers') {
+            try {
+                const { data: confVouchers } = await supabase
+                    .from('configurations')
+                    .select('*')
+                    .like('id', 'voucher_%');
+                if (Array.isArray(confVouchers)) {
+                    const docs = confVouchers.map(r => {
+                        const raw = (r.raw_data && typeof r.raw_data === 'object') ? r.raw_data : {};
+                        const voucherId = raw.id || r.id.replace(/^voucher_/, '');
+                        const docData = unwrapRecord({ id: voucherId, ...raw });
+                        return {
+                            id: voucherId,
+                            exists: () => true,
+                            data: () => docData
+                        };
+                    });
+                    return {
+                        docs,
+                        forEach: (cb) => docs.forEach(cb),
+                        size: docs.length,
+                        empty: docs.length === 0
+                    };
+                }
+            } catch(e) {}
+        }
         return {
             docs: [],
             forEach: () => {},
@@ -1615,11 +1702,26 @@ export async function setDoc(docRef, data, options = {}) {
                 console.warn('[Supabase setDoc configurations sync]:', e);
             }
         }
+        if (table === 'vouchers') {
+            try {
+                const confPayload = {
+                    id: 'voucher_' + docRef.id,
+                    raw_data: { id: docRef.id, ...data, updatedAt: new Date().toISOString() },
+                    updated_at: new Date().toISOString()
+                };
+                await supabase
+                    .from('configurations')
+                    .upsert(confPayload, { onConflict: 'id' });
+                console.log(`[Supabase setDoc] Đã lưu voucher ${docRef.id} vào configurations thành công!`);
+            } catch(e) {
+                console.warn('[Supabase setDoc configurations sync]:', e);
+            }
+        }
 
         const { error } = await supabase
             .from(table)
             .upsert(payload, { onConflict: pkCol });
-        if (error && table !== 'site_settings' && table !== 'public_courses') throw error;
+        if (error && table !== 'site_settings' && table !== 'public_courses' && table !== 'vouchers') throw error;
         return docRef;
     } catch (err) {
         console.warn(`[Supabase setDoc retry] Lỗi upsert vào ${table}:`, err);
@@ -1653,6 +1755,24 @@ export async function setDoc(docRef, data, options = {}) {
                     .upsert(confPayload, { onConflict: 'id' });
                 if (confErr) throw confErr;
                 console.log(`[Supabase setDoc] Đã lưu dự phòng khóa học ${docRef.id} vào bảng configurations thành công!`);
+                return docRef;
+            } catch(fallbackErr) {
+                console.error('[Supabase setDoc fallback failed]:', fallbackErr);
+                throw fallbackErr;
+            }
+        }
+        if (table === 'vouchers') {
+            try {
+                const confPayload = {
+                    id: 'voucher_' + docRef.id,
+                    raw_data: { id: docRef.id, ...data, updatedAt: new Date().toISOString() },
+                    updated_at: new Date().toISOString()
+                };
+                const { error: confErr } = await supabase
+                    .from('configurations')
+                    .upsert(confPayload, { onConflict: 'id' });
+                if (confErr) throw confErr;
+                console.log(`[Supabase setDoc] Đã lưu dự phòng voucher ${docRef.id} vào bảng configurations thành công!`);
                 return docRef;
             } catch(fallbackErr) {
                 console.error('[Supabase setDoc fallback failed]:', fallbackErr);
@@ -1759,6 +1879,24 @@ export async function updateDoc(docRef, updates) {
                 }
             } catch(e) {}
         }
+        if (table === 'vouchers') {
+            try {
+                const confId = 'voucher_' + docRef.id;
+                const { data: existing } = await supabase
+                    .from('configurations')
+                    .select('raw_data')
+                    .eq('id', confId)
+                    .maybeSingle();
+                const currRaw = (existing && existing.raw_data && typeof existing.raw_data === 'object') ? existing.raw_data : {};
+                const mergedRaw = { ...currRaw, ...updates, id: docRef.id, updatedAt: new Date().toISOString() };
+                await supabase
+                    .from('configurations')
+                    .upsert({ id: confId, raw_data: mergedRaw, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                console.log(`[Supabase updateDoc] Đã đồng bộ voucher ${docRef.id} vào bảng configurations thành công!`);
+            } catch(e) {
+                console.warn("[Supabase updateDoc configurations sync error]:", e);
+            }
+        }
         if (table === 'users' && updates.password) {
             try {
                 const { data: uDoc } = await supabase.from('users').select('raw_data').eq(pkCol, docRef.id).maybeSingle();
@@ -1784,7 +1922,7 @@ export async function updateDoc(docRef, updates) {
             .from(table)
             .update(payload)
             .eq(pkCol, docRef.id);
-        if (error && table !== 'site_settings' && table !== 'public_courses') throw error;
+        if (error && table !== 'site_settings' && table !== 'public_courses' && table !== 'vouchers') throw error;
     } catch (err) {
         console.warn(`[Supabase updateDoc retry] Fallback update ${table}:`, err);
         if (table === 'site_settings') {
@@ -1808,6 +1946,24 @@ export async function updateDoc(docRef, updates) {
         if (table === 'public_courses') {
             try {
                 const confId = 'course_' + docRef.id;
+                const { data: existing } = await supabase
+                    .from('configurations')
+                    .select('raw_data')
+                    .eq('id', confId)
+                    .maybeSingle();
+                const currRaw = (existing && existing.raw_data) ? existing.raw_data : {};
+                const mergedRaw = { ...currRaw, ...updates, updatedAt: new Date().toISOString() };
+                await supabase
+                    .from('configurations')
+                    .upsert({ id: confId, raw_data: mergedRaw, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                return docRef;
+            } catch(e) {
+                console.error('[Supabase updateDoc configurations fallback error]:', e);
+            }
+        }
+        if (table === 'vouchers') {
+            try {
+                const confId = 'voucher_' + docRef.id;
                 const { data: existing } = await supabase
                     .from('configurations')
                     .select('raw_data')
@@ -1864,6 +2020,20 @@ export async function addDoc(colRef, data) {
         return { id: newId };
     }
 
+    if (table === 'vouchers') {
+        const confPayload = {
+            id: 'voucher_' + newId,
+            raw_data: { id: newId, ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            updated_at: new Date().toISOString()
+        };
+        try {
+            await supabase.from('configurations').upsert(confPayload, { onConflict: 'id' });
+            return { id: newId };
+        } catch(e) {
+            console.warn('[Supabase addDoc vouchers]:', e);
+        }
+    }
+
     const payload = toSupabasePayload(table, newId, data);
 
     try {
@@ -1891,6 +2061,17 @@ export async function addDoc(colRef, data) {
                 return { id: newId };
             } catch(e) {}
         }
+        if (table === 'vouchers') {
+            try {
+                const confPayload = {
+                    id: 'voucher_' + newId,
+                    raw_data: { id: newId, ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+                    updated_at: new Date().toISOString()
+                };
+                await supabase.from('configurations').upsert(confPayload, { onConflict: 'id' });
+                return { id: newId };
+            } catch(e) {}
+        }
         const fallback = { id: newId, raw_data: data };
         await supabase.from(table).insert(fallback);
         if (table === 'orders') {
@@ -1911,7 +2092,7 @@ export async function deleteDoc(docRef) {
             .from(table)
             .delete()
             .eq(pkCol, docRef.id);
-        if (error && table !== 'site_settings') throw error;
+        if (error && table !== 'site_settings' && table !== 'vouchers') throw error;
     } catch (err) {
         console.warn(`[Supabase deleteDoc] Lỗi xóa bản ghi từ ${table}:`, err);
     }
@@ -1929,6 +2110,14 @@ export async function deleteDoc(docRef) {
                 .from('configurations')
                 .delete()
                 .eq('id', 'course_' + docRef.id);
+        } catch(e) {}
+    }
+    if (table === 'vouchers') {
+        try {
+            await supabase
+                .from('configurations')
+                .delete()
+                .eq('id', 'voucher_' + docRef.id);
         } catch(e) {}
     }
     if (table === 'custom_topics') {
