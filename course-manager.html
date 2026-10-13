@@ -3804,19 +3804,29 @@ window.importCurriculum = (input) => {
                 let scopeText = "Toàn bộ khóa học";
                 if(v.scope === 'specific') scopeText = `${v.courseIds ? v.courseIds.length : 0} khóa học`;
 
+                const usedCount = Number(v.used) || 0;
+                const hasLimit = typeof v.limit === 'number' && v.limit > 0;
+                const limitText = hasLimit ? `${v.limit.toLocaleString()} lượt` : 'Vô hạn';
+                const percent = hasLimit ? Math.min(Math.round((usedCount / v.limit) * 100), 100) : 0;
+                const isFull = hasLimit && usedCount >= v.limit;
+                const barColor = isFull ? 'bg-red-500' : (usedCount > 0 ? 'bg-orange-500' : 'bg-gray-200');
+
                 html += `
                 <tr class="hover:bg-gray-50 border-b border-gray-50">
                     <td class="p-4"><span class="font-mono font-bold text-brand bg-teal-50 px-2 py-1 rounded border border-teal-100">${v.code}</span></td>
                     <td class="p-4 font-bold text-gray-700">${v.value.toLocaleString()}${v.type==='percent'?'%':'đ'}</td>
                     <td class="p-4 text-xs text-gray-500">${scopeText}</td>
                     <td class="p-4">
-                        <div class="flex items-center gap-2 text-xs font-bold">
-                            <span class="text-orange-600">${v.used || 0}</span>
-                            <span class="text-gray-300">/</span>
-                            <span>${v.limit || '∞'}</span>
+                        <div class="flex items-baseline gap-1.5 text-xs font-bold">
+                            <span class="text-sm font-black ${isFull ? 'text-red-600' : (usedCount > 0 ? 'text-orange-600' : 'text-gray-700')}">${usedCount.toLocaleString()}</span>
+                            <span class="text-gray-400 font-semibold">/</span>
+                            <span class="text-gray-600">${limitText}</span>
                         </div>
-                        <div class="w-20 h-1.5 bg-gray-100 rounded-full mt-1 overflow-hidden">
-                            <div class="h-full bg-orange-500" style="width: ${v.limit ? Math.min((v.used/v.limit)*100, 100) : 0}%"></div>
+                        <div class="w-24 h-1.5 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
+                            <div class="h-full ${barColor} transition-all duration-300" style="width: ${hasLimit ? percent : (usedCount > 0 ? 100 : 0)}%"></div>
+                        </div>
+                        <div class="text-[10px] text-gray-400 font-medium mt-1">
+                            ${isFull ? '<span class="text-red-500 font-bold"><i class="fa-solid fa-circle-exclamation mr-1"></i>Hết lượt</span>' : `Đã dùng ${usedCount} / ${hasLimit ? v.limit.toLocaleString() : '∞'} lượt`}
                         </div>
                     </td>
                     <td class="p-4 text-xs">
@@ -3824,7 +3834,7 @@ window.importCurriculum = (input) => {
                         <div class="text-gray-400">${v.expiryDate ? new Date(v.expiryDate).toLocaleDateString('vi-VN') : 'Vĩnh viễn'}</div>
                     </td>
                     <td class="p-4 text-right">
-                        <button onclick="deleteVoucher('${v.id}')" class="text-gray-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="deleteVoucher('${v.id}')" class="text-gray-300 hover:text-red-500 transition-colors" title="Xóa voucher"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 </tr>`;
             });
@@ -3965,14 +3975,20 @@ window.importCurriculum = (input) => {
                     phamVi = `${v.courseIds ? v.courseIds.length : 0} khóa học`;
                 }
 
+                const usedCount = Number(v.used) || 0;
+                const hasLimit = typeof v.limit === 'number' && v.limit > 0;
+                const limitVal = hasLimit ? v.limit : "Vô hạn";
+                const usageRatio = hasLimit ? `${usedCount}/${v.limit} (${Math.round((usedCount / v.limit) * 100)}%)` : `${usedCount}/Vô hạn`;
+
                 return {
                     "Mã Voucher": v.code,
                     "Loại": v.type === 'percent' ? 'Phần trăm' : 'Số tiền',
                     "Giá trị": v.value,
                     "Đơn vị": v.type === 'percent' ? '%' : 'VNĐ',
                     "Phạm vi": phamVi,
-                    "Đã dùng": v.used,
-                    "Giới hạn": v.limit || "Vô hạn",
+                    "Đã sử dụng (lượt)": usedCount,
+                    "Tổng giới hạn (lượt)": limitVal,
+                    "Tỉ lệ sử dụng": usageRatio,
                     "Trạng thái": status,
                     "Ngày hết hạn": v.expiryDate ? new Date(v.expiryDate).toLocaleDateString('vi-VN') : "Vĩnh viễn",
                     "Ngày tạo": new Date(v.createdAt).toLocaleDateString('vi-VN')
@@ -4025,7 +4041,7 @@ window.importCurriculum = (input) => {
                     <div class="flex-1 overflow-auto border border-gray-100 rounded-xl">
                         <table class="w-full text-left text-sm whitespace-nowrap"> 
                             <thead class="bg-gray-50 text-gray-500 font-bold text-xs uppercase sticky top-0">
-                                <tr><th class="p-3 md:p-4">Mã Code</th><th class="p-3 md:p-4">Giảm giá</th><th class="p-3 md:p-4">Phạm vi</th><th class="p-3 md:p-4">Giới hạn</th><th class="p-3 md:p-4">Hạn dùng</th><th class="p-3 md:p-4 text-right">Hành động</th></tr>
+                                <tr><th class="p-3 md:p-4">Mã Code</th><th class="p-3 md:p-4">Giảm giá</th><th class="p-3 md:p-4">Phạm vi</th><th class="p-3 md:p-4">Lượt sử dụng (Đã dùng / Tổng)</th><th class="p-3 md:p-4">Hạn dùng</th><th class="p-3 md:p-4 text-right">Hành động</th></tr>
                             </thead>
                             <tbody id="voucherTableBody" class="divide-y divide-gray-100"></tbody>
                         </table>
