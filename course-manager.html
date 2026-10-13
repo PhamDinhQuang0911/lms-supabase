@@ -328,14 +328,19 @@
             
             <div class="w-full h-2/5 md:h-full md:w-1/3 md:max-w-sm bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden animate-fade-in-up order-1">
                 <div class="p-3 md:p-4 border-b border-gray-100 bg-gray-50 flex flex-col gap-2 md:gap-3 shrink-0">
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center gap-2">
                         <div>
                             <h3 class="font-extrabold text-gray-800 text-base md:text-lg">Nội dung khóa học</h3>
-                            <p id="editorCourseTitle" class="text-xs text-gray-500 truncate w-32 md:w-40">Đang tải...</p>
+                            <p id="editorCourseTitle" class="text-xs text-gray-500 truncate w-28 md:w-36">Đang tải...</p>
                         </div>
-                        <button onclick="addChapter()" class="px-2 py-1.5 bg-brand text-white rounded-lg text-xs font-bold hover:bg-teal-800 shadow transition-all whitespace-nowrap">
-                            <i class="fa-solid fa-folder-plus mr-1"></i> Thêm Chương
-                        </button>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button onclick="window.openResourceImporter('exams')" class="px-2.5 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg text-xs font-bold shadow transition-all whitespace-nowrap flex items-center gap-1.5" title="Nạp nhanh từ Ngân hàng đề thi, Sách số hóa, Chuyên đề">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Nạp học liệu
+                            </button>
+                            <button onclick="addChapter()" class="px-2 py-1.5 bg-brand text-white rounded-lg text-xs font-bold hover:bg-teal-800 shadow transition-all whitespace-nowrap">
+                                <i class="fa-solid fa-folder-plus mr-1"></i> Thêm Chương
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="flex gap-2 border-t border-gray-200 pt-2">
@@ -355,10 +360,14 @@
             </div>
 
             <div class="flex-1 h-3/5 md:h-full bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden relative animate-fade-in-up order-2" style="animation-delay: 0.1s;">
-                <div id="editorWelcome" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-10 p-4 text-center">
-                    <img src="https://cdn-icons-png.flaticon.com/512/3079/3079296.png" class="w-16 h-16 md:w-24 md:h-24 mb-4 opacity-50 grayscale">
-                    <h3 class="text-lg md:text-xl font-bold text-gray-400">Chọn một nội dung để biên tập</h3>
-                    <p class="text-gray-400 text-xs md:text-sm">Cấu trúc: Chương > Bài học > Nội dung</p>
+                <div id="editorWelcome" class="absolute inset-0 bg-slate-50 z-10 overflow-y-auto p-4 md:p-6 flex flex-col justify-start">
+                    <div id="editorWelcomeContent" class="max-w-4xl mx-auto w-full my-auto py-2">
+                        <!-- Sẽ được điền tự động qua updateEditorWelcome() -->
+                        <div class="text-center py-12 text-gray-400">
+                            <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-brand"></i>
+                            <p class="font-bold text-sm">Đang tải giáo án...</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="editorForm" class="hidden flex-col h-full">
@@ -466,6 +475,251 @@
             <div class="flex-1 overflow-y-auto p-6 bg-gray-50"><div id="selectorContent" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div></div>
         </div>
     </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL NẠP HỌC LIỆU THÔNG MINH (KHO ĐỀ THI, SÁCH SỐ HÓA, MAPID) -->
+    <!-- ============================================================== -->
+    <div id="resourceImporterModal" class="hidden fixed inset-0 z-[75] bg-gray-900/80 backdrop-blur-sm flex items-center justify-center p-2 md:p-4">
+        <div class="bg-white w-full max-w-6xl h-[92vh] max-h-[850px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up">
+            <!-- MODAL HEADER -->
+            <div class="px-5 py-3.5 border-b border-gray-200 flex flex-wrap justify-between items-center bg-gradient-to-r from-gray-50 via-white to-gray-50 gap-3 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center text-lg shadow-md shadow-orange-500/20">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-gray-800 text-base md:text-lg">Nạp Học Liệu Vào Khóa Học</h3>
+                        <p class="text-xs text-gray-500">Tận dụng Ngân hàng đề thi, Sách số hóa & Cây chuyên đề có sẵn</p>
+                    </div>
+                </div>
+
+                <!-- TABS SWITCHER -->
+                <div class="flex bg-gray-100 p-1 rounded-xl text-xs font-bold gap-1">
+                    <button type="button" onclick="window.switchImporterTab('exams')" id="importerTabBtnExams" class="importer-tab-btn px-3 py-1.5 rounded-lg transition-all bg-white text-orange-600 shadow-xs flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-file-signature"></i> Ngân hàng đề thi
+                    </button>
+                    <button type="button" onclick="window.switchImporterTab('books')" id="importerTabBtnBooks" class="importer-tab-btn px-3 py-1.5 rounded-lg transition-all text-gray-600 hover:text-gray-900 flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-book-open"></i> Kho sách số hóa
+                    </button>
+                    <button type="button" onclick="window.switchImporterTab('mapid')" id="importerTabBtnMapid" class="importer-tab-btn px-3 py-1.5 rounded-lg transition-all text-gray-600 hover:text-gray-900 flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-sitemap"></i> Cây chuyên đề MapID
+                    </button>
+                </div>
+
+                <button type="button" onclick="window.closeResourceImporter()" class="w-9 h-9 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 flex items-center justify-center transition-colors cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- TAB PANE 1: KHO ĐỀ THI (NGÂN HÀNG ĐỀ) -->
+            <div id="importerTabPaneExams" class="flex-1 overflow-hidden flex flex-col md:flex-row bg-gray-50/50">
+                <!-- CỘT TRÁI (65%): THƯ MỤC & DANH SÁCH ĐỀ THI -->
+                <div class="flex-1 flex flex-col overflow-hidden border-r border-gray-200 bg-white">
+                    <!-- THANH ĐIỀU HƯỚNG & TÌM KIẾM -->
+                    <div class="p-3 md:p-4 border-b border-gray-100 bg-gray-50/80 flex flex-col gap-2 shrink-0">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <!-- Breadcrumbs -->
+                            <div id="importerExamBreadcrumbs" class="flex items-center gap-1 text-xs font-bold text-gray-600 overflow-x-auto py-1">
+                                <span class="text-orange-600 cursor-pointer hover:underline flex items-center gap-1"><i class="fa-solid fa-house"></i> Gốc</span>
+                            </div>
+                            <!-- Folder Quick Action Button -->
+                            <div id="importerFolderQuickAction"></div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            <!-- Ô Tìm kiếm -->
+                            <div class="relative flex-1 min-w-[200px]">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="text" id="importerExamSearch" oninput="window.onImporterExamSearch(this.value)" placeholder="Tìm kiếm đề thi theo tên hoặc từ khóa..." class="w-full pl-9 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-orange-500 shadow-2xs">
+                            </div>
+                            <!-- Nút chọn tất cả -->
+                            <button type="button" onclick="window.toggleImporterSelectAllExams()" class="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer">
+                                <i class="fa-solid fa-check-double text-orange-500"></i> <span id="importerSelectAllBtnText">Chọn tất cả</span>
+                            </button>
+                            <!-- Huy hiệu số lượng -->
+                            <div class="px-3 py-1.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg text-xs font-black shadow-2xs">
+                                Đã chọn: <span id="importerSelectedCount">0</span> đề
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DANH SÁCH THƯ MỤC VÀ ĐỀ THI (SCROLLABLE) -->
+                    <div id="importerExamContent" class="flex-1 overflow-y-auto p-4 space-y-4">
+                        <div class="text-center py-12 text-gray-400">
+                            <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-orange-500"></i>
+                            <p class="font-bold text-sm">Đang nạp Ngân hàng đề thi...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CỘT PHẢI (35%): BẢNG TÙY BIẾN CẤU HÌNH NẠP ĐỀ (TÙY BIẾN CAO) -->
+                <div class="w-full md:w-80 lg:w-96 flex flex-col bg-gray-50 shrink-0 border-t md:border-t-0 overflow-y-auto">
+                    <div class="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+                        <h4 class="font-black text-gray-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-orange-500"></i> Cấu hình nạp vào khóa học
+                        </h4>
+                        <p class="text-[11px] text-gray-500 mt-0.5">Tùy biến cấu trúc và thông số bài tập online</p>
+                    </div>
+
+                    <div class="p-4 space-y-3.5 flex-1">
+                        <!-- 1. Đích đến trong giáo án -->
+                        <div class="bg-white p-3.5 rounded-xl border border-gray-200 shadow-2xs space-y-2">
+                            <label class="block text-xs font-extrabold text-gray-700 uppercase tracking-wider">1. Đích đến trong giáo án</label>
+                            <div class="space-y-2 text-xs">
+                                <label class="flex items-start gap-2 cursor-pointer font-bold text-gray-700">
+                                    <input type="radio" name="importerTargetChapMode" value="new" checked onchange="window.onTargetChapModeChange()" class="mt-0.5 accent-orange-500">
+                                    <div class="flex-1">
+                                        <span>Tạo 1 Chương mới chứa các đề này</span>
+                                        <input type="text" id="importerNewChapTitle" placeholder="Tên chương mới (VD: Bộ 35 Đề Thi Vào 10)" class="w-full mt-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:border-orange-500 outline-none">
+                                    </div>
+                                </label>
+                                <label class="flex items-start gap-2 cursor-pointer font-bold text-gray-700 pt-1">
+                                    <input type="radio" name="importerTargetChapMode" value="existing" onchange="window.onTargetChapModeChange()" class="mt-0.5 accent-orange-500">
+                                    <div class="flex-1">
+                                        <span>Nạp vào Chương hiện có</span>
+                                        <select id="importerTargetChapSelect" disabled class="w-full mt-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:border-orange-500 outline-none bg-gray-50"></select>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 2. Quy cách tạo Bài học -->
+                        <div class="bg-white p-3.5 rounded-xl border border-gray-200 shadow-2xs space-y-2">
+                            <label class="block text-xs font-extrabold text-gray-700 uppercase tracking-wider">2. Tổ chức bài học (Chuẩn LMS)</label>
+                            <div class="space-y-2 text-xs">
+                                <label class="flex items-start gap-2 cursor-pointer font-bold text-gray-700">
+                                    <input type="radio" name="importerLessonOrgMode" value="each" checked onchange="window.onLessonOrgModeChange()" class="mt-0.5 accent-orange-500">
+                                    <div class="flex-1">
+                                        <span class="text-orange-600 font-bold">Mỗi đề thi thành 1 Bài học riêng (Khuyên dùng)</span>
+                                        <p class="text-[11px] text-gray-400 font-normal mt-0.5">Học sinh theo dõi tiến độ từng đề rõ ràng, xem bảng xếp hạng riêng từng đề thi.</p>
+                                    </div>
+                                </label>
+                                <label class="flex items-start gap-2 cursor-pointer font-bold text-gray-700 pt-1">
+                                    <input type="radio" name="importerLessonOrgMode" value="single" onchange="window.onLessonOrgModeChange()" class="mt-0.5 accent-orange-500">
+                                    <div class="flex-1">
+                                        <span>Gom tất cả đề vào 1 Bài học duy nhất</span>
+                                        <input type="text" id="importerSingleLessonTitle" placeholder="Tên bài học (VD: Luyện giải bộ đề)" disabled class="w-full mt-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:border-orange-500 outline-none bg-gray-50">
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 3. Tùy chọn đánh số & học thử -->
+                        <div class="bg-white p-3.5 rounded-xl border border-gray-200 shadow-2xs space-y-2">
+                            <label class="block text-xs font-extrabold text-gray-700 uppercase tracking-wider">3. Tiền tố & Phân quyền</label>
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700">
+                                <input type="checkbox" id="importerAutoNumber" checked class="accent-orange-500 w-4 h-4">
+                                <span>Tự động đánh số thứ tự (Đề 01, Đề 02, ...)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700">
+                                <input type="checkbox" id="importerFirstPreview" checked class="accent-orange-500 w-4 h-4">
+                                <span>Cho phép học thử / thi thử miễn phí đề đầu tiên</span>
+                            </label>
+                        </div>
+
+                        <!-- 4. Cấu hình bài thi online -->
+                        <div class="bg-white p-3.5 rounded-xl border border-gray-200 shadow-2xs space-y-2.5">
+                            <label class="block text-xs font-extrabold text-gray-700 uppercase tracking-wider">4. Thông số bài thi online</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Điểm đạt</label>
+                                    <input type="number" id="importerMinScore" value="5" min="0" max="10" step="0.5" class="w-full px-2 py-1.5 border border-gray-200 rounded-lg font-bold text-xs text-center focus:border-orange-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1" title="Để trống = Không giới hạn">Xem giải</label>
+                                    <input type="number" id="importerViewLimit" placeholder="∞" min="0" class="w-full px-2 py-1.5 border border-gray-200 rounded-lg font-bold text-xs text-center focus:border-orange-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Giá giải</label>
+                                    <input type="number" id="importerViewPrice" value="0" min="0" class="w-full px-2 py-1.5 border border-gray-200 rounded-lg font-bold text-xs text-center focus:border-orange-500 outline-none text-orange-600">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBMIT BUTTON -->
+                    <div class="p-4 border-t border-gray-200 bg-white sticky bottom-0 z-10 space-y-2">
+                        <button type="button" onclick="window.executeExamImport()" class="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all flex items-center justify-center gap-2 text-xs md:text-sm cursor-pointer">
+                            <i class="fa-solid fa-bolt"></i> NẠP <span id="importerBtnSubmitCount">0</span> ĐỀ VÀO KHÓA HỌC
+                        </button>
+                        <p class="text-[10px] text-gray-400 text-center">Các đề sẽ được tạo thành bài tập thi online trong giáo án</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB PANE 2: KHO SÁCH SỐ HÓA -->
+            <div id="importerTabPaneBooks" class="hidden flex-1 overflow-hidden flex flex-col md:flex-row bg-gray-50/50">
+                <!-- CỘT TRÁI (35%): DANH SÁCH ĐẦU SÁCH SỐ HÓA -->
+                <div class="w-full md:w-80 border-r border-gray-200 bg-white flex flex-col overflow-hidden">
+                    <div class="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center shrink-0">
+                        <h4 class="font-extrabold text-xs text-gray-700 uppercase tracking-wider"><i class="fa-solid fa-book text-purple-600 mr-1.5"></i> Kho sách của bạn</h4>
+                        <button type="button" onclick="window.loadImporterBooks(true)" class="text-xs text-purple-600 hover:text-purple-800 font-bold flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-rotate"></i> Làm mới</button>
+                    </div>
+                    <div id="importerBooksList" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
+                </div>
+
+                <!-- CỘT PHẢI (65%): MỤC LỤC & TÙY CHỌN NẠP SÁCH -->
+                <div class="flex-1 flex flex-col overflow-hidden bg-white">
+                    <div class="p-3 md:p-4 border-b border-gray-100 bg-purple-50/50 flex flex-wrap justify-between items-center gap-2 shrink-0">
+                        <div>
+                            <h4 id="importerSelectedBookTitle" class="font-black text-gray-800 text-sm md:text-base">Chọn một đầu sách bên trái</h4>
+                            <p id="importerSelectedBookDesc" class="text-xs text-gray-500">Hệ thống sẽ đồng bộ toàn bộ chương, bài học và chuyên đề</p>
+                        </div>
+                        <div id="importerBookActionButtons" class="hidden flex items-center gap-2">
+                            <button type="button" onclick="window.toggleImporterBookSelectAll()" class="px-2.5 py-1.5 bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 rounded-lg text-xs font-bold transition-colors shadow-2xs cursor-pointer">
+                                <i class="fa-solid fa-check-double mr-1"></i> <span id="importerBookSelectAllText">Chọn tất cả</span>
+                            </button>
+                            <button type="button" onclick="window.executeBookImport()" class="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Nạp sách vào khóa học
+                            </button>
+                        </div>
+                    </div>
+                    <div id="importerBookTreeContainer" class="flex-1 overflow-y-auto p-4">
+                        <div class="text-center py-16 text-gray-400">
+                            <i class="fa-solid fa-book-bookmark text-4xl mb-3 opacity-30 text-purple-600"></i>
+                            <p class="font-bold text-sm">Vui lòng chọn một cuốn sách từ danh sách bên trái để xem mục lục</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB PANE 3: CÂY CHUYÊN ĐỀ MAPID -->
+            <div id="importerTabPaneMapid" class="hidden flex-1 overflow-hidden flex flex-col md:flex-row bg-gray-50/50">
+                <!-- CỘT TRÁI (30%): CHỌN KHỐI LỚP -->
+                <div class="w-full md:w-64 border-r border-gray-200 bg-white flex flex-col overflow-hidden">
+                    <div class="p-3 border-b border-gray-100 bg-gray-50 shrink-0">
+                        <h4 class="font-extrabold text-xs text-gray-700 uppercase tracking-wider"><i class="fa-solid fa-graduation-cap text-teal-600 mr-1.5"></i> Chọn khối lớp</h4>
+                    </div>
+                    <div id="importerGradeList" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+                </div>
+
+                <!-- CỘT PHẢI (70%): CÂY CHUYÊN ĐỀ & NÚT NẠP -->
+                <div class="flex-1 flex flex-col overflow-hidden bg-white">
+                    <div class="p-3 md:p-4 border-b border-gray-100 bg-teal-50/50 flex flex-wrap justify-between items-center gap-2 shrink-0">
+                        <div>
+                            <h4 id="importerSelectedGradeTitle" class="font-black text-gray-800 text-sm md:text-base">Khung Chương Trình Chuẩn</h4>
+                            <p class="text-xs text-gray-500">Tạo khung giáo án theo chuẩn phân phối chương trình môn Toán</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="window.toggleImporterMapIdSelectAll()" class="px-2.5 py-1.5 bg-white border border-teal-200 text-teal-700 hover:bg-teal-50 rounded-lg text-xs font-bold transition-colors shadow-2xs cursor-pointer">
+                                <i class="fa-solid fa-check-double mr-1"></i> <span id="importerMapIdSelectAllText">Chọn tất cả</span>
+                            </button>
+                            <button type="button" onclick="window.executeMapIdImport()" class="px-4 py-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-lg text-xs font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Tạo khung chuyên đề
+                            </button>
+                        </div>
+                    </div>
+                    <div id="importerMapIdTreeContainer" class="flex-1 overflow-y-auto p-4 space-y-3">
+                        <div class="text-center py-16 text-gray-400">
+                            <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-teal-600"></i>
+                            <p class="font-bold text-sm">Đang tải cấu trúc chuyên đề MapID...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <div id="studentManagerModal" class="hidden fixed inset-0 z-[80] bg-gray-900/80 backdrop-blur-sm flex items-start justify-center p-3 overflow-auto">
     <div class="bg-white w-full max-w-7xl rounded-2xl shadow-2xl flex flex-col min-h-[95vh] my-auto">
 
@@ -1702,7 +1956,11 @@ window.toggleCourseAntiScreenshot = async (courseId) => {
 function renderCurriculumTree() {
     const tree = document.getElementById('curriculumTree');
     tree.innerHTML = '';
-    if(currentCurriculum.length === 0) return tree.innerHTML = `<div class="text-center mt-10 text-xs text-gray-400">Chưa có nội dung</div>`;
+    if(currentCurriculum.length === 0) {
+        tree.innerHTML = `<div class="text-center mt-10 text-xs text-gray-400">Chưa có nội dung</div>`;
+        if (typeof window.updateEditorWelcome === 'function') window.updateEditorWelcome();
+        return;
+    }
 
     currentCurriculum.forEach((chap, cIdx) => {
         // --- LEVEL 1: CHAPTER ---
@@ -1722,6 +1980,7 @@ function renderCurriculumTree() {
                     ${chap.title}
                 </div>
                 <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onclick="event.stopPropagation(); window.openResourceImporter('exams', ${cIdx})" title="Nạp đề thi/học liệu vào chương này" class="w-6 h-6 hover:bg-orange-50 text-orange-600 rounded text-[10px]"><i class="fa-solid fa-bolt"></i></button>
                     <button onclick="event.stopPropagation(); openRenameModal('chap', ${cIdx})" class="w-6 h-6 hover:bg-white rounded text-gray-500"><i class="fa-solid fa-pen text-[10px]"></i></button>
                     <button onclick="event.stopPropagation(); addLesson(${cIdx})" class="w-6 h-6 hover:bg-white rounded text-primary-600"><i class="fa-solid fa-plus text-[10px]"></i></button>
                     <button onclick="event.stopPropagation(); deleteChapter(${cIdx})" class="w-6 h-6 hover:bg-white rounded text-red-600"><i class="fa-solid fa-trash text-[10px]"></i></button>
@@ -1789,6 +2048,10 @@ function renderCurriculumTree() {
 
         tree.appendChild(chapEl);
     });
+
+    if (activeItemIdx === -1 && typeof window.updateEditorWelcome === 'function') {
+        window.updateEditorWelcome();
+    }
 }
 
         window.toggleCollapse = (id) => document.getElementById(id).classList.toggle('hidden');
@@ -1796,7 +2059,7 @@ function renderCurriculumTree() {
         // --- ACTIONS 3 LEVELS ---
         window.addChapter = () => { currentCurriculum.push({ title: "Chương mới", lessons: [] }); renderCurriculumTree(); };
         window.renameChapter = (i) => { const t=prompt("Tên chương:",currentCurriculum[i].title); if(t){currentCurriculum[i].title=t;renderCurriculumTree();} };
-        window.deleteChapter = (i) => customConfirm("Xóa chương này?",()=>{currentCurriculum.splice(i,1);renderCurriculumTree();});
+        window.deleteChapter = (i) => customConfirm("Xóa chương này?",()=>{currentCurriculum.splice(i,1); if(currentCurriculum.length===0){activeChapIdx=-1;activeLesIdx=-1;activeItemIdx=-1;} renderCurriculumTree();});
         
         window.addLesson = (ci) => { currentCurriculum[ci].lessons.push({ title: "Bài học mới", items: [] }); renderCurriculumTree(); };
         window.renameLesson = (ci,li) => { const t=prompt("Tên bài học:",currentCurriculum[ci].lessons[li].title); if(t){currentCurriculum[ci].lessons[li].title=t;renderCurriculumTree();} };
@@ -1818,6 +2081,7 @@ function renderCurriculumTree() {
             if(confirm("Xóa nội dung này?")) {
                 currentCurriculum[ci].lessons[li].items.splice(ii,1);
                 if(ci==activeChapIdx && li==activeLesIdx && ii==activeItemIdx) {
+                    activeItemIdx = -1; activeChapIdx = -1; activeLesIdx = -1;
                     document.getElementById('editorForm').classList.add('hidden');
                     document.getElementById('editorWelcome').classList.remove('hidden');
                 }
@@ -2133,6 +2397,1164 @@ function renderCurriculumTree() {
                 window.showToast("Lưu giáo án thành công!");
             } catch(e) { window.showToast("Lỗi lưu: "+e.message, 'error'); }
             finally { btn.innerHTML = '<i class="fa-solid fa-save mr-2"></i> LƯU GIÁO ÁN'; }
+        };
+
+        // ==============================================================
+        // 1. UPDATE DYNAMIC EDITOR WELCOME DASHBOARD
+        // ==============================================================
+        window.updateEditorWelcome = () => {
+            const container = document.getElementById('editorWelcomeContent');
+            if (!container) return;
+
+            // TRƯỜNG HỢP A: KHÓA HỌC CHƯA CÓ NỘI DUNG (ONBOARDING QUICK START)
+            if (!currentCurriculum || currentCurriculum.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center max-w-2xl mx-auto mb-8 animate-fade-in-up">
+                        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-100 text-orange-700 text-xs font-black uppercase tracking-wider mb-3">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Trung tâm nạp học liệu thông minh
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-black text-gray-800">Khởi Tạo Nhanh Gói Đề & Giáo Án</h2>
+                        <p class="text-xs md:text-sm text-gray-500 mt-1.5 leading-relaxed">Khóa học hiện chưa có nội dung. Tận dụng tối đa nguồn học liệu có sẵn trong hệ thống để tự động nạp hoặc bắt đầu thủ công:</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto animate-fade-in-up" style="animation-delay: 0.1s;">
+                        <!-- Card 1: Kho Đề Thi (Ngân hàng đề) -->
+                        <div class="bg-white p-5 rounded-2xl border-2 border-orange-200 hover:border-orange-500 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between group cursor-pointer" onclick="window.openResourceImporter('exams')">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center text-xl shadow-md shadow-orange-500/20 group-hover:scale-110 transition-transform">
+                                        <i class="fa-solid fa-file-signature"></i>
+                                    </div>
+                                    <span class="px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-600 text-[11px] font-bold border border-orange-200">Gói Luyện Thi</span>
+                                </div>
+                                <h3 class="font-extrabold text-gray-800 text-base group-hover:text-orange-600 transition-colors">Nạp từ Ngân Hàng Đề Thi</h3>
+                                <p class="text-xs text-gray-500 mt-1 leading-relaxed">Chọn cả thư mục đề thi hoặc tích chọn hàng loạt đề thi từ Ngân hàng đề để tự động tạo thành các bài thi online chấm điểm tự động.</p>
+                                <div class="mt-3 flex flex-wrap gap-1.5 text-[11px] font-bold text-gray-600">
+                                    <span class="px-2 py-0.5 bg-gray-100 rounded-md">⚡ Nạp 1 chạm cả thư mục</span>
+                                    <span class="px-2 py-0.5 bg-gray-100 rounded-md">✓ Chọn hàng loạt đề</span>
+                                    <span class="px-2 py-0.5 bg-gray-100 rounded-md">🎯 Tùy biến điểm đạt & xem giải</span>
+                                </div>
+                            </div>
+                            <button type="button" class="mt-4 w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 group-hover:shadow-md transition-all cursor-pointer">
+                                <i class="fa-solid fa-bolt"></i> Nạp từ Ngân hàng đề ngay
+                            </button>
+                        </div>
+
+                        <!-- Card 2: Kho Sách Số Hóa -->
+                        <div class="bg-white p-5 rounded-2xl border-2 border-purple-200 hover:border-purple-500 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between group cursor-pointer" onclick="window.openResourceImporter('books')">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center text-xl shadow-md shadow-purple-600/20 group-hover:scale-110 transition-transform">
+                                        <i class="fa-solid fa-book-open"></i>
+                                    </div>
+                                    <span class="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-600 text-[11px] font-bold border border-purple-200">Sách E-book</span>
+                                </div>
+                                <h3 class="font-extrabold text-gray-800 text-base group-hover:text-purple-600 transition-colors">Nạp từ Kho Sách Số Hóa</h3>
+                                <p class="text-xs text-gray-500 mt-1 leading-relaxed">Đồng bộ toàn bộ chương, bài học và chuyên đề bài tập từ các đầu sách điện tử đã số hóa trên hệ thống.</p>
+                                <div class="mt-3 flex flex-wrap gap-1.5 text-[11px] font-bold text-gray-600">
+                                    <span class="px-2 py-0.5 bg-gray-100 rounded-md">📖 Cấu trúc chương chuẩn</span>
+                                    <span class="px-2 py-0.5 bg-gray-100 rounded-md">📝 Kèm lý thuyết & bài tập</span>
+                                </div>
+                            </div>
+                            <button type="button" class="mt-4 w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 group-hover:shadow-md transition-all cursor-pointer">
+                                <i class="fa-solid fa-swatchbook"></i> Nạp từ Kho sách số hóa
+                            </button>
+                        </div>
+
+                        <!-- Card 3: Cây Chuyên đề MapID -->
+                        <div class="bg-white p-5 rounded-2xl border border-gray-200 hover:border-teal-500 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between group cursor-pointer" onclick="window.openResourceImporter('mapid')">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-600 to-emerald-600 text-white flex items-center justify-center text-xl shadow-md shadow-teal-600/20 group-hover:scale-110 transition-transform">
+                                        <i class="fa-solid fa-sitemap"></i>
+                                    </div>
+                                    <span class="px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-600 text-[11px] font-bold border border-teal-200">Chuẩn BGD&ĐT</span>
+                                </div>
+                                <h3 class="font-extrabold text-gray-800 text-base group-hover:text-teal-600 transition-colors">Khung Chuyên Đề & MapID</h3>
+                                <p class="text-xs text-gray-500 mt-1 leading-relaxed">Tạo khung chương hồi nhanh từ cấu trúc ma trận chương trình các khối Lớp 6 đến Lớp 12.</p>
+                            </div>
+                            <button type="button" class="mt-4 w-full py-2.5 bg-white border border-teal-600 text-teal-700 hover:bg-teal-50 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer">
+                                <i class="fa-solid fa-network-wired"></i> Nạp Khung chuyên đề
+                            </button>
+                        </div>
+
+                        <!-- Card 4: Soạn thủ công -->
+                        <div class="bg-white p-5 rounded-2xl border border-gray-200 hover:border-brand shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between group cursor-pointer" onclick="window.addChapter()">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-700 to-teal-900 text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
+                                        <i class="fa-solid fa-pen-ruler"></i>
+                                    </div>
+                                    <span class="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-bold">Thủ công</span>
+                                </div>
+                                <h3 class="font-extrabold text-gray-800 text-base group-hover:text-brand transition-colors">Soạn Thảo Tự Do</h3>
+                                <p class="text-xs text-gray-500 mt-1 leading-relaxed">Tự tạo từng Chương, Bài học và thêm video YouTube, tài liệu PDF, bài tập trắc nghiệm theo ý muốn.</p>
+                            </div>
+                            <button type="button" class="mt-4 w-full py-2.5 bg-white border border-brand text-brand hover:bg-teal-50 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer">
+                                <i class="fa-solid fa-plus"></i> Tạo Chương đầu tiên
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // TRƯỜNG HỢP B: KHÓA HỌC ĐÃ CÓ NỘI DUNG (TỔNG QUAN GIÁO ÁN)
+            let totalLessons = 0, totalQuizzes = 0, totalVideos = 0, totalPdfs = 0;
+            currentCurriculum.forEach(chap => {
+                (chap.lessons || []).forEach(les => {
+                    totalLessons++;
+                    (les.items || []).forEach(item => {
+                        if (item.type === 'quiz') totalQuizzes++;
+                        else if (item.type === 'video') totalVideos++;
+                        else if (item.type === 'pdf') totalPdfs++;
+                    });
+                });
+            });
+
+            container.innerHTML = `
+                <div class="max-w-2xl mx-auto text-center space-y-6 animate-fade-in-up">
+                    <div class="w-20 h-20 rounded-3xl bg-brand/10 text-brand flex items-center justify-center mx-auto text-3xl shadow-inner">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black text-gray-800">Tổng Quan Giáo Án Khóa Học</h3>
+                        <p class="text-xs text-gray-500 mt-1">Chọn một mục bất kỳ bên cây mục lục bên trái để xem hoặc chỉnh sửa chi tiết</p>
+                    </div>
+
+                    <!-- Thống kê -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+                        <div class="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                            <span class="text-xs text-gray-400 font-bold block">Số Chương</span>
+                            <span class="text-2xl font-black text-gray-800">${currentCurriculum.length}</span>
+                        </div>
+                        <div class="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                            <span class="text-xs text-gray-400 font-bold block">Số Bài học</span>
+                            <span class="text-2xl font-black text-brand">${totalLessons}</span>
+                        </div>
+                        <div class="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                            <span class="text-xs text-gray-400 font-bold block">Đề thi Online</span>
+                            <span class="text-2xl font-black text-orange-500">${totalQuizzes}</span>
+                        </div>
+                        <div class="p-4 bg-white rounded-xl border border-gray-200 shadow-2xs">
+                            <span class="text-xs text-gray-400 font-bold block">Video & PDF</span>
+                            <span class="text-2xl font-black text-purple-600">${totalVideos + totalPdfs}</span>
+                        </div>
+                    </div>
+
+                    <!-- Nút hành động nhanh -->
+                    <div class="pt-4 border-t border-gray-200 flex flex-wrap justify-center gap-2.5">
+                        <button type="button" onclick="window.openResourceImporter('exams')" class="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-xs font-bold hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-file-signature"></i> Nạp thêm Đề thi
+                        </button>
+                        <button type="button" onclick="window.openResourceImporter('books')" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold hover:bg-purple-700 transition-all flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-book-open"></i> Nạp từ Sách số hóa
+                        </button>
+                        <button type="button" onclick="window.openResourceImporter('mapid')" class="px-4 py-2 bg-teal-600 text-white rounded-xl text-xs font-bold hover:bg-teal-700 transition-all flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-sitemap"></i> Cây chuyên đề
+                        </button>
+                        <button type="button" onclick="window.addChapter()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-folder-plus"></i> Thêm Chương
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+
+        // ==============================================================
+        // 2. RESOURCE IMPORTER ENGINE (NGÂN HÀNG ĐỀ, SÁCH SỐ HÓA, MAPID)
+        // ==============================================================
+        let importerState = {
+            activeTab: 'exams',
+            targetChapIdx: -1,
+            // Exams bank
+            folders: [],
+            exams: [],
+            currentFolderId: null,
+            folderBreadcrumbs: [{ id: null, name: 'Ngân hàng đề (Gốc)' }],
+            selectedExamIds: new Set(),
+            searchTerm: '',
+            // Books
+            books: [],
+            selectedBookIdx: -1,
+            activeBookData: null,
+            selectedBookLessons: new Set(), // Set of "cIdx_lIdx"
+            // MapID
+            mapIdTree: [],
+            selectedGradeIdx: 0,
+            selectedMapTopics: new Set()
+        };
+
+        // Mở Modal Nạp Học Liệu
+        window.openResourceImporter = async (tab = 'exams', targetChapIdx = -1) => {
+            importerState.targetChapIdx = targetChapIdx;
+            importerState.selectedExamIds.clear();
+            importerState.searchTerm = '';
+            
+            const modal = document.getElementById('resourceImporterModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            // Cập nhật danh sách chương đích hiện có vào dropdown
+            window.updateImporterTargetChaptersDropdown();
+
+            // Chuyển tab
+            window.switchImporterTab(tab);
+
+            // Tải dữ liệu ngân hàng đề nếu chưa có
+            if (importerState.exams.length === 0) {
+                await window.loadImporterExamBank();
+            } else if (tab === 'exams') {
+                window.renderImporterExamsView();
+            }
+        };
+
+        // Đóng Modal Nạp Học Liệu
+        window.closeResourceImporter = () => {
+            const modal = document.getElementById('resourceImporterModal');
+            if (modal) modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        };
+
+        // Cập nhật dropdown chọn chương đích
+        window.updateImporterTargetChaptersDropdown = () => {
+            const select = document.getElementById('importerTargetChapSelect');
+            if (!select) return;
+            select.innerHTML = '';
+            if (!currentCurriculum || currentCurriculum.length === 0) {
+                select.innerHTML = '<option value="-1">Khóa học chưa có chương nào</option>';
+                const radExisting = document.querySelector('input[name="importerTargetChapMode"][value="existing"]');
+                if (radExisting) radExisting.disabled = true;
+                const radNew = document.querySelector('input[name="importerTargetChapMode"][value="new"]');
+                if (radNew) radNew.checked = true;
+                window.onTargetChapModeChange();
+                return;
+            }
+
+            const radExisting = document.querySelector('input[name="importerTargetChapMode"][value="existing"]');
+            if (radExisting) radExisting.disabled = false;
+
+            currentCurriculum.forEach((chap, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = `${idx + 1}. ${chap.title}`;
+                if (idx === importerState.targetChapIdx) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            if (importerState.targetChapIdx > -1) {
+                if (radExisting) radExisting.checked = true;
+            }
+            window.onTargetChapModeChange();
+        };
+
+        // Đổi Tab trong Importer Modal
+        window.switchImporterTab = (tab) => {
+            importerState.activeTab = tab;
+            
+            // Cập nhật nút tab
+            const tabs = ['exams', 'books', 'mapid'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`importerTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                const pane = document.getElementById(`importerTabPane${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                if (t === tab) {
+                    if (btn) {
+                        btn.className = "importer-tab-btn px-3 py-1.5 rounded-lg transition-all bg-white shadow-xs flex items-center gap-1.5 cursor-pointer " + 
+                            (t === 'exams' ? 'text-orange-600 font-extrabold' : (t === 'books' ? 'text-purple-600 font-extrabold' : 'text-teal-600 font-extrabold'));
+                    }
+                    if (pane) pane.classList.remove('hidden');
+                } else {
+                    if (btn) {
+                        btn.className = "importer-tab-btn px-3 py-1.5 rounded-lg transition-all text-gray-600 hover:text-gray-900 flex items-center gap-1.5 cursor-pointer";
+                    }
+                    if (pane) pane.classList.add('hidden');
+                }
+            });
+
+            if (tab === 'books' && importerState.books.length === 0) {
+                window.loadImporterBooks();
+            } else if (tab === 'mapid' && importerState.mapIdTree.length === 0) {
+                window.loadImporterMapId();
+            }
+        };
+
+        // --- TAB 1: KHO ĐỀ THI ---
+        window.loadImporterExamBank = async () => {
+            const container = document.getElementById('importerExamContent');
+            if (container) {
+                container.innerHTML = '<div class="text-center py-16 text-gray-400 flex flex-col items-center"><i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-orange-500"></i><span class="font-bold text-sm">Đang nạp toàn bộ Ngân hàng đề thi...</span></div>';
+            }
+
+            try {
+                const [snapF, snapE] = await Promise.all([
+                    getDocs(collection(db, "folders")),
+                    getDocs(collection(db, "exams"))
+                ]);
+
+                importerState.folders = [];
+                snapF.forEach(d => {
+                    const f = d.data();
+                    importerState.folders.push({
+                        id: d.id,
+                        name: f.name || 'Thư mục không tên',
+                        parentId: f.parentId || null
+                    });
+                });
+
+                importerState.exams = [];
+                snapE.forEach(d => {
+                    const e = d.data();
+                    let fId = e.folderId;
+                    if (!fId || fId === "null" || fId === "") fId = null;
+                    importerState.exams.push({
+                        id: d.id,
+                        title: e.title || 'Đề không tên',
+                        folderId: fId,
+                        questionCount: e.questionCount !== undefined ? e.questionCount : (e.questions ? e.questions.length : 0),
+                        time: e.time || 60,
+                        isPublic: e.isPublic !== false
+                    });
+                });
+
+                importerState.currentFolderId = null;
+                importerState.folderBreadcrumbs = [{ id: null, name: 'Ngân hàng đề (Gốc)' }];
+                window.renderImporterExamsView();
+
+            } catch(e) {
+                console.error("Lỗi nạp ngân hàng đề:", e);
+                if (container) {
+                    container.innerHTML = `<div class="bg-red-50 text-red-600 p-4 rounded-xl text-center text-sm font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Lỗi tải dữ liệu đề thi: ${e.message}</div>`;
+                }
+            }
+        };
+
+        // Hàm đệ quy lấy toàn bộ đề trong thư mục và các thư mục con
+        function getExamsInFolderRecursive(folderId) {
+            const result = [];
+            // Lấy đề trực tiếp trong thư mục này
+            importerState.exams.forEach(e => {
+                if (e.folderId === folderId) result.push(e);
+            });
+            // Tìm các thư mục con
+            const subFolders = importerState.folders.filter(f => f.parentId === folderId);
+            subFolders.forEach(sf => {
+                result.push(...getExamsInFolderRecursive(sf.id));
+            });
+            return result;
+        }
+
+        // Render giao diện danh sách thư mục & đề thi
+        window.renderImporterExamsView = () => {
+            const container = document.getElementById('importerExamContent');
+            const breadcrumbsEl = document.getElementById('importerExamBreadcrumbs');
+            const quickActionEl = document.getElementById('importerFolderQuickAction');
+            if (!container) return;
+
+            // 1. Breadcrumbs
+            if (breadcrumbsEl) {
+                breadcrumbsEl.innerHTML = importerState.folderBreadcrumbs.map((crumb, idx) => {
+                    const isLast = idx === importerState.folderBreadcrumbs.length - 1;
+                    if (isLast) {
+                        return `<span class="font-extrabold text-orange-600 flex items-center gap-1">${idx === 0 ? '<i class="fa-solid fa-house"></i> ' : '<i class="fa-solid fa-folder-open text-amber-500"></i> '}${crumb.name}</span>`;
+                    } else {
+                        return `<span class="cursor-pointer hover:text-orange-600 text-gray-500 flex items-center gap-1" onclick="window.navigateToFolder('${crumb.id}', '${crumb.name.replace(/'/g, "\\'")}', ${idx})">${idx === 0 ? '<i class="fa-solid fa-house"></i> ' : ''}${crumb.name}</span><i class="fa-solid fa-chevron-right text-[10px] text-gray-300"></i>`;
+                    }
+                }).join('');
+            }
+
+            // 2. Nút thao tác nhanh trên cả thư mục hiện tại
+            if (quickActionEl) {
+                if (importerState.currentFolderId) {
+                    const examsInCurrent = getExamsInFolderRecursive(importerState.currentFolderId);
+                    const currentFolderName = importerState.folderBreadcrumbs[importerState.folderBreadcrumbs.length - 1].name;
+                    quickActionEl.innerHTML = `
+                        <button type="button" onclick="window.quickImportCurrentFolder()" class="px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer" title="Nạp toàn bộ đề trong thư mục này vào khóa học">
+                            <i class="fa-solid fa-bolt"></i> Nạp cả thư mục này (${examsInCurrent.length} đề)
+                        </button>
+                    `;
+                } else {
+                    quickActionEl.innerHTML = '';
+                }
+            }
+
+            // 3. Lọc danh sách hiển thị
+            const isSearching = !!importerState.searchTerm.trim();
+            const term = importerState.searchTerm.trim().toLowerCase();
+
+            let visibleFolders = [];
+            let visibleExams = [];
+
+            if (isSearching) {
+                // Khi tìm kiếm: hiển thị tất cả đề thi khớp trên toàn ngân hàng
+                visibleFolders = [];
+                visibleExams = importerState.exams.filter(e => e.title.toLowerCase().includes(term));
+            } else {
+                // Đang duyệt theo cây thư mục
+                visibleFolders = importerState.folders.filter(f => (f.parentId || null) === importerState.currentFolderId);
+                visibleExams = importerState.exams.filter(e => (e.folderId || null) === importerState.currentFolderId);
+            }
+
+            container.innerHTML = '';
+
+            // 4. Render Thư Mục Con (nếu có)
+            if (visibleFolders.length > 0) {
+                const folderSection = document.createElement('div');
+                folderSection.className = "space-y-2";
+                folderSection.innerHTML = `
+                    <div class="font-extrabold text-xs text-gray-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                        <i class="fa-solid fa-folder-tree text-amber-500"></i> Thư mục con (${visibleFolders.length})
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                        ${visibleFolders.map(f => {
+                            const subExams = getExamsInFolderRecursive(f.id);
+                            return `
+                                <div onclick="window.navigateToFolder('${f.id}', '${f.name.replace(/'/g, "\\'")}')" class="bg-amber-50/40 hover:bg-amber-50 border border-amber-200 hover:border-amber-400 p-3 rounded-xl cursor-pointer transition-all flex items-center justify-between group shadow-2xs">
+                                    <div class="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                                        <i class="fa-solid fa-folder text-2xl text-amber-500 shrink-0 group-hover:scale-110 transition-transform"></i>
+                                        <div class="min-w-0">
+                                            <h5 class="text-xs font-bold text-gray-800 truncate group-hover:text-amber-800" title="${f.name}">${f.name}</h5>
+                                            <span class="text-[10px] text-gray-500 font-semibold">${subExams.length} đề thi</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" onclick="window.quickImportFolder('${f.id}', '${f.name.replace(/'/g, "\\'")}', event)" class="px-2 py-1 bg-white hover:bg-orange-500 hover:text-white border border-orange-200 text-orange-600 rounded-lg text-[10px] font-black transition-all shrink-0 whitespace-nowrap shadow-2xs" title="Nạp toàn bộ đề trong thư mục này">
+                                        <i class="fa-solid fa-bolt"></i> Nạp cả folder
+                                    </button>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(folderSection);
+            }
+
+            // 5. Render Danh Sách Đề Thi
+            if (visibleExams.length > 0) {
+                const examSection = document.createElement('div');
+                examSection.className = "space-y-2 mt-3";
+                examSection.innerHTML = `
+                    <div class="font-extrabold text-xs text-gray-500 uppercase tracking-wider flex items-center justify-between mb-2">
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-file-signature text-orange-500"></i> ${isSearching ? `Kết quả tìm kiếm (${visibleExams.length} đề)` : `Đề thi trong thư mục (${visibleExams.length} đề)`}</span>
+                    </div>
+                    <div class="space-y-1.5">
+                        ${visibleExams.map(e => {
+                            const isSelected = importerState.selectedExamIds.has(e.id);
+                            return `
+                                <div onclick="window.toggleExamSelection('${e.id}')" class="p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${isSelected ? 'bg-orange-50/70 border-orange-400 shadow-xs' : 'bg-white hover:bg-gray-50 border-gray-200'}">
+                                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                                        <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); window.toggleExamSelection('${e.id}')" class="w-4 h-4 accent-orange-500 cursor-pointer rounded shrink-0">
+                                        <div class="min-w-0">
+                                            <h5 class="text-xs md:text-sm font-bold text-gray-800 truncate ${isSelected ? 'text-orange-900' : ''}" title="${e.title}">${e.title}</h5>
+                                            <div class="flex items-center gap-2 mt-0.5 text-[11px] text-gray-500 font-semibold">
+                                                <span class="bg-gray-100 px-1.5 py-0.5 rounded text-[10px]"><i class="fa-solid fa-list-check mr-1 text-gray-400"></i>${e.questionCount} câu</span>
+                                                <span class="bg-gray-100 px-1.5 py-0.5 rounded text-[10px]"><i class="fa-regular fa-clock mr-1 text-gray-400"></i>${e.time}p</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <a href="exam.html?id=${e.id}&mode=practice" target="_blank" onclick="event.stopPropagation()" class="px-2.5 py-1 text-[11px] font-bold text-gray-500 hover:text-orange-600 bg-gray-100 hover:bg-orange-50 border border-gray-200 rounded-lg flex items-center gap-1 transition-colors shrink-0 whitespace-nowrap" title="Xem trước nội dung đề">
+                                        <i class="fa-solid fa-eye"></i> Xem đề
+                                    </a>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                container.appendChild(examSection);
+            }
+
+            // 6. Xử lý trạng thái trống
+            if (visibleFolders.length === 0 && visibleExams.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-gray-400 select-none">
+                        <i class="fa-regular fa-folder-open text-4xl mb-2 opacity-40"></i>
+                        <p class="font-bold text-sm">${isSearching ? 'Không tìm thấy đề thi nào khớp với từ khóa' : 'Thư mục này hiện chưa có đề thi hoặc thư mục con'}</p>
+                    </div>
+                `;
+            }
+
+            // Cập nhật huy hiệu số lượng
+            window.updateImporterSelectionCounters();
+        };
+
+        // Cập nhật bộ đếm và nút "Chọn tất cả"
+        window.updateImporterSelectionCounters = () => {
+            const countEl = document.getElementById('importerSelectedCount');
+            const submitBtnCountEl = document.getElementById('importerBtnSubmitCount');
+            const selectAllTextEl = document.getElementById('importerSelectAllBtnText');
+
+            const count = importerState.selectedExamIds.size;
+            if (countEl) countEl.innerText = count;
+            if (submitBtnCountEl) submitBtnCountEl.innerText = count;
+
+            // Xác định xem tất cả đề đang hiển thị có được chọn không
+            const isSearching = !!importerState.searchTerm.trim();
+            const term = importerState.searchTerm.trim().toLowerCase();
+            const visibleExams = isSearching 
+                ? importerState.exams.filter(e => e.title.toLowerCase().includes(term))
+                : importerState.exams.filter(e => (e.folderId || null) === importerState.currentFolderId);
+
+            if (selectAllTextEl) {
+                if (visibleExams.length > 0 && visibleExams.every(e => importerState.selectedExamIds.has(e.id))) {
+                    selectAllTextEl.innerText = 'Bỏ chọn';
+                } else {
+                    selectAllTextEl.innerText = 'Chọn tất cả';
+                }
+            }
+        };
+
+        // Tìm kiếm đề thi thời gian thực
+        window.onImporterExamSearch = (val) => {
+            importerState.searchTerm = val || '';
+            window.renderImporterExamsView();
+        };
+
+        // Điều hướng thư mục
+        window.navigateToFolder = (folderId, folderName, crumbIndex = -1) => {
+            importerState.currentFolderId = folderId;
+            if (crumbIndex > -1) {
+                importerState.folderBreadcrumbs = importerState.folderBreadcrumbs.slice(0, crumbIndex + 1);
+            } else {
+                importerState.folderBreadcrumbs.push({ id: folderId, name: folderName });
+            }
+            window.renderImporterExamsView();
+        };
+
+        // Chọn / Bỏ chọn 1 đề thi
+        window.toggleExamSelection = (examId) => {
+            if (importerState.selectedExamIds.has(examId)) {
+                importerState.selectedExamIds.delete(examId);
+            } else {
+                importerState.selectedExamIds.add(examId);
+            }
+            window.renderImporterExamsView();
+        };
+
+        // Chọn tất cả / Bỏ chọn tất cả đề đang hiển thị
+        window.toggleImporterSelectAllExams = () => {
+            const isSearching = !!importerState.searchTerm.trim();
+            const term = importerState.searchTerm.trim().toLowerCase();
+            const visibleExams = isSearching 
+                ? importerState.exams.filter(e => e.title.toLowerCase().includes(term))
+                : importerState.exams.filter(e => (e.folderId || null) === importerState.currentFolderId);
+
+            if (visibleExams.length === 0) return;
+
+            const allSelected = visibleExams.every(e => importerState.selectedExamIds.has(e.id));
+            if (allSelected) {
+                visibleExams.forEach(e => importerState.selectedExamIds.delete(e.id));
+            } else {
+                visibleExams.forEach(e => importerState.selectedExamIds.add(e.id));
+            }
+            window.renderImporterExamsView();
+        };
+
+        // Nạp toàn bộ thư mục hiện tại
+        window.quickImportCurrentFolder = () => {
+            if (!importerState.currentFolderId) return;
+            const currentFolderName = importerState.folderBreadcrumbs[importerState.folderBreadcrumbs.length - 1].name;
+            const folderExams = getExamsInFolderRecursive(importerState.currentFolderId);
+            if (folderExams.length === 0) {
+                window.showToast("Thư mục này chưa có đề thi nào!", "warning");
+                return;
+            }
+
+            folderExams.forEach(e => importerState.selectedExamIds.add(e.id));
+            
+            // Thiết lập cấu hình mặc định: Tạo 1 chương mới theo tên thư mục
+            const radNew = document.querySelector('input[name="importerTargetChapMode"][value="new"]');
+            if (radNew) radNew.checked = true;
+            const titleInput = document.getElementById('importerNewChapTitle');
+            if (titleInput) titleInput.value = currentFolderName;
+            window.onTargetChapModeChange();
+
+            window.renderImporterExamsView();
+            window.showToast(`Đã chọn ${folderExams.length} đề trong "${currentFolderName}". Kiểm tra cấu hình và bấm "NẠP VÀO KHÓA HỌC"!`);
+        };
+
+        // Nạp toàn bộ đề trong một thư mục bất kỳ
+        window.quickImportFolder = (folderId, folderName, event) => {
+            if (event) event.stopPropagation();
+            const folderExams = getExamsInFolderRecursive(folderId);
+            if (folderExams.length === 0) {
+                window.showToast("Thư mục này chưa có đề thi nào!", "warning");
+                return;
+            }
+
+            folderExams.forEach(e => importerState.selectedExamIds.add(e.id));
+
+            // Đặt tên chương mặc định = tên thư mục
+            const radNew = document.querySelector('input[name="importerTargetChapMode"][value="new"]');
+            if (radNew) radNew.checked = true;
+            const titleInput = document.getElementById('importerNewChapTitle');
+            if (titleInput) titleInput.value = folderName;
+            window.onTargetChapModeChange();
+
+            window.renderImporterExamsView();
+            window.showToast(`Đã chọn ${folderExams.length} đề từ "${folderName}". Kiểm tra cấu hình và bấm "NẠP VÀO KHÓA HỌC"!`);
+        };
+
+        // Sự kiện đổi radio đích đến
+        window.onTargetChapModeChange = () => {
+            const mode = document.querySelector('input[name="importerTargetChapMode"]:checked')?.value || 'new';
+            const newTitleInput = document.getElementById('importerNewChapTitle');
+            const targetSelect = document.getElementById('importerTargetChapSelect');
+
+            if (mode === 'new') {
+                if (newTitleInput) newTitleInput.disabled = false;
+                if (targetSelect) targetSelect.disabled = true;
+            } else {
+                if (newTitleInput) newTitleInput.disabled = true;
+                if (targetSelect) targetSelect.disabled = false;
+            }
+        };
+
+        // Sự kiện đổi radio quy cách tạo bài học
+        window.onLessonOrgModeChange = () => {
+            const mode = document.querySelector('input[name="importerLessonOrgMode"]:checked')?.value || 'each';
+            const singleLessonInput = document.getElementById('importerSingleLessonTitle');
+            if (singleLessonInput) {
+                singleLessonInput.disabled = (mode !== 'single');
+                if (mode === 'single' && !singleLessonInput.value) {
+                    singleLessonInput.value = "Bộ đề thi trắc nghiệm";
+                }
+            }
+        };
+
+        // THỰC THI NẠP ĐỀ THI VÀO KHÓA HỌC (CORE ENGINE)
+        window.executeExamImport = () => {
+            if (!canManageCourses) {
+                window.showToast("⛔ Bạn không có quyền chỉnh sửa giáo án!", "error");
+                return;
+            }
+
+            if (importerState.selectedExamIds.size === 0) {
+                window.showToast("Vui lòng tích chọn ít nhất 1 đề thi để nạp!", "warning");
+                return;
+            }
+
+            // 1. Thu thập danh sách đề thi theo thứ tự hiển thị
+            const selectedExams = importerState.exams.filter(e => importerState.selectedExamIds.has(e.id));
+
+            // 2. Đọc cấu hình
+            const targetMode = document.querySelector('input[name="importerTargetChapMode"]:checked')?.value || 'new';
+            const lessonOrgMode = document.querySelector('input[name="importerLessonOrgMode"]:checked')?.value || 'each';
+            const autoNumber = document.getElementById('importerAutoNumber')?.checked !== false;
+            const firstPreview = document.getElementById('importerFirstPreview')?.checked !== false;
+            const minScore = parseFloat(document.getElementById('importerMinScore')?.value) || 5;
+            const viewLimit = document.getElementById('importerViewLimit')?.value ? parseInt(document.getElementById('importerViewLimit').value) : null;
+            const viewPrice = document.getElementById('importerViewPrice')?.value ? parseInt(document.getElementById('importerViewPrice').value) : 0;
+
+            // 3. Xác định Chương đích
+            let targetChap = null;
+            if (targetMode === 'new') {
+                const newTitle = document.getElementById('importerNewChapTitle')?.value.trim() || 
+                    (importerState.currentFolderId ? importerState.folderBreadcrumbs[importerState.folderBreadcrumbs.length - 1].name : "Bộ đề luyện thi trắc nghiệm");
+                targetChap = {
+                    title: newTitle,
+                    isCollapsed: false,
+                    lessons: []
+                };
+                currentCurriculum.push(targetChap);
+            } else {
+                const targetIdx = parseInt(document.getElementById('importerTargetChapSelect')?.value || '0');
+                if (targetIdx >= 0 && targetIdx < currentCurriculum.length) {
+                    targetChap = currentCurriculum[targetIdx];
+                } else {
+                    targetChap = { title: "Bộ đề luyện thi", isCollapsed: false, lessons: [] };
+                    currentCurriculum.push(targetChap);
+                }
+            }
+
+            if (!targetChap.lessons) targetChap.lessons = [];
+
+            // 4. Tạo các bài học & nội dung bài thi
+            if (lessonOrgMode === 'each') {
+                // CHẾ ĐỘ 1: Mỗi đề thi thành 1 Bài học riêng (Chuẩn LMS)
+                selectedExams.forEach((e, idx) => {
+                    const formattedTitle = autoNumber 
+                        ? `Đề ${String(idx + 1).padStart(2, '0')}: ${e.title}`
+                        : e.title;
+
+                    const item = {
+                        id: 'it_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 4),
+                        title: formattedTitle,
+                        type: 'quiz',
+                        examId: e.id,
+                        examTitle: e.title,
+                        minScore: minScore,
+                        viewLimit: viewLimit,
+                        viewPrice: viewPrice,
+                        isPreview: (idx === 0 && firstPreview),
+                        isPublished: true
+                    };
+
+                    targetChap.lessons.push({
+                        title: formattedTitle,
+                        isCollapsed: false,
+                        items: [item]
+                    });
+                });
+            } else {
+                // CHẾ ĐỘ 2: Gom tất cả đề vào 1 Bài học duy nhất
+                const singleLessonTitle = document.getElementById('importerSingleLessonTitle')?.value.trim() || "Bộ đề thi trắc nghiệm";
+                const items = selectedExams.map((e, idx) => {
+                    const formattedTitle = autoNumber 
+                        ? `Đề ${String(idx + 1).padStart(2, '0')}: ${e.title}`
+                        : e.title;
+                    return {
+                        id: 'it_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 4),
+                        title: formattedTitle,
+                        type: 'quiz',
+                        examId: e.id,
+                        examTitle: e.title,
+                        minScore: minScore,
+                        viewLimit: viewLimit,
+                        viewPrice: viewPrice,
+                        isPreview: (idx === 0 && firstPreview),
+                        isPublished: true
+                    };
+                });
+
+                targetChap.lessons.push({
+                    title: singleLessonTitle,
+                    isCollapsed: false,
+                    items: items
+                });
+            }
+
+            // 5. Cập nhật cây giáo án & Đóng Modal
+            renderCurriculumTree();
+            window.closeResourceImporter();
+            window.showToast(`🎉 Đã nạp thành công ${selectedExams.length} đề thi vào khóa học! Hãy nhấn "LƯU GIÁO ÁN" để hoàn tất.`, 'success');
+        };
+
+        // --- TAB 2: KHO SÁCH SỐ HÓA ---
+        window.loadImporterBooks = async (force = false) => {
+            const listContainer = document.getElementById('importerBooksList');
+            if (listContainer) {
+                listContainer.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-600 mb-2"></i><p class="text-xs">Đang tải kho sách...</p></div>';
+            }
+
+            let books = [];
+            try {
+                const res = await fetch('https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/book_index_global.json?t=' + Date.now());
+                if (res.ok) {
+                    books = await res.json();
+                }
+            } catch(e) {
+                console.warn("Lỗi fetch cloud book index:", e);
+            }
+
+            if (!books || books.length === 0) {
+                try {
+                    books = JSON.parse(localStorage.getItem('digitized_books') || '[]');
+                } catch(e) {}
+            }
+
+            importerState.books = books || [];
+            window.renderImporterBooksList();
+        };
+
+        window.renderImporterBooksList = () => {
+            const listContainer = document.getElementById('importerBooksList');
+            if (!listContainer) return;
+
+            if (importerState.books.length === 0) {
+                listContainer.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs">Chưa có đầu sách số hóa nào trong hệ thống.</div>';
+                return;
+            }
+
+            listContainer.innerHTML = importerState.books.map((b, idx) => {
+                const isSelected = idx === importerState.selectedBookIdx;
+                return `
+                    <div onclick="window.selectImporterBook(${idx})" class="p-3 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-purple-50 border-purple-500 shadow-sm' : 'bg-white hover:bg-gray-50 border-gray-200'}">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm shrink-0">
+                                <i class="fa-solid fa-book"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <h5 class="text-xs font-bold text-gray-800 truncate" title="${b.title || 'Sách không tên'}">${b.title || 'Sách không tên'}</h5>
+                                <p class="text-[10px] text-gray-400 truncate mt-0.5">${b.mapId || 'Tài liệu số hóa'}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.selectImporterBook = async (bIdx) => {
+            importerState.selectedBookIdx = bIdx;
+            importerState.selectedBookLessons.clear();
+            window.renderImporterBooksList();
+
+            const b = importerState.books[bIdx];
+            if (!b) return;
+
+            const titleEl = document.getElementById('importerSelectedBookTitle');
+            const descEl = document.getElementById('importerSelectedBookDesc');
+            const treeEl = document.getElementById('importerBookTreeContainer');
+            const actionBtns = document.getElementById('importerBookActionButtons');
+
+            if (titleEl) titleEl.innerText = b.title || 'Sách số hóa';
+            if (descEl) descEl.innerText = `Nguồn: ${b.mapId || 'Sách điện tử'} - Chọn các chương/bài để nạp vào giáo án`;
+            if (actionBtns) actionBtns.classList.remove('hidden');
+
+            if (treeEl) {
+                treeEl.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fa-solid fa-spinner fa-spin text-2xl text-purple-600 mb-2"></i><p class="text-xs">Đang tải cấu trúc sách...</p></div>';
+            }
+
+            try {
+                const res = await fetch(b.url);
+                const bookData = await res.json();
+                
+                // Chuẩn hóa cấu trúc chapters
+                if (!bookData.chapters) {
+                    bookData.chapters = [{ title: "Chương mặc định", lessons: bookData.lessons || [] }];
+                }
+
+                importerState.activeBookData = bookData;
+
+                // Tự động tích chọn tất cả bài học
+                bookData.chapters.forEach((chap, cIdx) => {
+                    (chap.lessons || []).forEach((les, lIdx) => {
+                        importerState.selectedBookLessons.add(`${cIdx}_${lIdx}`);
+                    });
+                });
+
+                window.renderImporterBookTree();
+
+            } catch(e) {
+                console.error("Lỗi tải chi tiết sách:", e);
+                if (treeEl) {
+                    treeEl.innerHTML = `<div class="bg-red-50 text-red-600 p-4 rounded-xl text-center text-xs font-bold">Lỗi tải dữ liệu sách: ${e.message}</div>`;
+                }
+            }
+        };
+
+        window.renderImporterBookTree = () => {
+            const treeEl = document.getElementById('importerBookTreeContainer');
+            if (!treeEl || !importerState.activeBookData) return;
+
+            const chapters = importerState.activeBookData.chapters || [];
+            if (chapters.length === 0) {
+                treeEl.innerHTML = '<div class="text-center py-12 text-gray-400 text-xs">Sách này chưa có chương mục nào.</div>';
+                return;
+            }
+
+            treeEl.innerHTML = chapters.map((chap, cIdx) => {
+                const lessons = chap.lessons || [];
+                return `
+                    <div class="mb-3 border border-gray-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                        <div class="bg-purple-50/70 p-2.5 px-3 border-b border-gray-100 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-layer-group text-purple-600 text-xs"></i>
+                                <span class="font-extrabold text-xs text-gray-800">${chap.title}</span>
+                            </div>
+                            <span class="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-bold">${lessons.length} bài</span>
+                        </div>
+                        <div class="p-2 space-y-1">
+                            ${lessons.map((les, lIdx) => {
+                                const key = `${cIdx}_${lIdx}`;
+                                const isChecked = importerState.selectedBookLessons.has(key);
+                                return `
+                                    <label class="flex items-center gap-2.5 p-1.5 hover:bg-gray-50 rounded-lg cursor-pointer text-xs">
+                                        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="window.toggleImporterBookLesson(${cIdx}, ${lIdx})" class="accent-purple-600 w-4 h-4 rounded">
+                                        <span class="font-semibold text-gray-700 truncate">${les.title}</span>
+                                    </label>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.toggleImporterBookLesson = (cIdx, lIdx) => {
+            const key = `${cIdx}_${lIdx}`;
+            if (importerState.selectedBookLessons.has(key)) {
+                importerState.selectedBookLessons.delete(key);
+            } else {
+                importerState.selectedBookLessons.add(key);
+            }
+        };
+
+        window.toggleImporterBookSelectAll = () => {
+            if (!importerState.activeBookData) return;
+            const chapters = importerState.activeBookData.chapters || [];
+            let totalLessons = 0;
+            chapters.forEach(c => totalLessons += (c.lessons || []).length);
+
+            if (importerState.selectedBookLessons.size === totalLessons) {
+                importerState.selectedBookLessons.clear();
+            } else {
+                chapters.forEach((chap, cIdx) => {
+                    (chap.lessons || []).forEach((les, lIdx) => {
+                        importerState.selectedBookLessons.add(`${cIdx}_${lIdx}`);
+                    });
+                });
+            }
+            window.renderImporterBookTree();
+        };
+
+        window.executeBookImport = () => {
+            if (!canManageCourses) {
+                window.showToast("⛔ Bạn không có quyền chỉnh sửa giáo án!", "error");
+                return;
+            }
+
+            if (!importerState.activeBookData) return;
+            if (importerState.selectedBookLessons.size === 0) {
+                window.showToast("Vui lòng chọn ít nhất 1 bài học từ sách!", "warning");
+                return;
+            }
+
+            const chapters = importerState.activeBookData.chapters || [];
+            let addedCount = 0;
+
+            chapters.forEach((chap, cIdx) => {
+                const selectedLessonsInChap = (chap.lessons || []).filter((_, lIdx) => importerState.selectedBookLessons.has(`${cIdx}_${lIdx}`));
+                if (selectedLessonsInChap.length === 0) return;
+
+                const newChap = {
+                    title: chap.title || "Chương mới",
+                    isCollapsed: false,
+                    lessons: []
+                };
+
+                selectedLessonsInChap.forEach(les => {
+                    addedCount++;
+                    const items = [];
+                    // Lý thuyết
+                    items.push({
+                        id: 'it_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                        title: "Kiến thức trọng tâm",
+                        type: 'pdf',
+                        content: '',
+                        isPreview: true,
+                        isPublished: true
+                    });
+                    // Bài tập luyện tập
+                    items.push({
+                        id: 'it_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                        title: "Bài tập rèn luyện",
+                        type: 'quiz',
+                        examId: null,
+                        examTitle: null,
+                        minScore: 5,
+                        isPreview: false,
+                        isPublished: true
+                    });
+
+                    newChap.lessons.push({
+                        title: les.title || "Bài học mới",
+                        isCollapsed: false,
+                        items: items
+                    });
+                });
+
+                currentCurriculum.push(newChap);
+            });
+
+            renderCurriculumTree();
+            window.closeResourceImporter();
+            window.showToast(`🎉 Đã đồng bộ thành công cấu trúc sách (${addedCount} bài học) vào khóa học! Nhớ bấm "LƯU GIÁO ÁN" nhé.`, 'success');
+        };
+
+        // --- TAB 3: CÂY CHUYÊN ĐỀ MAPID ---
+        window.loadImporterMapId = async () => {
+            const container = document.getElementById('importerMapIdTreeContainer');
+            if (container) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fa-solid fa-spinner fa-spin text-2xl text-teal-600 mb-2"></i><p class="text-xs">Đang tải Cây Chuyên đề MapID...</p></div>';
+            }
+
+            try {
+                const snap = await getDoc(doc(db, "configurations", "map_id_tree"));
+                if (snap.exists()) {
+                    importerState.mapIdTree = snap.data().tree || [];
+                } else {
+                    importerState.mapIdTree = JSON.parse(localStorage.getItem('lms_cached_mapid_tree') || '[]');
+                }
+                window.renderImporterMapIdGrades();
+            } catch(e) {
+                console.error("Lỗi tải map_id_tree:", e);
+                if (container) {
+                    container.innerHTML = `<div class="bg-red-50 text-red-600 p-4 rounded-xl text-center text-xs font-bold">Lỗi tải MapID: ${e.message}</div>`;
+                }
+            }
+        };
+
+        window.renderImporterMapIdGrades = () => {
+            const gradeList = document.getElementById('importerGradeList');
+            if (!gradeList) return;
+
+            if (importerState.mapIdTree.length === 0) {
+                gradeList.innerHTML = '<div class="p-3 text-xs text-gray-400">Không có dữ liệu khối lớp</div>';
+                return;
+            }
+
+            gradeList.innerHTML = importerState.mapIdTree.map((g, idx) => {
+                const isSelected = idx === importerState.selectedGradeIdx;
+                const gName = g.name || g.label || `Khối ${idx + 6}`;
+                return `
+                    <button type="button" onclick="window.selectImporterGrade(${idx})" class="w-full text-left p-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${isSelected ? 'bg-teal-600 text-white shadow-xs' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'}">
+                        <span>${gName}</span>
+                        <i class="fa-solid fa-chevron-right text-[10px] ${isSelected ? 'text-white' : 'text-gray-300'}"></i>
+                    </button>
+                `;
+            }).join('');
+
+            window.selectImporterGrade(importerState.selectedGradeIdx);
+        };
+
+        window.selectImporterGrade = (gIdx) => {
+            importerState.selectedGradeIdx = gIdx;
+            importerState.selectedMapTopics.clear();
+
+            // Cập nhật active class ở danh sách lớp
+            const gradeBtns = document.querySelectorAll('#importerGradeList button');
+            gradeBtns.forEach((b, idx) => {
+                if (idx === gIdx) {
+                    b.className = "w-full text-left p-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer bg-teal-600 text-white shadow-xs";
+                } else {
+                    b.className = "w-full text-left p-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer bg-gray-50 hover:bg-gray-100 text-gray-700";
+                }
+            });
+
+            const grade = importerState.mapIdTree[gIdx];
+            if (!grade) return;
+
+            const titleEl = document.getElementById('importerSelectedGradeTitle');
+            if (titleEl) titleEl.innerText = `Chương Trình ${grade.name || grade.label || ''}`;
+
+            const container = document.getElementById('importerMapIdTreeContainer');
+            if (!container) return;
+
+            const subjects = grade.children || [];
+            if (subjects.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-400 text-xs">Khối này chưa có chương mục nào.</div>';
+                return;
+            }
+
+            // Flatten/Hiển thị các chương và bài học
+            let html = '';
+            subjects.forEach((sub, sIdx) => {
+                const chapters = sub.children || [];
+                html += `
+                    <div class="mb-4">
+                        <div class="font-black text-xs text-teal-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-graduation-cap text-teal-600"></i> ${sub.name || sub.label || 'Môn học'}
+                        </div>
+                        <div class="space-y-2.5">
+                            ${chapters.map((chap, cIdx) => {
+                                const topics = chap.children || [];
+                                return `
+                                    <div class="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                                        <div class="bg-teal-50/60 p-2.5 px-3 border-b border-gray-100 flex items-center justify-between">
+                                            <span class="font-extrabold text-xs text-gray-800">${chap.name || chap.label}</span>
+                                            <span class="text-[10px] text-teal-700 bg-teal-100 px-2 py-0.5 rounded font-bold">${topics.length} chuyên đề</span>
+                                        </div>
+                                        <div class="p-2 space-y-1">
+                                            ${topics.map((top, tIdx) => {
+                                                const key = `${sIdx}_${cIdx}_${tIdx}`;
+                                                // Mặc định tích chọn
+                                                importerState.selectedMapTopics.add(key);
+                                                return `
+                                                    <label class="flex items-center gap-2.5 p-1.5 hover:bg-gray-50 rounded-lg cursor-pointer text-xs">
+                                                        <input type="checkbox" checked onchange="window.toggleImporterMapTopic('${key}')" class="accent-teal-600 w-4 h-4 rounded">
+                                                        <span class="font-semibold text-gray-700 truncate">${top.name || top.label}</span>
+                                                    </label>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        };
+
+        window.toggleImporterMapTopic = (key) => {
+            if (importerState.selectedMapTopics.has(key)) {
+                importerState.selectedMapTopics.delete(key);
+            } else {
+                importerState.selectedMapTopics.add(key);
+            }
+        };
+
+        window.toggleImporterMapIdSelectAll = () => {
+            const inputs = document.querySelectorAll('#importerMapIdTreeContainer input[type="checkbox"]');
+            if (inputs.length === 0) return;
+            const allChecked = Array.from(inputs).every(i => i.checked);
+            inputs.forEach(i => {
+                i.checked = !allChecked;
+            });
+            importerState.selectedMapTopics.clear();
+            if (!allChecked) {
+                const grade = importerState.mapIdTree[importerState.selectedGradeIdx];
+                if (grade && grade.children) {
+                    grade.children.forEach((sub, sIdx) => {
+                        (sub.children || []).forEach((chap, cIdx) => {
+                            (chap.children || []).forEach((top, tIdx) => {
+                                importerState.selectedMapTopics.add(`${sIdx}_${cIdx}_${tIdx}`);
+                            });
+                        });
+                    });
+                }
+            }
+        };
+
+        window.executeMapIdImport = () => {
+            if (!canManageCourses) {
+                window.showToast("⛔ Bạn không có quyền chỉnh sửa giáo án!", "error");
+                return;
+            }
+
+            const grade = importerState.mapIdTree[importerState.selectedGradeIdx];
+            if (!grade) return;
+
+            let addedLessons = 0;
+            (grade.children || []).forEach((sub, sIdx) => {
+                (sub.children || []).forEach((chap, cIdx) => {
+                    const topics = (chap.children || []).filter((_, tIdx) => importerState.selectedMapTopics.has(`${sIdx}_${cIdx}_${tIdx}`));
+                    if (topics.length === 0) return;
+
+                    const newChap = {
+                        title: `${sub.name || ''} - ${chap.name || chap.label}`,
+                        isCollapsed: false,
+                        lessons: []
+                    };
+
+                    topics.forEach(top => {
+                        addedLessons++;
+                        newChap.lessons.push({
+                            title: top.name || top.label,
+                            isCollapsed: false,
+                            items: [
+                                {
+                                    id: 'it_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                                    title: top.name || top.label,
+                                    type: 'quiz',
+                                    examId: null,
+                                    examTitle: null,
+                                    minScore: 5,
+                                    isPreview: false,
+                                    isPublished: true
+                                }
+                            ]
+                        });
+                    });
+
+                    currentCurriculum.push(newChap);
+                });
+            });
+
+            renderCurriculumTree();
+            window.closeResourceImporter();
+            window.showToast(`🎉 Đã tạo khung chuyên đề (${addedLessons} bài học) vào khóa học! Nhớ bấm "LƯU GIÁO ÁN" nhé.`, 'success');
         };
         
         // --- HÀM ĐÓNG MỞ MODAL CHUẨN ---
