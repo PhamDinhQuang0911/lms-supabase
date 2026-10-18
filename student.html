@@ -650,6 +650,9 @@
                     <i id="mobileTeacherBtnIcon" class="fa-solid fa-graduation-cap text-indigo-600 text-sm"></i>
                     <span id="mobileTeacherBtnText" class="text-[10px] hidden xs:inline font-black uppercase">Làm GV</span>
                 </button>
+                <button type="button" onclick="window.openMyStudentCardModal()" class="w-8 h-8 rounded-full bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 flex items-center justify-center text-sm shadow-2xs active:scale-95 transition-all cursor-pointer" title="Thẻ học sinh của em (Xem & Tải)">
+                    <i class="fa-solid fa-id-card"></i>
+                </button>
                 <button type="button" onclick="window.openQrScannerModal()" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 flex items-center justify-center text-sm shadow-2xs active:scale-95 transition-all cursor-pointer" title="Quét mã QR">
                     <i class="fa-solid fa-qrcode"></i>
                 </button>
@@ -668,146 +671,114 @@
         <div class="relative z-10">
             <h1 class="text-xl sm:text-2xl md:text-4xl font-black mb-1 md:mb-3 tracking-tight">Chào mừng trở lại, <span id="welcomeName">...</span>! 👋</h1>
             <p class="text-primary-100 mb-3 md:mb-6 text-xs sm:text-sm md:text-lg max-w-2xl leading-relaxed line-clamp-1 sm:line-clamp-none">Hôm nay là một ngày tuyệt vời để học tập. Kiểm tra ngay các bài tập đang chờ bạn phía dưới nhé!</p>
-            <button onclick="switchTab('classes')" class="hidden sm:inline-flex bg-white text-primary-700 px-6 md:px-8 py-2.5 md:py-3 rounded-full font-black hover:bg-primary-50 transition shadow-md text-xs sm:text-sm md:text-base items-center gap-2"><i class="fa-solid fa-arrow-down"></i> Vào lớp học ngay</button>
+            <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                <button onclick="switchTab('classes')" class="bg-white text-primary-700 px-5 sm:px-7 py-2.5 sm:py-3 rounded-full font-black hover:bg-primary-50 transition shadow-md text-xs sm:text-sm flex items-center gap-2 cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-arrow-down"></i> Vào lớp học ngay
+                </button>
+                <button onclick="window.openMyStudentCardModal()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 sm:px-7 py-2.5 sm:py-3 rounded-full font-black transition shadow-md text-xs sm:text-sm flex items-center gap-2 cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-id-card text-slate-950"></i> Xem & Tải Thẻ Học Sinh
+                </button>
+            </div>
         </div>
         <div class="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-white/10 to-transparent skew-x-12 transform origin-top-right"></div>
         <div class="absolute bottom-0 left-10 w-40 h-40 bg-primary-500/30 rounded-full blur-2xl"></div>
-        <!-- Cây phong (Seasonal Tree) -->
-        
     </div>
 
-    <!-- THANH THAO TÁC NHANH MOBILE (GỌN GÀNG, SẠCH ĐẸP, KHÔNG CHIẾM DIỆN TÍCH) -->
-    <div class="md:hidden bg-white dark:bg-slate-800 rounded-2xl p-2.5 shadow-xs border border-gray-100 dark:border-slate-700/60">
-        <div class="grid grid-cols-4 gap-1">
-            <!-- 1. Luyện AI -->
-            <button type="button" onclick="switchTab('practice'); loadStudentPracticeHistory()" class="flex flex-col items-center justify-center p-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer active:scale-95">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-lg shadow-sm shadow-indigo-500/25">
-                    <i class="fa-solid fa-brain"></i>
-                </div>
-                <span class="text-[11px] font-bold text-gray-700 dark:text-slate-200 mt-1.5 text-center leading-tight">Luyện AI</span>
-            </button>
-
-            <!-- 2. Quét QR & Tra cứu -->
-            <button type="button" onclick="window.studentOpenLookupModal()" class="flex flex-col items-center justify-center p-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer active:scale-95">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center text-lg shadow-sm shadow-teal-500/25">
-                    <i class="fa-solid fa-qrcode"></i>
-                </div>
-                <span class="text-[11px] font-bold text-gray-700 dark:text-slate-200 mt-1.5 text-center leading-tight">Quét & Tra</span>
-            </button>
-
-            <!-- 3. Khóa học của tôi -->
-            <button type="button" onclick="switchTab('my-courses')" class="flex flex-col items-center justify-center p-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer active:scale-95">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 text-white flex items-center justify-center text-lg shadow-sm shadow-blue-500/25">
-                    <i class="fa-solid fa-book-bookmark"></i>
-                </div>
-                <span class="text-[11px] font-bold text-gray-700 dark:text-slate-200 mt-1.5 text-center leading-tight">Khóa học</span>
-            </button>
-
-            <!-- 4. Đăng ký khóa mới -->
-            <button type="button" onclick="switchTab('market')" class="flex flex-col items-center justify-center p-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer active:scale-95">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center text-lg shadow-sm shadow-amber-500/25">
-                    <i class="fa-solid fa-cart-shopping"></i>
-                </div>
-                <span class="text-[11px] font-bold text-gray-700 dark:text-slate-200 mt-1.5 text-center leading-tight">Đăng ký mới</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- KHU NÚT THAO TÁC DESKTOP (MODERN CARDS) -->
-    <div class="hidden md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-5">
-        <!-- 1. Nút Luyện tập AI -->
-        <div onclick="switchTab('practice'); loadStudentPracticeHistory()" class="bg-white dark:bg-slate-800/90 p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 border border-gray-100 dark:border-slate-700/70 group cursor-pointer relative overflow-hidden flex flex-col justify-between">
-            <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500 pointer-events-none"></div>
+    <!-- KHU NÚT THAO TÁC DASHBOARD (HIỂN THỊ ĐẦY ĐỦ TÊN CÁC MỤC, THIẾT KẾ CÂN ĐỐI TRÊN CẢ MOBILE & DESKTOP) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
+        <!-- 1. Luyện tập AI -->
+        <div onclick="switchTab('practice'); loadStudentPracticeHistory()" class="bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 dark:border-slate-700/70 group cursor-pointer relative overflow-hidden flex flex-col justify-between">
+            <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform pointer-events-none"></div>
             <div>
-                <div class="flex items-center justify-between mb-3.5">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xl shadow-md shadow-indigo-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <div class="flex items-center justify-between mb-2.5 sm:mb-3.5">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-lg sm:text-xl shadow-md shadow-indigo-500/30 group-hover:scale-105 transition-transform">
                         <i class="fa-solid fa-brain"></i>
                     </div>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800 animate-pulse">AI 4.0</span>
+                    <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800 animate-pulse">AI 4.0</span>
                 </div>
-                <h3 class="text-base md:text-lg font-black text-gray-800 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                <h3 class="text-sm sm:text-base md:text-lg font-black text-gray-800 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                     Luyện tập AI
                 </h3>
-                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-1 font-medium">
+                <p class="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-1 font-medium">
                     Tạo đề & ôn tập thích ứng
                 </p>
             </div>
-            <div class="mt-4 pt-3 border-t border-gray-100 dark:border-slate-700/50 flex items-center justify-between text-xs font-bold text-gray-400 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+            <div class="mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-700/50 flex items-center justify-between text-[11px] sm:text-xs font-bold text-gray-400 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 <span>Luyện ngay</span>
-                <i class="fa-solid fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+                <i class="fa-solid fa-arrow-right text-[10px] sm:text-[11px] group-hover:translate-x-1 transition-transform"></i>
             </div>
         </div>
 
-        <!-- 2. Nút Quét mã & Tra cứu ID -->
-        <div class="bg-white dark:bg-slate-800/90 p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 border border-teal-100 dark:border-teal-800/40 group relative overflow-hidden flex flex-col justify-between ring-1 ring-teal-500/10 hover:ring-teal-500/30">
-            <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-teal-500/10 dark:bg-teal-500/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500 pointer-events-none"></div>
+        <!-- 2. Quét mã & Tra cứu ID -->
+        <div class="bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-teal-100 dark:border-teal-800/40 group relative overflow-hidden flex flex-col justify-between ring-1 ring-teal-500/10 hover:ring-teal-500/30">
+            <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-teal-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform pointer-events-none"></div>
             <div onclick="window.studentOpenLookupModal()" class="cursor-pointer">
-                <div class="flex items-center justify-between mb-3.5">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center text-xl shadow-md shadow-teal-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <div class="flex items-center justify-between mb-2.5 sm:mb-3.5">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center text-lg sm:text-xl shadow-md shadow-teal-500/30 group-hover:scale-105 transition-transform">
                         <i class="fa-solid fa-qrcode"></i>
                     </div>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700 shadow-2xs">QUÉT QR / ID</span>
+                    <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-wider bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700 shadow-2xs">QUÉT / TRA ID</span>
                 </div>
-                <h3 class="text-base md:text-lg font-black text-gray-800 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
-                    Quét mã & Tra cứu
+                <h3 class="text-sm sm:text-base md:text-lg font-black text-gray-800 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                    Quét mã & Tra cứu ID
                 </h3>
-                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-1 font-medium">
-                    Tra ID câu hỏi sách hoặc quét QR đề
+                <p class="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-1 font-medium">
+                    Tra ID câu hỏi hoặc quét đề
                 </p>
             </div>
-            <div class="mt-4 pt-3 border-t border-gray-100 dark:border-slate-700/50 flex items-center gap-2">
-                <button type="button" onclick="event.stopPropagation(); window.openQrScannerModal();" class="flex-1 py-2 px-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95">
-                    <i class="fa-solid fa-camera"></i> Quét QR
+            <div class="mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-700/50 flex items-center gap-1.5 sm:gap-2">
+                <button type="button" onclick="event.stopPropagation(); window.openQrScannerModal();" class="flex-1 py-1.5 sm:py-2 px-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] sm:text-xs rounded-lg sm:rounded-xl flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-camera"></i> <span class="truncate">Quét QR</span>
                 </button>
-                <button type="button" onclick="event.stopPropagation(); window.studentOpenLookupModal();" class="flex-1 py-2 px-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all border border-teal-200 dark:border-teal-800 shadow-2xs cursor-pointer active:scale-95">
-                    <i class="fa-solid fa-magnifying-glass"></i> Tra cứu ID
+                <button type="button" onclick="event.stopPropagation(); window.studentOpenLookupModal();" class="flex-1 py-1.5 sm:py-2 px-1 bg-teal-50 hover:bg-teal-100 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300 font-bold text-[11px] sm:text-xs rounded-lg sm:rounded-xl flex items-center justify-center gap-1 transition-all border border-teal-200 dark:border-teal-800 shadow-2xs cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-magnifying-glass"></i> <span class="truncate">Tra ID</span>
                 </button>
             </div>
         </div>
 
-        <!-- 3. Nút Khóa học của tôi -->
-        <div onclick="switchTab('my-courses')" class="bg-white dark:bg-slate-800/90 p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 border border-gray-100 dark:border-slate-700/70 group cursor-pointer relative overflow-hidden flex flex-col justify-between">
-            <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/10 dark:bg-blue-500/15 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500 pointer-events-none"></div>
+        <!-- 3. Khóa học của tôi -->
+        <div onclick="switchTab('my-courses')" class="bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 dark:border-slate-700/70 group cursor-pointer relative overflow-hidden flex flex-col justify-between">
+            <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-blue-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform pointer-events-none"></div>
             <div>
-                <div class="flex items-center justify-between mb-3.5">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 text-white flex items-center justify-center text-xl shadow-md shadow-blue-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <div class="flex items-center justify-between mb-2.5 sm:mb-3.5">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 text-white flex items-center justify-center text-lg sm:text-xl shadow-md shadow-blue-500/30 group-hover:scale-105 transition-transform">
                         <i class="fa-solid fa-book-bookmark"></i>
                     </div>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">Đã mua</span>
+                    <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">ĐÃ MUA</span>
                 </div>
-                <h3 class="text-base md:text-lg font-black text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <h3 class="text-sm sm:text-base md:text-lg font-black text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     Khóa học của tôi
                 </h3>
-                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-1 font-medium">
+                <p class="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-1 font-medium">
                     Bài giảng & tài liệu video
                 </p>
             </div>
-            <div class="mt-4 pt-3 border-t border-gray-100 dark:border-slate-700/50 flex items-center justify-between text-xs font-bold text-gray-400 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            <div class="mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-700/50 flex items-center justify-between text-[11px] sm:text-xs font-bold text-gray-400 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                 <span>Vào học ngay</span>
-                <i class="fa-solid fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+                <i class="fa-solid fa-arrow-right text-[10px] sm:text-[11px] group-hover:translate-x-1 transition-transform"></i>
             </div>
         </div>
 
-        <!-- 4. Nút Đăng ký khóa mới -->
-        <div onclick="switchTab('market')" class="bg-white dark:bg-slate-800/90 p-4 md:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 border border-gray-100 dark:border-slate-700/70 group cursor-pointer relative overflow-hidden flex flex-col justify-between">
-            <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-orange-500/10 dark:bg-orange-500/15 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500 pointer-events-none"></div>
+        <!-- 4. Đăng ký khóa mới -->
+        <div onclick="switchTab('market')" class="bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 dark:border-slate-700/70 group cursor-pointer relative overflow-hidden flex flex-col justify-between">
+            <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-orange-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform pointer-events-none"></div>
             <div>
-                <div class="flex items-center justify-between mb-3.5">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center text-xl shadow-md shadow-orange-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <div class="flex items-center justify-between mb-2.5 sm:mb-3.5">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center text-lg sm:text-xl shadow-md shadow-orange-500/30 group-hover:scale-105 transition-transform">
                         <i class="fa-solid fa-cart-shopping"></i>
                     </div>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700">Mới</span>
+                    <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700">MỚI</span>
                 </div>
-                <h3 class="text-base md:text-lg font-black text-gray-800 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                <h3 class="text-sm sm:text-base md:text-lg font-black text-gray-800 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
                     Đăng ký khóa mới
                 </h3>
-                <p class="text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-1 font-medium">
+                <p class="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-1 font-medium">
                     Khám phá khóa học Toán 9-12
                 </p>
             </div>
-            <div class="mt-4 pt-3 border-t border-gray-100 dark:border-slate-700/50 flex items-center justify-between text-xs font-bold text-gray-400 dark:text-slate-400 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+            <div class="mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-700/50 flex items-center justify-between text-[11px] sm:text-xs font-bold text-gray-400 dark:text-slate-400 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
                 <span>Xem danh mục</span>
-                <i class="fa-solid fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+                <i class="fa-solid fa-arrow-right text-[10px] sm:text-[11px] group-hover:translate-x-1 transition-transform"></i>
             </div>
         </div>
     </div>
@@ -1155,6 +1126,22 @@
                         <div class="absolute bottom-1 right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-white z-20"></div>
                     </div>
                     <p id="avatarHelpText" class="text-center text-xs text-gray-400 mt-3 italic">Chạm vào ảnh để thay đổi (Tối đa 5MB)</p>
+                </div>
+
+                <!-- Thẻ học sinh thông minh trong Hồ sơ -->
+                <div class="bg-gradient-to-r from-amber-50 to-indigo-50 border border-amber-200/80 rounded-2xl p-3.5 flex items-center justify-between shadow-2xs">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-xs shrink-0">
+                            <i class="fa-solid fa-id-card"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h5 class="text-xs font-black text-slate-800 uppercase tracking-wide truncate">Thẻ Học Sinh Thông Minh</h5>
+                            <p class="text-[11px] text-indigo-700 truncate">Mã QR đăng nhập không cần mật khẩu</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="document.getElementById('profileModal').classList.add('hidden'); window.openMyStudentCardModal();" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95">
+                        <i class="fa-solid fa-qrcode"></i> Xem & Tải
+                    </button>
                 </div>
 
                 <div>
@@ -9521,7 +9508,7 @@
                                         <i class="fa-solid fa-crown text-[10px]"></i> VIP Khuyên Dùng
                                     </span>
                                     <span class="text-[10px] font-black uppercase text-amber-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/20">
-                                        ⭐ Trọn Đời Không Giới Hạn
+                                        ⭐ Đặc Quyền VIP Pro
                                     </span>
                                 </div>
 
@@ -9538,7 +9525,7 @@
                                     <div class="text-right">
                                         <div class="text-[10px] text-purple-200 font-bold uppercase">Thời hạn</div>
                                         <div id="stuTeacherHeroPeriod" class="text-sm font-black text-emerald-300 flex items-center justify-end gap-1">
-                                            <i class="fa-solid fa-infinity"></i> Sử dụng vĩnh viễn
+                                            <i class="fa-solid fa-crown text-amber-400"></i> Gói VIP Pro
                                         </div>
                                     </div>
                                 </div>
@@ -9558,7 +9545,7 @@
                                     </div>
                                     <div class="flex items-start gap-2">
                                         <i class="fa-solid fa-infinity text-amber-400 mt-0.5 shrink-0 text-[11px]"></i>
-                                        <span>Xuất Word TeX2MathType Pro & Xưởng Chuyên Đề mở khóa trọn đời</span>
+                                        <span>Xuất Word TeX2MathType Pro & Xưởng Chuyên Đề mở khóa đầy đủ</span>
                                     </div>
                                 </div>
                             </div>
@@ -9593,7 +9580,7 @@
                                         </th>
                                         <th class="p-3 sm:px-4 text-center w-40 sm:w-48 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300">
                                             <span class="font-extrabold text-xs text-amber-600 dark:text-amber-400">👑 GV VIP (Pro)</span>
-                                            <div class="text-[9px] text-amber-600/80 dark:text-amber-400 font-bold">500.000 đ / Vĩnh viễn</div>
+                                            <div class="text-[9px] text-amber-600/80 dark:text-amber-400 font-bold">500.000 đ</div>
                                         </th>
                                     </tr>
                                 </thead>
@@ -9654,7 +9641,7 @@
                             </div>
                         </div>
                         <div class="text-[11px] text-gray-400 text-right hidden sm:block">
-                            Chọn <b>Gói Free</b> để bắt đầu ngay hoặc <b>Gói VIP</b> để dùng trọn đời không giới hạn.
+                            Chọn <b>Gói Free</b> để bắt đầu ngay hoặc <b>Gói VIP</b> để mở khóa toàn bộ tính năng cao cấp.
                         </div>
                     </div>
 
