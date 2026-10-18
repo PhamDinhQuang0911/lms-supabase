@@ -685,6 +685,9 @@
                                   <button onclick="window.openWordGuideModal()" class="px-3 py-2 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold hover:bg-blue-100 flex items-center gap-1.5 border border-blue-200" title="Hướng dẫn cấu trúc file Word chuẩn">
                                     <i class="fa-solid fa-circle-question text-blue-600"></i> Cấu trúc Word
                                   </button>
+                                  <a href="mau_de_tron_chuan.docx" download="De_Thi_Mau_Tao_De_QMath.docx" class="px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold hover:bg-emerald-100 flex items-center gap-1.5 border border-emerald-200" title="Tải file Word mẫu chuẩn (.docx)">
+                                    <i class="fa-solid fa-file-arrow-down text-emerald-600"></i> Tải file mẫu
+                                  </a>
                                   <button onclick="window.switchView('editor')" class="px-3.5 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold hover:bg-purple-700 flex items-center gap-1.5 shadow-md">
                                     <i class="fa-solid fa-pen-to-square"></i> Soạn thủ công
                                   </button>
@@ -1734,6 +1737,28 @@
                             </p>
                         </div>
                     </div>
+
+                    <!-- Quy tắc kết thúc đề & Khóa câu hỏi (Đồng bộ chuẩn Trộn đề) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                        <div class="border border-rose-200 rounded-2xl p-4 bg-white shadow-2xs space-y-2">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-flag-checkered text-rose-600"></i> Quy tắc kết thúc đề & Bảng đáp án
+                            </span>
+                            <ul class="text-xs text-gray-600 space-y-1 list-disc pl-5 leading-relaxed">
+                                <li>Đặt chữ <b class="text-rose-600">HẾT</b> hoặc <b class="text-rose-600">--- HẾT ---</b> ở một dòng riêng biệt để đánh dấu kết thúc đề.</li>
+                                <li>Mọi nội dung sau chữ <b>HẾT</b> (như Bảng đáp án tổng hợp, Lời giải chi tiết, Ma trận) sẽ <b>không bị trộn lẫn vào đề thi</b> của học sinh.</li>
+                                <li>Hệ thống hỗ trợ tự động bóc tách <b>Bảng đáp án tổng hợp</b> ở cuối file để gán đáp án chính xác 100%.</li>
+                            </ul>
+                        </div>
+                        <div class="border border-amber-200 rounded-2xl p-4 bg-white shadow-2xs space-y-2">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-lock text-amber-600"></i> Khóa câu hỏi / phương án không đảo
+                            </span>
+                            <p class="text-xs text-gray-600 leading-relaxed">
+                                Thêm ký hiệu <code class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">##</code> trước câu hỏi (VD: <code class="bg-gray-100 px-1 rounded">## Câu 5:</code>) hoặc trước phương án để giữ nguyên vị trí cố định khi trộn đề.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Khung văn bản Word mẫu & Nút tải file mẫu -->
@@ -1746,8 +1771,8 @@
                             <button onclick="window.copySampleWordContent()" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
                                 <i class="fa-regular fa-copy"></i> Sao chép văn bản mẫu
                             </button>
-                            <a href="mau_de_thi_chuan.docx" download="mau_de_thi_chuan.docx" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs">
-                                <i class="fa-solid fa-download"></i> Tải file .docx mẫu
+                            <a href="mau_de_tron_chuan.docx" download="De_Thi_Mau_Tao_De_QMath.docx" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-xs">
+                                <i class="fa-solid fa-file-arrow-down"></i> Tải file Word mẫu chuẩn (.docx)
                             </a>
                         </div>
                     </div>
@@ -5791,6 +5816,25 @@
                     ...(currentExamId ? {} : { createdAt: new Date().toISOString() }) 
                 }, { merge: true });
 
+                // Tự động sao lưu đề thi lên kho Cloudflare R2 theo thư mục của giáo viên (teachers/{teacherId}/exams/{examId}.json)
+                if (window.BankService && typeof window.BankService.uploadTeacherExam === 'function' && teacherUid && examRef.id) {
+                    const examSnapshot = {
+                        ...settings,
+                        id: examRef.id,
+                        teacherId: teacherUid,
+                        questions: window.questions || [],
+                        questionCount: window.questions ? window.questions.length : 0,
+                        status: status,
+                        rawTex: rawTexToSave,
+                        rawTexName: rawTexNameToSave,
+                        folderId: targetFolderId,
+                        updatedAt: new Date().toISOString()
+                    };
+                    window.BankService.uploadTeacherExam(teacherUid, examRef.id, examSnapshot).catch(r2Err => {
+                        console.warn("Lỗi sao lưu đề thi lên kho R2 GV:", r2Err);
+                    });
+                }
+
                 if (!window.examData) window.examData = {};
                 window.examData.folderId = targetFolderId;
 
@@ -9394,8 +9438,62 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
                 return;
             }
 
+            const teacherUid = currentUser?.uid || window.currentUserUid || window.examData?.teacherId || 'anonymous_teacher';
+            const userEmail = ((currentUser?.email || (window.auth && window.auth.currentUser ? window.auth.currentUser.email : '')) || '').toLowerCase().trim();
+            const ROOT_SUPER_ADMINS = ['phamngockhanh.942001@gmail.com', 'phamdinhquang0911@gmail.com'];
+            let isSuper = ROOT_SUPER_ADMINS.includes(userEmail);
+
+            if (!isSuper && currentUser?.uid) {
+                try {
+                    const adminSnap = await getDoc(doc(db, "admin_users", currentUser.uid));
+                    if (adminSnap.exists() && adminSnap.data().role === 'super_admin') {
+                        isSuper = true;
+                    }
+                } catch(e) {}
+            }
+
+            // --- PHÂN QUYỀN: NẾU LÀ GIÁO VIÊN -> LƯU VÀO KHO R2 CÁ NHÂN CỦA GIÁO VIÊN (CHỜ DUYỆT) ---
+            if (!isSuper) {
+                const confirmMsg = `Hệ thống sẽ tải ${validQuestions.length} câu hỏi lên Kho R2 cá nhân của Thầy/Cô (thư mục: teachers/${teacherUid}/questions/).\n\nCác câu hỏi này sẽ được Super Admin kiểm duyệt, gán ID và nạp vào Ngân hàng câu hỏi dùng chung toàn hệ thống.\n\nThầy/Cô đồng ý tải lên chứ?`;
+                if (!await window.customConfirm(confirmMsg)) return;
+
+                const btn = document.querySelector('button[onclick*="saveCurrentQuestionsToBank"]');
+                const oldHtml = btn ? btn.innerHTML : 'Lưu Kho R2';
+                if (btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải lên Kho...'; btn.disabled = true; }
+
+                try {
+                    const examId = window.currentExamId || "";
+                    validQuestions.forEach(q => { q.examId = examId; });
+
+                    const teacherInfo = {
+                        id: teacherUid,
+                        uid: teacherUid,
+                        name: currentUser?.displayName || 'Giáo viên',
+                        email: userEmail
+                    };
+
+                    const res = await window.BankService.uploadTeacherQuestions(teacherUid, validQuestions, teacherInfo, { concurrency: 4 });
+
+                    // Tự động lưu đề thi để ghi nhận cập nhật
+                    if (window.currentExamId && typeof window.saveExam === 'function') {
+                        const currentStatus = (window.examData && window.examData.status) || 'published';
+                        window.saveExam(currentStatus).catch(() => {});
+                    }
+
+                    window.showToast(`✅ Đã tải thành công ${res.successCount} câu hỏi lên Kho R2 cá nhân! Super Admin sẽ duyệt và nạp vào Ngân hàng.`, "success");
+
+                } catch (err) {
+                    console.error("Lỗi lưu Kho R2 GV:", err);
+                    window.customAlert("Lỗi quá trình tải lên Kho: " + err.message, "error");
+                } finally {
+                    if (btn) { btn.innerHTML = oldHtml; btn.disabled = false; }
+                }
+                return;
+            }
+
+            // --- DÀNH CHO SUPER ADMIN: CẤP MÃ CCCD DUY NHẤT VÀ NẠP THẲNG VÀO NGÂN HÀNG HỆ THỐNG ---
             const needCccdQuestions = validQuestions.filter(q => !window.BankService?.isNumericCccd(q.cccd || q.bankId));
-            const confirmMsg = `Hệ thống sẽ nạp ${validQuestions.length} câu hỏi vào Ngân hàng câu hỏi R2.\n${needCccdQuestions.length > 0 ? `Trong đó có ${needCccdQuestions.length} câu sẽ được cấp mã CCCD số mới duy nhất.\n` : 'Tất cả câu đều đã có mã CCCD số.\n'}Bạn đồng ý chứ?`;
+            const confirmMsg = `[Super Admin] Hệ thống sẽ nạp ${validQuestions.length} câu hỏi vào Ngân hàng câu hỏi R2 toàn hệ thống.\n${needCccdQuestions.length > 0 ? `Trong đó có ${needCccdQuestions.length} câu sẽ được cấp mã CCCD số mới duy nhất.\n` : 'Tất cả câu đều đã có mã CCCD số.\n'}Bạn đồng ý chứ?`;
             if (!await window.customConfirm(confirmMsg)) return;
 
             const btn = document.querySelector('button[onclick*="saveCurrentQuestionsToBank"]');

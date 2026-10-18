@@ -1060,16 +1060,20 @@
                     <!-- Thân Thẻ -->
                     <div class="relative flex items-center justify-between gap-3">
                         <!-- Thông tin bên trái -->
-                        <div class="flex-1 min-w-0 space-y-1.5">
+                        <div class="flex-1 min-w-0 space-y-2">
                             <div>
                                 <span class="text-[10px] text-indigo-200 block uppercase font-bold tracking-wider">Học sinh</span>
                                 <h4 class="font-black text-white text-base md:text-lg leading-tight truncate drop-shadow-sm" id="myCardStudentName">---</h4>
                             </div>
-                            <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                                <span class="px-2 py-0.5 bg-indigo-950/80 text-indigo-100 border border-indigo-400/40 rounded-lg text-[10px] font-bold" id="myCardClassName">Lớp: Học sinh QMath</span>
-                                <span class="px-2 py-0.5 bg-amber-400 text-slate-950 rounded-lg text-[10px] font-black" id="myCardStudentSbd">SBD: ---</span>
+                            <div class="space-y-1.5 pt-0.5">
+                                <div>
+                                    <span class="inline-block px-2.5 py-0.5 bg-amber-400 text-slate-950 rounded-lg text-[11px] font-black shadow-sm" id="myCardStudentSbd">SBD: ---</span>
+                                </div>
+                                <div>
+                                    <span class="inline-block px-2.5 py-0.5 bg-indigo-950/80 text-indigo-100 border border-indigo-400/40 rounded-lg text-[10.5px] font-bold break-words leading-relaxed max-w-full" id="myCardClassName">Lớp: Học sinh QMath</span>
+                                </div>
                             </div>
-                            <div class="pt-1 text-[11px] text-indigo-200 font-mono">
+                            <div class="pt-0.5 text-[11px] text-indigo-200 font-mono">
                                 <span>TK: </span><span class="font-bold text-white" id="myCardStudentUser">---</span>
                             </div>
                         </div>
@@ -8445,9 +8449,9 @@
                         <div style="flex: 1; min-width: 0;">
                             <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px;">Họ và tên học sinh</div>
                             <div style="font-size: 18px; font-weight: 900; color: #0f172a; margin-bottom: 8px; line-height: 1.2;">${data.studentName || 'Học sinh'}</div>
-                            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
-                                <span style="font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; color: #1e293b;">${data.className || 'Lớp: Học sinh QMath'}</span>
-                                <span style="font-size: 10px; font-weight: 900; padding: 3px 8px; border-radius: 6px; background: #fef3c7; border: 1px solid #f59e0b; color: #78350f;">${data.sbd || 'SBD: ---'}</span>
+                            <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px;">
+                                <div><span style="font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 6px; background: #fef3c7; border: 1.5px solid #f59e0b; color: #78350f; display: inline-block;">${data.sbd || 'SBD: ---'}</span></div>
+                                <div><span style="font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; color: #1e293b; display: inline-block; word-break: break-word; line-height: 1.4;">${data.className || 'Lớp: Học sinh QMath'}</span></div>
                             </div>
                             <div style="font-size: 11px; font-family: monospace; color: #334155;">TK: <b style="color: #0f172a;">${data.username || '---'}</b></div>
                         </div>
@@ -8580,55 +8584,89 @@
             ctx.textAlign = 'left';
             ctx.fillStyle = '#c7d2fe';
             ctx.font = 'bold 15px "Segoe UI", Inter, Arial, sans-serif';
-            ctx.fillText('HỌ VÀ TÊN HỌC SINH', 45, 175);
+            ctx.fillText('HỌ VÀ TÊN HỌC SINH', 45, 170);
 
             let sName = data.studentName || 'Học sinh';
-            let nameFontSize = 38;
+            let nameFontSize = 36;
             if (sName.length > 26) nameFontSize = 26;
-            else if (sName.length > 20) nameFontSize = 30;
-            else if (sName.length > 15) nameFontSize = 34;
+            else if (sName.length > 20) nameFontSize = 28;
+            else if (sName.length > 15) nameFontSize = 32;
 
             ctx.fillStyle = '#ffffff';
             ctx.font = `900 ${nameFontSize}px "Segoe UI", Inter, Arial, sans-serif`;
-            ctx.fillText(sName, 45, 225);
+            ctx.fillText(sName, 45, 215);
 
-            // Badge Lớp học
-            let classText = data.className || 'Lớp: Học sinh QMath';
-            ctx.font = 'bold 17px "Segoe UI", Inter, Arial, sans-serif';
-            let classWidth = ctx.measureText(classText).width + 30;
-            roundRect(ctx, 45, 255, classWidth, 38, 10);
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+            // Dòng 1: Badge Số báo danh (SBD) riêng biệt, màu vàng hổ phách nổi bật
+            let sbdText = data.sbd || 'SBD: ---';
+            if (!sbdText.startsWith('SBD:')) sbdText = `SBD: ${sbdText}`;
+            ctx.font = '900 17px "Segoe UI", Inter, Arial, sans-serif';
+            let sbdWidth = Math.min(ctx.measureText(sbdText).width + 32, 280);
+            roundRect(ctx, 45, 238, sbdWidth, 36, 10);
+            ctx.fillStyle = '#fbbf24';
+            ctx.fill();
+            ctx.fillStyle = '#0f172a';
+            ctx.fillText(sbdText, 60, 263);
+
+            // Dòng 2: Badge Danh sách Lớp học riêng biệt (tự động ngắt dòng nếu nhiều lớp, không bao giờ đè ô QR)
+            let rawClass = data.className || 'Lớp: Học sinh QMath';
+            if (!rawClass.startsWith('Lớp:')) rawClass = `Lớp: ${rawClass}`;
+            ctx.font = 'bold 16px "Segoe UI", Inter, Arial, sans-serif';
+
+            const maxClassWidth = 540;
+            let classLines = [];
+            if (ctx.measureText(rawClass).width <= maxClassWidth) {
+                classLines.push(rawClass);
+            } else {
+                const parts = rawClass.split(',');
+                let curLine = '';
+                for (let i = 0; i < parts.length; i++) {
+                    const testLine = curLine ? (curLine + ',' + parts[i]) : parts[i];
+                    if (ctx.measureText(testLine).width <= maxClassWidth) {
+                        curLine = testLine;
+                    } else {
+                        if (curLine) classLines.push(curLine.trim());
+                        curLine = parts[i].trim();
+                    }
+                }
+                if (curLine) classLines.push(curLine.trim());
+                if (classLines.length > 2) {
+                    classLines = [classLines[0], classLines.slice(1).join(', ')];
+                }
+            }
+
+            const classBadgeH = classLines.length > 1 ? 58 : 36;
+            const longestLineWidth = Math.max(...classLines.map(l => ctx.measureText(l).width));
+            const classBadgeW = Math.min(longestLineWidth + 30, 580);
+            roundRect(ctx, 45, 286, classBadgeW, classBadgeH, 10);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
             ctx.fill();
             ctx.strokeStyle = 'rgba(129, 140, 248, 0.5)';
             ctx.lineWidth = 1.5;
             ctx.stroke();
             ctx.fillStyle = '#e0e7ff';
-            ctx.fillText(classText, 60, 280);
+            if (classLines.length > 1) {
+                ctx.fillText(classLines[0], 60, 310);
+                ctx.fillText(classLines[1], 60, 332);
+            } else {
+                ctx.fillText(classLines[0], 60, 310);
+            }
 
-            // Badge SBD
-            let sbdText = data.sbd || 'SBD: ---';
-            let sbdWidth = ctx.measureText(sbdText).width + 30;
-            let sbdX = 45 + classWidth + 12;
-            roundRect(ctx, sbdX, 255, sbdWidth, 38, 10);
-            ctx.fillStyle = '#fbbf24';
-            ctx.fill();
-            ctx.fillStyle = '#0f172a';
-            ctx.font = '900 17px "Segoe UI", Inter, Arial, sans-serif';
-            ctx.fillText(sbdText, sbdX + 15, 280);
-
-            // Tài khoản (Username)
+            // Dòng 3: Tài khoản (Username)
+            const userY = classLines.length > 1 ? 375 : 352;
             ctx.fillStyle = '#c7d2fe';
             ctx.font = '16px monospace';
-            ctx.fillText('Tài khoản: ', 45, 345);
+            ctx.fillText('Tài khoản: ', 45, userY);
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 22px monospace';
-            ctx.fillText(data.username || '---', 150, 345);
+            ctx.fillText(data.username || '---', 150, userY);
 
             // Ghi chú bảo mật
+            const notesY1 = classLines.length > 1 ? 425 : 405;
+            const notesY2 = notesY1 + 28;
             ctx.fillStyle = '#a5b4fc';
             ctx.font = '14px "Segoe UI", Inter, Arial, sans-serif';
-            ctx.fillText('• Dùng camera hoặc Zalo quét mã QR để vào thẳng hệ thống học tập', 45, 400);
-            ctx.fillText('• Thẻ bảo mật cá nhân, có thể đổi mã mới bất kỳ lúc nào', 45, 430);
+            ctx.fillText('• Dùng camera hoặc Zalo quét mã QR để vào thẳng hệ thống học tập', 45, notesY1);
+            ctx.fillText('• Thẻ bảo mật cá nhân, có thể đổi mã mới bất kỳ lúc nào', 45, notesY2);
 
             // Khung mã QR bên phải (nền trắng bo tròn viền vàng hổ phách)
             const qrBoxX = 665;

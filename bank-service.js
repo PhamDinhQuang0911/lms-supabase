@@ -1049,6 +1049,268 @@
                 console.error('[BankService.syncAllExamsFromBank] Lỗi đồng bộ toàn hệ thống:', e);
                 return { syncedExams: 0, updatedQuestions: 0 };
             }
+        },
+
+        /**
+         * =========================================================================
+         * KHO CLOUDFLARE R2 RIÊNG CHO TỪNG GIÁO VIÊN & DUYỆT CÂU HỎI SUPER ADMIN
+         * =========================================================================
+         */
+
+        /**
+         * Nạp câu hỏi vào thư mục riêng của giáo viên trên Cloudflare R2
+         * Lưu tại: teachers/{teacherId}/questions/{id}.json
+         * Lưu metadata vào Firestore collection: "teacher_vault_questions"
+         */
+        async uploadTeacherQuestions(teacherUid, questions, teacherInfo = {}, options = {}) {
+            if (!teacherUid) throw new Error("Thiếu teacherUid khi tải câu hỏi lên kho cá nhân");
+            const concurrency = options.concurrency || 5;
+            const onProgress = options.onProgress || null;
+
+            let completed = 0;
+            let successCount = 0;
+            let failCount = 0;
+            let nextIdx = 0;
+            const total = (questions || []).length;
+            if (total === 0) return { successCount: 0, failCount: 0, total: 0 };
+
+            const teacherName = teacherInfo.name || teacherInfo.displayName || 'Giáo viên';
+            const teacherEmail = teacherInfo.email || '';
+
+            const worker = async () => {
+                while (nextIdx < total) {
+                    const cur = nextIdx++;
+                    const rawQ = questions[cur];
+                    const qId = String(rawQ.id || rawQ.cccd || `TQ_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`);
+                    rawQ.id = qId;
+
+                    const qPayload = {
+                        id: qId,
+                        teacherId: teacherUid,
+                        teacherName: teacherName,
+                        teacherEmail: teacherEmail,
+                        type: rawQ.type || 'mc',
+                        mapId: rawQ.mapId || '',
+                        level: rawQ.level || 'Thông hiểu',
+                        levelColor: rawQ.levelColor || 'blue',
+                        subject: rawQ.subject || 'Toán học',
+                        grade: rawQ.grade || '9',
+                        content: rawQ.content || '',
+                        solution: rawQ.solution || '',
+                        options: Array.isArray(rawQ.options) ? rawQ.options : [],
+                        correct: rawQ.correct !== undefined ? rawQ.correct : -1,
+                        statements: Array.isArray(rawQ.statements) ? rawQ.statements : [],
+                        answer: rawQ.answer || '',
+                        point: rawQ.point || 0.25,
+                        examId: rawQ.examId || '',
+                        r2Path: `teachers/${teacherUid}/questions/${qId}.json`,
+                        status: 'pending', // 'pending' | 'approved' | 'rejected'
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    try {
+                        // 1. Tải lên Cloudflare R2 trong thư mục riêng của giáo viên
+                        const jsonStr = JSON.stringify(qPayload, null, 2);
+                        const blob = new Blob([jsonStr], { type: 'application/json' });
+                        const formData = new FormData();
+                        formData.append('file', blob, `teachers/${teacherUid}/questions/${qId}.json`);
+
+                        const res = await fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: formData });
+                        if (res.ok) {
+                            successCount++;
+                        } else {
+                            console.warn(`Lỗi upload R2 câu ${qId} cho GV ${teacherUid}: HTTP ${res.status}`);
+                        }
+
+                        // 2. Lưu vào Firestore collection teacher_vault_questions để Super Admin tra cứu/duyệt
+                        try {
+                            const db = window.firebaseDb || window.db;
+                            const fnDoc = window.firestoreDoc || window.doc;
+                            const fnSetDoc = window.firestoreSetDoc || window.setDoc;
+                            if (db && fnDoc && fnSetDoc) {
+                                await fnSetDoc(fnDoc(db, "teacher_vault_questions", qId), qPayload, { merge: true });
+                            }
+                        } catch(fsErr) {
+                            console.warn(`Lỗi ghi Firestore teacher_vault_questions ${qId}:`, fsErr);
+                        }
+                    } catch(e) {
+                        failCount++;
+                        console.error(`Lỗi upload câu ${qId}:`, e);
+                    }
+                    completed++;
+                    if (onProgress) onProgress(completed, total, successCount, failCount);
+                }
+            };
+
+            const workers = [];
+            for (let i = 0; i < Math.min(concurrency, total); i++) {
+                workers.push(worker());
+            }
+            await Promise.all(workers);
+
+            // Cập nhật catalog của giáo viên trên R2
+            try {
+                await this.updateTeacherCatalog(teacherUid);
+            } catch(e) {}
+
+            return { successCount, failCount, total };
+        },
+
+        /**
+         * Tải đề thi lên kho R2 theo thư mục của giáo viên
+         * teachers/{teacherId}/exams/{examId}.json
+         */
+        async uploadTeacherExam(teacherUid, examId, examData) {
+            if (!teacherUid || !examId) return false;
+            try {
+                const jsonStr = JSON.stringify(examData, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const formData = new FormData();
+                formData.append('file', blob, `teachers/${teacherUid}/exams/${examId}.json`);
+                const res = await fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: formData });
+                return res.ok;
+            } catch(e) {
+                console.error("Lỗi upload đề thi lên kho R2 GV:", e);
+                return false;
+            }
+        },
+
+        /**
+         * Lấy danh sách câu hỏi từ kho giáo viên (Dùng cho GV xem kho của mình hoặc Super Admin duyệt)
+         */
+        async getTeacherVaultQuestions(filterTeacherUid = null, filterStatus = 'all') {
+            const results = [];
+            try {
+                const db = window.firebaseDb || window.db;
+                const fnCollection = window.firestoreCollection || window.collection;
+                const fnGetDocs = window.firestoreGetDocs || window.getDocs;
+                const fnQuery = window.firestoreQuery || window.query;
+                const fnWhere = window.firestoreWhere || window.where;
+
+                if (db && fnCollection && fnGetDocs) {
+                    let qRef = fnCollection(db, "teacher_vault_questions");
+                    let constraints = [];
+                    if (filterTeacherUid) {
+                        constraints.push(fnWhere("teacherId", "==", filterTeacherUid));
+                    }
+                    if (filterStatus && filterStatus !== 'all') {
+                        constraints.push(fnWhere("status", "==", filterStatus));
+                    }
+                    
+                    let snap;
+                    if (constraints.length > 0 && fnQuery) {
+                        snap = await fnGetDocs(fnQuery(qRef, ...constraints));
+                    } else {
+                        snap = await fnGetDocs(qRef);
+                    }
+                    snap.forEach(docSnap => {
+                        results.push(docSnap.data());
+                    });
+                }
+            } catch(e) {
+                console.error("Lỗi lấy danh sách teacher_vault_questions:", e);
+            }
+            return results;
+        },
+
+        /**
+         * Cập nhật danh mục catalog.json của giáo viên trên R2
+         */
+        async updateTeacherCatalog(teacherUid) {
+            if (!teacherUid) return;
+            try {
+                const qs = await this.getTeacherVaultQuestions(teacherUid, 'all');
+                const summary = qs.map(q => ({
+                    id: q.id,
+                    mapId: q.mapId || '',
+                    level: q.level || 'Thông hiểu',
+                    type: q.type || 'mc',
+                    status: q.status || 'pending',
+                    contentPreview: (q.content || '').substring(0, 100),
+                    updatedAt: q.updatedAt || new Date().toISOString()
+                }));
+                const blob = new Blob([JSON.stringify(summary, null, 2)], { type: 'application/json' });
+                const formData = new FormData();
+                formData.append('file', blob, `teachers/${teacherUid}/catalog.json`);
+                await fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: formData });
+            } catch(e) {}
+        },
+
+        /**
+         * Xóa vĩnh viễn câu hỏi trong kho giáo viên (Dùng cho Super Admin)
+         */
+        async deleteTeacherVaultQuestion(questionId, teacherUid) {
+            if (!questionId) return false;
+            try {
+                // 1. Xóa trên Cloudflare R2
+                if (teacherUid) {
+                    try {
+                        const key = `teachers/${teacherUid}/questions/${questionId}.json`;
+                        await fetch(`https://upload-helper.phamngockhanh-942001.workers.dev/?key=${encodeURIComponent(key)}`, { method: 'DELETE' });
+                    } catch(r2Err) {}
+                }
+
+                // 2. Xóa khỏi Firestore
+                const db = window.firebaseDb || window.db;
+                const fnDoc = window.firestoreDoc || window.doc;
+                const fnDeleteDoc = window.firestoreDeleteDoc || window.deleteDoc;
+                if (db && fnDoc && fnDeleteDoc) {
+                    await fnDeleteDoc(fnDoc(db, "teacher_vault_questions", questionId));
+                }
+                return true;
+            } catch(e) {
+                console.error("Lỗi xóa câu hỏi kho GV:", e);
+                return false;
+            }
+        },
+
+        /**
+         * Super Admin duyệt câu hỏi & nạp vào Ngân hàng chính thức của hệ thống
+         */
+        async approveTeacherQuestionToGlobalBank(question, targetMapId = null) {
+            if (!question) throw new Error("Câu hỏi không hợp lệ");
+            
+            // 1. Gán MapID mới nếu có chỉ định
+            if (targetMapId) {
+                question.mapId = targetMapId;
+            }
+
+            // 2. Cấp mã CCCD chính thức nếu chưa có
+            let cccd = question.cccd || question.bankId;
+            if (!this.isNumericCccd(cccd)) {
+                cccd = await this.generateNextCccd();
+            }
+
+            // 3. Chuẩn hóa câu hỏi theo định dạng chuẩn hệ thống
+            const bankQ = this.createBankQuestion(question, cccd);
+
+            // 4. Đẩy lên R2 bank/{cccd}.json
+            const jsonStr = JSON.stringify(bankQ);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const formData = new FormData();
+            formData.append('file', blob, `bank/${cccd}.json`);
+            const res = await fetch(WORKER_UPLOAD_URL, { method: 'PUT', body: formData });
+            if (!res.ok) throw new Error(`Lỗi tải lên R2 bank/${cccd}.json: HTTP ${res.status}`);
+
+            // 5. Cập nhật cache và catalog chung
+            this.updateLocalBankCache([bankQ]);
+            await this.syncQuestionsToCatalog([bankQ]);
+
+            // 6. Cập nhật trạng thái câu hỏi trong Firestore
+            const db = window.firebaseDb || window.db;
+            const fnDoc = window.firestoreDoc || window.doc;
+            const fnSetDoc = window.firestoreSetDoc || window.setDoc;
+            if (db && fnDoc && fnSetDoc && question.id) {
+                await fnSetDoc(fnDoc(db, "teacher_vault_questions", question.id), {
+                    status: 'approved',
+                    approvedAt: new Date().toISOString(),
+                    globalBankId: cccd,
+                    mapId: question.mapId || ''
+                }, { merge: true });
+            }
+
+            return bankQ;
         }
     };
 
