@@ -243,6 +243,153 @@ export async function signInWithEmailAndPassword(auth, email, password) {
     return { user: userObj };
 }
 
+export async function signInWithQrToken(auth, qrToken) {
+    if (!qrToken || typeof qrToken !== 'string') {
+        throw new Error("Mã QR không hợp lệ!");
+    }
+    let token = qrToken.trim();
+    // Nếu quét cả URL (VD: https://qmath.io.vn/index.html?qr_token=xyz), tự bóc tách lấy giá trị token
+    if (token.includes('?')) {
+        try {
+            const originUrl = (typeof window !== 'undefined' && window.location.origin) ? window.location.origin : 'https://qmath.io.vn';
+            const urlObj = new URL(token, originUrl);
+            token = urlObj.searchParams.get('qr_token') || urlObj.searchParams.get('qr_login') || token;
+        } catch(e) {
+            const m = token.match(/[?&](?:qr_token|qr_login)=([^&#]+)/);
+            if (m) token = decodeURIComponent(m[1]);
+        }
+    }
+    token = token.trim();
+    if (!token) {
+        throw new Error("Mã QR trống hoặc không đúng định dạng!");
+    }
+
+    // 1. Tìm user trong bảng users có raw_data->>qrLoginToken khớp token
+    let userRow = null;
+    try {
+        const { data: users, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('raw_data->>qrLoginToken', token)
+            .limit(1);
+
+        if (!error && users && users.length > 0) {
+            userRow = users[0];
+        }
+    } catch (e) {
+        console.warn("[signInWithQrToken] Lỗi tìm user theo qrLoginToken:", e);
+    }
+
+    // 1.2 Fallback tìm theo qr_login_token nếu có
+    if (!userRow) {
+        try {
+            const { data: users2 } = await supabase
+                .from('users')
+                .select('*')
+                .eq('raw_data->>qr_login_token', token)
+                .limit(1);
+            if (users2 && users2.length > 0) {
+                userRow = users2[0];
+            }
+        } catch(e) {}
+    }
+
+    if (!userRow) {
+        throw new Error("Mã QR này không tồn tại, đã hết hạn hoặc đã được Giáo viên cấp mã mới!");
+    }
+
+    const raw = (userRow.raw_data && typeof userRow.raw_data === 'object') ? userRow.raw_data : {};
+    const userObj = {
+        uid: userRow.id,
+        id: userRow.id,
+        email: userRow.email || `${userRow.id}@hocsinh.com`,
+        displayName: userRow.display_name || raw.displayName || userRow.email,
+        photoURL: userRow.photo_url || raw.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userRow.display_name || userRow.email)}&background=random`,
+        role: userRow.role || raw.role || 'student',
+        phone: userRow.phone || raw.phone,
+        qpoints: userRow.qpoints || 0,
+        sbd: userRow.sbd || raw.sbd || '',
+        authType: 'qr_token'
+    };
+
+    auth.currentUser = userObj;
+    if (auth.isDefault !== false) {
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userObj));
+    }
+    auth._notify();
+
+    // Cập nhật last_login
+    try {
+        await supabase
+            .from('users')
+            .update({ last_login: new Date().toISOString() })
+            .eq('id', userRow.id);
+    } catch(e) {}
+
+    return { user: userObj };
+}
+
+export function generateQrLoginToken(studentId = '') {
+    const rand1 = Math.random().toString(36).substring(2, 10);
+    const time = Date.now().toString(36);
+    const rand2 = Math.random().toString(36).substring(2, 10);
+    return `qm_qr_${rand1}${time}${rand2}`;
+}
+
+export async function getOrCreateStudentQrToken(studentId) {
+    if (!studentId) return null;
+    try {
+        const { data: userRow } = await supabase
+            .from('users')
+            .select('id, raw_data')
+            .eq('id', studentId)
+            .maybeSingle();
+
+        if (userRow && userRow.raw_data && userRow.raw_data.qrLoginToken) {
+            return userRow.raw_data.qrLoginToken;
+        }
+
+        const newToken = generateQrLoginToken(studentId);
+        const currentRaw = (userRow && userRow.raw_data) ? userRow.raw_data : {};
+        const updatedRaw = { ...currentRaw, qrLoginToken: newToken, qrUpdatedAt: new Date().toISOString() };
+
+        await supabase
+            .from('users')
+            .update({ raw_data: updatedRaw })
+            .eq('id', studentId);
+
+        return newToken;
+    } catch(e) {
+        console.warn("[getOrCreateStudentQrToken] Lỗi:", e);
+        return null;
+    }
+}
+
+export async function resetStudentQrToken(studentId) {
+    if (!studentId) throw new Error("Thiếu ID học sinh!");
+    const newToken = generateQrLoginToken(studentId);
+    try {
+        const { data: userRow } = await supabase
+            .from('users')
+            .select('id, raw_data')
+            .eq('id', studentId)
+            .maybeSingle();
+
+        const currentRaw = (userRow && userRow.raw_data) ? userRow.raw_data : {};
+        const updatedRaw = { ...currentRaw, qrLoginToken: newToken, qrUpdatedAt: new Date().toISOString() };
+
+        await supabase
+            .from('users')
+            .update({ raw_data: updatedRaw })
+            .eq('id', studentId);
+
+        return newToken;
+    } catch (e) {
+        console.error("[resetStudentQrToken] Lỗi đặt lại mã QR:", e);
+        throw e;
+    }
+}
+
 export async function createUserWithEmailAndPassword(auth, email, password) {
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanPass = (password !== undefined && password !== null) ? String(password).trim() : '';

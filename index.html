@@ -28,7 +28,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+    <script src="html5-qrcode.min.js"></script>
 
     <style>
         body { font-family: 'Nunito', sans-serif; }
@@ -322,12 +322,67 @@
                         </div>
                     </div>
                     <button type="submit" id="submitBtn" class="w-full bg-accent hover-bg-accent text-white font-bold py-3.5 rounded-xl shadow-lg transition-all cursor-pointer">Đăng nhập ngay</button>
+
+                    <button type="button" onclick="window.openQrLoginModal()" class="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:to-pink-700 text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex justify-center items-center gap-2 cursor-pointer mt-3">
+                        <i class="fa-solid fa-qrcode text-lg"></i>
+                        <span>Quét Thẻ học sinh (Mã QR)</span>
+                        <span class="text-[10px] font-extrabold bg-amber-300 text-amber-950 px-2 py-0.5 rounded-full uppercase tracking-wider">Mới</span>
+                    </button>
+
                     <div class="relative text-center my-4"><span class="bg-white px-4 text-xs text-gray-400 font-bold">HOẶC</span></div>
                     <button type="button" id="googleLoginBtn" class="w-full bg-white border border-gray-300 hover:border-gray-400 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 transition-all flex justify-center items-center gap-2 cursor-pointer shadow-xs"><i class="fa-brands fa-google text-red-500 text-lg"></i> Đăng nhập bằng Google <span class="text-[10px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full ml-1 border border-amber-200">Đang phát triển</span></button>
                 </form>
                 <div id="messageArea" class="mt-4 text-center text-sm font-bold hidden p-3 rounded-lg bg-gray-50"></div>
             </div>
         </div>
+    </div>
+
+    <!-- MODAL QUÉT MÃ QR THẺ HỌC SINH ĐĂNG NHẬP -->
+    <div id="qrLoginScannerModal" class="modal hidden fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4">
+        <div class="modal-content bg-white w-full max-w-md rounded-[2rem] shadow-2xl relative overflow-hidden border-4 border-indigo-100 animate-in fade-in zoom-in-95 duration-200">
+            <button onclick="window.closeQrLoginModal()" class="absolute top-4 right-4 w-9 h-9 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition-colors z-20 cursor-pointer">
+                <i class="fa-solid fa-times"></i>
+            </button>
+            <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-6 text-center text-white">
+                <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 backdrop-blur-xs shadow-inner">
+                    <i class="fa-solid fa-qrcode"></i>
+                </div>
+                <h3 class="text-xl font-black">Quét Thẻ Học Sinh QMath</h3>
+                <p class="text-xs text-indigo-100 mt-1">Giơ mã QR trên thẻ trước Camera hoặc tải ảnh thẻ lên</p>
+            </div>
+            <div class="p-6">
+                <div id="qrLoginReader" class="overflow-hidden rounded-2xl bg-black aspect-square flex items-center justify-center relative border-2 border-indigo-200 shadow-inner">
+                    <!-- Khung hiển thị Camera quét QR -->
+                </div>
+                <div id="qrLoginScannerStatus" class="mt-3 text-center text-xs font-semibold text-gray-500 min-h-[20px]">
+                    Đang chuẩn bị Camera...
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+                    <label class="flex-1 py-2.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold text-center cursor-pointer transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-image text-indigo-600"></i>
+                        <span>Tải ảnh thẻ từ máy</span>
+                        <input type="file" id="qrFileInput" accept="image/*" class="hidden" onchange="window.handleQrFileScan(this)">
+                    </label>
+                    <button type="button" onclick="window.switchCamera()" class="p-2.5 px-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5" title="Đổi camera trước/sau">
+                        <i class="fa-solid fa-camera-rotate"></i>
+                        <span>Đổi Cam</span>
+                    </button>
+                </div>
+                <div class="mt-3 text-center">
+                    <button type="button" onclick="window.closeQrLoginModal(); toggleLoginModal(true);" class="text-xs text-indigo-600 hover:underline font-bold">
+                        Quay lại đăng nhập bằng Mật khẩu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OVERLAY ĐANG XÁC THỰC MÃ QR -->
+    <div id="qrAuthLoadingOverlay" class="hidden fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-md p-6 text-center">
+        <div class="w-16 h-16 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h3 class="text-xl font-black text-white">Đang xác thực Thẻ học sinh QMath...</h3>
+        <p class="text-sm text-indigo-200 mt-1">Vui lòng chờ trong giây lát</p>
     </div>
 
     <div id="registerModal" class="modal hidden fixed inset-0 z-50 flex items-center justify-center bg-teal-900/40 backdrop-blur-sm p-4">
@@ -1264,9 +1319,9 @@
 
     <script type="module">
         import { 
-            supabase, initializeApp, getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile, onAuthStateChanged, sendPasswordResetEmail,
+            supabase, initializeApp, getAuth, signInWithEmailAndPassword, signInWithQrToken, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile, onAuthStateChanged, sendPasswordResetEmail,
             getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, onSnapshot, increment
-        } from "./supabase-db-compat.js?v=29";
+        } from "./supabase-db-compat.js?v=30";
 
         // Khởi tạo Supabase
         let app = initializeApp({});
@@ -2077,6 +2132,152 @@
                 showMessage(errText, "error");
             }
         };
+
+        // ==========================================
+        // ĐĂNG NHẬP BẰNG THẺ HỌC SINH (MÃ QR)
+        // ==========================================
+        let qrScannerInstance = null;
+        let currentFacingMode = "environment";
+
+        window.openQrLoginModal = async function() {
+            toggleLoginModal(false);
+            const modal = document.getElementById('qrLoginScannerModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            const statusEl = document.getElementById('qrLoginScannerStatus');
+            if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> Đang khởi động Camera...';
+
+            if (typeof Html5Qrcode === 'undefined') {
+                if (statusEl) statusEl.innerHTML = '<span class="text-amber-600">Đang tải thư viện quét mã...</span>';
+                await new Promise((resolve) => {
+                    const s = document.createElement('script');
+                    s.src = 'html5-qrcode.min.js';
+                    s.onload = resolve;
+                    s.onerror = () => {
+                        const fallback = document.createElement('script');
+                        fallback.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+                        fallback.onload = resolve;
+                        document.head.appendChild(fallback);
+                    };
+                    document.head.appendChild(s);
+                });
+            }
+
+            try {
+                if (!qrScannerInstance) {
+                    qrScannerInstance = new Html5Qrcode("qrLoginReader");
+                }
+                if (qrScannerInstance.isScanning) {
+                    try { await qrScannerInstance.stop(); } catch(e){}
+                }
+
+                await qrScannerInstance.start(
+                    { facingMode: currentFacingMode },
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    async (decodedText) => {
+                        console.log("[QR Scanner] Decoded:", decodedText);
+                        await window.handleQrLoginSuccess(decodedText);
+                    },
+                    (errorMessage) => {}
+                );
+                if (statusEl) statusEl.innerHTML = '<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-dot animate-pulse"></i> Camera sẵn sàng. Hãy giơ mã QR trên thẻ trước ống kính</span>';
+            } catch (err) {
+                console.warn("[QR Scanner] Lỗi camera:", err);
+                if (statusEl) statusEl.innerHTML = `<span class="text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Không thể mở camera: ${err.message || 'Hãy cấp quyền camera hoặc tải ảnh thẻ lên'}.</span>`;
+            }
+        };
+
+        window.switchCamera = async function() {
+            currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+            if (qrScannerInstance && qrScannerInstance.isScanning) {
+                try { await qrScannerInstance.stop(); } catch(e){}
+                await window.openQrLoginModal();
+            }
+        };
+
+        window.closeQrLoginModal = async function() {
+            const modal = document.getElementById('qrLoginScannerModal');
+            if (modal) modal.classList.add('hidden');
+            if (qrScannerInstance && qrScannerInstance.isScanning) {
+                try { await qrScannerInstance.stop(); } catch(e){}
+            }
+        };
+
+        window.handleQrLoginSuccess = async function(decodedText) {
+            if (window._isQrLoggingIn) return;
+            window._isQrLoggingIn = true;
+            await window.closeQrLoginModal();
+
+            const overlay = document.getElementById('qrAuthLoadingOverlay');
+            if (overlay) overlay.classList.remove('hidden');
+
+            try {
+                const res = await signInWithQrToken(auth, decodedText);
+                saveUserData(res.user, "qr_token");
+                if (overlay) {
+                    overlay.innerHTML = `
+                        <div class="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center text-3xl mb-4 shadow-lg animate-bounce">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-white">Xác thực thành công!</h3>
+                        <p class="text-sm text-emerald-200 mt-1">Xin chào <b>${res.user.displayName || 'Học sinh'}</b>! Đang chuyển đến không gian học tập...</p>
+                    `;
+                }
+                setTimeout(() => {
+                    window.location.href = "student.html";
+                }, 800);
+            } catch (err) {
+                console.error("[QR Login Error]:", err);
+                if (overlay) overlay.classList.add('hidden');
+                window._isQrLoggingIn = false;
+                alert("❌ Lỗi đăng nhập thẻ: " + (err.message || "Mã QR không hợp lệ hoặc đã hết hạn!"));
+                toggleLoginModal(true);
+            }
+        };
+
+        window.handleQrFileScan = async function(input) {
+            if (!input || !input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const statusEl = document.getElementById('qrLoginScannerStatus');
+            if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> Đang đọc mã từ file ảnh...';
+
+            try {
+                if (typeof Html5Qrcode === 'undefined') {
+                    await new Promise((resolve) => {
+                        const s = document.createElement('script');
+                        s.src = 'html5-qrcode.min.js';
+                        s.onload = resolve;
+                        document.head.appendChild(s);
+                    });
+                }
+                const scanner = qrScannerInstance || new Html5Qrcode("qrLoginReader");
+                const decodedText = await scanner.scanFile(file, true);
+                if (decodedText) {
+                    await window.handleQrLoginSuccess(decodedText);
+                }
+            } catch(e) {
+                console.error(e);
+                if (statusEl) statusEl.innerHTML = `<span class="text-red-500 font-bold">Không tìm thấy mã QR hợp lệ trong ảnh!</span>`;
+            } finally {
+                input.value = '';
+            }
+        };
+
+        // TỰ ĐỘNG ĐĂNG NHẬP NẾU CÓ THAM SỐ qr_token TRÊN URL (HỌC SINH/PHHS QUÉT TỪ CAMERA ĐIỆN THOẠI/ZALO)
+        (async function checkUrlQrLogin() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const qrToken = urlParams.get('qr_token') || urlParams.get('qr_login');
+                if (qrToken) {
+                    console.log("[Auto QR Login] Phát hiện token trên URL:", qrToken);
+                    const overlay = document.getElementById('qrAuthLoadingOverlay');
+                    if (overlay) overlay.classList.remove('hidden');
+                    await window.handleQrLoginSuccess(qrToken);
+                }
+            } catch(e) {
+                console.warn("[Auto QR Login] Lỗi:", e);
+            }
+        })();
 
         // ĐĂNG KÝ
         const registerForm = document.getElementById('registerForm');

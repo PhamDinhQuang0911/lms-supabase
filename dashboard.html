@@ -1264,6 +1264,21 @@
                 cursor: pointer;
             }
         }
+        @media print {
+            body > *:not(#printAreaWrapper) {
+                display: none !important;
+            }
+            #printAreaWrapper {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
     </style>
     <link rel="stylesheet" href="/styles.css?v=18">
 </head>
@@ -1560,9 +1575,15 @@
                         <button id="addStudentBtn" class="w-full py-2.5 bg-primary-600 text-white rounded-xl font-bold text-sm hover:bg-primary-700 transition-colors shadow-lg shadow-primary-200 flex items-center justify-center gap-2"><i class="fa-solid fa-plus"></i> Tạo tài khoản mới cho lớp</button>
                     </div>
                     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div class="px-4 md:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <h4 class="font-bold text-gray-800 text-sm uppercase">Danh sách lớp</h4>
-                            <span id="studentCountBadge" class="bg-primary-100 text-primary-700 text-xs font-bold px-2.5 py-1 rounded-lg">0 học sinh</span>
+                        <div class="px-4 md:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 flex-wrap gap-2">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-gray-800 text-sm uppercase">Danh sách lớp</h4>
+                                <span id="studentCountBadge" class="bg-primary-100 text-primary-700 text-xs font-bold px-2.5 py-1 rounded-lg">0 học sinh</span>
+                            </div>
+                            <button type="button" onclick="window.openBatchPrintStudentCards()" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer" title="In thẻ học sinh có mã QR cho toàn bộ học sinh trong lớp theo khổ A4">
+                                <i class="fa-solid fa-print"></i>
+                                <span>In Thẻ QR cả lớp (A4)</span>
+                            </button>
                         </div>
                         <!-- Bảng desktop (ẩn trên mobile) -->
                         <div class="hidden md:block overflow-x-auto w-full">
@@ -3176,6 +3197,157 @@
             <div class="flex justify-end pt-2 pb-6 px-6 gap-3 bg-gray-50 rounded-b-2xl shrink-0"><button onclick="window.toggleModal('editStudentModal', false)" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100">Hủy</button><button id="saveStudentBtn" class="px-6 py-2 mac-btn-primary rounded-lg font-bold px-6 py-2">Lưu thông tin</button></div>
         </div>
     </div>
+
+    <!-- MODAL THẺ HỌC SINH THÔNG MINH (XEM / IN ĐƠN LẺ & CẤP LẠI MÃ QR) -->
+    <div id="studentQrCardModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-[70] px-3 md:px-0 transition-all duration-300">
+        <div class="modal-overlay absolute w-full h-full bg-slate-950/70 backdrop-blur-xs" onclick="window.toggleModal('studentQrCardModal', false)"></div>
+        <div class="modal-container bg-white w-full max-w-lg mx-auto rounded-3xl shadow-2xl z-[70] overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col border border-indigo-100">
+            <!-- Header Modal -->
+            <div class="flex justify-between items-center py-3.5 px-6 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50 shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-sm shadow-xs"><i class="fa-solid fa-id-card"></i></span>
+                    <div>
+                        <h4 class="font-extrabold text-gray-900 text-sm">Thẻ Học Sinh Thông Minh</h4>
+                        <p class="text-[11px] text-gray-500">Mã QR đăng nhập không cần mật khẩu</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.toggleModal('studentQrCardModal', false)" class="w-8 h-8 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-colors cursor-pointer">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Nội dung thẻ -->
+            <div class="p-5 md:p-6 space-y-4 overflow-y-auto">
+                <!-- KHUNG THẺ HỌC SINH CHUẨN DESIGN -->
+                <div id="singleCardWrapper" class="relative mx-auto rounded-2xl p-4 md:p-5 text-white shadow-xl overflow-hidden" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%); border: 2px solid rgba(251, 191, 36, 0.45); max-width: 440px;">
+                    <!-- Pattern chìm -->
+                    <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 16px 16px;"></div>
+
+                    <!-- Header Thẻ -->
+                    <div class="relative flex items-center justify-between border-b border-white/15 pb-2.5 mb-3">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="w-7 h-7 rounded-lg bg-amber-400 text-slate-950 font-black flex items-center justify-center text-xs shadow-xs">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <h5 class="font-black text-xs md:text-sm tracking-wide text-white truncate uppercase" id="cardSchoolName">QMATH • TOÁN THẦY QUANG</h5>
+                                <p class="text-[9px] text-amber-300 font-bold tracking-wider uppercase">THẺ HỌC SINH THÔNG MINH</p>
+                            </div>
+                        </div>
+                        <span class="text-[9px] bg-white/15 border border-white/20 text-white font-mono px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">STUDENT ID</span>
+                    </div>
+
+                    <!-- Thân Thẻ -->
+                    <div class="relative flex items-center justify-between gap-3">
+                        <!-- Thông tin bên trái -->
+                        <div class="flex-1 min-w-0 space-y-1.5">
+                            <div>
+                                <span class="text-[10px] text-indigo-200 block uppercase font-semibold">Họ và tên</span>
+                                <h4 class="font-black text-white text-base md:text-lg leading-tight truncate" id="cardStudentName">Nguyễn Văn A</h4>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                <span class="px-2 py-0.5 bg-indigo-950/80 text-indigo-200 border border-indigo-400/30 rounded text-[10px] font-bold" id="cardClassName">Lớp: ---</span>
+                                <span class="px-2 py-0.5 bg-amber-400 text-slate-950 rounded text-[10px] font-black" id="cardStudentSbd">SBD: ---</span>
+                            </div>
+                            <div class="pt-1 text-[11px] text-indigo-200 font-mono">
+                                <span>TK: </span><span class="font-bold text-white" id="cardStudentUser">---</span>
+                            </div>
+                        </div>
+
+                        <!-- Khung QR bên phải -->
+                        <div class="shrink-0 text-center">
+                            <div class="bg-white p-2 rounded-xl shadow-md inline-block border-2 border-amber-300/60">
+                                <div id="cardQrCodeBox" class="w-[100px] h-[100px] md:w-[110px] md:h-[110px] flex items-center justify-center bg-white overflow-hidden">
+                                    <!-- QR Image mounts here -->
+                                </div>
+                            </div>
+                            <p class="text-[8px] font-black tracking-wider text-amber-300 uppercase mt-1">QUÉT ĐĂNG NHẬP</p>
+                        </div>
+                    </div>
+
+                    <!-- Footer Thẻ -->
+                    <div class="relative border-t border-white/15 pt-2 mt-3 flex items-center justify-between text-[9px] text-indigo-200">
+                        <span class="flex items-center gap-1"><i class="fa-solid fa-shield-halved text-emerald-400"></i> Mã bảo mật cá nhân</span>
+                        <span class="font-mono font-bold text-white/90">qmath.io.vn</span>
+                    </div>
+                </div>
+
+                <!-- Thông báo trạng thái / hướng dẫn -->
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex items-start gap-2.5">
+                    <i class="fa-solid fa-circle-info text-amber-600 mt-0.5 shrink-0 text-sm"></i>
+                    <div class="space-y-1">
+                        <p class="font-bold">Đăng nhập cực nhanh bằng Camera điện thoại hoặc Zalo:</p>
+                        <p class="text-amber-800 text-[11px]">Học sinh hoặc Phụ huynh chỉ cần quét mã QR trên thẻ này là vào thẳng hệ thống làm bài ngay, <b>dù có đổi mật khẩu thì mã vẫn hoạt động</b>.</p>
+                    </div>
+                </div>
+
+                <!-- Nhóm nút thao tác -->
+                <div class="grid grid-cols-2 gap-2.5 pt-2">
+                    <button type="button" onclick="window.printSingleStudentCard()" class="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-print"></i>
+                        <span>In Thẻ này</span>
+                    </button>
+                    <button type="button" onclick="window.copyStudentLoginLink()" class="py-2.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-link"></i>
+                        <span>Sao chép Link QR</span>
+                    </button>
+                    <button type="button" onclick="window.downloadStudentCardImage()" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Tải ảnh Thẻ (Gửi Zalo)</span>
+                    </button>
+                    <button type="button" onclick="window.handleResetCurrentStudentQr()" class="py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer" title="Hủy thẻ cũ, tạo mã QR hoàn toàn mới">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Cấp lại mã QR mới</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL IN THẺ HỌC SINH CẢ LỚP (A4 DÀN TRANG 8 THẺ/TRANG) -->
+    <div id="batchPrintStudentCardsModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-[70] px-2 md:px-0 transition-all duration-300">
+        <div class="modal-overlay absolute w-full h-full bg-slate-950/75 backdrop-blur-xs" onclick="window.toggleModal('batchPrintStudentCardsModal', false)"></div>
+        <div class="modal-container bg-white w-full max-w-4xl mx-auto rounded-3xl shadow-2xl z-[70] overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[92vh] border border-gray-200">
+            <!-- Header Modal -->
+            <div class="flex justify-between items-center py-4 px-6 border-b border-gray-200 bg-gray-50 shrink-0">
+                <div class="flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white flex items-center justify-center text-lg shadow-sm"><i class="fa-solid fa-print"></i></span>
+                    <div>
+                        <h3 class="font-extrabold text-gray-900 text-base">In Thẻ Học Sinh Cả Lớp (Khổ A4)</h3>
+                        <p class="text-xs text-gray-500" id="batchPrintSubtitle">Đang chuẩn bị danh sách thẻ...</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="window.triggerBatchPrint()" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl text-xs shadow-md flex items-center gap-2 transition cursor-pointer">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Bắt đầu In ngay</span>
+                    </button>
+                    <button type="button" onclick="window.toggleModal('batchPrintStudentCardsModal', false)" class="w-8 h-8 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-colors cursor-pointer">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Danh sách thẻ chuẩn bị in -->
+            <div class="p-6 overflow-y-auto flex-1 bg-gray-100 custom-scrollbar">
+                <div class="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-circle-question text-blue-600"></i>
+                        <span>Mẹo in đẹp: Tại hộp thoại in, chọn khổ <b>A4</b>, Bật <b>"Background graphics" (Đồ họa nền)</b> để in đúng màu thẻ.</span>
+                    </div>
+                    <span class="text-xs font-bold text-blue-700" id="batchPrintCardCount">0 thẻ</span>
+                </div>
+
+                <!-- Khung thẻ dàn trang A4 (2 cột) -->
+                <div id="batchCardsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Cards will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KHUNG IN ẨN CHO WINDOW.PRINT() -->
+    <div id="printAreaWrapper" style="display: none;"></div>
 
     <div id="profileModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[80] flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity duration-300 px-2 md:px-0">
         <div class="modal-container bg-white w-full max-w-lg rounded-2xl shadow-2xl p-0 transform scale-95 transition-transform duration-300 relative overflow-hidden flex flex-col max-h-[90vh]">
@@ -4895,8 +5067,9 @@
         import { 
             initializeApp, deleteApp, getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, updatePassword,
             getFirestore, doc, getDoc, getDocFromCache, setDoc, collection, addDoc, query, where, orderBy, getDocs, updateDoc, deleteDoc, arrayUnion, arrayRemove, limit, enableMultiTabIndexedDbPersistence, onSnapshot, increment,
-            getStorage, ref, deleteObject, getFunctions, httpsCallable, supabase, DEFAULT_ADMIN
-        } from "./supabase-db-compat.js?v=27";
+            getStorage, ref, deleteObject, getFunctions, httpsCallable, supabase, DEFAULT_ADMIN,
+            getOrCreateStudentQrToken, resetStudentQrToken, generateQrLoginToken
+        } from "./supabase-db-compat.js?v=30";
         import { DEFAULT_QPOINT_PACKAGES, getQPointConfig, getStudentQPointTransactions } from "./qpoint.js?v=30";
 
         // 1. CẤU HÌNH SUPABASE (HỆ THỐNG ĐÃ CHUYỂN TỪ FIREBASE SANG SUPABASE)
@@ -8777,9 +8950,9 @@
                     const passDisplay = isTeacherCreated ? (st.password) : '<span class="px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-bold">Bảo mật</span>';
                     
                     // Desktop table row
-                    table.innerHTML += `<tr class="bg-white hover:bg-gray-50 border-b"><td class="px-4 py-3 font-medium text-gray-500">${index + 1}</td><td class="px-4 py-3 font-medium text-gray-900">${st.name}</td><td class="px-4 py-3 font-medium text-indigo-600">${st.sbd || '---'}</td><td class="px-4 py-3 text-primary-600 font-medium">${st.username}</td><td class="px-4 py-3 font-mono text-gray-600 text-sm">${passDisplay}</td><td class="px-4 py-3 text-center"><button onclick="window.openEditStudent(${index})" class="text-primary-500 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 p-2 rounded-lg transition-colors mr-1" title="Sửa/Đổi mật khẩu"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="window.deleteStudent(${index})" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors" title="Loại khỏi lớp"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+                    table.innerHTML += `<tr class="bg-white hover:bg-gray-50 border-b"><td class="px-4 py-3 font-medium text-gray-500">${index + 1}</td><td class="px-4 py-3 font-medium text-gray-900">${st.name}</td><td class="px-4 py-3 font-medium text-indigo-600">${st.sbd || '---'}</td><td class="px-4 py-3 text-primary-600 font-medium">${st.username}</td><td class="px-4 py-3 font-mono text-gray-600 text-sm">${passDisplay}</td><td class="px-4 py-3 text-center"><button onclick="window.openStudentQrCard(${index})" class="text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 p-2 rounded-lg transition-colors mr-1 cursor-pointer" title="Thẻ học sinh & Mã QR đăng nhập"><i class="fa-solid fa-id-card"></i></button><button onclick="window.openEditStudent(${index})" class="text-primary-500 hover:text-primary-700 bg-primary-50 hover:bg-primary-100 p-2 rounded-lg transition-colors mr-1" title="Sửa/Đổi mật khẩu"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="window.deleteStudent(${index})" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors" title="Loại khỏi lớp"><i class="fa-solid fa-trash"></i></button></td></tr>`;
                     // Mobile card
-                    if (cardList) cardList.innerHTML += `<div class="flex items-center justify-between p-3 bg-white border-b"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-sm shrink-0">${index + 1}</div><div><div class="font-semibold text-gray-900 text-sm">${st.name} <span class="text-xs font-bold text-indigo-600 ml-1">SBD: ${st.sbd || '---'}</span></div><div class="text-xs text-primary-500 font-medium">${st.username}</div><div class="text-xs text-gray-500 mt-0.5">MK: ${passDisplay}</div></div></div><div class="flex items-center gap-1 shrink-0"><button onclick="window.openEditStudent(${index})" class="text-primary-500 hover:text-primary-700 bg-primary-50 p-2 rounded-lg transition-colors"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="window.deleteStudent(${index})" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-lg transition-colors"><i class="fa-solid fa-trash"></i></button></div></div>`;
+                    if (cardList) cardList.innerHTML += `<div class="flex items-center justify-between p-3 bg-white border-b"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-sm shrink-0">${index + 1}</div><div><div class="font-semibold text-gray-900 text-sm">${st.name} <span class="text-xs font-bold text-indigo-600 ml-1">SBD: ${st.sbd || '---'}</span></div><div class="text-xs text-primary-500 font-medium">${st.username}</div><div class="text-xs text-gray-500 mt-0.5">MK: ${passDisplay}</div></div></div><div class="flex items-center gap-1 shrink-0"><button onclick="window.openStudentQrCard(${index})" class="text-amber-600 hover:text-amber-700 bg-amber-50 p-2 rounded-lg transition-colors cursor-pointer" title="Thẻ học sinh & Mã QR"><i class="fa-solid fa-id-card"></i></button><button onclick="window.openEditStudent(${index})" class="text-primary-500 hover:text-primary-700 bg-primary-50 p-2 rounded-lg transition-colors"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="window.deleteStudent(${index})" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-lg transition-colors"><i class="fa-solid fa-trash"></i></button></div></div>`;
                 }); 
             } 
         }
@@ -9006,6 +9179,312 @@
             }
         });
 
+        // ==========================================
+        // QUẢN LÝ THẺ HỌC SINH THÔNG MINH & MÃ QR ĐĂNG NHẬP
+        // ==========================================
+        window.currentQrStudentIndex = -1;
+
+        window.openStudentQrCard = async function(index) {
+            window.currentQrStudentIndex = index;
+            const student = currentClassStudents[index];
+            if (!student) return;
+
+            window.toggleModal('studentQrCardModal', true);
+
+            const currentClass = (window.allClassesData || []).find(c => c.id === currentViewingClassId);
+            const className = currentClass ? currentClass.name : 'Lớp học';
+            const teacherProfile = window.currentAdminProfile || {};
+            const schoolTitle = teacherProfile.displayName ? `QMATH • ${teacherProfile.displayName}` : 'QMATH • HỆ THỐNG TOÁN THẦY QUANG';
+
+            document.getElementById('cardSchoolName').textContent = schoolTitle;
+            document.getElementById('cardStudentName').textContent = student.name || 'Học sinh';
+            document.getElementById('cardClassName').textContent = `Lớp: ${className}`;
+            document.getElementById('cardStudentSbd').textContent = `SBD: ${student.sbd || '---'}`;
+            document.getElementById('cardStudentUser').textContent = student.username || student.email?.split('@')[0] || '---';
+
+            const qrBox = document.getElementById('cardQrCodeBox');
+            qrBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-indigo-600 text-xl"></i>';
+
+            try {
+                let token = student.qrLoginToken;
+                let studentUid = student.uid;
+                
+                // Nếu chưa có UID trong object, tìm UID từ database
+                if (!studentUid && student.email) {
+                    try {
+                        const { data: uData } = await supabase.from('users').select('id, raw_data').ilike('email', student.email).limit(1);
+                        if (uData && uData.length > 0) {
+                            studentUid = uData[0].id;
+                            student.uid = studentUid;
+                            if (uData[0].raw_data && uData[0].raw_data.qrLoginToken) {
+                                token = uData[0].raw_data.qrLoginToken;
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                if (!token && studentUid) {
+                    token = await getOrCreateStudentQrToken(studentUid);
+                    student.qrLoginToken = token;
+                    try {
+                        await updateDoc(doc(db, "classes", currentViewingClassId), { students: currentClassStudents });
+                    } catch(e){}
+                }
+
+                if (!token) {
+                    token = generateQrLoginToken(studentUid || student.username);
+                    student.qrLoginToken = token;
+                }
+
+                qrBox.innerHTML = '';
+                const originUrl = window.location.origin.includes('localhost') ? 'https://qmath.io.vn' : window.location.origin;
+                const loginUrl = `${originUrl}/index.html?qr_token=${encodeURIComponent(token)}`;
+
+                new QRCode(qrBox, {
+                    text: loginUrl,
+                    width: 110,
+                    height: 110,
+                    colorDark: "#0f172a",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } catch (err) {
+                console.error("Lỗi tạo mã QR thẻ:", err);
+                qrBox.innerHTML = '<span class="text-[10px] text-red-500 font-bold">Lỗi tạo mã</span>';
+            }
+        };
+
+        window.handleResetCurrentStudentQr = async function() {
+            if (window.currentQrStudentIndex === -1) return;
+            const student = currentClassStudents[window.currentQrStudentIndex];
+            if (!student) return;
+
+            const confirmMsg = `CẢNH BÁO: Khi cấp lại mã QR mới, chiếc thẻ cũ (hoặc bản in cũ) của học sinh "${student.name}" sẽ BỊ VÔ HIỆU HÓA NGAY LẬP TỨC.\n\nHọc sinh sẽ không thể dùng thẻ cũ để đăng nhập được nữa. Bạn có chắc chắn muốn cấp mã QR mới không?`;
+            if (!await window.customConfirm(confirmMsg)) return;
+
+            try {
+                window.showNotification("Đang tạo mã QR mới...", "info");
+                let studentUid = student.uid;
+                if (!studentUid && student.email) {
+                    const { data: uData } = await supabase.from('users').select('id').ilike('email', student.email).limit(1);
+                    if (uData && uData.length > 0) studentUid = uData[0].id;
+                }
+
+                if (!studentUid) throw new Error("Không tìm thấy mã định danh UID của học sinh!");
+
+                const newToken = await resetStudentQrToken(studentUid);
+                student.qrLoginToken = newToken;
+
+                await updateDoc(doc(db, "classes", currentViewingClassId), { students: currentClassStudents });
+
+                const qrBox = document.getElementById('cardQrCodeBox');
+                qrBox.innerHTML = '';
+                const originUrl = window.location.origin.includes('localhost') ? 'https://qmath.io.vn' : window.location.origin;
+                const loginUrl = `${originUrl}/index.html?qr_token=${encodeURIComponent(newToken)}`;
+
+                new QRCode(qrBox, {
+                    text: loginUrl,
+                    width: 110,
+                    height: 110,
+                    colorDark: "#0f172a",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+
+                window.showNotification(`Đã cấp lại mã QR mới thành công cho ${student.name}! Thẻ cũ đã bị hủy.`, "success");
+            } catch (err) {
+                console.error("Lỗi cấp lại mã QR:", err);
+                window.showNotification("Lỗi: " + (err.message || "Không thể cấp lại mã QR!"), "error");
+            }
+        };
+
+        window.copyStudentLoginLink = function() {
+            if (window.currentQrStudentIndex === -1) return;
+            const student = currentClassStudents[window.currentQrStudentIndex];
+            if (!student || !student.qrLoginToken) {
+                window.showNotification("Mã QR chưa sẵn sàng!", "error");
+                return;
+            }
+            const originUrl = window.location.origin.includes('localhost') ? 'https://qmath.io.vn' : window.location.origin;
+            const link = `${originUrl}/index.html?qr_token=${encodeURIComponent(student.qrLoginToken)}`;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(link).then(() => {
+                    window.showNotification("Đã sao chép link đăng nhập QR vào bộ nhớ tạm!", "success");
+                }).catch(() => {
+                    prompt("Link đăng nhập của học sinh:", link);
+                });
+            } else {
+                prompt("Link đăng nhập của học sinh:", link);
+            }
+        };
+
+        window.printSingleStudentCard = function() {
+            const cardWrapper = document.getElementById('singleCardWrapper');
+            if (!cardWrapper) return;
+            const printArea = document.getElementById('printAreaWrapper');
+            printArea.innerHTML = `
+                <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                    <div style="width: 86mm; height: 54mm; border: 1px dashed #cbd5e1; padding: 2px; border-radius: 12px; overflow: hidden;">
+                        ${cardWrapper.outerHTML}
+                    </div>
+                </div>
+            `;
+            window.print();
+        };
+
+        window.downloadStudentCardImage = async function() {
+            const student = currentClassStudents[window.currentQrStudentIndex] || { name: 'student' };
+            const cardEl = document.getElementById('singleCardWrapper');
+            if (!cardEl) return;
+
+            window.showNotification("Đang xuất ảnh thẻ...", "info");
+            try {
+                if (typeof html2canvas === 'undefined') {
+                    await new Promise((resolve) => {
+                        const s = document.createElement('script');
+                        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                        s.onload = resolve;
+                        s.onerror = resolve;
+                        document.head.appendChild(s);
+                    });
+                }
+                if (typeof html2canvas !== 'undefined') {
+                    const canvas = await html2canvas(cardEl, { scale: 3, useCORS: true, backgroundColor: null });
+                    const a = document.createElement('a');
+                    a.download = `The_Hoc_Sinh_${(student.name || 'QMath').replace(/\s+/g, '_')}.png`;
+                    a.href = canvas.toDataURL('image/png');
+                    a.click();
+                    window.showNotification("Đã tải ảnh thẻ học sinh thành công!", "success");
+                } else {
+                    window.printSingleStudentCard();
+                }
+            } catch(e) {
+                console.warn("Lỗi tải ảnh:", e);
+                window.printSingleStudentCard();
+            }
+        };
+
+        // IN THẺ HỌC SINH CẢ LỚP (A4 DÀN TRANG 8 THẺ/TRANG)
+        window.openBatchPrintStudentCards = async function() {
+            if (!currentClassStudents || currentClassStudents.length === 0) {
+                window.showNotification("Lớp học hiện chưa có học sinh nào để in thẻ!", "warning");
+                return;
+            }
+
+            const currentClass = (window.allClassesData || []).find(c => c.id === currentViewingClassId);
+            const className = currentClass ? currentClass.name : 'Lớp học';
+            const teacherProfile = window.currentAdminProfile || {};
+            const schoolTitle = teacherProfile.displayName ? `QMATH • ${teacherProfile.displayName}` : 'QMATH • HỆ THỐNG TOÁN THẦY QUANG';
+
+            document.getElementById('batchPrintSubtitle').textContent = `Lớp: ${className} • Chuẩn bị in ${currentClassStudents.length} thẻ học sinh`;
+            document.getElementById('batchPrintCardCount').textContent = `${currentClassStudents.length} thẻ`;
+
+            const grid = document.getElementById('batchCardsGrid');
+            grid.innerHTML = '<div class="col-span-2 text-center py-10 text-gray-500 font-bold"><i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600 mb-2"></i><br>Đang khởi tạo mã QR cho toàn bộ học sinh...</div>';
+
+            window.toggleModal('batchPrintStudentCardsModal', true);
+
+            // Kiểm tra và tạo mã QR cho toàn bộ học sinh chưa có token
+            let hasUpdated = false;
+            for (let i = 0; i < currentClassStudents.length; i++) {
+                const st = currentClassStudents[i];
+                if (!st.qrLoginToken) {
+                    if (st.uid) {
+                        st.qrLoginToken = await getOrCreateStudentQrToken(st.uid);
+                    } else {
+                        st.qrLoginToken = generateQrLoginToken(st.username || i);
+                    }
+                    hasUpdated = true;
+                }
+            }
+
+            if (hasUpdated) {
+                try {
+                    await updateDoc(doc(db, "classes", currentViewingClassId), { students: currentClassStudents });
+                } catch(e){}
+            }
+
+            // Dàn trang thẻ
+            grid.innerHTML = '';
+            const originUrl = window.location.origin.includes('localhost') ? 'https://qmath.io.vn' : window.location.origin;
+
+            currentClassStudents.forEach((st, idx) => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card-print-item relative rounded-2xl p-4 text-white shadow-md overflow-hidden';
+                cardDiv.style.background = 'linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%)';
+                cardDiv.style.border = '1px dashed #cbd5e1';
+
+                const loginUrl = `${originUrl}/index.html?qr_token=${encodeURIComponent(st.qrLoginToken || '')}`;
+                const qrBoxId = `batch_qr_${idx}`;
+
+                cardDiv.innerHTML = `
+                    <div class="relative flex items-center justify-between border-b border-white/15 pb-2 mb-2">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="w-5 h-5 rounded bg-amber-400 text-slate-950 font-black flex items-center justify-center text-[10px] shrink-0">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </span>
+                            <span class="font-black text-[11px] text-white truncate uppercase">${schoolTitle}</span>
+                        </div>
+                        <span class="text-[8px] bg-white/15 text-white font-mono px-1.5 py-0.2 rounded-full uppercase shrink-0">STUDENT ID</span>
+                    </div>
+
+                    <div class="relative flex items-center justify-between gap-2">
+                        <div class="flex-1 min-w-0 space-y-1">
+                            <div class="text-[9px] text-indigo-200 uppercase font-semibold">Họ và tên</div>
+                            <div class="font-black text-white text-sm leading-tight truncate">${st.name}</div>
+                            <div class="flex items-center gap-1 pt-0.5">
+                                <span class="px-1.5 py-0.2 bg-indigo-950/80 text-indigo-200 border border-indigo-400/30 rounded text-[9px] font-bold">Lớp: ${className}</span>
+                                <span class="px-1.5 py-0.2 bg-amber-400 text-slate-950 rounded text-[9px] font-black">SBD: ${st.sbd || '---'}</span>
+                            </div>
+                            <div class="text-[10px] text-indigo-200 font-mono">TK: <b class="text-white">${st.username || '---'}</b></div>
+                        </div>
+
+                        <div class="shrink-0 text-center">
+                            <div class="bg-white p-1 rounded-lg inline-block border border-amber-300">
+                                <div id="${qrBoxId}" class="w-[85px] h-[85px] flex items-center justify-center bg-white overflow-hidden"></div>
+                            </div>
+                            <div class="text-[7px] font-black tracking-wider text-amber-300 uppercase mt-0.5">QUÉT ĐĂNG NHẬP</div>
+                        </div>
+                    </div>
+
+                    <div class="relative border-t border-white/15 pt-1.5 mt-2 flex items-center justify-between text-[8px] text-indigo-200">
+                        <span>🔒 Thẻ học sinh chính thức</span>
+                        <span class="font-mono font-bold text-white/90">qmath.io.vn</span>
+                    </div>
+                `;
+
+                grid.appendChild(cardDiv);
+
+                setTimeout(() => {
+                    const qBox = document.getElementById(qrBoxId);
+                    if (qBox) {
+                        new QRCode(qBox, {
+                            text: loginUrl,
+                            width: 85,
+                            height: 85,
+                            colorDark: "#0f172a",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                    }
+                }, 50);
+            });
+        };
+
+        window.triggerBatchPrint = function() {
+            const grid = document.getElementById('batchCardsGrid');
+            if (!grid) return;
+            const printArea = document.getElementById('printAreaWrapper');
+            printArea.innerHTML = `
+                <div style="padding: 10px; background: white;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        ${grid.innerHTML}
+                    </div>
+                </div>
+            `;
+            window.print();
+        };
+
         window.generateClassPrefix = (classId) => {
             const currentClass = (window.allClassesData || []).find(c => c.id === (classId || currentViewingClassId));
             const name = currentClass?.name || '';
@@ -9074,6 +9553,7 @@
                 uid: finalUser.uid,
                 username: finalUsername,
                 email: finalEmail,
+                qrLoginToken: finalUser.qrLoginToken,
                 isRenamed: isRenamed
             };
         };
@@ -9104,6 +9584,7 @@
                     username: authRes.username,
                     password: pass,
                     email: authRes.email,
+                    qrLoginToken: authRes.qrLoginToken || generateQrLoginToken(authRes.uid),
                     teacherId: currentUserUid,
                     teacherEmail: teacherEmail,
                     createdAt: new Date().toISOString()
@@ -9138,6 +9619,7 @@
                 const newUser = userCredential.user;
                 await updateProfile(newUser, { displayName: displayName });
                 const teacherEmail = (window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '') || '').toLowerCase().trim();
+                const initialQrToken = generateQrLoginToken(newUser.uid);
                 await setDoc(doc(db, "users", newUser.uid), {
                     email: email, 
                     displayName: displayName, 
@@ -9147,8 +9629,10 @@
                     createdAt: new Date().toISOString(), 
                     password: password,
                     teacherId: currentUserUid,
-                    teacherEmail: teacherEmail
+                    teacherEmail: teacherEmail,
+                    qrLoginToken: initialQrToken
                 });
+                newUser.qrLoginToken = initialQrToken;
                 await signOut(secondaryAuth);
                 await deleteApp(secondaryApp); 
                 return newUser;
@@ -9190,6 +9674,7 @@
                                     username: authRes.username, 
                                     password: pass, 
                                     email: authRes.email, 
+                                    qrLoginToken: authRes.qrLoginToken || generateQrLoginToken(authRes.uid),
                                     sbd: row[3] ? String(row[3]) : '', 
                                     gender: row[4] ? String(row[4]) : 'Nam', 
                                     phoneStudent: row[5] ? String(row[5]) : '', 
