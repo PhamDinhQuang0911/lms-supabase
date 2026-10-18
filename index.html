@@ -328,9 +328,6 @@
                         <span>Quét Thẻ học sinh (Mã QR)</span>
                         <span class="text-[10px] font-extrabold bg-amber-300 text-amber-950 px-2 py-0.5 rounded-full uppercase tracking-wider">Mới</span>
                     </button>
-
-                    <div class="relative text-center my-4"><span class="bg-white px-4 text-xs text-gray-400 font-bold">HOẶC</span></div>
-                    <button type="button" id="googleLoginBtn" class="w-full bg-white border border-gray-300 hover:border-gray-400 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 transition-all flex justify-center items-center gap-2 cursor-pointer shadow-xs"><i class="fa-brands fa-google text-red-500 text-lg"></i> Đăng nhập bằng Google <span class="text-[10px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full ml-1 border border-amber-200">Đang phát triển</span></button>
                 </form>
                 <div id="messageArea" class="mt-4 text-center text-sm font-bold hidden p-3 rounded-lg bg-gray-50"></div>
             </div>
@@ -2081,14 +2078,6 @@
             }
         });
 
-        // ĐĂNG NHẬP VỚI GOOGLE (ĐANG PHÁT TRIỂN)
-        const googleLoginBtn = document.getElementById('googleLoginBtn');
-        if (googleLoginBtn) {
-            googleLoginBtn.addEventListener('click', () => {
-                alert("Tính năng Đăng nhập bằng Google đang được hoàn thiện và sẽ sớm ra mắt trong phiên bản tiếp theo!");
-                showMessage("Tính năng Đăng nhập bằng Google đang được phát triển!", "error");
-            });
-        }
 
         // HÀM ẨN / HIỆN MẬT KHẨU (HÌNH CON MẮT)
         window.togglePasswordVisibility = function(inputId, btn) {
@@ -2143,6 +2132,32 @@
         // ==========================================
         let qrScannerInstance = null;
         let currentFacingMode = "environment";
+        let nativeQrDetectorTimer = null;
+
+        function startNativeBarcodeScanner() {
+            if (!('BarcodeDetector' in window)) return;
+            try {
+                const detector = new BarcodeDetector({ formats: ['qr_code'] });
+                const checkFrame = async () => {
+                    if (window._isQrLoggingIn || !document.getElementById('qrLoginScannerModal') || document.getElementById('qrLoginScannerModal').classList.contains('hidden')) {
+                        return;
+                    }
+                    const video = document.querySelector('#qrLoginReader video');
+                    if (video && video.readyState >= 2 && !video.paused) {
+                        try {
+                            const barcodes = await detector.detect(video);
+                            if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+                                console.log("[Native BarcodeDetector] Detected QR:", barcodes[0].rawValue);
+                                await window.handleQrLoginSuccess(barcodes[0].rawValue);
+                                return;
+                            }
+                        } catch(e) {}
+                    }
+                    nativeQrDetectorTimer = requestAnimationFrame(checkFrame);
+                };
+                nativeQrDetectorTimer = requestAnimationFrame(checkFrame);
+            } catch(e) {}
+        }
 
         window.openQrLoginModal = async function() {
             toggleLoginModal(false);
@@ -2169,22 +2184,47 @@
             }
 
             try {
-                if (!qrScannerInstance) {
-                    qrScannerInstance = new Html5Qrcode("qrLoginReader");
-                }
-                if (qrScannerInstance.isScanning) {
+                if (qrScannerInstance && qrScannerInstance.isScanning) {
                     try { await qrScannerInstance.stop(); } catch(e){}
                 }
+                if (!qrScannerInstance) {
+                    const formats = (typeof Html5QrcodeSupportedFormats !== 'undefined') ? [Html5QrcodeSupportedFormats.QR_CODE] : undefined;
+                    qrScannerInstance = new Html5Qrcode("qrLoginReader", {
+                        formatsToSupport: formats,
+                        experimentalFeatures: {
+                            useBarCodeDetectorIfSupported: true
+                        },
+                        verbose: false
+                    });
+                }
+
+                const scanConfig = {
+                    fps: 20,
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                        const qrSize = Math.max(200, Math.floor(minEdge * 0.85));
+                        return { width: qrSize, height: qrSize };
+                    },
+                    aspectRatio: 1.0,
+                    videoConstraints: {
+                        facingMode: currentFacingMode,
+                        width: { min: 640, ideal: 1280, max: 1920 },
+                        height: { min: 480, ideal: 720, max: 1080 }
+                    }
+                };
 
                 await qrScannerInstance.start(
                     { facingMode: currentFacingMode },
-                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    scanConfig,
                     async (decodedText) => {
-                        console.log("[QR Scanner] Decoded:", decodedText);
+                        console.log("[Html5Qrcode Scanner] Decoded:", decodedText);
                         await window.handleQrLoginSuccess(decodedText);
                     },
                     (errorMessage) => {}
                 );
+
+                startNativeBarcodeScanner();
+
                 if (statusEl) statusEl.innerHTML = '<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-dot animate-pulse"></i> Camera sẵn sàng. Hãy giơ mã QR trên thẻ trước ống kính</span>';
             } catch (err) {
                 console.warn("[QR Scanner] Lỗi camera:", err);
@@ -2193,6 +2233,7 @@
         };
 
         window.switchCamera = async function() {
+            if (nativeQrDetectorTimer) cancelAnimationFrame(nativeQrDetectorTimer);
             currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
             if (qrScannerInstance && qrScannerInstance.isScanning) {
                 try { await qrScannerInstance.stop(); } catch(e){}
@@ -2201,6 +2242,7 @@
         };
 
         window.closeQrLoginModal = async function() {
+            if (nativeQrDetectorTimer) cancelAnimationFrame(nativeQrDetectorTimer);
             const modal = document.getElementById('qrLoginScannerModal');
             if (modal) modal.classList.add('hidden');
             if (qrScannerInstance && qrScannerInstance.isScanning) {
