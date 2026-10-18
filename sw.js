@@ -14,7 +14,7 @@
  * (network-first) nhưng nên tăng khi đổi styles.css/utils.js để chắc chắn.
  */
 
-const VERSION = 'qmath-v32-tikz-fix';
+const VERSION = 'qmath-v50-mixer-sample-guide';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const CDN_CACHE = `${VERSION}-cdn`;
@@ -98,7 +98,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 3. File code adapter DB Supabase & core utils: luôn NETWORK-FIRST để không bao giờ bị lệch phiên bản module
-  if (url.origin === self.location.origin && (url.pathname.includes('supabase-db-compat') || url.pathname.includes('supabase-client') || url.pathname.includes('utils.js'))) {
+  if (url.origin === self.location.origin && (url.pathname.includes('supabase-db-compat') || url.pathname.includes('supabase-client') || url.pathname.includes('supabase.esm') || url.pathname.includes('utils.js'))) {
     event.respondWith(
       fetch(req)
         .then((res) => {

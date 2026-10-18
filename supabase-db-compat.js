@@ -1,6 +1,6 @@
 // supabase-db-compat.js
 // TOÀN BỘ TẦNG TƯƠNG THÍCH ĐỘC LẬP TỪ FIREBASE SANG SUPABASE POSTGRESQL & REALTIME
-import { supabase, getServerNow, calibrateServerTime, parseDateSafe } from './supabase-client.js?v=26';
+import { supabase, getServerNow, calibrateServerTime, parseDateSafe } from './supabase-client.js?v=27';
 
 export { supabase, getServerNow, calibrateServerTime, parseDateSafe };
 
@@ -1373,9 +1373,17 @@ export async function getDocs(queryOrColRef) {
                     continue;
                 }
                 if (c.op === '==' || c.op === '===') {
-                    queryBuilder = queryBuilder.eq(colName, c.value);
+                    if (c.value === null) {
+                        queryBuilder = queryBuilder.is(colName, null);
+                    } else {
+                        queryBuilder = queryBuilder.eq(colName, c.value);
+                    }
                 } else if (c.op === '!=') {
-                    queryBuilder = queryBuilder.neq(colName, c.value);
+                    if (c.value === null) {
+                        queryBuilder = queryBuilder.not(colName, 'is', null);
+                    } else {
+                        queryBuilder = queryBuilder.neq(colName, c.value);
+                    }
                 } else if (c.op === '>') {
                     queryBuilder = queryBuilder.gt(colName, c.value);
                 } else if (c.op === '>=') {
@@ -1463,7 +1471,15 @@ export async function getDocs(queryOrColRef) {
                     if (c.op === '==' || c.op === '===') {
                         if ((c.field === 'allowedClassId' || c.field === 'allowedClassIds' || c.field === 'assignTo' || c.field === 'assignedTo') && Array.isArray(val)) {
                             if (!val.includes(c.value)) return false;
+                        } else if (c.value === null) {
+                            if (val !== null && val !== undefined && val !== '') return false;
                         } else if (val !== c.value) {
+                            return false;
+                        }
+                    } else if (c.op === '!=') {
+                        if (c.value === null) {
+                            if (val === null || val === undefined || val === '') return false;
+                        } else if (val === c.value) {
                             return false;
                         }
                     } else if (c.op === 'array-contains') {
@@ -1643,13 +1659,52 @@ function generateId() {
     return 'sb_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 }
 
+function mergeDeep(target, source) {
+    if (!target || typeof target !== 'object' || Array.isArray(target)) {
+        return source !== undefined ? source : target;
+    }
+    if (!source || typeof source !== 'object' || Array.isArray(source)) {
+        return source !== undefined ? source : target;
+    }
+    const output = { ...target };
+    for (const key of Object.keys(source)) {
+        const sVal = source[key];
+        const tVal = target[key];
+        if (sVal && typeof sVal === 'object' && !Array.isArray(sVal) && !(sVal instanceof Date) &&
+            tVal && typeof tVal === 'object' && !Array.isArray(tVal) && !(tVal instanceof Date)) {
+            output[key] = mergeDeep(tVal, sVal);
+        } else {
+            output[key] = sVal;
+        }
+    }
+    return output;
+}
+
 export async function setDoc(docRef, data, options = {}) {
     const table = docRef.table;
     const pkCol = getPrimaryKeyCol(table);
-    const payload = toSupabasePayload(table, docRef.id, data);
+
+    let finalData = data;
+    if (options && options.merge) {
+        try {
+            const { data: existingRow } = await supabase
+                .from(table)
+                .select('*')
+                .eq(pkCol, docRef.id)
+                .maybeSingle();
+            if (existingRow) {
+                const unwrapped = unwrapRecord(existingRow);
+                finalData = mergeDeep(unwrapped, data);
+            }
+        } catch (e) {
+            console.warn(`[Supabase setDoc merge] Error reading existing row for ${table}/${docRef.id}:`, e);
+        }
+    }
+
+    const payload = toSupabasePayload(table, docRef.id, finalData);
 
     if (table === 'orders') {
-        await syncOrderToFirebase(docRef.id, { id: docRef.id, ...data }, !!options.merge);
+        await syncOrderToFirebase(docRef.id, { id: docRef.id, ...finalData }, !!options.merge);
     }
 
     try {
@@ -1658,7 +1713,7 @@ export async function setDoc(docRef, data, options = {}) {
             const cleanId = docRef.id.replace(/^topic_/, '');
             const confPayload = {
                 id: confId,
-                raw_data: { id: cleanId, ...data, updatedAt: new Date().toISOString() },
+                raw_data: { id: cleanId, ...finalData, updatedAt: new Date().toISOString() },
                 updated_at: new Date().toISOString()
             };
             const { error: confErr } = await supabase
@@ -1671,7 +1726,7 @@ export async function setDoc(docRef, data, options = {}) {
         if (table === 'site_settings') {
             const confPayload = {
                 id: 'setting_' + docRef.id,
-                raw_data: data,
+                raw_data: finalData,
                 updated_at: new Date().toISOString()
             };
             const { error: confErr } = await supabase
@@ -1685,7 +1740,7 @@ export async function setDoc(docRef, data, options = {}) {
             try {
                 const confPayload = {
                     id: 'course_' + docRef.id,
-                    raw_data: { id: docRef.id, ...data, updatedAt: new Date().toISOString() },
+                    raw_data: { id: docRef.id, ...finalData, updatedAt: new Date().toISOString() },
                     updated_at: new Date().toISOString()
                 };
                 if ((!confPayload.raw_data.thumbnail || !confPayload.raw_data.thumbnail.trim()) && Array.isArray(confPayload.raw_data.images) && confPayload.raw_data.images.length > 0) {
@@ -1706,7 +1761,7 @@ export async function setDoc(docRef, data, options = {}) {
             try {
                 const confPayload = {
                     id: 'voucher_' + docRef.id,
-                    raw_data: { id: docRef.id, ...data, updatedAt: new Date().toISOString() },
+                    raw_data: { id: docRef.id, ...finalData, updatedAt: new Date().toISOString() },
                     updated_at: new Date().toISOString()
                 };
                 await supabase
@@ -1729,7 +1784,7 @@ export async function setDoc(docRef, data, options = {}) {
             try {
                 const confPayload = {
                     id: 'setting_' + docRef.id,
-                    raw_data: data,
+                    raw_data: finalData,
                     updated_at: new Date().toISOString()
                 };
                 const { error: confErr } = await supabase
@@ -1747,7 +1802,7 @@ export async function setDoc(docRef, data, options = {}) {
             try {
                 const confPayload = {
                     id: 'course_' + docRef.id,
-                    raw_data: { id: docRef.id, ...data, updatedAt: new Date().toISOString() },
+                    raw_data: { id: docRef.id, ...finalData, updatedAt: new Date().toISOString() },
                     updated_at: new Date().toISOString()
                 };
                 const { error: confErr } = await supabase
@@ -1765,7 +1820,7 @@ export async function setDoc(docRef, data, options = {}) {
             try {
                 const confPayload = {
                     id: 'voucher_' + docRef.id,
-                    raw_data: { id: docRef.id, ...data, updatedAt: new Date().toISOString() },
+                    raw_data: { id: docRef.id, ...finalData, updatedAt: new Date().toISOString() },
                     updated_at: new Date().toISOString()
                 };
                 const { error: confErr } = await supabase
@@ -1781,10 +1836,10 @@ export async function setDoc(docRef, data, options = {}) {
         }
         const fallback = {
             [pkCol]: docRef.id,
-            ...(data.title ? { title: data.title } : (table === 'exams' ? { title: 'Đề thi' } : {})),
-            ...(data.name ? { name: data.name } : (table === 'classes' ? { name: 'Lớp' } : {})),
-            ...(data.content ? { content: data.content } : (table === 'orders' ? { content: 'ORDER_' + docRef.id.slice(0, 8), amount: data.amount || 0 } : {})),
-            raw_data: data
+            ...(finalData.title ? { title: finalData.title } : (table === 'exams' ? { title: 'Đề thi' } : {})),
+            ...(finalData.name ? { name: finalData.name } : (table === 'classes' ? { name: 'Lớp' } : {})),
+            ...(finalData.content ? { content: finalData.content } : (table === 'orders' ? { content: 'ORDER_' + docRef.id.slice(0, 8), amount: finalData.amount || 0 } : {})),
+            raw_data: finalData
         };
         const { error: err2 } = await supabase.from(table).upsert(fallback, { onConflict: pkCol });
         if (err2) throw err2;
@@ -1897,26 +1952,40 @@ export async function updateDoc(docRef, updates) {
                 console.warn("[Supabase updateDoc configurations sync error]:", e);
             }
         }
-        if (table === 'users' && updates.password) {
+        if (validCols && validCols.includes('raw_data')) {
             try {
-                const { data: uDoc } = await supabase.from('users').select('raw_data').eq(pkCol, docRef.id).maybeSingle();
-                const currRaw = (uDoc && uDoc.raw_data && typeof uDoc.raw_data === 'object') ? uDoc.raw_data : {};
-                payload.raw_data = { ...currRaw, password: String(updates.password).trim() };
-            } catch(e) {}
-        }
-        if (table === 'classes' && updates.students) {
-            try {
-                const { data: cDoc } = await supabase.from('classes').select('raw_data').eq(pkCol, docRef.id).maybeSingle();
-                const currRaw = (cDoc && cDoc.raw_data && typeof cDoc.raw_data === 'object') ? cDoc.raw_data : {};
-                payload.raw_data = { ...currRaw, students: updates.students };
-            } catch(e) {}
-        }
-        if (table === 'exams' && updates.questions) {
-            try {
-                const { data: exDoc } = await supabase.from('exams').select('raw_data').eq(pkCol, docRef.id).maybeSingle();
-                const currRaw = (exDoc && exDoc.raw_data && typeof exDoc.raw_data === 'object') ? exDoc.raw_data : {};
-                payload.raw_data = { ...currRaw, questions: updates.questions, updatedAt: payload.updated_at || new Date().toISOString() };
-            } catch(e) {}
+                const { data: existingDoc } = await supabase.from(table).select('raw_data').eq(pkCol, docRef.id).maybeSingle();
+                const currRaw = (existingDoc && existingDoc.raw_data && typeof existingDoc.raw_data === 'object') ? existingDoc.raw_data : {};
+                const resolvedUpdates = {};
+                for (const [k, v] of Object.entries(updates)) {
+                    if (v && v.__op === 'arrayUnion') {
+                        const currArr = Array.isArray(currRaw[k]) ? currRaw[k] : [];
+                        const itemsToAdd = (v.items || []).filter(item => {
+                            if (item && item.courseId) {
+                                return !currArr.some(x => x && x.courseId === item.courseId);
+                            }
+                            return true;
+                        });
+                        resolvedUpdates[k] = [...currArr, ...itemsToAdd];
+                    } else if (v && v.__op === 'increment') {
+                        const currVal = typeof currRaw[k] === 'number' ? currRaw[k] : 0;
+                        resolvedUpdates[k] = currVal + v.value;
+                    } else {
+                        resolvedUpdates[k] = v;
+                    }
+                }
+                payload.raw_data = {
+                    ...currRaw,
+                    ...(payload.raw_data || {}),
+                    ...resolvedUpdates,
+                    updatedAt: payload.updated_at || new Date().toISOString()
+                };
+                if (updates.password) {
+                    payload.raw_data.password = String(updates.password).trim();
+                }
+            } catch(e) {
+                console.warn(`[Supabase updateDoc raw_data merge error ${table}]:`, e);
+            }
         }
         const { error } = await supabase
             .from(table)

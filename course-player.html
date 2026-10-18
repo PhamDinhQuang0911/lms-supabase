@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -304,11 +304,110 @@
             } catch(e) {}
         }
 
+        const ADMIN_EMAILS = ["phamdinhquang0911@gmail.com", "phamngockhanh.942001@gmail.com", "phamngockhanh.942002@gmail.com"];
+
+        async function checkCoursePlayerAccess(user, id, courseData) {
+            if (!user) return false;
+            if (!courseData.price || Number(courseData.price) === 0) return true;
+            if (user.email && ADMIN_EMAILS.includes(user.email)) return true;
+            try {
+                const uSnap = await getDoc(doc(db, "users", user.uid));
+                if (uSnap.exists()) {
+                    const role = uSnap.data().role;
+                    if (['admin', 'super_admin', 'teacher'].includes(role)) return true;
+                }
+            } catch(e) {}
+            try {
+                const qOrders = query(collection(db, "orders"), where("userId", "==", user.uid), where("courseId", "==", id), where("status", "in", ["paid", "approved"]));
+                const oSnap = await getDocs(qOrders);
+                if (!oSnap.empty) return true;
+                if (user.email) {
+                    const qOrdersEmail = query(collection(db, "orders"), where("studentEmail", "==", user.email), where("courseId", "==", id), where("status", "in", ["paid", "approved"]));
+                    const oeSnap = await getDocs(qOrdersEmail);
+                    if (!oeSnap.empty) return true;
+                }
+            } catch(e) {}
+            try {
+                const assignedClassIds = Array.isArray(courseData.assignedClassIds) ? courseData.assignedClassIds : [];
+                const qClasses = query(collection(db, "classes"), where("studentIds", "array-contains", user.uid));
+                const cSnap = await getDocs(qClasses);
+                for (const cd of cSnap.docs) {
+                    const cData = cd.data();
+                    if (assignedClassIds.includes(cd.id)) return true;
+                    if (Array.isArray(cData.assignedCourses) && cData.assignedCourses.some(ac => ac && ac.courseId === id)) return true;
+                }
+                if (user.email) {
+                    const qClassesEmail = query(collection(db, "classes"), where("studentIds", "array-contains", user.email));
+                    const ceSnap = await getDocs(qClassesEmail);
+                    for (const cd of ceSnap.docs) {
+                        const cData = cd.data();
+                        if (assignedClassIds.includes(cd.id)) return true;
+                        if (Array.isArray(cData.assignedCourses) && cData.assignedCourses.some(ac => ac && ac.courseId === id)) return true;
+                    }
+                }
+                // Quét toàn bộ lớp học nếu các query trên rỗng (phục vụ tài khoản học sinh ghép uid/username/email)
+                const allClsSnap = await getDocs(collection(db, "classes"));
+                const emailClean = (user.email || '').toLowerCase().trim();
+                const usernameClean = user.username ? user.username.toLowerCase().trim() : (emailClean ? emailClean.split('@')[0] : '');
+                for (const cd of allClsSnap.docs) {
+                    const cData = cd.data();
+                    const students = Array.isArray(cData.students) ? cData.students : [];
+                    const inStudentIds = Array.isArray(cData.studentIds) && cData.studentIds.includes(user.uid);
+                    const inStudentsList = students.some(s =>
+                        (s.uid && s.uid === user.uid) ||
+                        (s.email && s.email.toLowerCase().trim() === emailClean) ||
+                        (s.username && usernameClean && s.username.toLowerCase() === usernameClean)
+                    );
+                    if (inStudentIds || inStudentsList) {
+                        if (assignedClassIds.includes(cd.id)) return true;
+                        if (Array.isArray(cData.assignedCourses) && cData.assignedCourses.some(ac => ac && ac.courseId === id)) return true;
+                    }
+                }
+            } catch(e) {}
+            return false;
+        }
+
+        function renderUnauthorizedCourseView(courseData, id) {
+            document.body.innerHTML = `
+                <div class="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+                    <div class="max-w-md w-full bg-white rounded-3xl p-6 md:p-8 shadow-2xl text-center">
+                        <div class="w-16 h-16 rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mx-auto mb-4 shadow-sm">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <h2 class="text-xl font-black text-gray-900 mb-2">Chưa có quyền truy cập khóa học</h2>
+                        <p class="text-xs text-gray-500 mb-5 leading-relaxed">Khóa học <strong>"${courseData.title || ''}"</strong> yêu cầu đăng ký hoặc được giáo viên phân công lớp học để tham gia học tập.</p>
+                        
+                        <div class="p-3.5 rounded-2xl bg-gray-50 border border-gray-100 mb-6 flex items-center gap-3 text-left">
+                            <img src="${courseData.thumbnail || courseData.bannerUrl || 'https://via.placeholder.com/60?text=Course'}" class="w-12 h-12 rounded-xl object-cover border shrink-0" onerror="this.src='https://via.placeholder.com/60?text=Course'">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs font-bold text-gray-800 truncate">${courseData.title || ''}</div>
+                                <div class="text-xs font-black text-rose-600">${courseData.price ? Number(courseData.price).toLocaleString('vi-VN') + ' đ' : 'Miễn phí'}</div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2.5">
+                            <a href="student.html?tab=market&courseId=${id}" class="w-full py-3 px-4 bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-cart-shopping"></i> Đăng ký khóa học ngay
+                            </a>
+                            <a href="student.html" class="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-arrow-left"></i> Quay lại trang Học sinh
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         async function loadCourse(id) {
             try {
                 const snap = await getDoc(doc(db, "public_courses", id));
                 if(snap.exists()){
                     courseData = snap.data();
+                    const hasAccess = await checkCoursePlayerAccess(auth.currentUser, id, courseData);
+                    if (!hasAccess) {
+                        renderUnauthorizedCourseView(courseData, id);
+                        return;
+                    }
                     if (window.QMathSecurity) {
                         window.QMathSecurity.setContext({
                             courseId: id,
@@ -868,28 +967,79 @@
                 if (snap.exists()) {
                     const data = snap.data();
                     if (data.completedItems) completedItems = new Set(data.completedItems);
-                    updateStats();
+                }
 
-                    // --- [RẢNH TAY] Tự động tìm bài đang học dở hoặc bài mới nhất ---
-                    if (flatItems.length > 0) {
-                        let resumeIndex = 0;
-                        // Tìm bài đầu tiên chưa hoàn thành
-                        for (let i = 0; i < flatItems.length; i++) {
-                            if (!completedItems.has(i)) {
-                                resumeIndex = i;
-                                break;
-                            }
+                // [ĐỒNG BỘ ĐỀ THI TỪ SÁCH IN / QR / NGÂN HÀNG ĐỀ]
+                // Tự động kiểm tra các bài tập trắc nghiệm trong khóa xem học sinh đã từng thi đạt chưa
+                try {
+                    const quizItems = [];
+                    flatItems.forEach((it, idx) => {
+                        if (it.type === 'quiz' && it.examId) {
+                            quizItems.push({ it, idx });
                         }
-                        
-                        // Nếu đã xong hết thì về bài cuối
-                        if (completedItems.size === flatItems.length) resumeIndex = flatItems.length - 1;
+                    });
 
-                        window.showToast("Đang khôi phục bài học dở của bạn...", "info");
-                        setTimeout(() => window.playItem(resumeIndex), 1000);
+                    if (quizItems.length > 0) {
+                        const qResults = query(collection(db, "results"), where("studentId", "==", user.uid));
+                        const snapRes = await getDocs(qResults);
+                        let newlyCompleted = false;
+
+                        if (!snapRes.empty) {
+                            const resultsList = [];
+                            snapRes.forEach(d => resultsList.push(d.data()));
+
+                            quizItems.forEach(({ it, idx }) => {
+                                const minScore = parseFloat(it.minScore) || 5;
+                                const passed = resultsList.some(r => r.examId === it.examId && (r.isPassed === true || (typeof r.score === 'number' && r.score >= minScore)));
+                                if (passed && !completedItems.has(idx)) {
+                                    completedItems.add(idx);
+                                    newlyCompleted = true;
+                                }
+                            });
+                        }
+
+                        if (newlyCompleted) {
+                            const total = flatItems.length;
+                            const percent = total === 0 ? 0 : Math.round((completedItems.size / total) * 100);
+                            await setDoc(progressRef, {
+                                uid: user.uid,
+                                courseId: courseId,
+                                completedItems: Array.from(completedItems),
+                                progress: percent,
+                                lastUpdated: new Date().toISOString()
+                            }, { merge: true });
+
+                            try {
+                                const qOrder = query(collection(db, "orders"), where("userId", "==", user.uid), where("courseId", "==", courseId));
+                                const snapOrder = await getDocs(qOrder);
+                                if (!snapOrder.empty) {
+                                    await updateDoc(doc(db, "orders", snapOrder.docs[0].id), { progress: percent });
+                                }
+                            } catch(eO) {}
+                        }
                     }
-                } else {
-                    // Nếu chưa có tiến độ (mới học lần đầu), mở bài 1
-                    if (flatItems.length > 0) window.playItem(0);
+                } catch (eQuizSync) {
+                    console.warn("[CoursePlayer] Lỗi đồng bộ kết quả đề thi:", eQuizSync);
+                }
+
+                updateStats();
+
+                // --- [RẢNH TAY] Tự động tìm bài đang học dở hoặc bài mới nhất ---
+                if (flatItems.length > 0) {
+                    let resumeIndex = 0;
+                    // Tìm bài đầu tiên chưa hoàn thành
+                    for (let i = 0; i < flatItems.length; i++) {
+                        if (!completedItems.has(i)) {
+                            resumeIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    // Nếu đã xong hết thì về bài cuối
+                    if (completedItems.size === flatItems.length) resumeIndex = flatItems.length - 1;
+
+                    window.showToast("Đang tải nội dung học tập...", "info");
+                    setTimeout(() => window.playItem(resumeIndex), 600);
                 }
             } catch (e) { console.error("Lỗi Resume:", e); }
         }

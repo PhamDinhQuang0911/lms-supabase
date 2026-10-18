@@ -991,33 +991,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- 9. TỰ ĐỘNG TẢI DỮ LIỆU KHI MỞ TRANG ---
+const MAPID_SUPER_ADMINS = [
+    "phamngockhanh.942001@gmail.com",
+    "phamngockhanh.942002@gmail.com",
+    "phamdinhquang0911@gmail.com"
+];
+
+// --- 9. TỰ ĐỘNG TẢI DỮ LIỆU KHI MỞ TRANG & KIỂM TRA QUYỀN SUPER ADMIN ---
 onAuthStateChanged(auth, async (user) => {
-    if (user) {
+    if (!user) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    const userEmail = (user.email || '').toLowerCase().trim();
+    let isSuper = MAPID_SUPER_ADMINS.map(e => e.toLowerCase()).includes(userEmail);
+
+    if (!isSuper) {
         try {
-            const docSnap = await getDoc(doc(db, "configurations", "map_id_tree"));
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                mapData.tree = data.tree || [];
-                mapData.metadata = data.metadata || [];
-                try {
-                    localStorage.setItem('lms_cached_mapid_tree', JSON.stringify(mapData.tree));
-                } catch(_) {}
-                renderTree();
-            } else if (mapData.tree.length > 0) {
-                renderTree();
+            const cfgSnap = await getDoc(doc(db, "configurations", "admin_roles"));
+            if (cfgSnap.exists()) {
+                const accounts = cfgSnap.data().accounts || [];
+                const found = accounts.find(a => 
+                    (userEmail && (a.email || '').toLowerCase() === userEmail) || 
+                    (user.uid && a.id === user.uid)
+                );
+                if (found && found.role === 'super_admin') {
+                    isSuper = true;
+                }
             }
-        } catch(e) {
-            console.warn("Lỗi tải configurations/map_id_tree:", e);
-            if (mapData.tree.length > 0) renderTree();
-        }
-    } else {
-        // Cho phép xem tạm nếu có cache cục bộ, nếu không chuyển hướng đăng nhập
-        if (!mapData.tree || mapData.tree.length === 0) {
-            window.location.href = 'index.html';
-        } else {
+        } catch(e) {}
+    }
+
+    if (!isSuper) {
+        alert("⛔ Chỉ Super Admin mới có quyền truy cập Quản lý ID!");
+        window.location.href = 'dashboard.html';
+        return;
+    }
+
+    try {
+        const docSnap = await getDoc(doc(db, "configurations", "map_id_tree"));
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            mapData.tree = data.tree || [];
+            mapData.metadata = data.metadata || [];
+            try {
+                localStorage.setItem('lms_cached_mapid_tree', JSON.stringify(mapData.tree));
+            } catch(_) {}
+            renderTree();
+        } else if (mapData.tree.length > 0) {
             renderTree();
         }
+    } catch(e) {
+        console.warn("Lỗi tải configurations/map_id_tree:", e);
+        if (mapData.tree.length > 0) renderTree();
     }
 });
 

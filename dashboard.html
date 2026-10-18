@@ -31,6 +31,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>/* Áp dark mode ngay để tránh chớp trắng trên mobile */ try { if (localStorage.theme === 'dark' || localStorage.getItem('qmath_theme') === 'dark') document.documentElement.classList.add('dark'); } catch(e) {}</script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; }
+    </style>
     <script>
     // Kích hoạt ngay thuộc tính mùa trên <html> trước khi DOM render
     (function() {
@@ -264,18 +268,7 @@
 
     /* ================= HIỆU ỨNG CHUYỂN GIAO DIỆN & VIEW SECTION ================= */
     .view-section {
-        will-change: opacity;
-    }
-    .view-section:not(.hidden) {
-        animation: viewSectionFadeIn 0.18s cubic-bezier(0.2, 0, 0, 1) both;
-    }
-    @keyframes viewSectionFadeIn {
-        0% {
-            opacity: 0;
-        }
-        100% {
-            opacity: 1;
-        }
+        /* Chuyển tab tức thì, triệt tiêu hoàn toàn hiện tượng nhấp nháy màn hình */
     }
 
     /* ================= HIỆU ỨNG TƯƠNG TÁC NÚT BẤM (BUTTON INTERACTIONS) ================= */
@@ -283,28 +276,49 @@
     .btn-season-primary,
     .btn-season-secondary,
     .btn-explorer-action {
-        transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1),
-                    background-color 0.16s ease,
+        transition: background-color 0.16s ease,
                     border-color 0.16s ease,
                     color 0.16s ease,
                     box-shadow 0.16s ease !important;
     }
-    button:not(:disabled):hover,
-    .btn-season-primary:hover,
-    .btn-season-secondary:hover {
-        transform: translateY(-1px);
+    @media (hover: hover) and (pointer: fine) {
+        button:not(:disabled),
+        .btn-season-primary,
+        .btn-season-secondary,
+        .btn-explorer-action {
+            transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1),
+                        background-color 0.16s ease,
+                        border-color 0.16s ease,
+                        color 0.16s ease,
+                        box-shadow 0.16s ease !important;
+        }
+        button:not(:disabled):hover,
+        .btn-season-primary:hover,
+        .btn-season-secondary:hover {
+            transform: translateY(-1px);
+        }
+        .nav-item:hover {
+            transform: translateX(3px);
+        }
+        button:not(:disabled):active,
+        .btn-season-primary:active,
+        .btn-season-secondary:active {
+            transform: translateY(0.5px) scale(0.98) !important;
+        }
     }
-    button:not(:disabled):active,
-    .btn-season-primary:active,
-    .btn-season-secondary:active {
-        transform: translateY(0.5px) scale(0.98) !important;
+    /* Mobile: triệt tiêu transform để tránh reflow/nhấp nháy trên cảm ứng */
+    @media (hover: none), (pointer: coarse) {
+        button:not(:disabled):active,
+        .btn-season-primary:active,
+        .btn-season-secondary:active {
+            transform: none !important;
+        }
     }
 
     .nav-item {
-        transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    }
-    .nav-item:hover {
-        transform: translateX(3px);
+        transition: background-color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+                    color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+                    border-color 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     .nav-item.active {
         background: var(--season-badge-bg, #fff7ed) !important;
@@ -463,9 +477,9 @@
         if (window._moduleSwitchView) {
             return window._moduleSwitchView(viewName, pushHistory);
         }
-        document.querySelectorAll('.view-section').forEach(function(el) { el.classList.add('hidden'); });
         var target = document.getElementById('view-' + viewName);
         if (target) target.classList.remove('hidden');
+        document.querySelectorAll('.view-section').forEach(function(el) { if (el !== target) el.classList.add('hidden'); });
         document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
         var activeNav = document.getElementById('nav-' + viewName);
         if (activeNav) activeNav.classList.add('active');
@@ -485,6 +499,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="latex-exporter.js?v=20261002"></script>
     <script src="system-backup.js?v=20261007"></script>
+    <script src="qrcode.min.js?v=20261017_V1"></script>
+    <script src="word-mathtype-exporter.js?v=20261016_V5"></script>
+    <script src="exam-mixer.js?v=20261017_V3"></script>
     <script>
     window.MathJax = {
         loader: { load: ['[tex]/noerrors'] },
@@ -507,7 +524,9 @@
             Q: "\\mathbb{Q}",
             vectors: ["\\overrightarrow{#1}", 1],
             vec: ["\\overrightarrow{#1}", 1],
-            mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1]
+            mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1],
+            arrow: "\\rightarrow",
+            Arrow: "\\Rightarrow"
           }
         },
         options: { ignoreHtmlClass: 'tex2jax_ignore', processHtmlClass: 'tex2jax_process' },
@@ -1153,7 +1172,12 @@
             color: #94a3b8 !important;
         }
         @media (max-width: 767px) {
-            #mainSidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+            #mainSidebar {
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                will-change: transform;
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+            }
             #mainSidebar.sidebar-open { transform: translateX(0) !important; }
             #mainSidebar.sidebar-closed { transform: translateX(-100%) !important; }
         }
@@ -1196,7 +1220,7 @@
                 height: auto !important;
                 max-height: none !important;
                 overflow: visible !important;
-                padding-bottom: calc(2.2rem + env(safe-area-inset-bottom, 0px)) !important;
+                padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important;
             }
             .view-section {
                 height: auto !important;
@@ -1210,32 +1234,45 @@
                 max-height: none !important;
                 overflow: visible !important;
             }
-            /* Sidebar trên mobile giữ nguyên dạng popup/drawer 100dvh độc lập */
+            /* Sidebar trên mobile dạng drawer độc lập, cuộn mượt và không bị khóa cử chỉ */
             #mainSidebar {
                 position: fixed !important;
                 top: 0 !important;
                 bottom: 0 !important;
                 left: 0 !important;
+                height: 100% !important;
                 height: 100dvh !important;
                 max-height: 100dvh !important;
-                z-index: 50 !important;
-                padding-bottom: env(safe-area-inset-bottom, 15px);
+                z-index: 99 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                padding-bottom: env(safe-area-inset-bottom, 0px) !important;
             }
             #sidebarNav {
-                overflow-y: auto !important;
+                flex: 1 1 0% !important;
                 min-height: 0 !important;
-                padding-bottom: 6rem !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                overscroll-behavior-y: contain !important;
+                touch-action: pan-y !important;
+                padding-bottom: 2.5rem !important;
+            }
+            #sidebarNav .nav-item, #sidebarNav button, #sidebarNav a {
+                touch-action: manipulation !important;
+                -webkit-tap-highlight-color: transparent;
+                cursor: pointer;
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=17">
+    <link rel="stylesheet" href="/styles.css?v=18">
 </head>
 <body class="h-screen flex overflow-hidden text-gray-800 bg-gray-50">
 
     <div id="notificationContainer" class="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none"></div>
-    <div id="sidebarOverlay" onclick="window.closeSidebar()" class="fixed inset-0 bg-gray-900/60 z-[45] hidden transition-opacity md:hidden"></div>
+    <div id="sidebarOverlay" onclick="window.closeSidebar()" class="fixed inset-0 bg-gray-900/60 z-[90] hidden transition-opacity md:hidden"></div>
 
-    <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-gray-200 flex flex-col shadow-2xl z-[50] sidebar-closed md:translate-x-0 md:relative md:w-64 md:shadow-sm md:z-20 flex-shrink-0">
+    <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-gray-200 flex flex-col shadow-2xl z-[99] sidebar-closed md:translate-x-0 md:relative md:w-64 md:shadow-sm md:z-20 flex-shrink-0">
         <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100 shrink-0">
             <div class="flex items-center gap-2 overflow-hidden">
                 <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-primary-600 overflow-hidden shrink-0 border border-gray-100 shadow-sm relative">
@@ -1264,37 +1301,42 @@
             <button onclick="switchView('classes')" id="nav-classes" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-users-rectangle"></i> Danh sách lớp học</button>
             <button onclick="switchView('students')" id="nav-students" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-user-graduate"></i> Quản lý Học sinh</button>
             <button onclick="switchView('exambank')" id="nav-exambank" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-folder-tree"></i> Quản lý Đề thi</button>
+            <button onclick="window.openExamMixerModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-mixer" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-shuffle text-season-from"></i> Trộn đề thi</button>
             <button onclick="switchView('questionbank')" id="nav-questionbank" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-database"></i> Ngân hàng câu hỏi</button>
             <button onclick="switchView('qpoint')" id="nav-qpoint" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
                 <span class="flex items-center gap-3"><i class="fa-solid fa-coins"></i> Quản lý QPoint</span>
                 <span id="sidebarQPointBadge" class="hidden text-[10px] bg-primary-600 text-white px-2 py-0.5 rounded-full font-bold">0</span>
             </button>
-            <button onclick="window.openReportManagementModal(); window.closeSidebar()" id="nav-reports" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
+            <button onclick="window.openReportManagementModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-reports" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
                 <span class="flex items-center gap-3"><i class="fa-solid fa-flag"></i> Quản lý Báo lỗi</span>
                 <span id="sidebarReportBadge" class="hidden text-[10px] bg-rose-500 text-white px-2 py-0.5 rounded-full font-black">0</span>
             </button>
-            <a href="topic-builder.html" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-cubes"></i> Xưởng Chuyên Đề</a>
+            <a href="topic-builder.html" id="nav-topic-builder" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-cubes"></i> Xưởng Chuyên Đề</a>
             <button onclick="window.location.href='course-manager.html'" id="nav-courses" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-layer-group"></i> Quản lý Khóa học</button>
             <button onclick="window.location.href='dashboard-mapid.html'" id="nav-mapid" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-sitemap"></i> Quản lý ID</button>
             <button onclick="window.location.href='book-manager.html'" id="nav-books" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-book-journal-whills"></i> Sách Số Hóa</button>
+            <button onclick="window.open('tex2mathtype.html', '_blank')" id="nav-tex2mathtype" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
+                <span class="flex items-center gap-3"><i class="fa-solid fa-square-root-variable text-blue-500"></i> TeX2MathType Pro</span>
+                <span class="text-[9px] bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Web Wasm</span>
+            </button>
             
             <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-3 mt-6">Cấu hình Hệ thống</p>
             <div class="space-y-1">
-                <button onclick="window.openAdminRoleModal(); window.closeSidebar()" id="nav-admin-roles" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
+                <button onclick="window.openAdminRoleModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-admin-roles" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
                     <span class="flex items-center gap-3"><i class="fa-solid fa-user-shield"></i> Phân quyền Quản trị</span>
                     <span class="text-[9px] bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Super Admin</span>
                 </button>
-                <button onclick="window.openHeroModal(); window.closeSidebar()" id="nav-hero-settings" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-paintbrush"></i> Cài đặt Banner & Logo</button>
-                <button onclick="window.openSecurityConfigModal(); window.closeSidebar()" id="nav-security-settings" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-shield-halved"></i> Chống chụp màn hình</button>
-                <button onclick="window.openAIConfigModal(); window.closeSidebar()" id="nav-ai-settings" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-robot"></i> Quản lý API AI</button>
-                <button onclick="window.openTeacherAIKeyModal(); window.closeSidebar()" id="nav-teacher-ai-settings" class="hidden nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
+                <button onclick="window.openHeroModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-hero-settings" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-paintbrush"></i> Cài đặt Banner & Logo</button>
+                <button onclick="window.openSecurityConfigModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-security-settings" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-shield-halved"></i> Chống chụp màn hình</button>
+                <button onclick="window.openAIConfigModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-ai-settings" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-robot"></i> Quản lý API AI</button>
+                <button onclick="window.openTeacherAIKeyModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-teacher-ai-settings" class="hidden nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
                     <span class="flex items-center gap-3"><i class="fa-solid fa-key"></i> API Key AI cá nhân</span>
                     <span class="text-[9px] bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Cá nhân</span>
                 </button>
-                <button onclick="window.cleanUpSystem(); window.closeSidebar()" id="nav-cleanup-settings" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3">
+                <button onclick="window.cleanUpSystem(); setTimeout(()=>window.closeSidebar(),60)" id="nav-cleanup-settings" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3">
                     <i class="fa-solid fa-broom"></i> Dọn dẹp hệ thống
                 </button>
-                <button onclick="window.openSystemBackupModal(); window.closeSidebar()" id="nav-system-backup" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
+                <button onclick="window.openSystemBackupModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-system-backup" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
                     <span class="flex items-center gap-3"><i class="fa-solid fa-cloud-arrow-down"></i> Sao lưu & Phục hồi</span>
                     <span class="text-[9px] bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Backup</span>
                 </button>
@@ -1307,38 +1349,102 @@
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-50 relative w-full">
-        <header id="mobileHeader" class="md:hidden h-16 bg-white border-b border-gray-200 px-4 flex items-center justify-between z-20 shrink-0 shadow-sm">
+        <header id="mobileHeader" class="md:hidden h-16 bg-white/95 dark:bg-[#1a1726]/95 backdrop-blur-md border-b border-gray-200 dark:border-purple-900/40 px-3 flex items-center justify-between z-20 shrink-0 shadow-sm sticky top-0 transition-colors">
             <div class="flex items-center gap-2 overflow-hidden">
-                <button onclick="window.toggleSidebar()" class="text-gray-600 hover:text-primary-500 text-2xl p-1 shrink-0"><i class="fa-solid fa-bars"></i></button>
-                <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center text-primary-600 overflow-hidden shrink-0 border border-gray-100 shadow-sm relative">
+                <button type="button" onclick="window.toggleSidebar()" class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 shrink-0 active:scale-95 transition-all cursor-pointer shadow-2xs" title="Mở danh mục menu">
+                    <i class="fa-solid fa-bars text-base"></i>
+                </button>
+                <div class="w-9 h-9 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-primary-600 overflow-hidden shrink-0 border border-gray-100 dark:border-slate-700 shadow-2xs relative">
                     <i class="fa-solid fa-graduation-cap global-logo-icon text-lg"></i>
                     <img src="" class="w-full h-full object-contain hidden global-logo-img absolute inset-0 bg-white">
                 </div>
-                <span class="font-extrabold tracking-tight text-primary-700 text-lg global-brand-name whitespace-nowrap truncate max-w-[150px]" title="Thầy Choang">Thầy Choang</span>
+                <div class="overflow-hidden">
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-extrabold tracking-tight text-primary-700 dark:text-primary-400 text-sm global-brand-name whitespace-nowrap truncate" title="Thầy Choang">Thầy Choang</span>
+                    </div>
+                    <p id="mobileViewTitle" class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold truncate leading-tight">Sảnh chính</p>
+                </div>
             </div>
-            <div class="flex items-center gap-4">
-                <button onclick="window.toggleTheme()" class="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 flex items-center justify-center transition-all shadow-sm ml-2 shrink-0"><i class="fa-solid fa-moon dark-icon"></i></button>
-                <button onclick="toggleNotificationPanel()" class="relative text-gray-500 hover:text-primary-600 transition-colors">
-                    <i class="fa-regular fa-bell text-xl"></i>
+            <div class="flex items-center gap-2">
+                <button onclick="window.toggleTheme()" class="w-8 h-8 rounded-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 hover:text-indigo-500 flex items-center justify-center transition-all shadow-2xs shrink-0"><i class="fa-solid fa-moon dark-icon text-sm"></i></button>
+                <button onclick="toggleNotificationPanel()" class="w-8 h-8 rounded-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 hover:text-primary-600 flex items-center justify-center transition-all shadow-2xs relative shrink-0">
+                    <i class="fa-regular fa-bell text-sm"></i>
                     <span id="notifCountMobile" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold flex items-center justify-center rounded-full border border-white animate-bounce">0</span>
                 </button>
-                <div onclick="window.openMyProfile()" class="w-9 h-9 rounded-full bg-gray-100 overflow-hidden border border-gray-200 active:scale-95 transition-transform"><img id="mobileAvatar" src="https://placehold.co/150" class="w-full h-full object-cover"></div>
+                <div onclick="window.openMyProfile()" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden border border-gray-200 dark:border-slate-600 active:scale-95 transition-transform shrink-0 cursor-pointer shadow-2xs"><img id="mobileAvatar" src="https://placehold.co/150" class="w-full h-full object-cover"></div>
             </div>
         </header>
 
         <div class="flex-1 overflow-y-auto relative scroll-smooth min-h-0" id="mainScrollArea">
-            <div id="view-home" class="view-section flex-1 overflow-y-auto p-4 md:p-8 pb-6 md:pb-8">
-            <div class="max-w-6xl mx-auto">
-                <div class="bg-gradient-to-r from-blue-500 to-pink-500 rounded-3xl p-6 md:p-8 text-white mb-8 md:mb-10 shadow-lg relative overflow-hidden">
-                    <div class="relative z-10"><h1 class="text-2xl md:text-3xl font-bold mb-2">Xin chào Thầy Cô! 👋</h1><p class="opacity-90 text-sm md:text-base">Chúc thầy cô một ngày làm việc hiệu quả.</p></div>
-                    <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-10"></div><div class="absolute bottom-0 right-20 w-32 h-32 rounded-full bg-white opacity-10"></div>
+            <div id="view-home" class="view-section flex-1 p-3.5 md:p-8 pb-28 md:pb-8">
+            <div class="max-w-6xl mx-auto space-y-4 md:space-y-6">
+                <!-- Banner Chào Mừng Giáo Viên -->
+                <div class="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-2xl md:rounded-3xl p-5 md:p-8 text-white shadow-lg relative overflow-hidden">
+                    <div class="relative z-10">
+                        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-xs text-[11px] font-bold mb-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="homeTeacherRoleBadge">Giáo viên Quản trị</span>
+                        </div>
+                        <h1 class="text-xl md:text-3xl font-black mb-1.5 tracking-tight">Xin chào <span id="homeTeacherGreeting">Thầy Cô</span>! 👋</h1>
+                        <p class="opacity-90 text-xs md:text-base max-w-xl">Hệ thống quản lý giảng dạy thông minh. Chúc Thầy Cô một ngày làm việc hiệu quả và đầy cảm hứng.</p>
+
+                        <!-- Dải thống kê nhanh trên Mobile & Desktop -->
+                        <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-white/20">
+                            <div class="bg-white/10 backdrop-blur-xs rounded-xl p-2 sm:p-2.5 text-center">
+                                <div class="text-[10px] sm:text-xs opacity-80 uppercase tracking-wider font-semibold">Lớp học</div>
+                                <div id="homeStatClasses" class="text-base sm:text-2xl font-black">0</div>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-xs rounded-xl p-2 sm:p-2.5 text-center">
+                                <div class="text-[10px] sm:text-xs opacity-80 uppercase tracking-wider font-semibold">Học sinh</div>
+                                <div id="homeStatStudents" class="text-base sm:text-2xl font-black">0</div>
+                            </div>
+                            <div class="bg-white/10 backdrop-blur-xs rounded-xl p-2 sm:p-2.5 text-center">
+                                <div class="text-[10px] sm:text-xs opacity-80 uppercase tracking-wider font-semibold">Kho đề</div>
+                                <div id="homeStatExams" class="text-base sm:text-2xl font-black">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-10 pointer-events-none"></div>
+                    <div class="absolute bottom-0 right-20 w-32 h-32 rounded-full bg-white opacity-10 pointer-events-none"></div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div id="home-card-classes" onclick="switchView('classes')" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all"><div class="w-12 h-12 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-users"></i></div><h3 class="font-bold text-lg text-gray-800">Quản lý Lớp</h3><p class="text-sm text-gray-500">Xem danh sách lớp và học sinh</p></div>
-                    <div id="home-card-exams" onclick="switchView('exambank')" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all"><div class="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-file-lines"></i></div><h3 class="font-bold text-lg text-gray-800">Ngân hàng đề</h3><p class="text-sm text-gray-500">Soạn thảo và quản lý đề thi</p></div>
-                    <div id="home-card-qpoint" onclick="switchView('qpoint')" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all"><div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-coins"></i></div><h3 class="font-bold text-lg text-gray-800">Quản lý QPoint</h3><p class="text-sm text-gray-500">Cấp điểm, cấu hình gói & duyệt đơn nạp</p></div>
-                    <div id="home-card-courses" onclick="window.location.href='course-manager.html'" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all"><div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-shapes"></i></div><h3 class="font-bold text-lg text-gray-800">Khóa học & Banner</h3><p class="text-sm text-gray-500">Cài đặt trang chủ và khóa học</p></div>
-                    <div id="home-card-books" onclick="window.location.href='book-manager.html'" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all"><div class="w-12 h-12 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-book-journal-whills"></i></div><h3 class="font-bold text-lg text-gray-800">Sách Số Hóa</h3><p class="text-sm text-gray-500">Upload và quản lý tài liệu, bài giảng</p></div>
+
+                <!-- Thao tác nhanh & Phím tắt cho Giáo viên -->
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                    <div id="home-card-mixer" onclick="window.openExamMixerModal()" class="bg-white dark:bg-[#1a1726] p-4 md:p-6 rounded-2xl border border-gray-200 dark:border-[#38344D] shadow-2xs hover:shadow-md cursor-pointer transition-all active:scale-[0.98]">
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-lg md:text-xl mb-3"><i class="fa-solid fa-shuffle"></i></div>
+                        <h3 class="font-extrabold text-sm md:text-lg text-gray-800 dark:text-white">Trộn đề thi</h3>
+                        <p class="text-[11px] md:text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">Đảo câu hỏi, đảo phương án từ file TeX hoặc Word</p>
+                    </div>
+                    <div id="home-card-classes" onclick="switchView('classes')" class="bg-white dark:bg-[#1a1726] p-4 md:p-6 rounded-2xl border border-gray-200 dark:border-[#38344D] shadow-2xs hover:shadow-md cursor-pointer transition-all active:scale-[0.98]">
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center text-lg md:text-xl mb-3"><i class="fa-solid fa-users"></i></div>
+                        <h3 class="font-extrabold text-sm md:text-lg text-gray-800 dark:text-white">Quản lý Lớp</h3>
+                        <p class="text-[11px] md:text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">Xem danh sách lớp, bài tập và học sinh</p>
+                    </div>
+                    <div id="home-card-exams" onclick="switchView('exambank')" class="bg-white dark:bg-[#1a1726] p-4 md:p-6 rounded-2xl border border-gray-200 dark:border-[#38344D] shadow-2xs hover:shadow-md cursor-pointer transition-all active:scale-[0.98]">
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-green-100 text-green-600 flex items-center justify-center text-lg md:text-xl mb-3"><i class="fa-solid fa-file-lines"></i></div>
+                        <h3 class="font-extrabold text-sm md:text-lg text-gray-800 dark:text-white">Ngân hàng đề</h3>
+                        <p class="text-[11px] md:text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">Soạn thảo, nạp file Word và quản lý đề</p>
+                    </div>
+                    <div id="home-card-qpoint" onclick="switchView('qpoint')" class="bg-white dark:bg-[#1a1726] p-4 md:p-6 rounded-2xl border border-gray-200 dark:border-[#38344D] shadow-2xs hover:shadow-md cursor-pointer transition-all active:scale-[0.98]">
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg md:text-xl mb-3"><i class="fa-solid fa-coins"></i></div>
+                        <h3 class="font-extrabold text-sm md:text-lg text-gray-800 dark:text-white">Quản lý QPoint</h3>
+                        <p class="text-[11px] md:text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">Cấp điểm, cấu hình gói & duyệt đơn nạp</p>
+                    </div>
+                    <div id="home-card-courses" onclick="window.location.href='course-manager.html'" class="bg-white dark:bg-[#1a1726] p-4 md:p-6 rounded-2xl border border-gray-200 dark:border-[#38344D] shadow-2xs hover:shadow-md cursor-pointer transition-all active:scale-[0.98]">
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-lg md:text-xl mb-3"><i class="fa-solid fa-shapes"></i></div>
+                        <h3 class="font-extrabold text-sm md:text-lg text-gray-800 dark:text-white">Khóa học & Banner</h3>
+                        <p class="text-[11px] md:text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">Cài đặt trang chủ và khóa học</p>
+                    </div>
+                    <div id="home-card-books" onclick="window.location.href='book-manager.html'" class="bg-white dark:bg-[#1a1726] p-4 md:p-6 rounded-2xl border border-gray-200 dark:border-[#38344D] shadow-2xs hover:shadow-md cursor-pointer transition-all active:scale-[0.98]">
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center text-lg md:text-xl mb-3"><i class="fa-solid fa-book-journal-whills"></i></div>
+                        <h3 class="font-extrabold text-sm md:text-lg text-gray-800 dark:text-white">Sách Số Hóa</h3>
+                        <p class="text-[11px] md:text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">Upload và quản lý tài liệu, bài giảng</p>
+                    </div>
+                    <div id="home-card-topics" onclick="window.location.href='topic-builder.html'" class="bg-white dark:bg-[#1a1726] p-4 md:p-6 rounded-2xl border border-gray-200 dark:border-[#38344D] shadow-2xs hover:shadow-md cursor-pointer transition-all active:scale-[0.98]">
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg md:text-xl mb-3"><i class="fa-solid fa-cubes"></i></div>
+                        <h3 class="font-extrabold text-sm md:text-lg text-gray-800 dark:text-white">Xưởng Chuyên Đề</h3>
+                        <p class="text-[11px] md:text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">Cây chuyên đề MapID thông minh</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1926,6 +2032,7 @@
                         <button onclick="window.pasteExplorerItem()" id="btnPasteItem" class="p-2 md:px-3.5 md:py-2 btn-season-secondary rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-2xs hidden" title="Dán (Paste)"><i class="fa-solid fa-paste"></i><span class="hidden sm:inline ml-1.5">Dán</span></button>
                         <button onclick="window.createNewFolder()" class="p-2 md:px-3.5 md:py-2 btn-season-secondary rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-2xs" title="Tạo thư mục"><i class="fa-solid fa-folder-plus"></i><span class="hidden sm:inline ml-1.5">Tạo thư mục</span></button>
                         <button id="btnCreateContent" onclick="window.openCreateExam()" class="p-2 md:px-3.5 md:py-2 btn-season-primary rounded-xl text-white text-xs md:text-sm font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-sm" title="Soạn đề mới"><i class="fa-solid fa-file-circle-plus"></i><span class="hidden sm:inline ml-1.5">Soạn đề mới</span></button>
+                        <button onclick="window.openExamMixerModal()" class="p-2 md:px-3.5 md:py-2 btn-season-secondary rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-2xs" title="Trộn đề thi (TeX / Word)"><i class="fa-solid fa-shuffle text-season-from"></i><span class="hidden sm:inline ml-1.5">Trộn đề thi</span></button>
                         <button onclick="window.toggleSelectAllExams()" id="btnToggleSelectMode" class="p-2 md:px-3.5 md:py-2 btn-season-secondary rounded-xl text-xs md:text-sm font-bold transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-2xs" title="Chọn nhiều đề thi để xuất mã nguồn ZIP"><i class="fa-solid fa-square-check"></i><span class="hidden sm:inline ml-1.5">Chọn nhiều</span></button>
                     </div>
                 </div>
@@ -1950,6 +2057,10 @@
                         </button>
                     </div>
                     <div class="flex items-center gap-2">
+                        <button onclick="window.bulkExportExamsToWord()" id="btnBulkExportWord" class="px-4 py-2 rounded-xl font-black text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-2 text-xs md:text-sm active:scale-95 cursor-pointer transition-all shadow-sm">
+                            <i class="fa-solid fa-file-word text-white text-base"></i>
+                            <span class="font-black text-white">Xuất Word (.ZIP)</span>
+                        </button>
                         <button onclick="window.exportBulkLatexExams()" id="btnBulkExportLatex" class="btn-season-primary px-4 py-2 rounded-xl font-black text-white flex items-center gap-2 text-xs md:text-sm active:scale-95 cursor-pointer transition-all">
                             <i class="fa-solid fa-file-zipper text-white text-base"></i>
                             <span class="font-black text-white">Xuất mã nguồn TeX (.ZIP)</span>
@@ -1978,6 +2089,10 @@
                         <i class="fa-solid fa-xmark text-xs"></i> Bỏ chọn
                     </button>
                 </div>
+                <button onclick="window.bulkExportExamsToWord()" id="btnFloatingBulkExportWord" class="px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-white bg-blue-600 hover:bg-blue-700 text-xs md:text-sm flex items-center gap-2 hover:opacity-95 active:scale-95 transition-all cursor-pointer shrink-0 shadow-sm">
+                    <i class="fa-solid fa-file-word text-white text-base"></i>
+                    <span class="font-black text-white whitespace-nowrap">Xuất Word (.ZIP)</span>
+                </button>
                 <button onclick="window.exportBulkLatexExams()" id="btnFloatingBulkExportLatex" class="btn-season-primary px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-black text-white text-xs md:text-sm flex items-center gap-2 hover:opacity-95 active:scale-95 transition-all cursor-pointer shrink-0">
                     <i class="fa-solid fa-file-zipper text-white text-base"></i>
                     <span class="font-black text-white whitespace-nowrap">Xuất mã nguồn TeX (.ZIP)</span>
@@ -2027,11 +2142,11 @@
                             <button onclick="window.location.href='book-manager.html'" class="btn-season-primary h-9 md:h-10 px-3 md:px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer shadow-2xs" title="Số hóa sách: Gán mã CCCD số và xuất file TeX">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Số Hóa Sách (Sách ID)</span>
                             </button>
-                            <button onclick="window.openReportManagementModal()" class="btn-season-secondary h-9 md:h-10 px-3 md:px-3.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer shadow-2xs text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900" title="Quản lý và giải quyết các báo cáo lỗi câu hỏi từ học sinh">
+                            <button id="btnBankReportModal" onclick="window.openReportManagementModal()" class="btn-season-secondary h-9 md:h-10 px-3 md:px-3.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer shadow-2xs text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900" title="Quản lý và giải quyết các báo cáo lỗi câu hỏi từ học sinh">
                                 <i class="fa-solid fa-flag text-rose-600 dark:text-rose-400"></i> <span>Báo lỗi câu hỏi</span>
                                 <span id="bankReportBadge" class="hidden ml-1 px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black">0</span>
                             </button>
-                            <button onclick="window.openSystemBackupModal('bank')" class="btn-season-secondary h-9 md:h-10 px-3 md:px-3.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer shadow-2xs text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900" title="Sao lưu hoặc phục hồi Ngân hàng câu hỏi R2">
+                            <button id="btnBankBackupModal" onclick="window.openSystemBackupModal('bank')" class="btn-season-secondary h-9 md:h-10 px-3 md:px-3.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer shadow-2xs text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900" title="Sao lưu hoặc phục hồi Ngân hàng câu hỏi R2">
                                 <i class="fa-solid fa-cloud-arrow-down text-blue-600 dark:text-blue-400"></i> <span>Sao lưu & Phục hồi</span>
                             </button>
                             <button onclick="loadQuestionBank()" class="h-9 w-9 md:h-10 md:w-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center shrink-0 transition-colors shadow-2xs cursor-pointer" title="Tải lại">
@@ -2746,6 +2861,74 @@
         </div>
     </main>
 
+    <!-- ================= THANH ĐIỀU HƯỚNG DƯỚI (BOTTOM NAVIGATION) DÀNH CHO MOBILE ================= -->
+    <nav id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-[#1a1726] border-t border-gray-200 dark:border-purple-900/40 shadow-lg px-2 py-1.5">
+        <div class="flex items-center justify-around relative">
+            <!-- 1. Home / Sảnh chính -->
+            <button type="button" onclick="window.switchView('home')" id="bottomNavHome" class="flex flex-col items-center justify-center flex-1 py-1 text-purple-600 dark:text-purple-400 font-black transition-colors cursor-pointer">
+                <i class="fa-solid fa-house text-lg mb-0.5"></i>
+                <span class="text-[10px] tracking-tight">Sảnh chính</span>
+            </button>
+            <!-- 2. Classes / Lớp học -->
+            <button type="button" onclick="window.switchView('classes')" id="bottomNavClasses" class="flex flex-col items-center justify-center flex-1 py-1 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-bold transition-colors cursor-pointer">
+                <i class="fa-solid fa-chalkboard-user text-lg mb-0.5"></i>
+                <span class="text-[10px] tracking-tight">Lớp học</span>
+            </button>
+            <!-- 3. Nút Nổi Thao Tác Nhanh (FAB) ở giữa -->
+            <div class="relative -top-3 flex flex-col items-center shrink-0 px-1">
+                <button type="button" onclick="window.toggleMobileQuickActionSheet()" id="btnMobileQuickAction" class="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 active:scale-90 transition-transform cursor-pointer border-2 border-white dark:border-[#1a1726]">
+                    <i class="fa-solid fa-plus text-xl transition-transform duration-300" id="quickActionFabIcon"></i>
+                </button>
+                <span class="text-[9px] font-black text-purple-600 dark:text-purple-400 mt-0.5 uppercase tracking-wider">Tạo nhanh</span>
+            </div>
+            <!-- 4. Exams / Kho đề -->
+            <button type="button" onclick="window.switchView('exambank')" id="bottomNavExams" class="flex flex-col items-center justify-center flex-1 py-1 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-bold transition-colors cursor-pointer">
+                <i class="fa-solid fa-file-lines text-lg mb-0.5"></i>
+                <span class="text-[10px] tracking-tight">Kho đề</span>
+            </button>
+            <!-- 5. Menu / Danh mục đầy đủ -->
+            <button type="button" onclick="window.toggleSidebar()" id="bottomNavMenu" class="flex flex-col items-center justify-center flex-1 py-1 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-bold transition-colors relative cursor-pointer">
+                <i class="fa-solid fa-bars text-lg mb-0.5"></i>
+                <span class="text-[10px] tracking-tight">Menu</span>
+                <span id="mobileMenuNotifDot" class="hidden absolute top-1 right-3 w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ================= BẢNG THAO TÁC NHANH (QUICK ACTION SHEET) CHO MOBILE ================= -->
+    <div id="mobileQuickActionSheet" class="md:hidden fixed inset-0 z-50 pointer-events-none opacity-0 transition-opacity duration-200">
+        <!-- Backdrop mờ -->
+        <div onclick="window.toggleMobileQuickActionSheet(false)" class="absolute inset-0 bg-gray-900/60"></div>
+        <!-- Nội dung Sheet nổi lên từ đáy -->
+        <div class="absolute bottom-20 left-3 right-3 bg-white dark:bg-[#1e1b29] rounded-2xl shadow-2xl border border-gray-200 dark:border-[#38344D] p-4 transform translate-y-4 transition-transform duration-200 space-y-3 pointer-events-auto">
+            <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                    <span class="text-xs font-black uppercase text-gray-600 dark:text-gray-300 tracking-wider">Thao tác nhanh Giáo viên</span>
+                </div>
+                <button onclick="window.toggleMobileQuickActionSheet(false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 cursor-pointer"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5 pt-1">
+                <button onclick="window.quickCreateExam()" class="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-bold text-xs hover:bg-purple-100 active:scale-95 transition-all text-left cursor-pointer border border-purple-100 dark:border-purple-900/40">
+                    <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs"><i class="fa-solid fa-file-circle-plus"></i></div>
+                    <div><div class="font-bold">Tạo đề thi mới</div><div class="text-[10px] text-gray-500 font-normal">Soạn đề & file Word</div></div>
+                </button>
+                <button onclick="window.quickCreateClass()" class="flex items-center gap-2.5 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold text-xs hover:bg-blue-100 active:scale-95 transition-all text-left cursor-pointer border border-blue-100 dark:border-blue-900/40">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs"><i class="fa-solid fa-users"></i></div>
+                    <div><div class="font-bold">Tạo lớp học</div><div class="text-[10px] text-gray-500 font-normal">Thêm lớp năm học</div></div>
+                </button>
+                <button onclick="window.location.href='course-manager.html'" class="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-100 active:scale-95 transition-all text-left cursor-pointer border border-emerald-100 dark:border-emerald-900/40">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs"><i class="fa-solid fa-layer-group"></i></div>
+                    <div><div class="font-bold">Nạp học liệu</div><div class="text-[10px] text-gray-500 font-normal">Khóa học & Banner</div></div>
+                </button>
+                <button onclick="window.switchView('questionbank'); window.toggleMobileQuickActionSheet(false)" class="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-bold text-xs hover:bg-amber-100 active:scale-95 transition-all text-left cursor-pointer border border-amber-100 dark:border-amber-900/40">
+                    <div class="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs"><i class="fa-solid fa-circle-question"></i></div>
+                    <div><div class="font-bold">Kho câu hỏi</div><div class="text-[10px] text-gray-500 font-normal">Thêm & tra cứu</div></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="heroModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[95] flex items-center justify-center bg-gray-900 bg-opacity-60 px-4">
         <div class="modal-content bg-white w-full max-w-2xl rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]">
             <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-primary-50 rounded-t-2xl">
@@ -3205,6 +3388,80 @@
     </script>
     
 
+    <!-- ================= MODAL: THÔNG TIN CƠ BẢN LỚP HỌC (NÚT CHỮ I) ================= -->
+    <div id="classQuickInfoModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[98] flex items-center justify-center bg-gray-900/60 backdrop-blur-xs px-3 sm:px-4 transition-opacity duration-300">
+        <div class="modal-content bg-white dark:bg-[#1a1726] w-full max-w-md rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 overflow-hidden border border-purple-100 dark:border-[#38344D]">
+            <!-- Header -->
+            <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gradient-to-r from-purple-50/80 via-indigo-50/50 to-white dark:from-purple-950/30 dark:to-[#1a1726]">
+                <div class="flex items-center gap-3">
+                    <div id="quickInfoClassIcon" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center font-black text-sm shadow-xs">
+                        10
+                    </div>
+                    <div>
+                        <h3 id="quickInfoClassName" class="font-black text-gray-800 dark:text-white text-base">Tên Lớp Học</h3>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400">Thông tin cơ bản lớp học</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.closeClassQuickInfoModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg cursor-pointer">
+                    <i class="fa-solid fa-times text-base"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-4 sm:p-5 space-y-3.5 text-xs">
+                <!-- Mã lớp / ID có nút copy -->
+                <div class="p-3 rounded-xl bg-gray-50 dark:bg-[#201d30] border border-gray-200/80 dark:border-gray-800 flex items-center justify-between gap-2">
+                    <div class="overflow-hidden">
+                        <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider block">Mã định danh lớp (Class ID)</span>
+                        <span id="quickInfoClassId" class="font-mono font-bold text-indigo-700 dark:text-indigo-400 text-xs truncate block">cl_...</span>
+                    </div>
+                    <button type="button" id="btnCopyQuickClassId" onclick="window.copyCurrentQuickClassId()" class="px-2.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-gray-100 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-200 dark:border-gray-700 font-bold text-[11px] shadow-2xs transition flex items-center gap-1 shrink-0 cursor-pointer">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Sao chép</span>
+                    </button>
+                </div>
+
+                <!-- Lưới thông tin: Sĩ số, Niên khóa, Bảo mật, Giáo viên -->
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div class="p-3 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/30">
+                        <span class="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 block mb-0.5">Sĩ số học sinh</span>
+                        <p id="quickInfoStudentCount" class="text-base font-black text-gray-800 dark:text-white">0 học sinh</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30">
+                        <span class="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 block mb-0.5">Niên khóa / Năm học</span>
+                        <p id="quickInfoAcademicYear" class="text-base font-black text-gray-800 dark:text-white">2026-2027</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50/70 dark:bg-[#201d30]/70 border border-gray-100 dark:border-gray-800">
+                        <span class="text-gray-500 dark:text-gray-400 font-medium">Chống chụp màn hình:</span>
+                        <span id="quickInfoAntiScreenshot" class="font-bold">--</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50/70 dark:bg-[#201d30]/70 border border-gray-100 dark:border-gray-800">
+                        <span class="text-gray-500 dark:text-gray-400 font-medium">Giáo viên quản lý:</span>
+                        <span id="quickInfoTeacherEmail" class="font-bold text-gray-800 dark:text-gray-200 truncate max-w-[200px]">--</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-gray-50/70 dark:bg-[#201d30]/70 border border-gray-100 dark:border-gray-800">
+                        <span class="text-gray-500 dark:text-gray-400 font-medium">Ngày tạo:</span>
+                        <span id="quickInfoCreatedAt" class="font-mono text-gray-600 dark:text-gray-300">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-end gap-2 bg-gray-50/50 dark:bg-[#171422]">
+                <button type="button" onclick="window.closeClassQuickInfoModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl text-xs transition cursor-pointer">
+                    Đóng
+                </button>
+                <button type="button" id="btnQuickInfoEnterClass" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                    <span>Vào Lớp Học</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ================= MODAL: QUẢN LÝ TÀI KHOẢN & PHÂN QUYỀN HỆ THỐNG ================= -->
     <div id="adminRoleModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[95] flex items-center justify-center bg-gray-900 bg-opacity-60 px-3 md:px-4 transition-opacity duration-300">
         <div class="modal-content bg-white w-full max-w-5xl rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 max-h-[92vh] flex flex-col overflow-hidden border border-purple-100 dark:border-[#38344D]">
@@ -3257,11 +3514,16 @@
                 <!-- Thanh công cụ: Tabs phân loại + Tìm kiếm + Nút thêm -->
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white dark:bg-[#1a1726] p-2.5 rounded-xl border border-gray-200 dark:border-[#38344D] shadow-2xs">
                     <!-- Segmented Tabs -->
-                    <div class="inline-flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300">
+                    <div class="inline-flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 flex-wrap gap-1">
                         <button type="button" id="adminTabTeachers" onclick="window.switchAdminTab('teachers')" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 bg-white text-purple-700 shadow-2xs font-extrabold cursor-pointer">
                             <i class="fa-solid fa-chalkboard-user"></i>
                             <span>Giáo viên & Quản trị</span>
                             <span id="tabCountTeachers" class="px-1.5 py-0.2 text-[10px] rounded-full bg-purple-100 text-purple-700 font-black">0</span>
+                        </button>
+                        <button type="button" id="adminTabTeacherRequests" onclick="window.switchAdminTab('requests')" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">
+                            <i class="fa-solid fa-graduation-cap text-indigo-500"></i>
+                            <span>Gói GV & Đơn Đăng Ký</span>
+                            <span id="tabCountTeacherRequests" class="px-1.5 py-0.2 text-[10px] rounded-full bg-indigo-100 text-indigo-700 font-black">0</span>
                         </button>
                         <button type="button" id="adminTabRoot" onclick="window.switchAdminTab('root')" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer">
                             <i class="fa-solid fa-crown text-amber-500"></i>
@@ -3274,8 +3536,8 @@
                         </button>
                     </div>
 
-                    <!-- Search & Add Button -->
-                    <div class="flex items-center gap-2 flex-1 sm:justify-end">
+                    <!-- Search & Add Button (Cho tab Quản trị viên) -->
+                    <div id="adminSearchAndAddBox" class="flex items-center gap-2 flex-1 sm:justify-end">
                         <div class="relative flex-1 sm:max-w-xs">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
                             <input type="text" id="adminSearchInput" oninput="window.filterAdminList()" placeholder="Tìm theo tên, email..." class="w-full pl-8 pr-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-xs outline-none focus:border-purple-500 transition-all bg-gray-50 focus:bg-white dark:bg-gray-800 dark:focus:bg-gray-800">
@@ -3287,35 +3549,389 @@
                     </div>
                 </div>
 
-                <!-- Banner thông báo khi ở Tab Root Admin -->
-                <div id="adminRootNoticeBox" class="hidden p-3 rounded-xl border border-amber-200 bg-amber-50/70 dark:bg-amber-950/20 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2.5">
-                    <i class="fa-solid fa-shield-halved text-amber-500 text-base shrink-0"></i>
-                    <div>
-                        <b>3 Tài khoản Root Super Admin tối cao:</b> Đây là các tài khoản cốt lõi sáng lập và vận hành hệ thống, luôn giữ toàn quyền vĩnh viễn và không thể bị chỉnh sửa hoặc xóa từ giao diện quản trị để phòng ngừa rủi ro mất quyền kiểm soát.
+                <!-- KHỐI 1: DANH SÁCH TÀI KHOẢN QUẢN TRỊ (HIỂN THỊ KHI Ở TAB TEACHERS / ROOT / ALL) -->
+                <div id="adminAccountsMainSection" class="space-y-3">
+                    <!-- Banner thông báo khi ở Tab Root Admin -->
+                    <div id="adminRootNoticeBox" class="hidden p-3 rounded-xl border border-amber-200 bg-amber-50/70 dark:bg-amber-950/20 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2.5">
+                        <i class="fa-solid fa-shield-halved text-amber-500 text-base shrink-0"></i>
+                        <div>
+                            <b>3 Tài khoản Root Super Admin tối cao:</b> Đây là các tài khoản cốt lõi sáng lập và vận hành hệ thống, luôn giữ toàn quyền vĩnh viễn và không thể bị chỉnh sửa hoặc xóa từ giao diện quản trị để phòng ngừa rủi ro mất quyền kiểm soát.
+                        </div>
+                    </div>
+
+                    <!-- Bảng danh sách Quản trị viên -->
+                    <div class="bg-white dark:bg-[#1a1726] rounded-xl border border-gray-200 dark:border-[#38344D] overflow-hidden shadow-2xs">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse min-w-[650px]">
+                                <thead>
+                                    <tr class="bg-gray-50 dark:bg-[#201d30] text-gray-600 dark:text-gray-300 font-bold uppercase text-[11px] border-b border-gray-200 dark:border-[#38344D]">
+                                        <th class="py-2.5 px-3 pl-4">Nhân Sự Quản Trị</th>
+                                        <th class="py-2.5 px-3 text-center">Vai Trò</th>
+                                        <th class="py-2.5 px-3">Quyền Hạn Được Cấp</th>
+                                        <th class="py-2.5 px-3 text-center">Trạng Thái</th>
+                                        <th class="py-2.5 px-3 text-right pr-4">Thao Tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminAccountsTableBody" class="divide-y divide-gray-100 dark:divide-[#2d2940]">
+                                    <tr>
+                                        <td colspan="5" class="py-8 text-center text-gray-400">
+                                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải danh sách...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Bảng danh sách Quản trị viên -->
-                <div class="bg-white dark:bg-[#1a1726] rounded-xl border border-gray-200 dark:border-[#38344D] overflow-hidden shadow-2xs">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs border-collapse min-w-[650px]">
-                            <thead>
-                                <tr class="bg-gray-50 dark:bg-[#201d30] text-gray-600 dark:text-gray-300 font-bold uppercase text-[11px] border-b border-gray-200 dark:border-[#38344D]">
-                                    <th class="py-2.5 px-3 pl-4">Nhân Sự Quản Trị</th>
-                                    <th class="py-2.5 px-3 text-center">Vai Trò</th>
-                                    <th class="py-2.5 px-3">Quyền Hạn Được Cấp</th>
-                                    <th class="py-2.5 px-3 text-center">Trạng Thái</th>
-                                    <th class="py-2.5 px-3 text-right pr-4">Thao Tác</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminAccountsTableBody" class="divide-y divide-gray-100 dark:divide-[#2d2940]">
-                                <tr>
-                                    <td colspan="5" class="py-8 text-center text-gray-400">
-                                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải danh sách...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <!-- KHỐI 2: CẤU HÌNH GÓI GIÁO VIÊN & DUYỆT ĐƠN ĐĂNG KÝ (HIỂN THỊ KHI Ở TAB REQUESTS) -->
+                <div id="adminTeacherRequestsSection" class="hidden space-y-4">
+                    <!-- Card A: Cài đặt gói đăng ký & Ưu đãi Giáo viên -->
+                    <div class="bg-white dark:bg-[#1a1726] p-4 sm:p-5 rounded-xl border border-indigo-100 dark:border-indigo-900/40 shadow-2xs space-y-3">
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                                    <i class="fa-solid fa-sliders"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-800 dark:text-white text-sm">Cài Đặt Gói Đăng Ký Giáo Viên & Ưu Đãi</h4>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400">Học sinh / Khách sẽ thấy số tiền và các ưu đãi này khi bấm nút "Đăng ký làm giáo viên"</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="window.saveTeacherPackageConfig()" id="btnSaveTeacherPkgCfg" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-floppy-disk"></i> Lưu Cấu Hình Gói
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Mức phí nâng cấp (VNĐ) (*)</label>
+                                <div class="relative">
+                                    <input type="number" id="cfgTeacherPackagePrice" value="500000" min="0" step="10000" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-gray-50 focus:bg-white dark:bg-gray-800 outline-none focus:border-indigo-500">
+                                    <span class="absolute right-3 top-2 text-[11px] font-bold text-gray-400 pointer-events-none">VNĐ</span>
+                                </div>
+                                <p class="text-[10px] text-gray-400 mt-0.5">Đặt = 0 nếu muốn tặng miễn phí</p>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Chu kỳ sử dụng</label>
+                                <select id="cfgTeacherPackagePeriod" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-50 focus:bg-white dark:bg-gray-800 outline-none focus:border-indigo-500 cursor-pointer">
+                                    <option value="lifetime">Trọn đời (Vĩnh viễn)</option>
+                                    <option value="yearly">1 Năm (12 tháng)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Tiêu đề gói hiển thị</label>
+                                <input type="text" id="cfgTeacherPackageTitle" value="GÓI TÀI KHOẢN GIÁO VIÊN TOÀN NĂNG" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-800 dark:text-white bg-gray-50 focus:bg-white dark:bg-gray-800 outline-none focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Danh sách đặc quyền / ưu đãi hiển thị cho học sinh (Mỗi dòng 1 ưu đãi):</label>
+                            <textarea id="cfgTeacherPackageFeatures" rows="5" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-xs text-gray-800 dark:text-gray-200 bg-gray-50 focus:bg-white dark:bg-gray-800 outline-none focus:border-indigo-500 leading-relaxed font-sans"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Card B: Cài Đặt Phân Quyền & Khóa Học Cấp Phép Mặc Định Cho Giáo Viên / Admin -->
+                    <div class="bg-white dark:bg-[#1a1726] p-4 sm:p-5 rounded-xl border border-purple-100 dark:border-purple-900/40 shadow-2xs space-y-3">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pb-2.5 border-b border-gray-100 dark:border-gray-800">
+                            <!-- 2 Sub-Tabs bên trái -->
+                            <div class="flex items-center gap-1">
+                                <button type="button" id="cfgSubTabBtnPerms" onclick="window.switchCfgDefaultSubTab('perms')" class="admin-subtab-btn active py-1 px-3 text-xs font-bold rounded-lg cursor-pointer">
+                                    <i class="fa-solid fa-list-check mr-1.5"></i>
+                                    <span>1. Quyền Chức Năng (22)</span>
+                                </button>
+                                <button type="button" id="cfgSubTabBtnCourses" onclick="window.switchCfgDefaultSubTab('courses')" class="admin-subtab-btn py-1 px-3 text-xs font-bold rounded-lg cursor-pointer">
+                                    <i class="fa-solid fa-graduation-cap mr-1.5"></i>
+                                    <span>2. Khóa Học Cấp Phép</span>
+                                    <span id="cfgDefaultCourseBadge" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">Tất cả (*)</span>
+                                </button>
+                            </div>
+
+                            <!-- Các nút Preset nhanh bên phải -->
+                            <div class="flex items-center gap-1 flex-wrap justify-end">
+                                <span class="text-[10px] font-bold text-gray-400 dark:text-gray-400 mr-0.5">Gói nhanh:</span>
+                                <button type="button" onclick="window.applyDefaultPackagePreset('teacher_full')" class="px-2 py-0.5 bg-teal-50 hover:bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 text-[10px] font-bold rounded-md border border-teal-200 dark:border-teal-800 transition cursor-pointer">🎓 GV Toàn Năng</button>
+                                <button type="button" onclick="window.applyDefaultPackagePreset('teacher_basic')" class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 text-[10px] font-bold rounded-md border border-blue-200 dark:border-blue-800 transition cursor-pointer">✏️ Cơ Bản</button>
+                                <button type="button" onclick="window.applyDefaultPackagePreset('assistant')" class="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 text-[10px] font-bold rounded-md border border-purple-200 dark:border-purple-800 transition cursor-pointer">👩‍🏫 Trợ Giảng</button>
+                                <button type="button" onclick="window.applyDefaultPackagePreset('all')" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 text-[10px] font-bold rounded-md border border-slate-300 dark:border-slate-600 transition cursor-pointer">Tất cả</button>
+                                <button type="button" onclick="window.applyDefaultPackagePreset('none')" class="px-2 py-0.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-300 text-[10px] font-bold rounded-md border border-red-200 dark:border-red-800 transition cursor-pointer">Bỏ hết</button>
+                            </div>
+                        </div>
+
+                        <!-- SUB-TAB 1: 22 QUYỀN HẠN ĐẦY ĐỦ (3 CỘT KHỚP HOÀN TOÀN 7 NHÓM) -->
+                        <div id="cfgDefaultTabContentPerms">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 items-start">
+                                <!-- CỘT 1: LỚP HỌC & ĐỀ THI RIÊNG (8 quyền) -->
+                                <div class="space-y-2">
+                                    <!-- 1. Quản lý Lớp & Học sinh (3) -->
+                                    <div class="admin-perm-group p-2.5 space-y-1 rounded-xl">
+                                        <div class="text-[11px] font-bold text-teal-800 dark:text-teal-300 flex items-center justify-between pb-1 border-b border-teal-100 dark:border-teal-900/40">
+                                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-users-rectangle text-teal-600 text-xs"></i> 1. Lớp Học & HS Riêng</span>
+                                            <span class="text-[9px] bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 px-1 rounded font-bold">Kho riêng</span>
+                                        </div>
+                                        <div class="space-y-0.5 text-[11px]">
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-teal-600" value="classes.view">
+                                                <span>Xem danh sách lớp của mình</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-teal-600" value="classes.manage">
+                                                <span>Tạo mới & Đổi tên lớp học</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-teal-600" value="students.manage">
+                                                <span>Thêm HS, nhập/xuất Excel</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 2. Kho Đề thi riêng của GV (5) -->
+                                    <div class="admin-perm-group p-2.5 space-y-1 rounded-xl">
+                                        <div class="text-[11px] font-bold text-blue-800 dark:text-blue-300 flex items-center justify-between pb-1 border-b border-blue-100 dark:border-blue-900/40">
+                                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-folder-open text-blue-600 text-xs"></i> 2. Đề Thi Riêng Của GV</span>
+                                            <span class="text-[9px] bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-1 rounded font-bold">Cá nhân</span>
+                                        </div>
+                                        <div class="space-y-0.5 text-[11px]">
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-blue-600" value="exams.create">
+                                                <span>Soạn đề mới (TN, Tự luận)</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-blue-600" value="exams.assign">
+                                                <span>Giao bài tập cho HS / lớp</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-blue-600" value="exams.grade">
+                                                <span>Chấm bài, chữa bài & nhận xét</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-blue-600" value="exams.manage_own">
+                                                <span>Sửa đề, tạo thư mục trong kho</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-950/40">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-red-600" value="exams.delete_own">
+                                                <span>⚠️ Xóa đề / thư mục riêng</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- CỘT 2: HỌC LIỆU & BÀI GIẢNG DÙNG CHUNG (6 quyền) -->
+                                <div class="space-y-2">
+                                    <!-- 3. Ngân hàng đề hệ thống (2) -->
+                                    <div class="admin-perm-group p-2.5 space-y-1 rounded-xl">
+                                        <div class="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center justify-between pb-1 border-b border-amber-100 dark:border-amber-900/40">
+                                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-crown text-amber-500 text-xs"></i> 3. Ngân Hàng Đề Chung</span>
+                                            <span class="text-[9px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1 rounded font-bold">Dùng chung</span>
+                                        </div>
+                                        <div class="space-y-0.5 text-[11px]">
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded font-medium hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-amber-600" value="bank.use_shared">
+                                                <span>🌐 Xem & Giao đề hệ thống</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-950/40">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-red-600" value="bank.manage_system">
+                                                <span>⚠️ Sửa / Xóa đề hệ thống</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 4. Khóa học & Bài giảng (3) -->
+                                    <div class="admin-perm-group p-2.5 space-y-1 rounded-xl">
+                                        <div class="text-[11px] font-bold text-indigo-800 dark:text-indigo-300 flex items-center justify-between pb-1 border-b border-indigo-100 dark:border-indigo-900/40">
+                                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-layer-group text-indigo-600 text-xs"></i> 4. Khóa Học & Bài Giảng</span>
+                                        </div>
+                                        <div class="space-y-0.5 text-[11px]">
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded font-medium hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-indigo-600" value="courses.use">
+                                                <span>📚 Dạy & Gán khóa học cho HS</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-indigo-600" value="courses.manage">
+                                                <span>Tạo mới & Sửa khóa học / giá</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-950/40">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-red-600" value="courses.delete">
+                                                <span>⚠️ Xóa khóa học</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 5. Sách Số Hóa & Xưởng Chuyên Đề (2) -->
+                                    <div class="admin-perm-group p-2.5 space-y-1 rounded-xl">
+                                        <div class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-between pb-1 border-b border-emerald-100 dark:border-emerald-900/40">
+                                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-book-journal-whills text-emerald-600 text-xs"></i> 5. Sách & Chuyên Đề</span>
+                                        </div>
+                                        <div class="space-y-0.5 text-[11px]">
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-emerald-600" value="books.create">
+                                                <span>📖 Biên soạn và số hóa sách</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-rose-600" value="topics.use">
+                                                <span>🧩 Khai thác Xưởng Chuyên Đề</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- CỘT 3: AI, ĐƠN HÀNG & QUẢN TRỊ (7 quyền) -->
+                                <div class="space-y-2">
+                                    <!-- 6. Trí Tuệ Nhân Tạo AI (2) -->
+                                    <div class="admin-perm-group p-2.5 space-y-1 rounded-xl">
+                                        <div class="text-[11px] font-bold text-purple-800 dark:text-purple-300 flex items-center justify-between pb-1 border-b border-purple-100 dark:border-purple-900/40">
+                                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-robot text-purple-600 text-xs"></i> 6. Trí Tuệ Nhân Tạo (AI)</span>
+                                        </div>
+                                        <div class="space-y-0.5 text-[11px]">
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded font-medium hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-purple-600" value="ai.use">
+                                                <span>🤖 Dùng AI (API Key riêng GV)</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-950/40">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-red-600" value="ai.manage">
+                                                <span>⚠️ Quản trị API Key AI tổng</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 7. Đơn hàng, Voucher & Quản trị (5) -->
+                                    <div class="admin-perm-group p-2.5 space-y-1 rounded-xl">
+                                        <div class="text-[11px] font-bold text-gray-800 dark:text-gray-200 flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
+                                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-credit-card text-gray-600 text-xs"></i> 7. Đơn Hàng & Quản Trị</span>
+                                        </div>
+                                        <div class="space-y-0.5 text-[11px]">
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-purple-600" value="orders.view">
+                                                <span>Xem đơn hàng & GHN</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-purple-600" value="orders.process">
+                                                <span>Duyệt đơn hàng & Vận đơn</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-purple-600" value="vouchers.manage">
+                                                <span>Quản lý Voucher khuyến mãi</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-950/40">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-red-600" value="finance.manage">
+                                                <span>💳 Cấu hình Thanh toán VietQR</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-950/40">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-red-600" value="admin.manage">
+                                                <span>👑 Quản trị phân quyền Admin</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded text-rose-600 dark:text-rose-400 font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/40">
+                                                <input type="checkbox" class="cfg-default-perm-chk accent-rose-600" value="security.anti_screenshot">
+                                                <span>🛡️ Cấu hình Chống Chụp Màn Hình</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SUB-TAB 2: PHÂN BỔ KHÓA HỌC CẤP PHÉP MẶC ĐỊNH CHO GIÁO VIÊN -->
+                        <div id="cfgDefaultTabContentCourses" class="hidden space-y-3">
+                            <div class="p-3 bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/40 rounded-xl text-xs space-y-1 text-purple-900 dark:text-purple-200">
+                                <div class="font-bold flex items-center gap-1.5">
+                                    <i class="fa-solid fa-circle-info text-purple-600"></i>
+                                    <span>Cấp quyền sử dụng khóa học & học liệu số cho Giáo viên:</span>
+                                </div>
+                                <p class="text-[11px] leading-relaxed text-gray-600 dark:text-gray-300">
+                                    Giáo viên sẽ được phép xem giáo án, lấy đề thi/quiz từ những khóa học được cấp phép dưới đây để giảng dạy hoặc gán khóa học đó cho học sinh trong các lớp của mình.
+                                </p>
+                            </div>
+
+                            <!-- Chọn chế độ cấp khóa học -->
+                            <div class="p-3 bg-gray-50/80 dark:bg-[#242033] rounded-xl border border-gray-200 dark:border-[#38344D] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                <div class="flex items-center gap-4 text-xs font-bold">
+                                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                                        <input type="radio" name="cfgCourseScopeChoice" id="cfgCourseScopeAll" value="all" onchange="window.handleCfgCourseScopeChange('all')" checked class="accent-purple-600">
+                                        <span class="text-purple-700 dark:text-purple-300">🌐 Toàn bộ khóa học (Bao gồm khóa tạo mới sau này)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                                        <input type="radio" name="cfgCourseScopeChoice" id="cfgCourseScopeCustom" value="custom" onchange="window.handleCfgCourseScopeChange('custom')" class="accent-purple-600">
+                                        <span class="text-gray-700 dark:text-gray-300">🎯 Chỉ định các khóa học cụ thể</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Khối danh sách khóa học -->
+                            <div id="cfgCourseListContainer" class="space-y-2">
+                                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                                    <div class="relative flex-1">
+                                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                        <input type="text" id="cfgDefaultCourseSearch" oninput="window.filterCfgDefaultCourses()" placeholder="Tìm khóa học theo tên, khối lớp..." class="w-full pl-9 pr-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-xs outline-none focus:border-purple-500 transition-all bg-gray-50 focus:bg-white dark:bg-gray-800 dark:focus:bg-gray-900">
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="window.toggleAllCfgDefaultCourses(true)" class="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 text-xs font-bold rounded-lg border border-purple-200 dark:border-purple-800 transition cursor-pointer">
+                                            <i class="fa-solid fa-check-double mr-1"></i> Chọn tất cả
+                                        </button>
+                                        <button type="button" onclick="window.toggleAllCfgDefaultCourses(false)" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-300 text-xs font-bold rounded-lg transition cursor-pointer">
+                                            <i class="fa-solid fa-ban mr-1"></i> Bỏ chọn
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Lưới danh sách khóa học cấp phép -->
+                                <div id="cfgDefaultCoursesCheckboxList" class="max-h-64 overflow-y-auto custom-scrollbar border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 bg-gray-50/50 dark:bg-gray-900/30 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                    <div class="col-span-full py-6 text-center text-xs text-gray-400 font-medium">
+                                        <i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Đang tải danh sách khóa học...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thanh nút Lưu cấu hình dưới đáy Card B -->
+                        <div class="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between flex-wrap gap-2">
+                            <div class="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                <i class="fa-solid fa-shield-halved text-purple-600"></i>
+                                <span>Cấu hình quyền & khóa học mặc định được tự động áp dụng cho giáo viên mới kích hoạt.</span>
+                            </div>
+                            <button type="button" onclick="window.saveTeacherPackageConfig()" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-floppy-disk"></i> Lưu Toàn Bộ Cấu Hình Quyền & Khóa Học
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card C: Danh sách Đơn đăng ký Giáo viên & Nút duyệt tay -->
+                    <div class="bg-white dark:bg-[#1a1726] rounded-xl border border-gray-200 dark:border-[#38344D] overflow-hidden shadow-2xs">
+                        <div class="p-3.5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between flex-wrap gap-2">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-indigo-600 text-sm"></i>
+                                <span class="font-black text-gray-800 dark:text-white text-xs uppercase tracking-wide">Danh Sách Yêu Cầu Nâng Cấp Giáo Viên</span>
+                                <span id="teacherOrdersBadgeCount" class="px-2 py-0.5 text-[10px] rounded-full bg-indigo-100 text-indigo-700 font-bold">0 đơn</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <select id="filterTeacherOrderStatus" onchange="window.filterTeacherOrders(this.value)" class="text-xs px-2.5 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none cursor-pointer">
+                                    <option value="all">Tất cả trạng thái</option>
+                                    <option value="pending">⏳ Chờ thanh toán</option>
+                                    <option value="completed">✅ Đã hoàn thành</option>
+                                </select>
+                                <button type="button" onclick="window.loadTeacherOrdersList()" class="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-bold transition cursor-pointer" title="Làm mới danh sách">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse min-w-[700px]">
+                                <thead>
+                                    <tr class="bg-gray-50 dark:bg-[#201d30] text-gray-600 dark:text-gray-300 font-bold uppercase text-[11px] border-b border-gray-200 dark:border-[#38344D]">
+                                        <th class="py-2.5 px-3 pl-4">Thầy / Cô Đăng Ký</th>
+                                        <th class="py-2.5 px-3">Mã Đơn / Nội Dung CK</th>
+                                        <th class="py-2.5 px-3 text-right">Số Tiền</th>
+                                        <th class="py-2.5 px-3 text-center">Thời Gian</th>
+                                        <th class="py-2.5 px-3 text-center">Trạng Thái</th>
+                                        <th class="py-2.5 px-3 text-right pr-4">Thao Tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teacherOrdersTableBody" class="divide-y divide-gray-100 dark:divide-[#2d2940]">
+                                    <tr>
+                                        <td colspan="6" class="py-8 text-center text-gray-400">
+                                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải danh sách đơn đăng ký...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3486,7 +4102,7 @@
                         <div class="flex items-center gap-1">
                             <button type="button" id="subTabBtnPerms" onclick="window.switchAdminModalSubTab('perms')" class="admin-subtab-btn active py-1 px-2.5 text-xs font-bold rounded-lg">
                                 <i class="fa-solid fa-list-check mr-1.5"></i>
-                                <span>1. Quyền Chức Năng (22)</span>
+                                <span>1. Quyền Chức Năng (23)</span>
                             </button>
                             <button type="button" id="subTabBtnCourses" onclick="window.switchAdminModalSubTab('courses')" class="admin-subtab-btn py-1 px-2.5 text-xs font-bold rounded-lg">
                                 <i class="fa-solid fa-graduation-cap mr-1.5"></i>
@@ -3605,15 +4221,19 @@
                                     </div>
                                 </div>
 
-                                <!-- 5. Sách Số Hóa (1) -->
+                                <!-- 5. Sách Số Hóa & Xưởng Chuyên Đề (2) -->
                                 <div class="admin-perm-group p-2.5 space-y-1 rounded-xl">
                                     <div class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-between pb-1 border-b border-emerald-100 dark:border-emerald-900/40">
-                                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-book-journal-whills text-emerald-600 text-xs"></i> 5. Sách Số Hóa (TeX)</span>
+                                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-book-journal-whills text-emerald-600 text-xs"></i> 5. Sách & Chuyên Đề</span>
                                     </div>
                                     <div class="space-y-0.5 text-[11px]">
                                         <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
                                             <input type="checkbox" class="perm-chk accent-emerald-600" value="books.create">
                                             <span>📖 Biên soạn và số hóa sách</span>
+                                        </label>
+                                        <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">
+                                            <input type="checkbox" class="perm-chk accent-rose-600" value="topics.use">
+                                            <span>🧩 Khai thác Xưởng Chuyên Đề</span>
                                         </label>
                                     </div>
                                 </div>
@@ -4112,7 +4732,7 @@
 
         import { 
             initializeApp, deleteApp, getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, updatePassword,
-            getFirestore, doc, getDoc, getDocFromCache, setDoc, collection, addDoc, query, where, orderBy, getDocs, updateDoc, deleteDoc, arrayUnion, limit, enableMultiTabIndexedDbPersistence, onSnapshot, increment,
+            getFirestore, doc, getDoc, getDocFromCache, setDoc, collection, addDoc, query, where, orderBy, getDocs, updateDoc, deleteDoc, arrayUnion, arrayRemove, limit, enableMultiTabIndexedDbPersistence, onSnapshot, increment,
             getStorage, ref, deleteObject, getFunctions, httpsCallable, supabase, DEFAULT_ADMIN
         } from "./supabase-db-compat.js?v=27";
         import { DEFAULT_QPOINT_PACKAGES, getQPointConfig, getStudentQPointTransactions } from "./qpoint.js?v=30";
@@ -4297,32 +4917,82 @@
         };
 
         window._moduleSwitchView = (viewName, pushHistory = true) => {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            // Chặn Giáo viên truy cập Quản lý QPoint (Chỉ Super Admin)
+            if (viewName === 'qpoint' && typeof window.checkIsSuperAdmin === 'function' && !window.checkIsSuperAdmin()) {
+                if (window.showNotification) {
+                    window.showNotification("⛔ Chỉ Super Admin mới có quyền truy cập Quản lý QPoint!", "warning");
+                } else {
+                    alert("⛔ Chỉ Super Admin mới có quyền truy cập Quản lý QPoint!");
+                }
+                viewName = 'home';
+            }
+            // Ẩn tất cả view trước rồi mới hiện target (chuẩn student.html, tránh chớp nháy reflow)
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.add('hidden');
+            });
             const target = document.getElementById(`view-${viewName}`);
-            if(target) target.classList.remove('hidden');
+            if (target) target.classList.remove('hidden');
+
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             const activeNav = document.getElementById(`nav-${viewName}`);
             if(activeNav) activeNav.classList.add('active');
 
-            // Tự động đóng sidebar trên mobile khi chuyển tab
-            if (window.innerWidth < 768 && window.closeSidebar) {
-                window.closeSidebar();
+            // Cập nhật tiêu đề hiển thị trên header mobile
+            const viewTitles = {
+                home: 'Sảnh chính',
+                classes: 'Quản lý Lớp học',
+                students: 'Quản lý Học sinh',
+                exambank: 'Ngân hàng Đề thi',
+                questionbank: 'Ngân hàng Câu hỏi',
+                qpoint: 'Quản lý QPoint',
+                reports: 'Quản lý Báo lỗi'
+            };
+            const mobTitle = document.getElementById('mobileViewTitle');
+            if (mobTitle) mobTitle.textContent = viewTitles[viewName] || 'Bảng Quản Trị';
+
+            // Cập nhật trạng thái active thanh Bottom Navigation trên mobile
+            const bottomNavMap = {
+                home: 'bottomNavHome',
+                classes: 'bottomNavClasses',
+                exambank: 'bottomNavExams'
+            };
+            Object.keys(bottomNavMap).forEach(k => {
+                const bEl = document.getElementById(bottomNavMap[k]);
+                if (bEl) {
+                    if (viewName === k) {
+                        bEl.className = "flex flex-col items-center justify-center flex-1 py-1 text-purple-600 dark:text-purple-400 font-black transition-colors cursor-pointer";
+                    } else {
+                        bEl.className = "flex flex-col items-center justify-center flex-1 py-1 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-bold transition-colors cursor-pointer";
+                    }
+                }
+            });
+
+            // Tự động đóng sidebar và quick action sheet trên mobile khi chuyển tab (chỉ khi đang mở)
+            // Dùng rAF để defer sang frame tiếp theo, tránh reflow đồng thời gây nhấp nháy
+            if (window.innerWidth < 768) {
+                requestAnimationFrame(() => {
+                    const sb = document.getElementById('mainSidebar');
+                    if (sb && sb.classList.contains('sidebar-open') && window.closeSidebar) {
+                        window.closeSidebar();
+                    }
+                    const sheet = document.getElementById('mobileQuickActionSheet');
+                    if (sheet && !sheet.classList.contains('pointer-events-none') && window.toggleMobileQuickActionSheet) {
+                        window.toggleMobileQuickActionSheet(false);
+                    }
+                });
             }
-            // Cuộn trang lên đầu khi chuyển tab
+            // Cuộn trang lên đầu tức thì khi chuyển tab để tránh nháy giật layout
             window.scrollTo({ top: 0, behavior: 'instant' });
-            if (target) {
-                target.scrollTop = 0;
-            }
             const mainArea = document.getElementById('mainScrollArea');
-            if (mainArea) {
-                mainArea.scrollTop = 0;
-            }
+            if (mainArea) mainArea.scrollTo({ top: 0, behavior: 'instant' });
 
             if (pushHistory) {
                 const url = new URL(window.location);
-                url.searchParams.set('view', viewName);
-                url.searchParams.delete('id');
-                history.pushState({ view: viewName }, '', url);
+                if (url.searchParams.get('view') !== viewName) {
+                    url.searchParams.set('view', viewName);
+                    url.searchParams.delete('id');
+                    history.pushState({ view: viewName }, '', url);
+                }
             }
 
             // [TỐI ƯU] Tải Ngân hàng đề ngay khi bấm vào tab này (Cache-First)
@@ -4330,9 +5000,11 @@
                 loadFileManager();
             }
 
-            // [TỐI ƯU] Tải Kho câu hỏi (Dùng setTimeout để không làm giật animation chuyển tab)
+            // [TỐI ƯU] Tải Kho câu hỏi tức thì
             if (viewName === 'questionbank') {
-                setTimeout(() => loadQuestionBank(), 300);
+                if (typeof window.loadQuestionBank === 'function') {
+                    window.loadQuestionBank();
+                }
             }
 
             if (viewName === 'students') {
@@ -4355,6 +5027,49 @@
             delete window._pendingViewName;
             window._moduleSwitchView(pending, false);
         }
+
+        window.toggleMobileQuickActionSheet = (force) => {
+            const sheet = document.getElementById('mobileQuickActionSheet');
+            const icon = document.getElementById('quickActionFabIcon');
+            if (!sheet) return;
+            const isOpen = !sheet.classList.contains('pointer-events-none');
+            const nextState = force !== undefined ? force : !isOpen;
+            if (nextState) {
+                sheet.classList.remove('pointer-events-none', 'opacity-0');
+                sheet.classList.add('pointer-events-auto', 'opacity-100');
+                if (icon) icon.style.transform = 'rotate(45deg)';
+            } else {
+                sheet.classList.remove('pointer-events-auto', 'opacity-100');
+                sheet.classList.add('pointer-events-none', 'opacity-0');
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+        };
+
+        window.quickCreateExam = () => {
+            window.toggleMobileQuickActionSheet(false);
+            window.switchView('exambank');
+            setTimeout(() => {
+                const btn = document.getElementById('createExamBtn') || document.querySelector('[onclick*="createExam"]') || document.querySelector('[onclick*="upload"]');
+                if (btn) btn.click();
+            }, 300);
+        };
+
+        window.quickCreateClass = () => {
+            window.toggleMobileQuickActionSheet(false);
+            window.switchView('classes');
+            setTimeout(() => {
+                const btn = document.getElementById('createClassBtn');
+                if (btn) btn.click();
+            }, 300);
+        };
+
+        // Thanh Bottom Navigation luôn cố định hiển thị ở cạnh dưới màn hình mobile
+        const handleMobileBottomNavScroll = () => {
+            const bNav = document.getElementById('mobileBottomNav');
+            if (bNav && bNav.classList.contains('translate-y-full')) {
+                bNav.classList.remove('translate-y-full');
+            }
+        };
 
         window.addEventListener('popstate', (e) => {
             if (e.state) {
@@ -4466,6 +5181,7 @@
             'bank.use_shared', 'bank.manage_system',
             'courses.use', 'courses.manage', 'courses.delete',
             'books.create',
+            'topics.use',
             'ai.use', 'ai.manage',
             'orders.view', 'orders.process', 'orders.delete',
             'vouchers.manage',
@@ -4478,7 +5194,7 @@
             teacher_full: [
                 'classes.view', 'classes.manage', 'students.manage',
                 'exams.create', 'exams.assign', 'exams.grade', 'exams.manage_own', 'exams.delete_own',
-                'bank.use_shared', 'courses.use', 'books.create', 'ai.use', 'security.anti_screenshot',
+                'bank.use_shared', 'courses.use', 'books.create', 'topics.use', 'ai.use', 'security.anti_screenshot',
                 'exams.view', 'courses.view'
             ],
             teacher_basic: [
@@ -4515,6 +5231,23 @@
             if (permCode === 'exams.manage' && perms.includes('exams.manage_own')) return true;
             if (permCode === 'courses.view' && (perms.includes('courses.use') || perms.includes('courses.manage'))) return true;
             if (permCode === 'bank.manage_system' && window.currentAdminProfile.role === 'super_admin') return true;
+
+            // Backward compatibility cho chuỗi phân quyền cũ (legacy)
+            if (perms.includes('view_dashboard')) {
+                if (permCode === 'classes.view' || permCode === 'exams.view' || permCode === 'courses.view') return true;
+            }
+            if (perms.includes('manage_classes')) {
+                if (permCode === 'classes.view' || permCode === 'classes.manage') return true;
+            }
+            if (perms.includes('manage_students') && permCode === 'students.manage') return true;
+            if (perms.includes('create_exam') || perms.includes('manage_exams')) {
+                if (permCode === 'exams.create' || permCode === 'exams.view' || permCode === 'exams.manage_own' || permCode === 'exams.assign' || permCode === 'exams.grade') return true;
+            }
+            if (perms.includes('manage_courses')) {
+                if (permCode === 'courses.use' || permCode === 'courses.view') return true;
+            }
+            if (perms.includes('manage_questions') && permCode === 'bank.use_shared') return true;
+
             return false;
         };
 
@@ -4542,6 +5275,14 @@
         window.applyUIPermissions = () => {
             if (!window.currentAdminProfile) return;
             const isSuper = window.currentAdminProfile.role === 'super_admin';
+
+            // Cập nhật tên và vai trò lên mobile header và banner chào mừng
+            const greetingEl = document.getElementById('homeTeacherGreeting');
+            if (greetingEl) greetingEl.textContent = window.currentAdminProfile.displayName || 'Thầy Cô';
+            const roleBadgeEl = document.getElementById('homeTeacherRoleBadge');
+            if (roleBadgeEl) roleBadgeEl.textContent = isSuper ? '👑 Root Super Admin' : '👨‍🏫 Giáo viên Quản trị';
+            const mobRoleBadge = document.getElementById('mobileRoleBadge');
+            if (mobRoleBadge) mobRoleBadge.textContent = isSuper ? 'Super Admin' : 'Giáo viên';
 
             // Menu Quản trị phân quyền (Chỉ Super Admin hoặc có quyền admin.manage)
             const navAdminRoles = document.getElementById('nav-admin-roles');
@@ -4632,6 +5373,35 @@
             if (navBooks) navBooks.style.display = canBooks ? '' : 'none';
             const homeCardBooks = document.getElementById('home-card-books');
             if (homeCardBooks) homeCardBooks.style.display = canBooks ? '' : 'none';
+
+            // 1. Quản lý QPoint (CHỈ Super Admin - Yêu cầu 3)
+            const navQPoint = document.getElementById('nav-qpoint');
+            if (navQPoint) navQPoint.style.display = isSuper ? '' : 'none';
+            const homeCardQPoint = document.getElementById('home-card-qpoint');
+            if (homeCardQPoint) homeCardQPoint.style.display = isSuper ? '' : 'none';
+
+            // 2. Quản lý Báo lỗi (CHỈ Super Admin - Yêu cầu 3)
+            const navReports = document.getElementById('nav-reports');
+            if (navReports) navReports.style.display = isSuper ? '' : 'none';
+            const btnBankReport = document.getElementById('btnBankReportModal');
+            if (btnBankReport) btnBankReport.style.display = isSuper ? '' : 'none';
+
+            // 3. Quản lý ID (CHỈ Super Admin - Yêu cầu 3)
+            const navMapId = document.getElementById('nav-mapid');
+            if (navMapId) navMapId.style.display = isSuper ? '' : 'none';
+
+            // 4. Sao lưu & Phục hồi hệ thống (CHỈ Super Admin - Yêu cầu 3)
+            const navSystemBackup = document.getElementById('nav-system-backup');
+            if (navSystemBackup) navSystemBackup.style.display = isSuper ? '' : 'none';
+            const btnBankBackup = document.getElementById('btnBankBackupModal');
+            if (btnBankBackup) btnBankBackup.style.display = isSuper ? '' : 'none';
+
+            // 5. Xưởng Chuyên Đề (CHỈ Super Admin hoặc có quyền topics.use - Yêu cầu 3)
+            const canTopics = isSuper || window.hasPermission('topics.use');
+            const navTopicBuilder = document.getElementById('nav-topic-builder');
+            if (navTopicBuilder) navTopicBuilder.style.display = canTopics ? '' : 'none';
+            const homeCardTopics = document.getElementById('home-card-topics');
+            if (homeCardTopics) homeCardTopics.style.display = canTopics ? '' : 'none';
         };
 
         // Hàm nạp danh sách Giáo viên vào các dropdown bộ lọc của Super Admin
@@ -4734,9 +5504,44 @@
                             window.location.href = "index.html";
                             return false;
                         }
+
+                        // Tự động kiểm tra & nâng cấp cấp đủ quyền cho Giáo viên nếu tài khoản bị thiếu quyền hoặc chứa quyền cũ
+                        let perms = Array.isArray(found.permissions) ? [...found.permissions] : [];
+                        const needsUpgrade = perms.length === 0 || 
+                                             perms.includes('view_dashboard') || 
+                                             !perms.includes('classes.view');
+                        if (found.role === 'admin' && needsUpgrade) {
+                            try {
+                                const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config"));
+                                let defPerms = [...(ADMIN_PRESETS.teacher_full || [])];
+                                let defCourses = ['*'];
+                                if (pkgSnap.exists()) {
+                                    const pData = pkgSnap.data();
+                                    if (Array.isArray(pData.defaultPermissions) && pData.defaultPermissions.length > 0) defPerms = pData.defaultPermissions;
+                                    if (Array.isArray(pData.defaultAssignedCourseIds) && pData.defaultAssignedCourseIds.length > 0) defCourses = pData.defaultAssignedCourseIds;
+                                }
+                                perms = Array.from(new Set([...perms.filter(p => !p.includes('_dashboard')), ...defPerms]));
+                                found.permissions = perms;
+                                if (!found.assignedCourseIds || found.assignedCourseIds.length === 0) {
+                                    found.assignedCourseIds = defCourses;
+                                }
+                                // Đồng bộ ngầm lên Firestore admin_roles
+                                (async () => {
+                                    try {
+                                        const idx = accounts.findIndex(a => (a.email || '').toLowerCase() === userEmail);
+                                        if (idx >= 0) {
+                                            accounts[idx] = { ...accounts[idx], permissions: perms, assignedCourseIds: found.assignedCourseIds, updatedAt: new Date().toISOString() };
+                                            await setDoc(cfgRef, { accounts, updatedAt: new Date().toISOString() }, { merge: true });
+                                        }
+                                    } catch(eUp) { console.warn("Lỗi đồng bộ auto-upgrade permissions:", eUp); }
+                                })();
+                            } catch(eUpgrade) {}
+                        }
+
                         window.currentAdminProfile = {
                             id: found.id || user.uid,
                             ...found,
+                            permissions: perms,
                             isRoot: false
                         };
                         try {
@@ -4744,6 +5549,8 @@
                                 role: 'teacher',
                                 email: userEmail,
                                 displayName: window.currentAdminProfile.displayName || user.displayName || userEmail.split('@')[0],
+                                permissions: perms,
+                                assignedCourseIds: found.assignedCourseIds || ['*'],
                                 updatedAt: new Date().toISOString()
                             }, { merge: true });
                         } catch (eU) {}
@@ -4766,9 +5573,18 @@
                         window.location.href = "index.html";
                         return false;
                     }
+
+                    let perms = Array.isArray(data.permissions) ? [...data.permissions] : [];
+                    if (data.role === 'admin' && (perms.length === 0 || perms.includes('view_dashboard') || !perms.includes('classes.view'))) {
+                        perms = Array.from(new Set([...perms.filter(p => !p.includes('_dashboard')), ...(ADMIN_PRESETS.teacher_full || [])]));
+                        data.permissions = perms;
+                        if (!data.assignedCourseIds || data.assignedCourseIds.length === 0) data.assignedCourseIds = ['*'];
+                    }
+
                     window.currentAdminProfile = {
                         id: qSnap.docs[0].id,
                         ...data,
+                        permissions: perms,
                         isRoot: false
                     };
                     try {
@@ -4776,6 +5592,8 @@
                             role: 'teacher',
                             email: userEmail,
                             displayName: window.currentAdminProfile.displayName || user.displayName || userEmail.split('@')[0],
+                            permissions: perms,
+                            assignedCourseIds: data.assignedCourseIds || ['*'],
                             updatedAt: new Date().toISOString()
                         }, { merge: true });
                     } catch (eU) {}
@@ -4923,6 +5741,16 @@
                 const tabAll = document.getElementById('tabCountAll');
                 if (tabAll) tabAll.textContent = accounts.length;
 
+                // Cập nhật số đơn đăng ký giáo viên
+                try {
+                    const qReq = query(collection(db, "orders"), where("orderType", "in", ["teacher_upgrade", "teacher_registration"]));
+                    const snapReq = await getDocs(qReq);
+                    let pendingReq = 0;
+                    snapReq.forEach(d => { if (d.data().status === 'pending') pendingReq++; });
+                    const tabBadge = document.getElementById('tabCountTeacherRequests');
+                    if (tabBadge) tabBadge.textContent = pendingReq > 0 ? `${pendingReq} chờ` : `${snapReq.size}`;
+                } catch(e) {}
+
                 window.filterAdminList();
             } catch (err) {
                 console.error("Lỗi tải danh sách admin:", err);
@@ -4932,14 +5760,29 @@
             }
         };
 
-        window.currentAdminTab = 'teachers'; // 'teachers' | 'root' | 'all'
+        window.currentAdminTab = 'teachers'; // 'teachers' | 'requests' | 'root' | 'all'
+
+        // Mặc định quyền lợi khi nâng cấp làm Giáo viên
+        const DEFAULT_TEACHER_FEATURES = [
+            "✨ Toàn quyền tạo và quản lý lớp học, danh sách học sinh không giới hạn",
+            "📝 Khai thác ngân hàng đề thi chuẩn Bộ GD&ĐT, tự tạo đề trắc nghiệm & tự luận",
+            "⚡ Trợ lý AI thông minh tạo câu hỏi, giải bài tập và xưởng chuyên đề MapID",
+            "📄 Xuất đề thi và phiếu trả lời sang file Word / PDF chuẩn cấu trúc",
+            "📊 Tự động chấm thi, phân tích phổ điểm và xếp loại học sinh theo lớp",
+            "🛡️ Kích hoạt tính năng bảo mật chống gian lận & chống chụp màn hình học liệu",
+            "☁️ Đồng bộ và lưu trữ học liệu không giới hạn trên hệ thống đám mây"
+        ];
 
         window.switchAdminTab = (tab) => {
             window.currentAdminTab = tab;
             const tabTeachers = document.getElementById('adminTabTeachers');
+            const tabRequests = document.getElementById('adminTabTeacherRequests');
             const tabRoot = document.getElementById('adminTabRoot');
             const tabAll = document.getElementById('adminTabAll');
             const rootNotice = document.getElementById('adminRootNoticeBox');
+            const accountsSection = document.getElementById('adminAccountsMainSection');
+            const requestsSection = document.getElementById('adminTeacherRequestsSection');
+            const searchBox = document.getElementById('adminSearchAndAddBox');
 
             const activeBtn = (el) => {
                 if (!el) return;
@@ -4951,8 +5794,24 @@
             };
 
             if (tabTeachers) inactiveBtn(tabTeachers);
+            if (tabRequests) inactiveBtn(tabRequests);
             if (tabRoot) inactiveBtn(tabRoot);
             if (tabAll) inactiveBtn(tabAll);
+
+            if (tab === 'requests') {
+                if (tabRequests) activeBtn(tabRequests);
+                if (rootNotice) rootNotice.classList.add('hidden');
+                if (accountsSection) accountsSection.classList.add('hidden');
+                if (searchBox) searchBox.classList.add('hidden');
+                if (requestsSection) requestsSection.classList.remove('hidden');
+                window.loadTeacherPackageConfig();
+                window.loadTeacherOrdersList();
+                return;
+            }
+
+            if (accountsSection) accountsSection.classList.remove('hidden');
+            if (searchBox) searchBox.classList.remove('hidden');
+            if (requestsSection) requestsSection.classList.add('hidden');
 
             if (tab === 'teachers') {
                 if (tabTeachers) activeBtn(tabTeachers);
@@ -4966,6 +5825,469 @@
             }
 
             window.filterAdminList();
+        };
+
+        // 1. CÁC HÀM XỬ LÝ SUB-TABS VÀ KHÓA HỌC CỦA CẤU HÌNH GÓI GIÁO VIÊN
+        window.switchCfgDefaultSubTab = (tabName) => {
+            const btnPerms = document.getElementById('cfgSubTabBtnPerms');
+            const btnCourses = document.getElementById('cfgSubTabBtnCourses');
+            const contentPerms = document.getElementById('cfgDefaultTabContentPerms');
+            const contentCourses = document.getElementById('cfgDefaultTabContentCourses');
+            if (!btnPerms || !btnCourses || !contentPerms || !contentCourses) return;
+
+            if (tabName === 'courses') {
+                btnCourses.classList.add('active');
+                btnPerms.classList.remove('active');
+                contentCourses.classList.remove('hidden');
+                contentPerms.classList.add('hidden');
+            } else {
+                btnPerms.classList.add('active');
+                btnCourses.classList.remove('active');
+                contentPerms.classList.remove('hidden');
+                contentCourses.classList.add('hidden');
+            }
+        };
+
+        window.updateCfgDefaultCourseBadge = () => {
+            const badge = document.getElementById('cfgDefaultCourseBadge');
+            if (!badge) return;
+            const isAll = document.getElementById('cfgCourseScopeAll')?.checked;
+            if (isAll) {
+                badge.textContent = 'Tất cả (*)';
+                badge.className = 'ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300';
+                return;
+            }
+            const checkedBoxes = document.querySelectorAll('.cfg-default-course-chk:checked');
+            const count = checkedBoxes.length;
+            badge.textContent = `${count} khóa`;
+            if (count > 0) {
+                badge.className = 'ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-purple-600 text-white';
+            } else {
+                badge.className = 'ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+            }
+        };
+
+        window.handleCfgCourseScopeChange = (val) => {
+            if (val === 'all') {
+                document.querySelectorAll('.cfg-default-course-chk').forEach(chk => {
+                    chk.checked = true;
+                });
+            }
+            window.updateCfgDefaultCourseBadge();
+        };
+
+        window.handleCfgCourseCheckboxChange = () => {
+            const totalBoxes = document.querySelectorAll('.cfg-default-course-chk');
+            const checkedBoxes = document.querySelectorAll('.cfg-default-course-chk:checked');
+            const customRadio = document.getElementById('cfgCourseScopeCustom');
+            if (checkedBoxes.length < totalBoxes.length) {
+                if (customRadio) customRadio.checked = true;
+            }
+            window.updateCfgDefaultCourseBadge();
+        };
+
+        window.filterCfgDefaultCourses = () => {
+            const q = (document.getElementById('cfgDefaultCourseSearch')?.value || '').toLowerCase().trim();
+            document.querySelectorAll('.cfg-default-course-card-item').forEach(item => {
+                const title = (item.getAttribute('data-title') || '').toLowerCase();
+                const grade = (item.getAttribute('data-grade') || '').toLowerCase();
+                if (!q || title.includes(q) || grade.includes(q)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        };
+
+        window.toggleAllCfgDefaultCourses = (checkAll) => {
+            const allRadio = document.getElementById('cfgCourseScopeAll');
+            const customRadio = document.getElementById('cfgCourseScopeCustom');
+            if (checkAll) {
+                if (allRadio) allRadio.checked = true;
+            } else {
+                if (customRadio) customRadio.checked = true;
+            }
+            document.querySelectorAll('.cfg-default-course-chk').forEach(chk => {
+                chk.checked = !!checkAll;
+            });
+            window.updateCfgDefaultCourseBadge();
+        };
+
+        window.renderCfgDefaultCoursesCheckboxes = (assignedIds = ['*']) => {
+            const listEl = document.getElementById('cfgDefaultCoursesCheckboxList');
+            if (!listEl) return;
+            const courses = window.allPublicCoursesCache || [];
+            if (courses.length === 0) {
+                listEl.innerHTML = '<div class="col-span-full py-6 text-center text-xs text-gray-400 font-medium">Chưa có khóa học nào trên hệ thống.</div>';
+                window.updateCfgDefaultCourseBadge();
+                return;
+            }
+
+            const safeAssigned = Array.isArray(assignedIds) ? assignedIds : ['*'];
+            const isAll = safeAssigned.includes('*');
+
+            const allRadio = document.getElementById('cfgCourseScopeAll');
+            const customRadio = document.getElementById('cfgCourseScopeCustom');
+            if (isAll) {
+                if (allRadio) allRadio.checked = true;
+            } else {
+                if (customRadio) customRadio.checked = true;
+            }
+
+            listEl.innerHTML = courses.map(c => {
+                const isChecked = isAll || safeAssigned.includes(c.id);
+                const price = c.price ? `${Number(c.price).toLocaleString('vi-VN')}đ` : 'Miễn phí';
+                const title = c.title || 'Khóa học không tên';
+                const grade = c.grade || '';
+                return `
+                    <label data-title="${title.replace(/"/g, '&quot;')}" data-grade="${grade.replace(/"/g, '&quot;')}" class="cfg-default-course-card-item flex items-start gap-2.5 p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#242033] hover:border-purple-300 dark:hover:border-purple-500 hover:bg-purple-50/30 transition cursor-pointer select-none">
+                        <input type="checkbox" onchange="window.handleCfgCourseCheckboxChange()" class="cfg-default-course-chk mt-0.5 accent-purple-600 rounded shrink-0" value="${c.id}" ${isChecked ? 'checked' : ''}>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-bold text-gray-800 dark:text-gray-100 line-clamp-1" title="${title.replace(/"/g, '&quot;')}">${title}</div>
+                            <div class="flex items-center gap-2 mt-1 text-[10px] text-gray-500 dark:text-gray-400">
+                                <span class="font-medium"><i class="fa-solid fa-tag mr-0.5 text-[9px] text-purple-500"></i>${price}</span>
+                                ${grade ? `<span class="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded font-medium">${grade}</span>` : ''}
+                            </div>
+                        </div>
+                    </label>
+                `;
+            }).join('');
+            window.updateCfgDefaultCourseBadge();
+        };
+
+        // 2. TẢI CẤU HÌNH GÓI GIÁO VIÊN
+        window.loadTeacherPackageConfig = async () => {
+            try {
+                const snap = await getDoc(doc(db, "configurations", "teacher_package_config"));
+                let data = null;
+                if (snap.exists()) {
+                    data = snap.data();
+                }
+                const priceEl = document.getElementById('cfgTeacherPackagePrice');
+                const periodEl = document.getElementById('cfgTeacherPackagePeriod');
+                const titleEl = document.getElementById('cfgTeacherPackageTitle');
+                const featEl = document.getElementById('cfgTeacherPackageFeatures');
+
+                if (priceEl) priceEl.value = data?.price !== undefined ? data.price : 500000;
+                if (periodEl) periodEl.value = data?.period || 'lifetime';
+                if (titleEl) titleEl.value = data?.title || 'GÓI TÀI KHOẢN GIÁO VIÊN TOÀN NĂNG';
+                if (featEl) {
+                    const featList = Array.isArray(data?.features) && data.features.length > 0 ? data.features : DEFAULT_TEACHER_FEATURES;
+                    featEl.value = featList.join('\n');
+                }
+
+                // Tải bộ 22 quyền hạn mặc định cho Giáo viên
+                const defaultPerms = Array.isArray(data?.defaultPermissions) && data.defaultPermissions.length > 0
+                    ? data.defaultPermissions
+                    : (ADMIN_PRESETS.teacher_full || []);
+                document.querySelectorAll('.cfg-default-perm-chk').forEach(chk => {
+                    chk.checked = defaultPerms.includes(chk.value);
+                });
+
+                // Tải danh sách khóa học cấp phép mặc định
+                const defaultCourses = Array.isArray(data?.defaultAssignedCourseIds) && data.defaultAssignedCourseIds.length > 0
+                    ? data.defaultAssignedCourseIds
+                    : ['*'];
+                await window.loadAllCoursesForAdminModal();
+                window.renderCfgDefaultCoursesCheckboxes(defaultCourses);
+            } catch (err) {
+                console.warn("Lỗi tải cấu hình gói giáo viên:", err);
+            }
+        };
+
+        // Áp dụng bộ quyền nhanh vào cấu hình mặc định
+        window.applyDefaultPackagePreset = (presetName) => {
+            window.switchCfgDefaultSubTab('perms');
+            const perms = ADMIN_PRESETS[presetName] || [];
+            document.querySelectorAll('.cfg-default-perm-chk').forEach(chk => {
+                chk.checked = (presetName === 'all') ? true : perms.includes(chk.value);
+            });
+            if (window.showNotification) {
+                window.showNotification(`Đã chọn mẫu quyền "${presetName}". Bấm "Lưu Cấu Hình" để áp dụng.`, 'info');
+            }
+        };
+
+        // 3. LƯU CẤU HÌNH GÓI GIÁO VIÊN
+        window.saveTeacherPackageConfig = async () => {
+            const priceVal = parseInt(document.getElementById('cfgTeacherPackagePrice')?.value, 10);
+            const periodVal = document.getElementById('cfgTeacherPackagePeriod')?.value || 'lifetime';
+            const titleVal = (document.getElementById('cfgTeacherPackageTitle')?.value || '').trim() || 'GÓI TÀI KHOẢN GIÁO VIÊN TOÀN NĂNG';
+            const rawFeatures = document.getElementById('cfgTeacherPackageFeatures')?.value || '';
+            const features = rawFeatures.split('\n').map(s => s.trim()).filter(Boolean);
+
+            const checkedPerms = Array.from(document.querySelectorAll('.cfg-default-perm-chk:checked')).map(c => c.value);
+            const defaultPermsToSave = checkedPerms.length > 0 ? checkedPerms : (ADMIN_PRESETS.teacher_full || []);
+
+            // Đọc khóa học cấp phép
+            const isAllCourses = document.getElementById('cfgCourseScopeAll')?.checked;
+            let defaultCoursesToSave = ['*'];
+            if (!isAllCourses) {
+                defaultCoursesToSave = Array.from(document.querySelectorAll('.cfg-default-course-chk:checked')).map(c => c.value);
+            }
+
+            const btnA = document.getElementById('btnSaveTeacherPkgCfg');
+            const btns = document.querySelectorAll('button[onclick*="saveTeacherPackageConfig"]');
+            btns.forEach(b => { b.disabled = true; });
+            const origText = btnA ? btnA.innerHTML : '';
+            if (btnA) btnA.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang lưu...';
+
+            try {
+                const payload = {
+                    price: isNaN(priceVal) ? 500000 : Math.max(0, priceVal),
+                    period: periodVal,
+                    title: titleVal,
+                    features: features.length > 0 ? features : DEFAULT_TEACHER_FEATURES,
+                    defaultPermissions: defaultPermsToSave,
+                    defaultAssignedCourseIds: defaultCoursesToSave,
+                    defaultPreset: 'teacher_full',
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: window.currentAdminProfile?.email || 'admin'
+                };
+                await setDoc(doc(db, "configurations", "teacher_package_config"), payload, { merge: true });
+                window.showNotification("🎉 Đã lưu cấu hình Gói, Phân quyền & Khóa học mặc định thành công!", "success");
+            } catch (err) {
+                console.error("Lỗi lưu cấu hình gói giáo viên:", err);
+                window.showNotification("Lỗi khi lưu cấu hình: " + err.message, "error");
+            } finally {
+                btns.forEach(b => { b.disabled = false; });
+                if (btnA) btnA.innerHTML = origText;
+            }
+        };
+
+        // 3. TẢI DANH SÁCH ĐƠN ĐĂNG KÝ GIÁO VIÊN
+        window.allTeacherOrders = [];
+        window.loadTeacherOrdersList = async () => {
+            const tbody = document.getElementById('teacherOrdersTableBody');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải danh sách đơn đăng ký giáo viên...</td></tr>`;
+            }
+
+            try {
+                let orders = [];
+                try {
+                    const q1 = query(collection(db, "orders"), where("orderType", "in", ["teacher_upgrade", "teacher_registration"]));
+                    const snap1 = await getDocs(q1);
+                    snap1.forEach(d => orders.push({ id: d.id, ...d.data() }));
+                } catch(e) {
+                    try {
+                        const q2 = query(collection(db, "orders"), where("orderType", "==", "teacher_upgrade"));
+                        const snap2 = await getDocs(q2);
+                        snap2.forEach(d => orders.push({ id: d.id, ...d.data() }));
+                    } catch(e2){}
+                }
+
+                orders.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+                window.allTeacherOrders = orders;
+
+                const countBadge = document.getElementById('teacherOrdersBadgeCount');
+                if (countBadge) countBadge.textContent = `${orders.length} đơn`;
+                const tabBadge = document.getElementById('tabCountTeacherRequests');
+                if (tabBadge) {
+                    const pendingCount = orders.filter(o => o.status === 'pending').length;
+                    tabBadge.textContent = pendingCount > 0 ? `${pendingCount} chờ` : `${orders.length}`;
+                }
+
+                const filterStatus = document.getElementById('filterTeacherOrderStatus')?.value || 'all';
+                window.renderTeacherOrdersTable(filterStatus);
+            } catch (err) {
+                console.error("Lỗi tải đơn đăng ký giáo viên:", err);
+                if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Lỗi: ${err.message}</td></tr>`;
+            }
+        };
+
+        window.filterTeacherOrders = (status) => {
+            window.renderTeacherOrdersTable(status);
+        };
+
+        window.renderTeacherOrdersTable = (filterStatus = 'all') => {
+            const tbody = document.getElementById('teacherOrdersTableBody');
+            if (!tbody) return;
+
+            let list = window.allTeacherOrders || [];
+            if (filterStatus !== 'all') {
+                list = list.filter(o => (o.status || 'pending') === filterStatus);
+            }
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Không có đơn đăng ký giáo viên nào trong danh mục này.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map(order => {
+                const isPaid = order.status === 'completed' || order.status === 'success' || order.status === 'approved';
+                const isManual = order.manualApproved === true || order.approvalType === 'manual';
+
+                let statusBadge = '';
+                if (isManual) {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200"><i class="fa-solid fa-user-check"></i> Duyệt tay</span>`;
+                } else if (isPaid) {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200"><i class="fa-solid fa-circle-check"></i> Đã kích hoạt</span>`;
+                } else if (order.manualTransferred) {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 animate-pulse" title="Giáo viên đã xác nhận chuyển khoản, chờ duyệt"><i class="fa-solid fa-receipt"></i> Đã báo CK</span>`;
+                } else {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 animate-pulse"><i class="fa-solid fa-clock"></i> Chờ thanh toán</span>`;
+                }
+
+                const createdStr = order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '---';
+                const amountFormatted = (order.amount || 0).toLocaleString('vi-VN') + ' đ';
+
+                const name = order.userName || order.studentName || 'Chưa đặt tên';
+                const email = order.loginId || order.userEmail || order.email || '';
+                const phone = order.userPhone || order.phone || '';
+
+                return `
+                    <tr class="hover:bg-gray-50/80 dark:hover:bg-[#201d30] transition-colors">
+                        <td class="py-2.5 px-3 pl-4">
+                            <div class="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                                <i class="fa-solid fa-chalkboard-user text-purple-600"></i>
+                                <span>${name}</span>
+                            </div>
+                            <div class="text-[11px] text-gray-500 flex items-center gap-2 mt-0.5 font-mono">
+                                ${email ? `<span><i class="fa-regular fa-envelope text-[10px]"></i> ${email}</span>` : ''}
+                                ${phone ? `<span><i class="fa-solid fa-phone text-[10px]"></i> ${phone}</span>` : ''}
+                            </div>
+                        </td>
+                        <td class="py-2.5 px-3">
+                            <span class="font-mono font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/40">${order.content || order.orderCode || order.id}</span>
+                            <div class="text-[10px] text-gray-400 mt-0.5">${order.orderType === 'teacher_registration' ? 'Đăng ký mới' : 'Nâng cấp từ HS'}</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-right font-black text-rose-600 dark:text-rose-400">
+                            ${amountFormatted}
+                        </td>
+                        <td class="py-2.5 px-3 text-center text-gray-500 font-mono text-[11px]">
+                            ${createdStr}
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            ${statusBadge}
+                        </td>
+                        <td class="py-2.5 px-3 text-right pr-4">
+                            ${!isPaid ? `
+                                <button type="button" onclick="window.manualApproveTeacherOrder('${order.id}')" class="px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg text-xs font-bold shadow-2xs transition flex items-center gap-1 ml-auto cursor-pointer" title="Duyệt tay & cấp quyền Giáo viên tức thì">
+                                    <i class="fa-solid fa-check"></i> <span>Duyệt Ngay</span>
+                                </button>
+                            ` : `
+                                <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-shield-check"></i> Đã cấp quyền
+                                </span>
+                            `}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        // 4. DUYỆT TAY ĐƠN ĐĂNG KÝ GIÁO VIÊN
+        window.manualApproveTeacherOrder = async (orderId) => {
+            const order = (window.allTeacherOrders || []).find(o => o.id === orderId);
+            if (!order) return;
+
+            const name = order.userName || order.userEmail || orderId;
+            const ok = await window.customConfirm(`Xác nhận DUYỆT TAY đơn đăng ký của Thầy/Cô ${name}?\n\nHệ thống sẽ lập tức cấp toàn bộ quyền Giáo viên cho tài khoản này.`);
+            if (!ok) return;
+
+            try {
+                // 1. Cập nhật đơn hàng
+                await updateDoc(doc(db, "orders", orderId), {
+                    status: 'completed',
+                    manualApproved: true,
+                    approvalType: 'manual',
+                    approvedBy: window.currentAdminProfile?.email || 'super_admin',
+                    approvedAt: new Date().toISOString()
+                });
+
+                // 2. Tự động cấp quyền Giáo viên
+                await window.grantTeacherRoleToUser({
+                    userId: order.userId,
+                    email: order.userEmail,
+                    displayName: order.userName,
+                    phone: order.userPhone
+                });
+
+                window.showNotification(`🎉 Đã duyệt và cấp quyền Giáo viên thành công cho ${name}!`, 'success');
+                await window.loadTeacherOrdersList();
+                await window.loadAdminAccountsList();
+            } catch (err) {
+                console.error("Lỗi duyệt tay đơn giáo viên:", err);
+                window.showNotification("Lỗi khi duyệt đơn: " + err.message, "error");
+            }
+        };
+
+        // 5. HÀM TỔNG HỢP CẤP QUYỀN GIÁO VIÊN VÀO HỆ THỐNG RBAC
+        window.grantTeacherRoleToUser = async ({ userId, email, displayName, phone }) => {
+            const userEmail = (email || '').toLowerCase().trim();
+            if (!userEmail && !userId) throw new Error("Thiếu thông tin email hoặc ID người dùng!");
+
+            // Đọc configurations/admin_roles
+            const cfgRef = doc(db, "configurations", "admin_roles");
+            let accounts = [];
+            try {
+                const snap = await getDoc(cfgRef);
+                if (snap.exists()) accounts = snap.data().accounts || [];
+            } catch(e) {}
+
+            const existingIdx = accounts.findIndex(a => 
+                (userEmail && (a.email || '').toLowerCase() === userEmail) || 
+                (userId && a.id === userId)
+            );
+
+            // Đọc cấu hình quyền mặc định và khóa học từ configurations/teacher_package_config
+            let defaultPerms = [...(ADMIN_PRESETS.teacher_full || [])];
+            let defaultAssignedCourses = ['*'];
+            try {
+                const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config"));
+                if (pkgSnap.exists()) {
+                    const pkgData = pkgSnap.data();
+                    if (Array.isArray(pkgData.defaultPermissions) && pkgData.defaultPermissions.length > 0) {
+                        defaultPerms = pkgData.defaultPermissions;
+                    }
+                    if (Array.isArray(pkgData.defaultAssignedCourseIds) && pkgData.defaultAssignedCourseIds.length > 0) {
+                        defaultAssignedCourses = pkgData.defaultAssignedCourseIds;
+                    }
+                }
+            } catch(e) {}
+
+            const teacherAccountRecord = {
+                id: userId || (userEmail ? 'admin_' + userEmail.replace(/[@.]/g, '_') : 'teacher_' + Date.now()),
+                email: userEmail,
+                displayName: displayName || (userEmail ? userEmail.split('@')[0] : 'Thầy Cô'),
+                phone: phone || null,
+                role: 'admin',
+                status: 'active',
+                permissions: defaultPerms,
+                assignedCourseIds: defaultAssignedCourses,
+                note: 'Đăng ký tài khoản Giáo viên (Đã thanh toán/Duyệt)',
+                registeredVia: 'teacher_package',
+                updatedAt: new Date().toISOString(),
+                updatedBy: window.currentAdminProfile?.email || 'system'
+            };
+
+            if (existingIdx >= 0) {
+                accounts[existingIdx] = { ...accounts[existingIdx], ...teacherAccountRecord };
+            } else {
+                accounts.push(teacherAccountRecord);
+            }
+
+            // Ghi vào configurations/admin_roles
+            await setDoc(cfgRef, { accounts, updatedAt: new Date().toISOString() }, { merge: true });
+
+            // Ghi vào admin_accounts fallback
+            try {
+                const cleanId = (userEmail || userId).replace(/[@.]/g, '_');
+                await setDoc(doc(db, "admin_accounts", cleanId), teacherAccountRecord, { merge: true });
+            } catch(e) {}
+
+            // Cập nhật users/{userId} role = teacher
+            if (userId) {
+                try {
+                    await setDoc(doc(db, "users", userId), {
+                        role: 'teacher',
+                        isTeacher: true,
+                        permissions: defaultPerms,
+                        assignedCourseIds: defaultAssignedCourses,
+                        updatedAt: new Date().toISOString()
+                    }, { merge: true });
+                } catch(e) {}
+            }
         };
 
         window.renderAdminAccountsTable = (accounts) => {
@@ -5810,7 +7132,7 @@
 
         // 5. PROFILE LOGIC
         window.openMyProfile = async () => {
-            if (window.closeSidebar) window.closeSidebar();
+            if (window.closeSidebar) setTimeout(() => window.closeSidebar(), 60);
             if (!currentUser) return;
             window.toggleModal('profileModal', true);
             document.getElementById('proNewPass').value = ''; 
@@ -5931,6 +7253,8 @@
             if (cached) {
                 try {
                     window.allClassesData = JSON.parse(cached);
+                    const statCls = document.getElementById('homeStatClasses');
+                    if (statCls && window.allClassesData) statCls.textContent = window.allClassesData.length;
                     renderClasses(savedView);
                 } catch(e) {}
             } else if (!window.allClassesData || window.allClassesData.length === 0) {
@@ -5958,6 +7282,8 @@
 
                 window.allClassesData = newData;
                 localStorage.setItem(cacheKey, JSON.stringify(window.allClassesData));
+                const statCls = document.getElementById('homeStatClasses');
+                if (statCls) statCls.textContent = window.allClassesData.length;
                 renderClasses(savedView);
             } catch (e) { console.error("Lỗi tải lớp học:", e); }
         }
@@ -6013,39 +7339,81 @@
                     : `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 inline-flex items-center gap-1" title="Lớp cấm học sinh chụp ảnh màn hình"><i class="fa-solid fa-shield-halved text-[9px]"></i> Cấm chụp</span>`;
 
                 if (mode === 'grid') {
-                    card.className = "bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer relative group";
+                    card.className = "bg-white dark:bg-[#1a1726] p-4 sm:p-5 rounded-2xl border border-gray-200/80 dark:border-purple-900/30 shadow-2xs hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700/60 transition-all cursor-pointer relative group flex flex-col justify-between";
                     card.innerHTML = `
-                        <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
-                            <button onclick="event.stopPropagation(); window.openTeacherClassDetail('${cl.id}', '${cl.name}')" class="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="event.stopPropagation(); window.deleteClass('${cl.id}')" class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"><i class="fa-solid fa-trash"></i></button>
+                        <div>
+                            <!-- Header thẻ: Icon viết tắt + Nút chữ (i) & Nút Thao tác -->
+                            <div class="flex items-center justify-between gap-2 mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0 tracking-wider">
+                                    ${acronym}
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <!-- Nút chữ i thông tin cơ bản -->
+                                    <button type="button" onclick="event.stopPropagation(); window.openClassQuickInfoModal('${cl.id}')" class="w-8 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center transition-colors cursor-pointer" title="Thông tin cơ bản lớp học">
+                                        <i class="fa-solid fa-circle-info text-sm"></i>
+                                    </button>
+                                    <!-- Nút vào quản lý lớp -->
+                                    <button type="button" onclick="event.stopPropagation(); window.openTeacherClassDetail('${cl.id}', '${cl.name}')" class="w-8 h-8 rounded-lg bg-gray-50 hover:bg-purple-50 dark:bg-slate-800 text-gray-400 hover:text-purple-600 flex items-center justify-center transition-colors cursor-pointer" title="Vào quản lý lớp">
+                                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                                    </button>
+                                    <!-- Nút xóa lớp -->
+                                    <button type="button" onclick="event.stopPropagation(); window.deleteClass('${cl.id}')" class="w-8 h-8 rounded-lg bg-gray-50 hover:bg-rose-50 dark:bg-slate-800 text-gray-400 hover:text-rose-600 opacity-60 hover:opacity-100 transition-colors cursor-pointer" title="Xóa lớp">
+                                        <i class="fa-solid fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Tên lớp học -->
+                            <h3 class="font-black text-gray-800 dark:text-white text-base sm:text-lg mb-2 truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" title="${cl.name}">
+                                ${cl.name}
+                            </h3>
+
+                            <!-- Thông số sĩ số & niên khóa -->
+                            <div class="flex items-center flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                <span class="inline-flex items-center gap-1 font-semibold text-gray-700 dark:text-gray-300">
+                                    <i class="fa-solid fa-user-group text-[11px] text-purple-500"></i>
+                                    <span>${cl.studentCount || 0} HS</span>
+                                </span>
+                                <span class="text-gray-300 dark:text-gray-700">•</span>
+                                <span class="font-medium text-[11px] text-gray-400">${cl.academicYear || currentYear}</span>
+                                <span class="text-gray-300 dark:text-gray-700">•</span>
+                                ${antiBadge}
+                            </div>
                         </div>
-                        <div class="flex justify-between items-start mb-2"><div class="w-10 h-10 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-lg">${acronym}</div></div>
-                        <h3 class="font-bold text-gray-800 text-lg mb-1 truncate">${cl.name}</h3>
-                        <div class="flex items-center justify-between text-sm text-gray-500 mt-1">
-                            <span>${cl.studentCount || 0} học sinh</span>
-                            ${antiBadge}
-                        </div>
+
                         ${teacherBadgeGrid}
                     `;
                 } else {
-                    card.className = "bg-white p-4 rounded-xl border border-gray-200 hover:border-primary-300 transition-all flex items-center justify-between cursor-pointer group";
+                    card.className = "bg-white dark:bg-[#1a1726] p-3.5 sm:p-4 rounded-xl border border-gray-200/80 dark:border-purple-900/30 hover:border-purple-300 dark:hover:border-purple-700/60 hover:shadow-sm transition-all flex items-center justify-between gap-3 cursor-pointer group";
                     card.innerHTML = `
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-lg shrink-0">${acronym}</div>
-                            <div>
-                                <div class="flex items-center">
-                                    <h3 class="font-bold text-gray-800 text-base">${cl.name}</h3>
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                                ${acronym}
+                            </div>
+                            <div class="overflow-hidden">
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-black text-gray-800 dark:text-white text-sm sm:text-base truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">${cl.name}</h3>
                                     ${teacherBadgeList}
                                 </div>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <span class="text-xs text-gray-500">${cl.studentCount || 0} học sinh</span>
+                                <div class="flex items-center flex-wrap gap-2 mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                    <span class="inline-flex items-center gap-1 font-semibold text-[11px] text-gray-700 dark:text-gray-300">
+                                        <i class="fa-solid fa-user-group text-purple-500"></i>
+                                        <span>${cl.studentCount || 0} HS</span>
+                                    </span>
+                                    <span class="text-gray-300 dark:text-gray-700">•</span>
+                                    <span class="text-[11px] text-gray-400">${cl.academicYear || currentYear}</span>
+                                    <span class="text-gray-300 dark:text-gray-700">•</span>
                                     ${antiBadge}
                                 </div>
                             </div>
                         </div>
-                        <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onclick="event.stopPropagation(); window.openTeacherClassDetail('${cl.id}', '${cl.name}')" class="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="event.stopPropagation(); window.deleteClass('${cl.id}')" class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full"><i class="fa-solid fa-trash"></i></button>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <!-- Nút chữ i thông tin cơ bản -->
+                            <button type="button" onclick="event.stopPropagation(); window.openClassQuickInfoModal('${cl.id}')" class="w-8 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center transition-colors cursor-pointer" title="Thông tin cơ bản lớp học">
+                                <i class="fa-solid fa-circle-info text-sm"></i>
+                            </button>
+                            <button type="button" onclick="event.stopPropagation(); window.openTeacherClassDetail('${cl.id}', '${cl.name}')" class="w-8 h-8 rounded-lg bg-gray-50 hover:bg-purple-50 dark:bg-slate-800 text-gray-400 hover:text-purple-600 flex items-center justify-center transition-colors cursor-pointer" title="Vào quản lý lớp"><i class="fa-solid fa-arrow-right text-xs"></i></button>
+                            <button type="button" onclick="event.stopPropagation(); window.deleteClass('${cl.id}')" class="w-8 h-8 rounded-lg bg-gray-50 hover:bg-rose-50 dark:bg-slate-800 text-gray-400 hover:text-rose-600 opacity-60 hover:opacity-100 transition-colors cursor-pointer" title="Xóa lớp"><i class="fa-solid fa-trash text-xs"></i></button>
                         </div>
                     `;
                 }
@@ -6055,17 +7423,101 @@
 
             if (mode === 'grid') {
                 const addCard = document.createElement('button');
-                addCard.className = "border-2 border-dashed border-gray-300 rounded-xl p-5 flex flex-col items-center justify-center text-gray-400 hover:border-primary-400 hover:text-primary-500 transition-colors h-full min-h-[140px]";
-                addCard.innerHTML = `<i class="fa-solid fa-plus text-3xl mb-2"></i><span class="font-bold">Tạo lớp mới</span>`;
+                addCard.className = "border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-5 flex flex-col items-center justify-center text-gray-400 hover:border-purple-400 hover:text-purple-600 transition-colors h-full min-h-[140px] cursor-pointer";
+                addCard.innerHTML = `<i class="fa-solid fa-plus text-3xl mb-2"></i><span class="font-bold text-xs uppercase tracking-wider">Tạo lớp mới</span>`;
                 addCard.onclick = window.handleCreateClass;
                 list.appendChild(addCard);
             } else {
                 const addBtn = document.createElement('button');
-                addBtn.className = "w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 font-bold hover:bg-gray-50 hover:text-primary-600 hover:border-primary-300 transition-all";
+                addBtn.className = "w-full py-3 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl text-gray-500 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-purple-600 hover:border-purple-300 transition-all cursor-pointer";
                 addBtn.innerHTML = "+ Tạo lớp học mới";
                 addBtn.onclick = window.handleCreateClass;
                 list.appendChild(addBtn);
             }
+        };
+
+        // --- LOGIC MODAL THÔNG TIN CƠ BẢN LỚP HỌC (NÚT CHỮ I) ---
+        window.currentQuickClass = null;
+
+        window.openClassQuickInfoModal = (classId) => {
+            const cl = (window.allClassesData || []).find(c => c.id === classId);
+            if (!cl) return;
+            window.currentQuickClass = cl;
+
+            const modal = document.getElementById('classQuickInfoModal');
+            if (!modal) return;
+
+            const words = cl.name.trim().split(/\s+/);
+            const acronym = words.length >= 2 ? (words[0][0] + words[1][0]).toUpperCase() : words[0].substring(0, 2).toUpperCase();
+
+            const iconEl = document.getElementById('quickInfoClassIcon');
+            const nameEl = document.getElementById('quickInfoClassName');
+            const idEl = document.getElementById('quickInfoClassId');
+            const countEl = document.getElementById('quickInfoStudentCount');
+            const yearEl = document.getElementById('quickInfoAcademicYear');
+
+            if (iconEl) iconEl.textContent = acronym;
+            if (nameEl) nameEl.textContent = cl.name;
+            if (idEl) idEl.textContent = cl.id;
+            if (countEl) countEl.textContent = `${cl.studentCount || 0} học sinh`;
+            if (yearEl) yearEl.textContent = cl.academicYear || window.getCurrentAcademicYear();
+
+            const antiEl = document.getElementById('quickInfoAntiScreenshot');
+            if (antiEl) {
+                if (cl.antiScreenshot === false) {
+                    antiEl.innerHTML = `<span class="text-gray-500 dark:text-gray-400 font-bold inline-flex items-center gap-1"><i class="fa-solid fa-camera"></i> Cho phép chụp</span>`;
+                } else {
+                    antiEl.innerHTML = `<span class="text-rose-600 dark:text-rose-400 font-bold inline-flex items-center gap-1"><i class="fa-solid fa-shield-halved"></i> Cấm chụp ảnh màn hình</span>`;
+                }
+            }
+
+            const teacherEl = document.getElementById('quickInfoTeacherEmail');
+            if (teacherEl) {
+                teacherEl.textContent = cl.teacherEmail || cl.teacherName || cl.teacherId || 'Chưa cập nhật';
+                teacherEl.title = cl.teacherEmail || cl.teacherId || '';
+            }
+
+            const createdEl = document.getElementById('quickInfoCreatedAt');
+            if (createdEl) {
+                createdEl.textContent = cl.createdAt ? new Date(cl.createdAt).toLocaleDateString('vi-VN') : '---';
+            }
+
+            const enterBtn = document.getElementById('btnQuickInfoEnterClass');
+            if (enterBtn) {
+                enterBtn.onclick = () => {
+                    window.closeClassQuickInfoModal();
+                    window.openTeacherClassDetail(cl.id, cl.name);
+                };
+            }
+
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            const content = modal.querySelector('.modal-content');
+            if (content) content.classList.remove('scale-95');
+        };
+
+        window.closeClassQuickInfoModal = () => {
+            const modal = document.getElementById('classQuickInfoModal');
+            if (!modal) return;
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            const content = modal.querySelector('.modal-content');
+            if (content) content.classList.add('scale-95');
+        };
+
+        window.copyCurrentQuickClassId = () => {
+            if (!window.currentQuickClass?.id) return;
+            const cid = window.currentQuickClass.id;
+            navigator.clipboard.writeText(cid).then(() => {
+                const btn = document.getElementById('btnCopyQuickClassId');
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-check text-emerald-500"></i> <span>Đã chép!</span>`;
+                    setTimeout(() => {
+                        btn.innerHTML = `<i class="fa-regular fa-copy"></i> <span>Sao chép</span>`;
+                    }, 2000);
+                }
+                if (window.showNotification) window.showNotification("Đã sao chép mã lớp vào bộ nhớ tạm!", "success");
+            }).catch(() => {
+                prompt("Sao chép mã lớp:", cid);
+            });
         };
         
         window.migrateClassYear = async () => {
@@ -6625,6 +8077,16 @@
                     assignedCourses: arrayUnion(courseItem)
                 });
 
+                // Đồng bộ gán vào public_courses
+                try {
+                    const courseRef = doc(db, "public_courses", courseId);
+                    await updateDoc(courseRef, {
+                        assignedClassIds: arrayUnion(currentViewingClassId)
+                    });
+                } catch(eCourse) {
+                    console.warn("Lỗi đồng bộ assignedClassIds sang public_courses:", eCourse);
+                }
+
                 // Cập nhật cache cục bộ
                 if (window.currentClassData) {
                     if (!Array.isArray(window.currentClassData.assignedCourses)) {
@@ -6662,6 +8124,16 @@
                 const updatedList = currAssigned.filter(c => c.courseId !== courseId);
 
                 await updateDoc(classRef, { assignedCourses: updatedList });
+
+                // Đồng bộ gỡ khỏi public_courses
+                try {
+                    const courseRef = doc(db, "public_courses", courseId);
+                    await updateDoc(courseRef, {
+                        assignedClassIds: arrayRemove(classId)
+                    });
+                } catch(eCourse) {
+                    console.warn("Lỗi gỡ assignedClassIds khỏi public_courses:", eCourse);
+                }
 
                 // Cập nhật cache cục bộ
                 if (window.currentClassData && window.currentClassData.id === classId) {
@@ -7254,16 +8726,22 @@
                 // Nút thao tác (thầy xem thống kê & sửa)
                 const hasGrading = isHomework;
                 const copyBtn = `<button onclick="event.stopPropagation(); window.copyExamShareLink('${examId}')" class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors" title="Sao chép link làm bài"><i class="fa-solid fa-link"></i> Link</button>`;
+                const pdfBtn = `<button onclick="event.stopPropagation(); window.open('exam-print.html?id=${examId}', '_blank')" class="px-2.5 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors" title="Xem & In PDF"><i class="fa-solid fa-file-pdf"></i> PDF</button>`;
+                const wordBtn = `<button onclick="event.stopPropagation(); window.openExportWordModal('${examId}')" class="px-2.5 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors" title="Xuất Word (MathType)"><i class="fa-solid fa-file-word"></i> Word</button>`;
                 const infoBtn = `<button onclick="event.stopPropagation(); window.showExamInfo('${examId}')" class="px-2.5 py-1.5 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors" title="Xem thông tin đề"><i class="fa-solid fa-circle-info"></i> Chi tiết</button>`;
                 const actionBtns = hasGrading
                     ? `<button onclick="event.stopPropagation(); window.openExamEditorFast('${examId}', 'settings')" class="px-3 py-1.5 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-pen"></i> Sửa</button>
                        <button onclick="event.stopPropagation(); window.openExamEditorFast('${examId}', 'grading')" class="px-3 py-1.5 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-chart-pie"></i> Chấm</button>
                        ${copyBtn}
+                       ${pdfBtn}
+                       ${wordBtn}
                        ${infoBtn}
                        <button onclick="event.stopPropagation(); window.removeExamFromClass('${examId}')" class="px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-trash"></i> Xóa</button>`
                     : `<button onclick="event.stopPropagation(); window.openExamEditorFast('${examId}', 'settings')" class="px-3 py-1.5 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-pen"></i> Sửa</button>
                        <button onclick="event.stopPropagation(); window.openExamEditorFast('${examId}', 'stats')" class="px-3 py-1.5 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-chart-pie"></i> Thống kê</button>
                        ${copyBtn}
+                       ${pdfBtn}
+                       ${wordBtn}
                        ${infoBtn}
                        <button onclick="event.stopPropagation(); window.removeExamFromClass('${examId}')" class="px-3 py-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><i class="fa-solid fa-trash"></i> Xóa</button>`;
 
@@ -7625,6 +9103,8 @@ async function loadFileManager(forceRefresh = false) {
             folderData = JSON.parse(cachedF) || [];
             examData = JSON.parse(cachedE) || [];
             tagData = cachedT ? (JSON.parse(cachedT) || []) : [];
+            const statEx = document.getElementById('homeStatExams');
+            if (statEx && examData) statEx.textContent = examData.length;
             hasValidCache = true;
             const activeFolderFromUrl = new URLSearchParams(window.location.search).get('folderId') || sessionStorage.getItem('last_active_folder_id');
             if (activeFolderFromUrl && folderData.some(f => f.id === activeFolderFromUrl)) {
@@ -7747,6 +9227,8 @@ async function loadFileManager(forceRefresh = false) {
             folderData = typeof window.sanitizeFolders === 'function' ? window.sanitizeFolders(newFolderData) : newFolderData; 
             examData = (newExamData || []).filter(e => e && e.id && !e.isDeleted && e.title && e.title !== 'null');
             tagData = newTagData;
+            const statExFresh = document.getElementById('homeStatExams');
+            if (statExFresh && examData) statExFresh.textContent = examData.length;
             saveBankCache();
             
             isBankLoaded = true;
@@ -8051,6 +9533,8 @@ function renderTagFilterUI() {
                         <div class="flex items-center gap-0.5 md:gap-1.5 shrink-0">
                             ${superSysBtn}
                             <button onclick="event.stopPropagation(); window.quickExportSingleLatex('${exam.id}')" class="p-1 md:p-2 btn-explorer-action" title="Xuất mã nguồn TeX đề này"><i class="fa-solid fa-file-code text-[11px] md:text-sm"></i></button>
+                            <button onclick="event.stopPropagation(); window.open('exam-print.html?id=${exam.id}', '_blank')" class="p-1 md:p-2 btn-explorer-action text-rose-600 dark:text-rose-400 hover:text-rose-700" title="Xem & In PDF đề này"><i class="fa-solid fa-file-pdf text-[11px] md:text-sm"></i></button>
+                            <button onclick="event.stopPropagation(); window.openExportWordModal('${exam.id}')" class="p-1 md:p-2 btn-explorer-action text-blue-600 dark:text-blue-400 hover:text-blue-700" title="Xuất Word (MathType BTPRO)"><i class="fa-solid fa-file-word text-[11px] md:text-sm"></i></button>
                             ${canManageExam ? `<button onclick="event.stopPropagation(); window.toggleExamAntiScreenshot('${exam.id}')" class="p-1 md:p-2 ${exam.antiScreenshot === false ? 'btn-explorer-action' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 rounded-lg'} transition-colors" title="${exam.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh đề & giải (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình đề & giải (Bấm để cho phép)'}"><i class="fa-solid ${exam.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'} text-[11px] md:text-sm"></i></button>` : ''}
                             <button onclick="event.stopPropagation(); window.showExamInfo('${exam.id}')" class="p-1 md:p-2 btn-explorer-action" title="Thông tin đề thi"><i class="fa-solid fa-circle-info text-[11px] md:text-sm"></i></button>
                             <button onclick="event.stopPropagation(); window.promptAssignExamToAnyClass('${exam.id}')" class="p-1 md:p-2 btn-explorer-action" title="Giao đề này cho lớp"><i class="fa-solid fa-share-from-square text-[11px] md:text-sm"></i></button>
@@ -8073,6 +9557,8 @@ function renderTagFilterUI() {
                         <div class="absolute top-1.5 right-1.5 flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-white/95 dark:bg-gray-800/95 shadow-sm px-1 py-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
                             ${superSysBtn}
                             <button onclick="event.stopPropagation(); window.quickExportSingleLatex('${exam.id}')" class="p-1 btn-explorer-action" title="Xuất mã nguồn TeX đề này"><i class="fa-solid fa-file-code text-xs"></i></button>
+                            <button onclick="event.stopPropagation(); window.open('exam-print.html?id=${exam.id}', '_blank')" class="p-1 btn-explorer-action text-rose-600 dark:text-rose-400 hover:text-rose-700" title="Xem & In PDF đề này"><i class="fa-solid fa-file-pdf text-xs"></i></button>
+                            <button onclick="event.stopPropagation(); window.openExportWordModal('${exam.id}')" class="p-1 btn-explorer-action text-blue-600 dark:text-blue-400 hover:text-blue-700" title="Xuất Word (MathType BTPRO)"><i class="fa-solid fa-file-word text-xs"></i></button>
                             ${canManageExam ? `<button onclick="event.stopPropagation(); window.toggleExamAntiScreenshot('${exam.id}')" class="p-1 ${exam.antiScreenshot === false ? 'btn-explorer-action' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 rounded'} transition-colors" title="${exam.antiScreenshot === false ? 'Đang CHO PHÉP chụp ảnh đề & giải (Bấm để CẤM chụp)' : 'Đang CẤM chụp màn hình đề & giải (Bấm để cho phép)'}"><i class="fa-solid ${exam.antiScreenshot === false ? 'fa-camera' : 'fa-shield-halved'} text-xs"></i></button>` : ''}
                             <button onclick="event.stopPropagation(); window.showExamInfo('${exam.id}')" class="p-1 btn-explorer-action" title="Thông tin đề thi"><i class="fa-solid fa-circle-info text-xs"></i></button>
                             <button onclick="event.stopPropagation(); window.promptAssignExamToAnyClass('${exam.id}')" class="p-1 btn-explorer-action" title="Giao đề này cho lớp"><i class="fa-solid fa-share-from-square text-xs"></i></button>
@@ -8525,6 +10011,14 @@ function renderTagFilterUI() {
                         <a href="${examShareLink}" target="_blank" class="p-2 bg-white border ${isPublished ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-100' : 'border-amber-300 text-amber-700 hover:bg-amber-100'} rounded-lg text-xs transition-colors shrink-0 flex items-center justify-center shadow-2xs" title="Mở trang làm bài">
                             <i class="fa-solid fa-arrow-up-right-from-square"></i>
                         </a>
+                    </div>
+                    <div class="flex items-center gap-2 pt-2 border-t border-gray-200/60 dark:border-gray-700/60 mt-2">
+                        <button onclick="window.open('exam-print.html?id=${exam.id}', '_blank')" class="flex-1 py-2 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                            <i class="fa-solid fa-file-pdf"></i> Xem & In PDF
+                        </button>
+                        <button onclick="window.openExportWordModal('${exam.id}')" class="flex-1 py-2 px-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                            <i class="fa-solid fa-file-word"></i> Xuất Word
+                        </button>
                     </div>
                     ${!isPublished ? `<p class="text-[11px] text-amber-700 mt-1.5 flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Đề thi đang ở trạng thái Bản nháp. Vào <a href="exam-editor.html?id=${exam.id}&view=settings" target="_blank" class="font-bold underline hover:text-amber-900">Cài đặt đề thi</a> bấm "Xuất bản" để học sinh làm bài.</p>` : ''}
                 </div>
@@ -9510,6 +11004,11 @@ function renderTagFilterUI() {
         window.currentReportFilter = 'pending';
 
         window.openReportManagementModal = () => {
+            if (typeof window.checkIsSuperAdmin === 'function' && !window.checkIsSuperAdmin()) {
+                if (window.showNotification) window.showNotification("⛔ Chỉ Super Admin mới có quyền truy cập Quản lý Báo lỗi!", "warning");
+                else alert("⛔ Chỉ Super Admin mới có quyền truy cập Quản lý Báo lỗi!");
+                return;
+            }
             const modal = document.getElementById('reportManagementModal');
             if (!modal) return;
             modal.classList.remove('hidden');
@@ -9519,6 +11018,19 @@ function renderTagFilterUI() {
         window.closeReportManagementModal = () => {
             const modal = document.getElementById('reportManagementModal');
             if (modal) modal.classList.add('hidden');
+        };
+
+        const _origOpenBackupModal = window.openSystemBackupModal;
+        window.openSystemBackupModal = (tab) => {
+            if (typeof window.checkIsSuperAdmin === 'function' && !window.checkIsSuperAdmin()) {
+                if (window.showNotification) window.showNotification("⛔ Chỉ Super Admin mới có quyền Sao lưu & Phục hồi hệ thống!", "warning");
+                else alert("⛔ Chỉ Super Admin mới có quyền Sao lưu & Phục hồi hệ thống!");
+                return;
+            }
+            if (typeof _origOpenBackupModal === 'function') _origOpenBackupModal(tab);
+            else if (window.systemBackupUI && typeof window.systemBackupUI.openModal === 'function') {
+                window.systemBackupUI.openModal(tab);
+            }
         };
 
         window.setReportFilterStatus = (status) => {
@@ -10900,6 +12412,13 @@ function renderTagFilterUI() {
         const empty = document.getElementById('bankListEmpty');
         const loading = document.getElementById('bankListLoading');
 
+        if (window.globalBankQuestions && window.globalBankQuestions.length > 0) {
+            if (loading) loading.classList.add('hidden');
+            window.enrichBankQuestions(window.globalBankQuestions);
+            window.applyBankFilters();
+            return;
+        }
+
         if(grid) grid.classList.add('hidden');
         if(empty) empty.classList.add('hidden');
         if(loading) loading.classList.remove('hidden');
@@ -10925,6 +12444,7 @@ function renderTagFilterUI() {
                              if(snap.exists()) window.globalIdTree = snap.data().tree || [];
                          });
                     }
+                    if (loading) loading.classList.add('hidden');
                     window.applyBankFilters();
                 } catch(e) {}
             }
@@ -15931,6 +17451,8 @@ function renderTagFilterUI() {
             }
             
             window.allGlobalStudents = Array.from(studentMap.values());
+            const statStu = document.getElementById('homeStatStudents');
+            if (statStu) statStu.textContent = window.allGlobalStudents.length;
             window.filterGlobalStudents();
         };
 
@@ -17581,7 +19103,7 @@ window.deleteTag = async (id) => {
 
 
 
-<script src="/sw-register.js?v=32"></script>
+<script src="/sw-register.js?v=33"></script>
 <script src="/season-theme.js?v=1"></script>
 <script src="/app-installer.js?v=2"></script>
 </body>

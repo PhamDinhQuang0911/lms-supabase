@@ -105,7 +105,9 @@
           N: "\\mathbb{N}",
           Z: "\\mathbb{Z}",
           vectors: ["\\overrightarrow{#1}", 1],
-          mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1]
+          mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1],
+          arrow: "\\rightarrow",
+          Arrow: "\\Rightarrow"
         }
       },
       options: { ignoreHtmlClass: 'tex2jax_ignore', processHtmlClass: 'tex2jax_process' },
@@ -604,10 +606,6 @@
 <meta name="view-transition" content="same-origin" /></head>
 <body class="h-screen flex flex-col overflow-hidden text-gray-800 bg-gray-50">
 
-    <div class="fixed top-0 left-0 w-full h-1.5 bg-gray-200 z-[60]">
-        <div id="examProgressBar" class="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]" style="width: 0%"></div>
-    </div>
-
     <div id="mobileBackdrop" class="sidebar-backdrop" onclick="closeAllSidebars()"></div>
 
     <div id="lobbyScreen" class="fixed inset-0 z-50 bg-slate-50 flex flex-col items-center justify-center p-4" style="background-image: radial-gradient(circle at top right, #e0f2fe, transparent 400px), radial-gradient(circle at bottom left, #ede9fe, transparent 400px);">
@@ -667,7 +665,7 @@
         </div>
     </div>
 
-    <header id="examHeader" class="bg-white shadow-sm z-20 shrink-0 h-16 flex items-center justify-between px-2.5 sm:px-4 lg:px-8 hidden">
+    <header id="examHeader" class="bg-white shadow-sm z-20 shrink-0 h-16 flex items-center justify-between px-2.5 sm:px-4 lg:px-8 hidden relative">
         <div class="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1 mr-2">
             <button type="button" onclick="window.handleExamHeaderBack()" class="w-8 h-8 sm:w-9 sm:h-9 -ml-0.5 sm:-ml-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full flex items-center justify-center text-sm sm:text-base cursor-pointer active:scale-90 transition shrink-0" title="Quay lại">
                 <i class="fa-solid fa-arrow-left"></i>
@@ -683,7 +681,7 @@
                 </p>
             </div>
         </div>
-        <div class="flex items-center gap-1.5 sm:gap-3 md:gap-6 shrink-0">
+        <div class="flex items-center gap-1.5 sm:gap-3 md:gap-4 shrink-0">
             <div id="cheatWarning" class="hidden flex items-center gap-1 text-red-600 bg-red-50 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold border border-red-200 animate-pulse shrink-0" title="Số lần vi phạm rời màn hình">
                 <i class="fa-solid fa-triangle-exclamation text-red-500 text-xs"></i>
                 <span id="cheatCount" class="font-black text-red-600">0</span>
@@ -694,11 +692,19 @@
                 <i class="fa-regular fa-clock text-xs sm:text-sm text-blue-200"></i>
                 <span id="timer" class="font-mono font-black text-sm sm:text-base md:text-lg tracking-wider">00:00</span>
             </div>
+
+            <button type="button" onclick="window.toggleExamFullscreen()" class="w-8 h-8 sm:w-9 sm:h-9 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg flex items-center justify-center text-sm transition shrink-0" title="Toàn màn hình / Thu nhỏ">
+                <i id="fsIcon" class="fa-solid fa-expand"></i>
+            </button>
             
             <button id="togglePdfViewBtn" onclick="togglePdfView()" class="hidden md:flex px-4 py-2 bg-white text-primary-600 border border-primary-200 hover:bg-primary-50 font-bold rounded-lg transition-all shadow-sm items-center gap-2">
                 <i class="fa-solid fa-file-pdf"></i> Đổi giao diện làm bài
             </button>
             <button onclick="checkFinish()" class="hidden md:block px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg transition-all shadow-md shadow-primary-200">Nộp bài</button>
+        </div>
+        <!-- Thanh tiến độ bài thi ở đáy header, không bị thông báo Esc che khuất -->
+        <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-100 overflow-hidden">
+            <div id="examProgressBar" class="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]" style="width: 0%"></div>
         </div>
     </header>
 
@@ -1242,7 +1248,7 @@
             }
         }
 
-        let currentUser, examData, examId;
+        let currentUser, examData, examId, startTimeMs = 0;
         let currentQuestions = [], userAnswers = {}, flaggedQuestions = {};
         let currentIndex = 0, timerInterval, timeLeft = 0, cheatCount = 0, isExamActive = false;
         let syncInterval = null; 
@@ -1254,15 +1260,23 @@
             if(currentUser && examId) {
                 localStorage.setItem(`ans_${currentUser.uid}_${examId}`, JSON.stringify(userAnswers));
                 localStorage.setItem(`brief_${currentUser.uid}_${examId}`, JSON.stringify(window.briefNotes || {}));
+                if (startTimeMs && startTimeMs > 0) {
+                    localStorage.setItem(`start_${currentUser.uid}_${examId}`, startTimeMs.toString());
+                }
                 if (Object.keys(userAnswers).length > 0 || Object.keys(window.briefNotes || {}).length > 0) {
                     const performSync = () => {
                         const attemptRef = doc(db, "exam_attempts", `${currentUser.uid}_${examId}`);
-                        setDoc(attemptRef, { 
+                        const attemptPayload = { 
                             examId: examId, 
+                            studentId: currentUser.uid,
                             answers: userAnswers, 
                             briefNotes: window.briefNotes || {},
                             updatedAt: Date.now() 
-                        }, { merge: true }).catch(() => {});
+                        };
+                        if (startTimeMs && startTimeMs > 0) {
+                            attemptPayload.startTime = startTimeMs;
+                        }
+                        setDoc(attemptRef, attemptPayload, { merge: true }).catch(() => {});
                     };
 
                     if (immediate) {
@@ -1391,6 +1405,19 @@
                                 if (foundItem.minScore !== undefined && foundItem.minScore !== "" && foundItem.minScore !== null) { examData.passScore = Number(foundItem.minScore); examData.showResult = 'pass_score'; }
                                 if (foundItem.viewPrice !== undefined && foundItem.viewPrice !== "" && Number(foundItem.viewPrice) > 0) { examData.feeQpoint = Number(foundItem.viewPrice); examData.showResult = 'fee_qpoint'; }
                                 if (foundItem.viewLimit !== undefined && foundItem.viewLimit !== "") { examData.viewLimit = Number(foundItem.viewLimit); }
+                                if (foundItem.showResult) { examData.showResult = foundItem.showResult; }
+                                else if (foundItem.showSolution) { examData.showResult = foundItem.showSolution; }
+                                if (foundItem.showScore) { examData.showScore = foundItem.showScore; }
+                                if (foundItem.enableFireworks !== undefined) { examData.enableFireworks = (foundItem.enableFireworks !== false); }
+                                if (foundItem.showLeaderboard !== undefined) { examData.showLeaderboard = (foundItem.showLeaderboard !== false); }
+                                if (foundItem.antiScreenshot !== undefined) { examData.antiScreenshot = (foundItem.antiScreenshot !== false); }
+                                if (foundItem.keepOriginalOrder !== undefined) { 
+                                    examData.keepOriginalOrder = foundItem.keepOriginalOrder; 
+                                    if (foundItem.keepOriginalOrder) examData.shuffle = false;
+                                } else if (foundItem.shuffle !== undefined) {
+                                    examData.shuffle = foundItem.shuffle;
+                                }
+                                if (foundItem.attempts !== undefined && foundItem.attempts !== "") { examData.attempts = Number(foundItem.attempts); }
                             }
                         }
                     } catch (e) { console.error("Lỗi khi tải cấu hình khóa học:", e); }
@@ -1615,15 +1642,40 @@
             if (request) Promise.resolve(request.call(docEl)).catch(() => {});
         }
 
+        window.toggleExamFullscreen = () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                requestExamFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            }
+        };
+
+        document.addEventListener('fullscreenchange', () => {
+            const icon = document.getElementById('fsIcon');
+            if (icon) {
+                if (document.fullscreenElement) {
+                    icon.classList.remove('fa-expand');
+                    icon.classList.add('fa-compress');
+                } else {
+                    icon.classList.remove('fa-compress');
+                    icon.classList.add('fa-expand');
+                }
+            }
+        });
+
         window.requestStart = (isResume = false) => { 
             if(examData.password && !isResume) document.getElementById('passwordModal').classList.remove('hidden'); 
-            else { requestExamFullscreen(); startExam(isResume); }
+            else { 
+                if (examData && examData.proctoring) requestExamFullscreen();
+                startExam(isResume); 
+            }
         }
         
         window.verifyPassword = () => { 
             if(document.getElementById('examPasswordInput').value===examData.password) { 
                 document.getElementById('passwordModal').classList.add('hidden'); 
-                requestExamFullscreen();
+                if (examData && examData.proctoring) requestExamFullscreen();
                 startExam(false); 
             } else window.customAlert("Sai mật khẩu","error"); 
         }
@@ -1721,6 +1773,17 @@
             }
 
             let rawQuestions = JSON.parse(JSON.stringify(examData.questions || []));
+            rawQuestions.forEach(q => {
+                if (q.type === 'dung_sai' || (!q.type && Array.isArray(q.statements) && q.statements.length > 0)) {
+                    q.type = 'tf';
+                } else if (Array.isArray(q.statements) && q.statements.length > 0 && q.type !== 'tf') {
+                    q.type = 'tf';
+                }
+                if (q.type === 'tf' && (!Array.isArray(q.statements) || q.statements.length === 0) && Array.isArray(q.options) && q.options.length > 0) {
+                    q.statements = q.options.map((opt) => ({ text: opt, isTrue: false }));
+                }
+                if (!q.type) q.type = 'mc';
+            });
             const shuffleConfigKey = `examConfig_${currentUser.uid}_${examId}`;
             // Lượt làm mới phải tạo một cấu hình mới, nhưng không được xóa nó sau
             // khi đã tạo: cấu hình này cần được lưu cùng bài nộp để xem lại chính xác.
@@ -1779,7 +1842,6 @@
             
             const durationMinutes = examData.duration || 45;
             const attemptRef = doc(db, "exam_attempts", `${currentUser.uid}_${examId}`);
-            let startTimeMs;
 
             let keepOldAnswers = false;
             const isHomeworkOrMixed = examData.type === 'homework' || examData.type === 'mixed';
@@ -1791,15 +1853,34 @@
 
             if (isResume) {
                 const snap = await getDoc(attemptRef);
-                if(snap.exists()) {
-                    const data = snap.data();
-                    startTimeMs = data.startTime;
+                const localStart = parseInt(localStorage.getItem(`start_${currentUser.uid}_${examId}`) || "0");
+                if (snap.exists() || localStart > 0) {
+                    const data = snap.exists() ? snap.data() : {};
+                    startTimeMs = data.startTime || (localStart > 0 ? localStart : null);
+                    
+                    const currentNowMs = (typeof getServerNow === 'function') ? getServerNow().getTime() : Date.now();
+                    // Fallback an toàn nếu startTimeMs bị null/undefined/0/NaN
+                    if (!startTimeMs || isNaN(startTimeMs) || startTimeMs <= 0) {
+                        startTimeMs = (localStart > 0) ? localStart : currentNowMs;
+                    }
+                    localStorage.setItem(`start_${currentUser.uid}_${examId}`, startTimeMs.toString());
+
                     const cloudAnswers = data.answers || {};
                     const localAnswers = JSON.parse(localStorage.getItem(`ans_${currentUser.uid}_${examId}`)) || {};
                     userAnswers = { ...cloudAnswers, ...localAnswers };
-                    const currentNowMs = (typeof getServerNow === 'function') ? getServerNow().getTime() : Date.now();
-                    const elapsedTime = Math.floor((currentNowMs - startTimeMs) / 1000);
-                    timeLeft = (durationMinutes * 60) - elapsedTime;
+
+                    const elapsedTime = Math.max(0, Math.floor((currentNowMs - startTimeMs) / 1000));
+                    const totalSec = (durationMinutes || 45) * 60;
+                    timeLeft = Math.max(0, totalSec - elapsedTime);
+
+                    // Giới hạn thời gian làm bài nếu gần đến hạn chót đóng đề
+                    const endParsed = parseDateSafe(examData.endTime);
+                    if (endParsed) {
+                        const remainSec = Math.floor((endParsed.getTime() - currentNowMs) / 1000);
+                        if (remainSec >= 0 && remainSec < timeLeft) {
+                            timeLeft = remainSec;
+                        }
+                    }
                 } else {
                     isResume = false;
                 }
@@ -1808,6 +1889,7 @@
             if (!isResume) {
                 const currentNowMs = (typeof getServerNow === 'function') ? getServerNow().getTime() : Date.now();
                 startTimeMs = currentNowMs;
+                localStorage.setItem(`start_${currentUser.uid}_${examId}`, startTimeMs.toString());
                 if (typeof keepOldAnswers !== 'undefined' && keepOldAnswers) {
                     userAnswers = window.examHistory[0].answers || {};
                 } else {
@@ -1969,7 +2051,8 @@
                     dom.options.appendChild(div);
                 });
             } else if (q.type === 'tf') {
-                let displayIndices = q.statements.map((_, k) => k);
+                const stmts = q.statements || [];
+                let displayIndices = stmts.map((_, k) => k);
                 if (examData.shuffle) {
                     if (!q.shuffleMapTF) {
                         for (let i = displayIndices.length - 1; i > 0; i--) {
@@ -1980,30 +2063,28 @@
                     }
                     displayIndices = q.shuffleMapTF;
                 }
-                displayIndices.forEach((realIdx) => {
-                    const stmt = q.statements[realIdx];
-                    const val = userAnswers[idx] ? userAnswers[idx][realIdx] : null;
+                displayIndices.forEach((realIdx, dispK) => {
+                    const stmt = stmts[realIdx];
+                    if (!stmt) return;
+                    const curAns = (userAnswers[idx] && typeof userAnswers[idx] === 'object') ? userAnswers[idx][realIdx] : null;
                     const div = document.createElement('div'); 
-                    div.className = "bg-white border border-slate-200 rounded-xl p-3 sm:p-4 hover:border-blue-300 shadow-2xs transition-all";
+                    div.className = "bg-white border border-slate-200 rounded-xl p-3.5 sm:p-4 hover:border-blue-300 shadow-2xs transition-all";
                     div.innerHTML = `
-                        <div class="font-medium text-slate-800 text-sm sm:text-base mb-2.5 leading-relaxed">${window.formatContent(stmt.text)}</div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="cursor-pointer py-2 px-3 rounded-lg border font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${val===true ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700'}">
-                                <input type="radio" name="tf-${idx}-${realIdx}" value="true" ${val===true?'checked':''} class="sr-only">
-                                <i class="fa-solid fa-check text-[11px]"></i> Đúng
-                            </label>
-                            <label class="cursor-pointer py-2 px-3 rounded-lg border font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${val===false ? 'bg-rose-600 border-rose-600 text-white shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-700'}">
-                                <input type="radio" name="tf-${idx}-${realIdx}" value="false" ${val===false?'checked':''} class="sr-only">
-                                <i class="fa-solid fa-xmark text-[11px]"></i> Sai
-                            </label>
+                        <div class="flex items-start gap-2.5 font-medium text-slate-800 text-sm sm:text-base mb-3 leading-relaxed">
+                            <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center text-xs font-black shrink-0 mt-0.5 border border-blue-200">
+                                ${String.fromCharCode(97 + dispK)})
+                            </span>
+                            <div class="flex-1 latex-container">${window.formatContent(stmt.text)}</div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" onclick="window.saveExamTF(${idx}, ${realIdx}, true, this)" class="py-2.5 px-3 rounded-xl border-2 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${curAns===true ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm ring-2 ring-emerald-200' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'}">
+                                <i class="fa-solid fa-check text-xs"></i> Đúng
+                            </button>
+                            <button type="button" onclick="window.saveExamTF(${idx}, ${realIdx}, false, this)" class="py-2.5 px-3 rounded-xl border-2 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${curAns===false ? 'bg-rose-600 border-rose-600 text-white shadow-sm ring-2 ring-rose-200' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700'}">
+                                <i class="fa-solid fa-xmark text-xs"></i> Sai
+                            </button>
                         </div>
                     `;
-                    div.querySelectorAll('input').forEach(inp => inp.onchange = (e) => {
-                        if(!userAnswers[idx]) userAnswers[idx]={}; 
-                        userAnswers[idx][realIdx] = (e.target.value==='true'); 
-                        updatePalette(); 
-                        saveLocal();
-                    });
                     dom.options.appendChild(div);
                 });
             } else if (q.type === 'short') {
@@ -2397,15 +2478,37 @@
             setTimeout(() => box.classList.remove('scale-95'), 10);
         };
         
+        window.saveExamTF = (idx, realIdx, val, btn) => {
+            if (!userAnswers[idx] || typeof userAnswers[idx] !== 'object') userAnswers[idx] = {}; 
+            userAnswers[idx][realIdx] = val;
+            updatePalette(); 
+            saveLocal();
+            
+            const row = btn.parentElement;
+            if (row && row.children.length >= 2) {
+                const btnTrue = row.children[0];
+                const btnFalse = row.children[1];
+                if (val === true) {
+                    btnTrue.className = "py-2.5 px-3 rounded-xl border-2 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer bg-emerald-600 border-emerald-600 text-white shadow-sm ring-2 ring-emerald-200";
+                    btnFalse.className = "py-2.5 px-3 rounded-xl border-2 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer bg-slate-50 border-slate-200 text-slate-600 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700";
+                } else if (val === false) {
+                    btnTrue.className = "py-2.5 px-3 rounded-xl border-2 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer bg-slate-50 border-slate-200 text-slate-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700";
+                    btnFalse.className = "py-2.5 px-3 rounded-xl border-2 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer bg-rose-600 border-rose-600 text-white shadow-sm ring-2 ring-rose-200";
+                }
+            }
+        };
+
         window.saveTF = (idx, realIdx, val, btn) => {
-            if(!userAnswers[idx]) userAnswers[idx]={}; 
+            if (!userAnswers[idx] || typeof userAnswers[idx] !== 'object') userAnswers[idx] = {}; 
             userAnswers[idx][realIdx] = val;
             updatePalette();
             if (window.updateHomeworkPalette) window.updateHomeworkPalette();
             saveLocal();
             const row = btn.parentElement;
-            row.children[0].className = `w-12 h-10 rounded-lg font-bold border-2 transition-all ${val===true ? 'bg-green-500 border-green-600 text-white' : 'bg-white border-gray-300 text-gray-600 hover:border-green-400'}`;
-            row.children[1].className = `w-12 h-10 rounded-lg font-bold border-2 transition-all ${val===false ? 'bg-red-500 border-red-600 text-white' : 'bg-white border-gray-300 text-gray-600 hover:border-red-400'}`;
+            if (row && row.children.length >= 2) {
+                row.children[0].className = `w-12 h-10 rounded-lg font-bold border-2 transition-all ${val===true ? 'bg-green-500 border-green-600 text-white' : 'bg-white border-gray-300 text-gray-600 hover:border-green-400'}`;
+                row.children[1].className = `w-12 h-10 rounded-lg font-bold border-2 transition-all ${val===false ? 'bg-red-500 border-red-600 text-white' : 'bg-white border-gray-300 text-gray-600 hover:border-red-400'}`;
+            }
         };
 
         window.toggleFlag = () => { flaggedQuestions[currentIndex] = !flaggedQuestions[currentIndex]; renderQuestion(currentIndex); }
@@ -2430,6 +2533,115 @@
                 btn.innerHTML = '<i class="fa-solid fa-file-pdf"></i> Đổi giao diện làm bài';
             }
         };
+
+        // Tự động đồng bộ tiến độ khóa học khi học sinh làm bài từ Sách in / Quét mã QR
+        async function syncCourseProgressAfterExam(studentId, currentExamId, userScore, examPassed) {
+            try {
+                if (!studentId || !currentExamId) return;
+
+                // 1. Quét danh sách khóa học công khai
+                const coursesSnap = await getDocs(collection(db, "public_courses"));
+                if (!coursesSnap || coursesSnap.empty) return;
+
+                // 2. Tìm danh sách ID lớp học của học sinh
+                let userClassIds = [];
+                try {
+                    const classesSnap = await getDocs(collection(db, "classes"));
+                    classesSnap.forEach(d => {
+                        const c = d.data();
+                        const stList = Array.isArray(c.students) ? c.students : [];
+                        const hasStudent = stList.some(s => s.uid === studentId || (s.email && currentUser && s.email.toLowerCase() === currentUser.email.toLowerCase()));
+                        if (hasStudent) userClassIds.push(d.id);
+                    });
+                } catch(eCls) {}
+
+                // 3. Tìm các đơn hàng đã duyệt của học sinh
+                let paidCourseIds = new Set();
+                try {
+                    const qOrders = query(collection(db, "orders"), where("userId", "==", studentId), where("status", "==", "approved"));
+                    const oSnap = await getDocs(qOrders);
+                    oSnap.forEach(d => {
+                        const od = d.data();
+                        if (od.courseId) paidCourseIds.add(od.courseId);
+                    });
+                } catch(eOrd) {}
+
+                // 4. Lọc các khóa học mà học sinh có quyền truy cập và chứa examId này
+                for (const cDoc of coursesSnap.docs) {
+                    const cData = cDoc.data();
+                    const courseId = cDoc.id;
+
+                    const hasClassAccess = Array.isArray(cData.assignedClassIds) && cData.assignedClassIds.some(cid => userClassIds.includes(cid));
+                    const isEnrolled = paidCourseIds.has(courseId) || hasClassAccess;
+
+                    if (!isEnrolled) continue;
+
+                    const curriculum = cData.curriculum || [];
+                    let flatItems = [];
+                    curriculum.forEach(chap => {
+                        (chap.lessons || []).forEach(les => {
+                            (les.items || []).forEach(it => {
+                                flatItems.push(it);
+                            });
+                        });
+                    });
+
+                    // Tìm tất cả item quiz có examId trùng khớp
+                    const matchIndices = [];
+                    flatItems.forEach((it, idx) => {
+                        if (it.type === 'quiz' && it.examId === currentExamId) {
+                            const minScore = parseFloat(it.minScore) || 5;
+                            if (examPassed || (typeof userScore === 'number' && userScore >= minScore)) {
+                                matchIndices.push(idx);
+                            }
+                        }
+                    });
+
+                    if (matchIndices.length === 0) continue;
+
+                    // Đọc tiến độ hiện tại của học sinh
+                    const progRef = doc(db, "user_progress", `${studentId}_${courseId}`);
+                    const progSnap = await getDoc(progRef);
+                    let completedItems = new Set();
+                    if (progSnap.exists() && progSnap.data().completedItems) {
+                        completedItems = new Set(progSnap.data().completedItems);
+                    }
+
+                    let changed = false;
+                    matchIndices.forEach(idx => {
+                        if (!completedItems.has(idx)) {
+                            completedItems.add(idx);
+                            changed = true;
+                        }
+                    });
+
+                    if (changed) {
+                        const total = flatItems.length;
+                        const percent = total === 0 ? 0 : Math.round((completedItems.size / total) * 100);
+                        await setDoc(progRef, {
+                            uid: studentId,
+                            courseId: courseId,
+                            completedItems: Array.from(completedItems),
+                            progress: percent,
+                            lastUpdated: new Date().toISOString()
+                        }, { merge: true });
+
+                        // Đồng bộ vào orders nếu có
+                        try {
+                            const qOrder = query(collection(db, "orders"), where("userId", "==", studentId), where("courseId", "==", courseId));
+                            const snapOrder = await getDocs(qOrder);
+                            if (!snapOrder.empty) {
+                                await updateDoc(doc(db, "orders", snapOrder.docs[0].id), { progress: percent });
+                            }
+                        } catch(eO) {}
+
+                        console.log(`[QR/Book Exam Sync] Đã tự động cập nhật tiến độ khóa học ${courseId} lên ${percent}% cho học sinh ${studentId}`);
+                    }
+                }
+            } catch (err) {
+                console.warn("[QR/Book Exam Sync] Lỗi cập nhật tiến độ khóa học:", err);
+            }
+        }
 
         async function submitReal(auto=false) {
             isExamActive = false; 
@@ -2534,9 +2746,9 @@
             const shuffleConfigKey = `examConfig_${currentUser.uid}_${examId}`;
             const savedConfig = JSON.parse(localStorage.getItem(shuffleConfigKey) || "null");
             
-            // Tính thời gian làm bài (Giây)
-            // Tính thời gian làm bài (Giây)
-            const durationSeconds = (examData.duration * 60) - timeLeft;
+            // Tính thời gian làm bài (Giây) an toàn
+            const maxTotalSec = (examData.duration || 45) * 60;
+            const durationSeconds = Math.max(0, Math.min(maxTotalSec, maxTotalSec - timeLeft));
 
             // --- [FIX] TỰ ĐỘNG DÒ TÌM LỚP HỌC (CHỐNG LỖI VÃNG LAI) ---
             let detectedClassId = "vang_lai"; // Mặc định
@@ -2612,6 +2824,9 @@
             // được giữ trong resultData để xem lại đúng thứ tự câu/phương án.
             await addDoc(collection(db, "results"), resultData);
 
+            // [ĐỒNG BỘ TIẾN ĐỘ KHÓA HỌC] Tự động cập nhật tiến độ nếu đề thi thuộc khóa học đã mua/được gán
+            syncCourseProgressAfterExam(currentUser.uid, examId, score, isPassed).catch(e => console.warn(e));
+
             // [VÉ LÀM LẠI] Nộp bài xong thì hủy vé đã dùng (1 lần duyệt = 1 lượt làm lại)
             if (window.retryGrantRefs && window.retryGrantRefs.length) {
                 for (const ref of window.retryGrantRefs) {
@@ -2626,13 +2841,12 @@
             window.examHistory.unshift(resultData);
             
             // 3. [MỚI] XÓA DỮ LIỆU TẠM (CLEANUP)
-                
-                // 3. [MỚI] XÓA DỮ LIỆU TẠM (CLEANUP)
-                // Xóa bản ghi "đang làm dở" trên Cloud sau khi đã lưu kết quả.
-                await deleteDoc(doc(db, "exam_attempts", `${currentUser.uid}_${examId}`));
-                // Xóa dữ liệu trong máy
-                localStorage.removeItem(`ans_${currentUser.uid}_${examId}`);
-                localStorage.removeItem(`order_${currentUser.uid}_${examId}`);
+            // Xóa bản ghi "đang làm dở" trên Cloud sau khi đã lưu kết quả.
+            await deleteDoc(doc(db, "exam_attempts", `${currentUser.uid}_${examId}`));
+            // Xóa dữ liệu trong máy
+            localStorage.removeItem(`ans_${currentUser.uid}_${examId}`);
+            localStorage.removeItem(`order_${currentUser.uid}_${examId}`);
+            localStorage.removeItem(`start_${currentUser.uid}_${examId}`);
 
                 // 4. HIỂN THỊ KẾT QUẢ & PHÁO HOA (LOGIC CŨ)
                 document.getElementById('scoreDisplay').textContent = score; document.getElementById('correctCount').textContent = `${correct}/${currentQuestions.length}`;
@@ -2641,7 +2855,9 @@
                 if (isPassed) {
                     resultTitle.textContent = "Chúc mừng! Bạn đã vượt qua"; resultTitle.className = "text-2xl font-extrabold text-green-600 mb-2";
                     resultMsg.textContent = `Bạn đã đạt ${score} điểm (Điểm chuẩn: ${passScore})`; resultIcon.innerHTML = "🎉"; scoreDisplay.className = "text-6xl font-black text-green-600";
-                    window.fireConfetti(score); // BẮN PHÁO HOA
+                    if (examData.enableFireworks !== false) {
+                        window.fireConfetti(score); // BẮN PHÁO HOA
+                    }
                 } else {
                     resultTitle.textContent = "Chưa đạt yêu cầu"; resultTitle.className = "text-2xl font-extrabold text-red-600 mb-2";
                     resultMsg.textContent = `Cần tối thiểu ${passScore} điểm để qua bài. Hãy ôn tập thêm!`; resultIcon.innerHTML = "😓"; scoreDisplay.className = "text-6xl font-black text-red-500";
@@ -5856,7 +6072,7 @@ window.requestResubmit = async () => {
             </button>
         </div>
     </div>
-<script src="/sw-register.js?v=32"></script>
+<script src="/sw-register.js?v=33"></script>
 <script src="/security-shield.js?v=4"></script>
 </body>
 </html>

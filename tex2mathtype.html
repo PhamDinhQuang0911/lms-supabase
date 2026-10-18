@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeX2MathType Web Pro — Chuyển đổi TeX sang Word MathType OLE</title>
+    <link rel="stylesheet" href="tex2mathtype.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="app-header">
+        <div class="container header-container">
+            <div class="logo-area">
+                <div class="logo-icon">📐</div>
+                <div>
+                    <h1>TeX2MathType <span class="badge-pro">Web Pro</span></h1>
+                    <p class="subtitle">Chuyển đổi TeX & DOCX sang Microsoft Word MathType OLE chuẩn</p>
+                </div>
+            </div>
+            <div class="header-status">
+                <span id="engineStatusBadge" class="status-badge loading">
+                    <span class="status-dot"></span> <span id="engineStatusText">Đang khởi tạo Python Wasm...</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container main-content">
+        <!-- Security & Privacy Callout -->
+        <div class="callout-card">
+            <div class="callout-icon">🔒</div>
+            <div class="callout-body">
+                <strong>Xử lý 100% trên trình duyệt của bạn (WebAssembly)</strong>
+                <p>Nội dung đề thi và công thức toán học không bao giờ tải lên bất kỳ máy chủ nào. An toàn, bảo mật và miễn phí trọn đời.</p>
+            </div>
+        </div>
+
+        <!-- Mode Navigation Tabs -->
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="tab-tex">
+                <span class="tab-icon">📝</span> Dán mã TeX / LaTeX
+            </button>
+            <button class="tab-btn" data-tab="tab-docx">
+                <span class="tab-icon">📄</span> Chuyển đổi file Word (.docx)
+            </button>
+        </div>
+
+        <!-- TAB 1: TEX CONVERTER -->
+        <section id="tab-tex" class="tab-content active">
+            <div class="card">
+                <div class="control-row">
+                    <div class="form-group">
+                        <label for="wordStandardSelect">Bộ chuẩn hóa Word (BTPRO):</label>
+                        <select id="wordStandardSelect" class="form-control">
+                            <option value="btn_group" selected>Chuẩn BTN Group (Mặc định)</option>
+                            <option value="dang1">Dạng 1 (Chuẩn thường)</option>
+                            <option value="dang3">Dạng 3 (A4 chia cột tự động)</option>
+                            <option value="dang4">Dạng 4 (In 2 cột / Trang hẹp)</option>
+                            <option value="dang5">Dạng 5 (Tiết kiệm diện tích giấy)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exportModeSelect">Chế độ xuất file:</label>
+                        <select id="exportModeSelect" class="form-control">
+                            <option value="both" selected>Xuất cả 2 file (Đề bài & Đề + Lời giải)</option>
+                            <option value="questions">Chỉ xuất file Đề bài</option>
+                            <option value="full">Chỉ xuất file Đề bài + Lời giải</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mathSizeSelect">Cỡ công thức MathType:</label>
+                        <select id="mathSizeSelect" class="form-control">
+                            <option value="11" selected>11 pt (Nhỏ hơn 1 size - Gọn đẹp)</option>
+                            <option value="10.5">10.5 pt (Rất nhỏ gọn)</option>
+                            <option value="12">12 pt (Cỡ chuẩn 12pt)</option>
+                            <option value="10">10 pt (Bé)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group-btn">
+                        <button id="btnInsertSample" class="btn btn-secondary btn-sm" type="button">
+                            📋 Dán mã mẫu
+                        </button>
+                    </div>
+                </div>
+
+                <div class="editor-area">
+                    <label for="texInput">Mã nguồn LaTeX / TeX:</label>
+                    <textarea id="texInput" class="tex-textarea" placeholder="Dán mã LaTeX câu hỏi, đề thi vào đây... (Ví dụ: \begin{ex} Cho hàm số $y=f(x)$ ... \choice{A}{B}{\True C}{D} \end{ex})"></textarea>
+                </div>
+
+                <div class="action-footer">
+                    <button id="btnConvertTex" class="btn btn-primary btn-lg" disabled>
+                        ⚡ Bắt đầu chuyển đổi sang Word MathType
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: DOCX CONVERTER -->
+        <section id="tab-docx" class="tab-content">
+            <div class="card">
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-zone-icon">📁</div>
+                    <h3>Kéo thả file Word (.docx) vào đây</h3>
+                    <p>Hoặc bấm vào đây để chọn file từ máy tính</p>
+                    <input type="file" id="docxFileInput" accept=".docx" style="display:none">
+                    <div id="selectedFileInfo" class="selected-file-info" style="display:none"></div>
+                </div>
+
+                <div class="action-footer">
+                    <button id="btnConvertDocx" class="btn btn-primary btn-lg" disabled>
+                        ⚡ Chuyển đổi công thức LaTeX trong file DOCX
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progress and Output Container -->
+        <div id="progressSection" class="card progress-card" style="display: none;">
+            <div class="progress-header">
+                <span id="progressMessage" class="progress-message">Đang xử lý...</span>
+                <span id="progressPercent" class="progress-percent">0%</span>
+            </div>
+            <div class="progress-bar-track">
+                <div id="progressBarFill" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+            <div id="logConsole" class="log-console"></div>
+        </div>
+
+        <!-- Download Results Container -->
+        <div id="resultSection" class="card result-card" style="display: none;">
+            <div class="result-header">
+                <div class="success-icon">🎉</div>
+                <div>
+                    <h3>Chuyển đổi thành công!</h3>
+                    <p>File Word đã sẵn sàng với các công thức MathType OLE Equation 3.0 chuẩn.</p>
+                </div>
+            </div>
+            <div id="downloadButtonsList" class="download-list"></div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container footer-content">
+            <p>👑 <strong>Tác giả:</strong> Thầy Choang Choang (Phạm Đình Quang) | 🌐 Website: <a href="https://www.qmath.io.vn" target="_blank" rel="noopener">www.qmath.io.vn</a></p>
+            <p class="footer-note">Ứng dụng độc lập Web tĩnh — Tương thích MathType 6.x / 7.x & MS Word mọi phiên bản.</p>
+        </div>
+    </footer>
+
+    <script src="tex2mathtype-app.js"></script>
+</body>
+</html>

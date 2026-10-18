@@ -75,7 +75,9 @@
           N: "\\mathbb{N}",
           Z: "\\mathbb{Z}",
           vectors: ["\\overrightarrow{#1}", 1],
-          mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1]
+          mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1],
+          arrow: "\\rightarrow",
+          Arrow: "\\Rightarrow"
         }
       },
       options: {
@@ -96,6 +98,11 @@
     <script src="math-palette.js?v=20260927-v4"></script>
     <script src="mapid-picker.js"></script>
     <script src="latex-exporter.js?v=20261002"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="qrcode.min.js?v=20261017_V1"></script>
+    <script src="question-importer.js?v=20261016_V5"></script>
+    <script src="word-mathtype-exporter.js?v=20261016_V5"></script>
+    <script src="exam-mixer.js?v=20261017_V3"></script>
     <!-- Flatpickr: Bộ chọn ngày giờ lịch tháng thông minh chuẩn 24h & Mobile -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
@@ -508,6 +515,11 @@
                         <i class="fa-solid fa-file-pdf w-5"></i> Xem / In PDF
                     </button>
                 </li>
+                <li>
+                    <button onclick="window.exportEditorExamToWord(); window.toggleSidebar()" id="menu-word" class="sidebar-item w-full text-left px-6 py-3 text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-3 text-sm font-bold border-t border-gray-100">
+                        <i class="fa-solid fa-file-word w-5"></i> Xuất Word (MathType)
+                    </button>
+                </li>
             </ul>
         </nav>
         <div class="p-4 border-t border-gray-200 space-y-2">
@@ -911,6 +923,7 @@
                         <button onclick="document.getElementById('texInput').click()" class="px-2.5 py-1.5 bg-green-100 text-green-700 rounded text-xs font-bold hover:bg-green-200" title="Nhập đề từ file LaTeX (.tex)"><i class="fa-solid fa-file-import mr-1"></i> Nhập TeX</button>
                         <input type="file" id="texInput" accept=".tex,.txt" class="hidden" onchange="(window.handleTexUpload ? window.handleTexUpload(this) : (window.showToast ? window.showToast('Hệ thống đang tải module, vui lòng thử lại sau giây lát!', 'warning') : alert('Hệ thống đang tải module, vui lòng thử lại sau giây lát!')))">
                         <button onclick="window.openExportLatexModal()" class="px-2.5 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 shadow-xs flex items-center gap-1.5 transition" title="Xuất lại file .tex chuẩn kèm mã CCCD / ID để biên dịch sách in"><i class="fa-solid fa-file-export"></i> Xuất TeX</button>
+                        <button onclick="window.exportEditorExamToWord()" class="px-2.5 py-1.5 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700 shadow-xs flex items-center gap-1.5 transition cursor-pointer" title="Xuất đề thi ra Word MathType chuẩn BTPRO"><i class="fa-solid fa-file-word"></i> Xuất Word</button>
                         <button onclick="window.triggerOverwriteFromTex()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold shadow-xs flex items-center gap-1.5 transition cursor-pointer" title="Cập nhật đè toàn bộ câu hỏi từ file TeX theo đúng vị trí tương ứng, BẢO LƯU tuyệt đối mã CCCD hiện có"><i class="fa-solid fa-arrows-rotate"></i> Cập nhật đè TeX</button>
                         <input type="file" id="overwriteTexInput" accept=".tex,.txt" class="hidden" onchange="window.handleOverwriteTexFile(this)">
                         <button onclick="window.saveExam((window.examData && window.examData.status) ? window.examData.status : 'draft')" class="px-2.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded text-xs font-bold shadow-xs flex items-center gap-1.5 transition cursor-pointer" title="Lưu lại toàn bộ đề thi"><i class="fa-solid fa-floppy-disk"></i> Lưu đề</button>
@@ -10027,6 +10040,35 @@ ${qBlocks}
 
         window.exportQuestionsToLatex = window.openExportLatexModal;
 
+        window.exportEditorExamToWord = () => {
+            if (typeof saveCurrentQuestionToMemory === 'function') {
+                try { saveCurrentQuestionToMemory(); } catch(_) {}
+            }
+            const questions = [...(window.questions || []), ...(window.mixedTlQuestions || [])];
+            if (!questions || questions.length === 0) {
+                if (typeof window.showToast === 'function') {
+                    window.showToast("Đề thi chưa có câu hỏi nào để xuất!", "warning");
+                } else {
+                    alert("Đề thi chưa có câu hỏi nào để xuất!");
+                }
+                return;
+            }
+            const examTitle = (document.getElementById('settingTitle')?.value || window.examData?.title || "Đề thi").trim();
+            const duration = parseInt(document.getElementById('settingDuration')?.value || window.examData?.duration || 90);
+            const currentExam = {
+                title: examTitle,
+                duration: duration,
+                questions: questions,
+                grade: document.getElementById('settingGrade')?.value || window.examData?.grade || '',
+                subject: document.getElementById('settingSubject')?.value || window.examData?.subject || 'Toán học'
+            };
+            if (typeof window.openExportWordModal === 'function') {
+                window.openExportWordModal(currentExam, questions);
+            } else {
+                alert("Module xuất Word MathType đang tải, vui lòng thử lại sau giây lát!");
+            }
+        };
+
         // ================= HƯỚNG DẪN CẤU TRÚC FILE WORD (.DOCX) =================
         window.openWordGuideModal = () => {
             const modal = document.getElementById('wordGuideModal');
@@ -11665,7 +11707,7 @@ Vậy max f(x) = 4 tại x = 2; min f(x) = 0 tại x = 1.`;
         if(btnToggleSidebar) btnToggleSidebar.addEventListener('click', toggleSidebar);
         if(overlay) overlay.addEventListener('click', toggleSidebar);
     </script>
-<script src="/sw-register.js?v=32"></script>
+<script src="/sw-register.js?v=33"></script>
 </body>
 </html>
 

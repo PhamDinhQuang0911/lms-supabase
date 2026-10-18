@@ -441,12 +441,8 @@
         return btoa(binary);
     }
 
-    // --- PARSER TỆP WORD THÔNG QUA MAMMOTH ---
+    // --- PARSER TỆP WORD SIÊU TỐC QUA JSZIP & DỰ PHÒNG MAMMOTH ---
     async function parseWordFile(fileOrArrayBuffer) {
-        if (!window.mammoth) {
-            throw new Error('Thư viện Mammoth chưa được nạp. Vui lòng kiểm tra kết nối mạng!');
-        }
-
         let arrayBuffer;
         if (fileOrArrayBuffer instanceof ArrayBuffer) {
             arrayBuffer = fileOrArrayBuffer;
@@ -456,50 +452,87 @@
             throw new Error('Định dạng tệp không hợp lệ.');
         }
 
-        // Nạp thư viện giải mã ảnh vector EMF/WMF theo nhu cầu
-        if (typeof window.convertMetafileToDataUrl !== 'function') {
+        // 1. Ưu tiên bóc tách trực tiếp XML qua JSZip (Cực nhanh: 30ms, không lag, không treo)
+        if (typeof JSZip !== 'undefined') {
             try {
-                const emfMod = await import('./emf-converter.js?v=20260925');
-                window.convertMetafileToDataUrl = emfMod.convertMetafileToDataUrl;
-            } catch (emfErr) {
-                console.warn('[Word import] Không thể nạp mô-đun emf-converter:', emfErr);
+                const zip = await JSZip.loadAsync(arrayBuffer);
+                const docFile = zip.file("word/document.xml");
+                if (docFile) {
+                    const docXml = await docFile.async("text");
+                    const pRegex = /<w:p\b[^>]*>([\s\S]*?)<\/w:p>/g;
+                    const lines = [];
+                    let pMatch;
+
+                    while ((pMatch = pRegex.exec(docXml)) !== null) {
+                        const pXml = pMatch[1];
+                        const rRegex = /<w:r\b[^>]*>([\s\S]*?)<\/w:r>/g;
+                        let line = '';
+                        let rMatch;
+
+                        while ((rMatch = rRegex.exec(pXml)) !== null) {
+                            const rXml = rMatch[1];
+                            const isUnderlined = /<w:u\b[^>]*\/>|<w:u\b[^>]*val=[\"'](?!none)[^\"']+[\"']/i.test(rXml);
+
+                            const tRegex = /<w:t\b[^>]*>([\s\S]*?)<\/w:t>/g;
+                            let tMatch;
+                            while ((tMatch = tRegex.exec(rXml)) !== null) {
+                                const text = tMatch[1];
+                                if (isUnderlined) {
+                                    const labelM = text.trim().match(/^([A-Da-d])\s*[\.\)]?$/);
+                                    if (labelM) {
+                                        line += ` [[WORD_UNDERLINE_${labelM[1].toUpperCase()}]] `;
+                                    }
+                                }
+                                line += text;
+                            }
+                        }
+
+                        // Lấy ký tự toán học OpenXML <m:t> nếu có
+                        const mtRegex = /<m:t\b[^>]*>([\s\S]*?)<\/m:t>/g;
+                        let mtMatch;
+                        while ((mtMatch = mtRegex.exec(pXml)) !== null) {
+                            line += mtMatch[1];
+                        }
+
+                        line = line
+                            .replace(/&amp;/g, '&')
+                            .replace(/&lt;/g, '<')
+                            .replace(/&gt;/g, '>')
+                            .replace(/&quot;/g, '"')
+                            .replace(/&apos;/g, "'");
+
+                        if (line.trim()) lines.push(line.trim());
+                    }
+
+                    const rawDocText = lines.join('\n');
+                    const parsed = parseWordQuestions(rawDocText);
+                    if (parsed && parsed.length > 0) {
+                        return parsed;
+                    }
+                }
+            } catch (fastErr) {
+                console.warn('[Word import] Phân tích nhanh qua JSZip gặp lỗi, chuyển sang Mammoth:', fastErr);
             }
+        }
+
+        // 2. Dự phòng: Dùng Mammoth (nhưng tối ưu ảnh nhẹ nhàng, không render WMF canvas gây treo trình duyệt)
+        if (!window.mammoth) {
+            throw new Error('Thư viện đọc Word (JSZip/Mammoth) chưa sẵn sàng. Vui lòng tải lại trang!');
         }
 
         const mammothOptions = {
             styleMap: ['u => u'],
             convertImage: window.mammoth.images.imgElement(element => {
                 const contentType = element.contentType || '';
-                if (contentType === 'image/x-emf' || contentType === 'image/x-wmf') {
-                    return element.readAsArrayBuffer().then(async (buf) => {
-                        try {
-                            const arrayBuf = (buf instanceof ArrayBuffer) ? buf : (buf.buffer ? buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) : new Uint8Array(buf).buffer);
-                            
-                            // 1. Ưu tiên trích xuất ảnh raster (PNG/JPEG) nhúng trực tiếp trong EMF/WMF (ảnh gốc chất lượng cao từ Word)
-                            const embedded = extractEmbeddedRaster(arrayBuf);
-                            if (embedded) {
-                                const b64 = uint8ArrayToBase64(embedded.data);
-                                return { src: `data:${embedded.mime};base64,${b64}`, alt: 'Hình minh họa' };
-                            }
-
-                            // 2. Dự phòng: giải mã vector bằng canvas nếu không có raster nhúng
-                            if (typeof window.convertMetafileToDataUrl === 'function') {
-                                const pngUrl = await window.convertMetafileToDataUrl(arrayBuf, { dpiScale: 2 });
-                                if (pngUrl) return { src: pngUrl, alt: 'Hình minh họa' };
-                            }
-                        } catch (e) {
-                            console.warn('[Word import] Lỗi chuyển EMF sang PNG:', e);
-                        }
-                        const b64 = await element.readAsBase64String();
-                        return { src: `data:${contentType};base64,${b64}`, alt: 'Hình minh họa' };
-                    });
-                }
                 return element.readAsArrayBuffer().then(buf => {
-                    const blob = new Blob([buf], { type: element.contentType || 'image/png' });
-                    return new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve({ src: reader.result });
-                        reader.readAsDataURL(blob);
+                    const arrayBuf = (buf instanceof ArrayBuffer) ? buf : (buf.buffer ? buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) : new Uint8Array(buf).buffer);
+                    const embedded = extractEmbeddedRaster(arrayBuf);
+                    if (embedded) {
+                        const b64 = uint8ArrayToBase64(embedded.data);
+                        return { src: `data:${embedded.mime};base64,${b64}`, alt: 'Hình minh họa' };
+                    }
+                    return element.readAsBase64String().then(b64 => {
+                        return { src: `data:${contentType};base64,${b64}`, alt: 'Hình minh họa' };
                     });
                 });
             })

@@ -41,7 +41,9 @@
                 Q: "\\mathbb{Q}",
                 vectors: ["\\overrightarrow{#1}", 1],
                 vec: ["\\overrightarrow{#1}", 1],
-                mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1]
+                mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1],
+                arrow: "\\rightarrow",
+                Arrow: "\\Rightarrow"
             }
         },
         options: { ignoreHtmlClass: 'tex2jax_ignore', processHtmlClass: 'tex2jax_process' },
@@ -3767,6 +3769,110 @@
             });
         }
 
+        const PRACTICE_ADMIN_EMAILS = ["phamdinhquang0911@gmail.com", "phamngockhanh.942001@gmail.com", "phamngockhanh.942002@gmail.com"];
+
+        async function fetchAllCoursesForPracticeLookup() {
+            if (window._practiceCoursesCache && window._practiceCoursesCache.length > 0) return window._practiceCoursesCache;
+            try {
+                const s = await getDocs(collection(db, "public_courses"));
+                const list = [];
+                s.forEach(d => list.push({ id: d.id, ...d.data() }));
+                window._practiceCoursesCache = list;
+                return list;
+            } catch(e) {
+                console.warn("Lỗi tải danh sách khóa học:", e);
+                return [];
+            }
+        }
+
+        async function getPracticeRequiredCourses(q) {
+            if (!q) return [];
+            const allCourses = await fetchAllCoursesForPracticeLookup();
+            if (!allCourses || allCourses.length === 0) return [];
+
+            const qIdStr = String(q.id || '').trim();
+            const qCccdStr = String(q.cccd || '').trim();
+            const qMapIdStr = String(q.mapId || '').trim().toLowerCase();
+            const qBookMapIdStr = String(q.bookMapId || q.bookId || q.book || '').trim().toLowerCase();
+            const qExamIdStr = String(q.examId || '').trim();
+
+            return allCourses.filter(c => {
+                if (!c) return false;
+                if (Array.isArray(c.restrictedQuestionIds) && c.restrictedQuestionIds.length > 0) {
+                    const matchId = c.restrictedQuestionIds.some(id => {
+                        const s = String(id).trim();
+                        return (qIdStr && s === qIdStr) || (qCccdStr && s === qCccdStr);
+                    });
+                    if (matchId) return true;
+                }
+                if (q.courseId && String(q.courseId).trim() === c.id) return true;
+                if (Array.isArray(q.courseIds) && q.courseIds.map(x => String(x).trim()).includes(c.id)) return true;
+                if (Array.isArray(q.requiredCourses) && q.requiredCourses.map(x => String(x).trim()).includes(c.id)) return true;
+
+                const cBookMap = String(c.bookMapId || '').trim().toLowerCase();
+                if (cBookMap && cBookMap.length > 0) {
+                    if (qBookMapIdStr && (qBookMapIdStr === cBookMap || qBookMapIdStr.includes(cBookMap) || cBookMap.includes(qBookMapIdStr))) return true;
+                    if (qMapIdStr && (qMapIdStr === cBookMap || qMapIdStr.includes(cBookMap) || cBookMap.includes(qMapIdStr))) return true;
+                }
+
+                if (c.isQuestionProtected && qExamIdStr) {
+                    if (c.sampleExamId && String(c.sampleExamId).trim() === qExamIdStr) return true;
+                    if (Array.isArray(c.curriculum)) {
+                        for (const chap of c.curriculum) {
+                            if (Array.isArray(chap.lessons)) {
+                                for (const les of chap.lessons) {
+                                    if (Array.isArray(les.items)) {
+                                        for (const it of les.items) {
+                                            if (it && (it.quizId === qExamIdStr || it.examId === qExamIdStr || it.id === qExamIdStr)) return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
+            });
+        }
+
+        async function checkPracticeLookupAccess(q, requiredCourses) {
+            if (!requiredCourses || requiredCourses.length === 0) return { isAuthorized: true, isRestricted: false };
+            if (requiredCourses.some(c => !c.price || Number(c.price) === 0)) return { isAuthorized: true, isRestricted: true, free: true };
+
+            const user = auth.currentUser;
+            if (!user) return { isAuthorized: false, isRestricted: true, reason: 'unauthenticated' };
+            if (user.email && PRACTICE_ADMIN_EMAILS.includes(user.email)) return { isAuthorized: true, isRestricted: true, role: 'admin_email' };
+
+            try {
+                const uSnap = await getDoc(doc(db, "users", user.uid));
+                if (uSnap.exists()) {
+                    const role = uSnap.data().role;
+                    if (['admin', 'super_admin', 'teacher'].includes(role)) return { isAuthorized: true, isRestricted: true, role: 'staff' };
+                }
+            } catch(e) {}
+
+            try {
+                // Check orders
+                for (const c of requiredCourses) {
+                    const qOrd = query(collection(db, "orders"), where("userId", "==", user.uid), where("courseId", "==", c.id), where("status", "in", ["paid", "approved"]));
+                    const oSnap = await getDocs(qOrd);
+                    if (!oSnap.empty) return { isAuthorized: true, isRestricted: true, reason: 'paid' };
+                }
+                // Check classes
+                const qCls = query(collection(db, "classes"), where("studentIds", "array-contains", user.uid));
+                const cSnap = await getDocs(qCls);
+                for (const cd of cSnap.docs) {
+                    const cData = cd.data();
+                    for (const c of requiredCourses) {
+                        if (Array.isArray(c.assignedClassIds) && c.assignedClassIds.includes(cd.id)) return { isAuthorized: true, isRestricted: true, reason: 'class' };
+                        if (Array.isArray(cData.assignedCourses) && cData.assignedCourses.some(ac => ac && ac.courseId === c.id)) return { isAuthorized: true, isRestricted: true, reason: 'class' };
+                    }
+                }
+            } catch(e) {}
+
+            return { isAuthorized: false, isRestricted: true, reason: 'not_enrolled' };
+        }
+
         window.executeStudentLookup = async (forcedId = null, forceRefresh = true) => {
             const input = document.getElementById('modalLookupInput');
             const qId = String(forcedId || (input ? input.value : '')).trim();
@@ -3831,10 +3937,15 @@
                 loadingEl?.classList.add('hidden');
                 resultEl?.classList.remove('hidden');
 
+                // Kiểm tra phân quyền câu hỏi
+                const reqCourses = await getPracticeRequiredCourses(q);
+                const accessCheck = await checkPracticeLookupAccess(q, reqCourses);
+                const isAuth = accessCheck.isAuthorized;
+
                 const badgesBox = document.getElementById('lookupBadgesContainer');
                 if (badgesBox) {
                     const cccdNum = q.cccd || q.id;
-                    badgesBox.innerHTML = `
+                    let bHtml = `
                         <span class="text-xs font-mono font-black text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-200">
                             ID: #${cccdNum}
                         </span>
@@ -3842,39 +3953,102 @@
                         <span class="text-xs font-black text-gray-700 bg-gray-100 px-2.5 py-1 rounded-xl border border-gray-200">
                             ${q.level || 'Thông hiểu'}
                         </span>
+                    `;
+                    if (!isAuth) {
+                        bHtml += `<span class="text-xs font-black text-amber-700 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-300 flex items-center gap-1 shadow-2xs"><i class="fa-solid fa-lock text-amber-500"></i> Nội dung độc quyền</span>`;
+                    } else if (accessCheck.isRestricted && isAuth) {
+                        bHtml += `<span class="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-300 flex items-center gap-1 shadow-2xs"><i class="fa-solid fa-unlock text-emerald-500"></i> Đã mở khóa</span>`;
+                    }
+                    bHtml += `
                         <button type="button" onclick="window.executeStudentLookup('${cccdNum}', true)" class="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-bold transition-all flex items-center gap-1" title="Làm mới dữ liệu">
                             <i class="fa-solid fa-rotate"></i> Làm mới
-                        </button>`;
+                        </button>
+                    `;
+                    badgesBox.innerHTML = bHtml;
                 }
 
                 const contentEl = document.getElementById('lookupQuestionContent');
-                if (contentEl) contentEl.innerHTML = window.formatContent ? window.formatContent(q.content) : q.content;
+                if (contentEl) {
+                    if (!isAuth) {
+                        contentEl.innerHTML = `
+                            <div class="mb-3.5 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium flex items-center gap-2.5 shadow-2xs">
+                                <i class="fa-solid fa-lock text-amber-500 text-base shrink-0"></i>
+                                <span><strong>Câu hỏi thuộc khóa học / tài liệu độc quyền:</strong> Bạn cần đăng ký khóa học để xem đáp án chính xác và lời giải chi tiết.</span>
+                            </div>
+                            <div class="opacity-95">${window.formatContent ? window.formatContent(q.content) : q.content}</div>
+                        `;
+                    } else {
+                        contentEl.innerHTML = window.formatContent ? window.formatContent(q.content) : q.content;
+                    }
+                }
 
                 const answerEl = document.getElementById('lookupAnswerSection');
                 if (answerEl) {
-                    let ansHtml = '';
-                    if (q.options && q.options.length > 0) {
-                        ansHtml = '<div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">';
-                        const correctIdx = Number(q.correct);
-                        q.options.forEach((opt, idx) => {
-                            const isCorrect = (idx === correctIdx);
-                            const cls = isCorrect ? 'bg-emerald-50 border-emerald-400 text-emerald-900 font-bold' : 'bg-gray-50 border-gray-200 text-gray-700';
-                            ansHtml += `
-                                <div class="p-3 rounded-xl border ${cls} flex items-center gap-2.5 text-xs sm:text-sm">
-                                    <span class="w-6 h-6 rounded-lg ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-white border text-gray-500'} flex items-center justify-center font-black text-xs shrink-0">${String.fromCharCode(65 + idx)}</span>
-                                    <div class="math-content flex-1">${window.formatContent(opt)}</div>
-                                </div>`;
-                        });
-                        ansHtml += '</div>';
-                    } else if (q.answer) {
-                        ansHtml = `<div class="mt-3 p-3.5 bg-indigo-50 rounded-xl border border-indigo-200 text-indigo-900 font-black text-sm">Đáp án: ${q.answer}</div>`;
+                    if (!isAuth) {
+                        answerEl.innerHTML = `
+                            <div class="mt-3 p-3.5 bg-gray-50 rounded-xl border border-dashed border-amber-300 text-gray-600 font-bold text-xs flex items-center justify-between">
+                                <span class="flex items-center gap-2"><i class="fa-solid fa-lock text-amber-500"></i> Đáp án câu hỏi đã được bảo vệ</span>
+                                <span class="text-[11px] text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-lg">Cần đăng ký khóa học</span>
+                            </div>
+                        `;
+                    } else {
+                        let ansHtml = '';
+                        if (q.options && q.options.length > 0) {
+                            ansHtml = '<div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">';
+                            const correctIdx = Number(q.correct);
+                            q.options.forEach((opt, idx) => {
+                                const isCorrect = (idx === correctIdx);
+                                const cls = isCorrect ? 'bg-emerald-50 border-emerald-400 text-emerald-900 font-bold' : 'bg-gray-50 border-gray-200 text-gray-700';
+                                ansHtml += `
+                                    <div class="p-3 rounded-xl border ${cls} flex items-center gap-2.5 text-xs sm:text-sm">
+                                        <span class="w-6 h-6 rounded-lg ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-white border text-gray-500'} flex items-center justify-center font-black text-xs shrink-0">${String.fromCharCode(65 + idx)}</span>
+                                        <div class="math-content flex-1">${window.formatContent(opt)}</div>
+                                    </div>`;
+                            });
+                            ansHtml += '</div>';
+                        } else if (q.answer) {
+                            ansHtml = `<div class="mt-3 p-3.5 bg-indigo-50 rounded-xl border border-indigo-200 text-indigo-900 font-black text-sm">Đáp án: ${q.answer}</div>`;
+                        }
+                        answerEl.innerHTML = ansHtml;
                     }
-                    answerEl.innerHTML = ansHtml;
                 }
 
                 const solEl = document.getElementById('lookupSolutionSection');
                 if (solEl) {
-                    if (q.solution && q.solution.trim()) {
+                    if (!isAuth) {
+                        solEl.innerHTML = `
+                            <div class="p-4 bg-gradient-to-br from-amber-50 via-white to-orange-50 border-2 border-amber-300 rounded-2xl shadow-sm text-left">
+                                <div class="flex items-center gap-2.5 mb-3">
+                                    <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-sm shadow-2xs">
+                                        <i class="fa-solid fa-unlock-keyhole"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-black text-gray-900 text-sm">Mở khóa Lời giải chi tiết & Đáp án</div>
+                                        <div class="text-[11px] text-gray-500">Đăng ký một trong các khóa học sau trên trang Học sinh để tra cứu:</div>
+                                    </div>
+                                </div>
+                                <div class="space-y-2 mt-2">
+                                    ${reqCourses.map(c => `
+                                        <div class="p-3 rounded-xl bg-white border border-amber-200 flex items-center justify-between gap-3 shadow-2xs">
+                                            <div class="flex items-center gap-2.5 min-w-0">
+                                                <img src="${c.thumbnail || c.bannerUrl || 'https://via.placeholder.com/60?text=Course'}" class="w-10 h-10 rounded-lg object-cover shrink-0 border" alt="${c.title || ''}">
+                                                <div class="min-w-0">
+                                                    <div class="text-xs font-bold text-gray-900 truncate">${c.title || 'Khóa học'}</div>
+                                                    <div class="text-[11px] font-black text-rose-600">${c.price ? (Number(c.price).toLocaleString('vi-VN') + ' đ') : 'Miễn phí'}</div>
+                                                </div>
+                                            </div>
+                                            <a href="student.html?tab=market&courseId=${c.id}" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition-colors whitespace-nowrap flex items-center gap-1 shrink-0">
+                                                <i class="fa-solid fa-cart-shopping text-[10px]"></i> Đăng ký
+                                            </a>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div class="mt-3 text-[11px] text-gray-400 italic">
+                                    <i class="fa-solid fa-info-circle mr-1 text-amber-500"></i>Học sinh trong lớp học được phân công khóa học này sẽ được tự động mở khóa.
+                                </div>
+                            </div>
+                        `;
+                    } else if (q.solution && q.solution.trim()) {
                         solEl.innerHTML = `
                             <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4">
                                 <div class="font-black text-amber-900 text-xs uppercase mb-1.5 flex items-center gap-1.5"><i class="fa-solid fa-lightbulb"></i> Lời giải chi tiết</div>
@@ -3893,7 +4067,6 @@
                 console.error("Lookup error:", e);
                 loadingEl?.classList.add('hidden');
                 notFoundEl?.classList.remove('hidden');
-            }
         };
 
         // --- REPORT MODAL ---
@@ -4592,7 +4765,7 @@
         };
 
     </script>
-    <script src="/sw-register.js?v=32"></script>
+    <script src="/sw-register.js?v=33"></script>
     <script src="/app-installer.js?v=2"></script>
     <script src="/security-shield.js?v=4"></script>
 </body>

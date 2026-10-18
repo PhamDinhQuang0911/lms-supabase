@@ -46,7 +46,9 @@
                     N: "\\mathbb{N}",
                     Z: "\\mathbb{Z}",
                     vectors: ["\\overrightarrow{#1}", 1],
-                    mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1]
+                    mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1],
+                    arrow: "\\rightarrow",
+                    Arrow: "\\Rightarrow"
                 }
             },
             options: { ignoreHtmlClass: 'tex2jax_ignore', processHtmlClass: 'tex2jax_process' },
@@ -352,13 +354,51 @@
             setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 400); }, 3000);
         };
 
-        // ====== ĐĂNG NHẬP & KHỞI ĐỘNG ======
+        // ====== ĐĂNG NHẬP & PHÂN QUYỀN ======
+        const TOPIC_SUPER_ADMINS = [
+            "phamngockhanh.942001@gmail.com",
+            "phamngockhanh.942002@gmail.com",
+            "phamdinhquang0911@gmail.com"
+        ];
+
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = "index.html"; return; }
             try {
                 const uSnap = await getDoc(doc(db, "users", user.uid));
                 if (uSnap.exists() && uSnap.data().role === 'student') { window.location.href = "student.html"; return; }
-            } catch (e) { /* không đọc được role -> vẫn cho vào (giáo viên) */ }
+            } catch (e) {}
+
+            // Kiểm tra quyền khai thác Xưởng Chuyên Đề (Yêu cầu 3)
+            const userEmail = (user.email || '').toLowerCase().trim();
+            const isRootSuper = TOPIC_SUPER_ADMINS.map(e => e.toLowerCase()).includes(userEmail);
+            let hasTopicsPerm = isRootSuper;
+
+            if (!hasTopicsPerm) {
+                try {
+                    const cfgSnap = await getDoc(doc(db, "configurations", "admin_roles"));
+                    if (cfgSnap.exists()) {
+                        const accounts = cfgSnap.data().accounts || [];
+                        const found = accounts.find(a => 
+                            (userEmail && (a.email || '').toLowerCase() === userEmail) || 
+                            (user.uid && a.id === user.uid)
+                        );
+                        if (found) {
+                            if (found.role === 'super_admin') hasTopicsPerm = true;
+                            const perms = Array.isArray(found.permissions) ? found.permissions : [];
+                            if (perms.includes('topics.use')) hasTopicsPerm = true;
+                        }
+                    }
+                } catch(err) {
+                    console.warn("Lỗi đọc cấu hình quyền:", err);
+                }
+            }
+
+            if (!hasTopicsPerm) {
+                alert("⛔ Bạn chưa được cấp quyền sử dụng Xưởng Chuyên Đề. Vui lòng liên hệ Quản trị viên tối cao để được kích hoạt!");
+                window.location.href = "dashboard.html";
+                return;
+            }
+
             currentUser = user;
             loadBank();
             createNewTopic(); // khởi tạo khung trống
@@ -1474,6 +1514,6 @@
         $('topicGrade').addEventListener('change', renderBankList);
     </script>
 
-    <script src="/sw-register.js?v=32"></script>
+    <script src="/sw-register.js?v=33"></script>
 </body>
 </html>

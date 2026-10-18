@@ -2,7 +2,11 @@
 // SUPABASE CLIENT (LMS QMATH)
 // ================================================================
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient as localCreateClient } from "./supabase.esm.js?v=2";
+
+export const createClient = (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function')
+    ? window.supabase.createClient
+    : localCreateClient;
 
 export const SUPABASE_URL = "https://cuniqanbumcrqcdlcvad.supabase.co";
 export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1bmlxYW5idW1jcnFjZGxjdmFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NDE4MTMsImV4cCI6MjEwNDUxNzgxM30.MWSv1QKVlQ9r-8r0hkrqWsmm75hULq_VjPCbTqXDe-o";

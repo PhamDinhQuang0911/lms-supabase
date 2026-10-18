@@ -814,6 +814,8 @@ export const formatContent = (text) => {
     processed = processed.replace(/\\loigiai\s*\{/gi, '');
 
     // 1. Clean Text (Math-safe replacements)
+    processed = processed.replace(/\\arrow(?![a-zA-Z])/g, '\\rightarrow ');
+    processed = processed.replace(/\\Arrow(?![a-zA-Z])/g, '\\Rightarrow ');
     processed = processed.replace(/\\centering/g, "");
     processed = processed.replace(/\\allowdisplaybreaks(\[.*?\])?/g, "");
     processed = processed.replace(/\\lq\\lq/g, '"').replace(/\\rq\\rq/g, '"').replace(/\\lq/g, '"').replace(/\\rq/g, '"');
@@ -866,6 +868,7 @@ export const formatContent = (text) => {
             cleanPart = cleanPart.replace(/\\%/g, '%'); // Chỉ unescape \% thành % khi ở ngoài công thức toán MathJax
             cleanPart = cleanPart.replace(/\\textbf\{([^}]+)\}/g, '<b class="font-bold">$1</b>');
             cleanPart = cleanPart.replace(/\\textit\{([^}]+)\}/g, '<i class="italic">$1</i>');
+            cleanPart = cleanPart.replace(/\\rightarrow/g, '→').replace(/\\Rightarrow/g, '⇒');
             cleanPart = cleanPart.replace(/\\hfill/g, '<span style="display:inline-block; width: 2rem;"></span>');
             return cleanPart.replace(/\\\\/g, '<br>').replace(/\n/g, '<br>');
         }

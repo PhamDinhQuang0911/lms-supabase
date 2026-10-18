@@ -188,10 +188,10 @@
             </nav>
 
             <div class="flex items-center gap-3">
-                <button onclick="toggleRegisterModal(true)" class="hidden md:block px-5 py-2.5 text-brand font-bold border-2 border-brand bg-white rounded-xl hover:bg-teal-50 transition-all">
+                <button onclick="toggleRegisterModal(true)" class="hidden md:block px-5 py-2.5 text-brand font-bold border-2 border-brand bg-white rounded-xl hover:bg-teal-50 transition-all cursor-pointer">
                     Đăng ký
                 </button>
-                <button onclick="toggleLoginModal(true)" class="hidden md:flex px-6 py-2.5 bg-accent text-white font-bold rounded-xl shadow-lg shadow-orange-200 hover-bg-accent hover:-translate-y-0.5 transition-all items-center gap-2">
+                <button onclick="toggleLoginModal(true)" class="hidden md:flex px-6 py-2.5 bg-accent text-white font-bold rounded-xl shadow-lg shadow-orange-200 hover-bg-accent hover:-translate-y-0.5 transition-all items-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-arrow-right-to-bracket"></i> Vào học
                 </button>
                 
@@ -208,9 +208,9 @@
                 <a href="#books-section" class="block hover:text-brand">Sách tham khảo</a>
                 <a href="#contact" class="block hover:text-brand">Liên hệ</a>
                 <hr class="border-gray-100">
-                <div class="flex gap-3 pt-2">
-                    <button onclick="toggleRegisterModal(true)" class="flex-1 py-2 text-brand border border-brand rounded-lg text-center">Đăng ký</button>
-                    <button onclick="toggleLoginModal(true)" class="flex-1 py-2 bg-accent text-white rounded-lg text-center shadow-md">Vào học</button>
+                <div class="flex gap-3 pt-1">
+                    <button onclick="toggleRegisterModal(true); toggleMobileMenu();" class="flex-1 py-2.5 text-brand border-2 border-brand font-bold rounded-xl text-center">Đăng ký</button>
+                    <button onclick="toggleLoginModal(true); toggleMobileMenu();" class="flex-1 py-2.5 bg-accent text-white font-bold rounded-xl text-center shadow-md">Vào học</button>
                 </div>
             </nav>
         </div>
@@ -338,6 +338,25 @@
                 <h2 class="text-2xl font-black text-brand uppercase tracking-wide">Đăng ký tài khoản</h2>
             </div>
             <div class="p-6 md:p-8">
+                <!-- Banner Đăng Ký Giáo Viên VIP -->
+                <div onclick="toggleRegisterModal(false); window.openTeacherRegisterModal();" class="cursor-pointer mb-5 p-3.5 bg-gradient-to-r from-indigo-50 via-purple-50 to-amber-50 hover:from-indigo-100 hover:to-purple-100 border border-indigo-200/80 rounded-2xl flex items-center justify-between gap-3 transition-all shadow-2xs group">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center text-sm font-black shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-black text-indigo-900 truncate">Bạn là Thầy/Cô giảng dạy?</span>
+                                <span class="text-[9px] bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full uppercase">VIP</span>
+                            </div>
+                            <span class="text-[11px] text-purple-700 truncate block mt-0.5">Đăng ký tài khoản Giáo viên để quản lý lớp, tổ chức thi & dùng AI</span>
+                        </div>
+                    </div>
+                    <span class="shrink-0 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-2xs flex items-center gap-1">
+                        <span>Đăng ký GV</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </span>
+                </div>
+
                 <form id="registerForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-4">
                         <div><input type="text" id="regName" placeholder="Họ và tên (bắt buộc)" required class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-teal-200 outline-none text-sm"></div>
@@ -373,9 +392,353 @@
         </div>
     </div>
 
+    <!-- MODAL ĐĂNG KÝ TÀI KHOẢN GIÁO VIÊN VIP TRÊN TRANG CHỦ -->
+    <div id="teacherRegisterModal" class="modal hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+        <div class="modal-content bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl relative overflow-hidden border-4 border-indigo-50 max-h-[92vh] flex flex-col my-auto">
+            
+            <!-- Header -->
+            <div class="px-5 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-slate-950 font-black text-lg sm:text-xl shadow-md shadow-amber-500/20 shrink-0">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-black text-base sm:text-lg text-white tracking-tight">Đăng Ký Tài Khoản Giáo Viên</h3>
+                            <span class="text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 px-2 py-0.5 rounded-full shadow-2xs">VIP TEACHER</span>
+                        </div>
+                        <p class="text-[11px] sm:text-xs text-purple-200/80 mt-0.5 hidden xs:block">Quản lý lớp học, tổ chức kiểm tra trắc nghiệm thông minh & trợ lý AI soạn đề</p>
+                    </div>
+                </div>
+                <button type="button" onclick="window.closeTeacherRegisterModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer" title="Đóng">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Steps bar -->
+            <div class="px-4 py-2.5 sm:px-6 sm:py-3 bg-indigo-50/60 border-b border-indigo-100 flex items-center justify-between text-xs shrink-0">
+                <div class="flex items-center gap-2 font-black text-indigo-700 cursor-pointer" id="tRegStepInd1" onclick="window.backToTeacherRegStep1()">
+                    <span id="tRegStepBadge1" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black shadow-2xs">1</span>
+                    <span class="text-xs sm:text-sm">Thông tin & Quyền lợi</span>
+                </div>
+                <div class="flex-1 mx-3 sm:mx-6 h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div id="tRegStepProgressLine" class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300" style="width: 50%;"></div>
+                </div>
+                <div class="flex items-center gap-2 font-bold text-gray-400" id="tRegStepInd2">
+                    <span id="tRegStepBadge2" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[11px] font-black">2</span>
+                    <span class="text-xs sm:text-sm">Thanh toán & Kích hoạt</span>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 bg-slate-50/50">
+                
+                <!-- BƯỚC 1: QUYỀN LỢI & FORM ĐĂNG KÝ -->
+                <div id="tRegStep1" class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+                        
+                        <!-- Cột Trái: Quyền lợi & Gói -->
+                        <div class="md:col-span-5 space-y-4">
+                            <!-- Pricing Card -->
+                            <div class="bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-950 text-white p-5 rounded-2xl shadow-md border border-purple-500/30 relative overflow-hidden">
+                                <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-purple-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-slate-950 uppercase tracking-wider mb-2">
+                                    <i class="fa-solid fa-crown text-[9px]"></i> Gói Giảng Dạy Tiêu Chuẩn
+                                </span>
+                                <h4 id="tRegPkgTitle" class="text-lg font-black text-white leading-tight">Tài Khoản Giáo Viên Độc Lập</h4>
+                                <div class="mt-3 pt-3 border-t border-white/10 flex items-baseline justify-between">
+                                    <div>
+                                        <div class="text-[10px] text-purple-200 uppercase font-bold">Phí kích hoạt:</div>
+                                        <div id="tRegPkgPrice" class="text-2xl font-black text-amber-300">500.000 đ</div>
+                                    </div>
+                                    <span id="tRegPkgPeriod" class="text-xs text-emerald-300 font-bold bg-white/10 px-2 py-1 rounded-lg">Vĩnh viễn</span>
+                                </div>
+                            </div>
+
+                            <!-- List perks -->
+                            <div class="bg-white rounded-2xl p-4 border border-gray-200/80 shadow-2xs space-y-2.5">
+                                <h5 class="text-xs font-black uppercase text-gray-700 tracking-wider flex items-center gap-1.5 border-b border-gray-100 pb-2">
+                                    <i class="fa-solid fa-check-double text-indigo-600"></i> Quyền lợi Giáo viên bao gồm:
+                                </h5>
+                                <div id="tRegFeaturesList" class="space-y-2 text-xs text-gray-600">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Quản lý lớp học, phân nhóm & điểm danh không giới hạn</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Tạo đề thi trắc nghiệm, tự luận & trộn đề tự động kèm QR</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Trợ lý AI sinh câu hỏi ma trận BGD & giải chi tiết</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Hệ thống tự động chấm bài & phân tích phổ điểm chi tiết</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Toàn quyền bàn làm việc Quản trị Giáo viên trên di động & PC</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cột Phải: Form Đăng Ký -->
+                        <div class="md:col-span-7 bg-white rounded-2xl p-5 border border-gray-200/80 shadow-2xs space-y-4">
+                            <div class="border-b border-gray-100 pb-2.5">
+                                <h4 class="text-sm font-black text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                    <i class="fa-solid fa-user-tie text-indigo-600"></i> Thông tin Giáo viên đăng ký
+                                </h4>
+                                <p class="text-xs text-gray-400 mt-0.5">Vui lòng điền đúng Email để kích hoạt tài khoản và nhận quyền quản trị.</p>
+                            </div>
+
+                            <form id="teacherRegisterForm" onsubmit="window.handleTeacherRegisterSubmit(event)" class="space-y-3">
+                                <div>
+                                    <label class="block text-[11px] font-black text-gray-600 uppercase mb-1">Họ và tên Thầy/Cô <span class="text-red-500">*</span></label>
+                                    <input type="text" id="tRegName" placeholder="VD: Thầy Phạm Đình Quang" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-indigo-200 focus:bg-white outline-none text-xs font-bold text-gray-800">
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-black text-gray-600 uppercase mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+                                        <input type="tel" id="tRegPhone" placeholder="VD: 0987654321" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-indigo-200 focus:bg-white outline-none text-xs text-gray-800">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-black text-gray-600 uppercase mb-1">Tên đăng nhập hoặc Email <span class="text-red-500">*</span></label>
+                                        <input type="text" id="tRegEmail" placeholder="VD: thayquang hoặc quang@gmail.com" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-indigo-200 focus:bg-white outline-none text-xs font-mono font-bold text-indigo-700">
+                                        <p class="text-[10px] text-gray-400 mt-0.5">Không bắt buộc Gmail (có thể đặt username viết liền)</p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-black text-gray-600 uppercase mb-1">Mật khẩu <span class="text-red-500">*</span></label>
+                                        <div class="relative flex items-center">
+                                            <input type="password" id="tRegPass" placeholder="Ít nhất 6 ký tự" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-indigo-200 focus:bg-white outline-none text-xs pr-9 text-gray-800">
+                                            <button type="button" onclick="window.togglePasswordVisibility('tRegPass', this)" class="absolute right-0 top-0 h-full w-9 flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer" tabindex="-1">
+                                                <i class="fa-regular fa-eye text-xs"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-black text-gray-600 uppercase mb-1">Nhập lại mật khẩu <span class="text-red-500">*</span></label>
+                                        <div class="relative flex items-center">
+                                            <input type="password" id="tRegRePass" placeholder="Khớp mật khẩu trên" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-indigo-200 focus:bg-white outline-none text-xs pr-9 text-gray-800">
+                                            <button type="button" onclick="window.togglePasswordVisibility('tRegRePass', this)" class="absolute right-0 top-0 h-full w-9 flex items-center justify-center text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer" tabindex="-1">
+                                                <i class="fa-regular fa-eye text-xs"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[11px] font-black text-gray-600 uppercase mb-1">Trường học / Đơn vị công tác (tùy chọn)</label>
+                                    <input type="text" id="tRegSchool" placeholder="VD: THPT Chuyên / Trung tâm Toán QMath" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-indigo-200 focus:bg-white outline-none text-xs text-gray-800">
+                                </div>
+
+                                <div id="tRegMessage" class="hidden text-xs font-bold p-3 rounded-xl"></div>
+
+                                <div class="pt-2">
+                                    <button type="submit" id="btnTeacherRegSubmit" class="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                        <span>Tiếp tục thanh toán VietQR & Kích hoạt</span>
+                                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- BƯỚC 2: THANH TOÁN VIETQR & CHỜ TỰ ĐỘNG CẤP QUYỀN -->
+                <div id="tRegStep2" class="hidden space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                        
+                        <!-- Cột Trái: Chi tiết chuyển khoản -->
+                        <div class="md:col-span-7 space-y-4">
+                            <div class="p-4 bg-indigo-50 rounded-2xl border border-indigo-200 flex items-center justify-between gap-3 shadow-2xs">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center text-lg font-black shrink-0 shadow-sm">
+                                        <i class="fa-solid fa-graduation-cap"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="text-[10px] font-black uppercase text-indigo-700 block tracking-wider">Đơn hàng kích hoạt Giáo viên</span>
+                                        <h4 id="tRegOrderUserDisplay" class="text-sm font-black text-gray-900 truncate">...</h4>
+                                        <p id="tRegOrderPriceBadge" class="text-xs text-emerald-600 font-bold">500.000 đ (Vĩnh viễn)</p>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="window.backToTeacherRegStep1()" class="px-3 py-1.5 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-700 font-bold rounded-xl text-xs transition-colors shrink-0 cursor-pointer shadow-2xs flex items-center gap-1.5">
+                                    <i class="fa-solid fa-pen-to-square"></i> Đổi thông tin
+                                </button>
+                            </div>
+
+                            <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-3 shadow-sm">
+                                <h4 class="text-xs sm:text-sm font-black text-gray-800 uppercase tracking-wide flex items-center gap-2 border-b border-gray-100 pb-2.5">
+                                    <i class="fa-solid fa-building-columns text-indigo-600"></i> Thông tin chuyển khoản thanh toán
+                                </h4>
+                                
+                                <div class="space-y-2 text-xs">
+                                    <!-- 1. Ngân hàng -->
+                                    <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between gap-2">
+                                        <div>
+                                            <div class="text-[10px] text-gray-400 font-bold uppercase">Ngân hàng nhận</div>
+                                            <div id="tRegBankNameDisplay" class="font-bold text-gray-800 text-xs sm:text-sm mt-0.5">...</div>
+                                        </div>
+                                        <button type="button" onclick="window.copyTeacherRegField('tRegBankNameDisplay', 'Tên ngân hàng')" class="text-[10px] font-bold text-indigo-600 bg-white px-2.5 py-1 rounded-lg border border-indigo-200 hover:bg-indigo-50 active:scale-95 transition-all cursor-pointer shadow-2xs">
+                                            <i class="fa-regular fa-copy"></i> Sao chép
+                                        </button>
+                                    </div>
+
+                                    <!-- 2. Số tài khoản -->
+                                    <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between gap-2">
+                                        <div>
+                                            <div class="text-[10px] text-gray-400 font-bold uppercase">Số tài khoản & Chủ sở hữu</div>
+                                            <div class="flex items-center gap-2 mt-0.5">
+                                                <span id="tRegAccountNoDisplay" class="font-mono font-black text-indigo-600 text-sm sm:text-base tracking-wider">...</span>
+                                                <span id="tRegAccountOwnerDisplay" class="text-[11px] text-gray-500 font-bold"></span>
+                                            </div>
+                                        </div>
+                                        <button type="button" onclick="window.copyTeacherRegField('tRegAccountNoDisplay', 'Số tài khoản')" class="text-[10px] font-bold text-indigo-600 bg-white px-2.5 py-1 rounded-lg border border-indigo-200 hover:bg-indigo-50 active:scale-95 transition-all cursor-pointer shadow-2xs">
+                                            <i class="fa-regular fa-copy"></i> Sao chép
+                                        </button>
+                                    </div>
+
+                                    <!-- 3. Số tiền -->
+                                    <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between gap-2">
+                                        <div>
+                                            <div class="text-[10px] text-emerald-700 font-bold uppercase">Số tiền thanh toán</div>
+                                            <div id="tRegAmountDisplay" class="font-black text-emerald-800 text-base sm:text-lg mt-0.5">...</div>
+                                        </div>
+                                        <button type="button" onclick="window.copyTeacherRegField('tRegAmountRaw', 'Số tiền')" class="text-[10px] font-bold text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-300 hover:bg-emerald-50 active:scale-95 transition-all cursor-pointer shadow-2xs">
+                                            <i class="fa-regular fa-copy"></i> Sao chép
+                                        </button>
+                                        <span id="tRegAmountRaw" class="hidden"></span>
+                                    </div>
+
+                                    <!-- 4. Nội dung chuyển khoản (QUAN TRỌNG) -->
+                                    <div class="p-3 rounded-xl bg-amber-50/90 border-2 border-amber-300 flex items-center justify-between gap-2 shadow-xs">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-[10px] text-amber-800 font-black uppercase flex items-center gap-1.5">
+                                                <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Nội dung CK (Bắt buộc chính xác):
+                                            </div>
+                                            <div id="tRegMemoDisplay" class="font-mono font-black text-sm sm:text-base text-orange-600 tracking-wider break-all select-all mt-1">...</div>
+                                        </div>
+                                        <button type="button" onclick="window.copyTeacherRegField('tRegMemoDisplay', 'Nội dung chuyển khoản')" class="text-[10px] font-black text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 px-3 py-1.5 rounded-lg active:scale-95 transition-all cursor-pointer shadow-xs shrink-0">
+                                            <i class="fa-regular fa-copy"></i> Sao chép
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="p-2.5 bg-blue-50/70 rounded-xl border border-blue-100 text-[11px] text-blue-900 leading-relaxed flex items-start gap-2">
+                                    <i class="fa-solid fa-circle-info text-blue-600 mt-0.5 shrink-0"></i>
+                                    <span>Mã VietQR bên cạnh đã bao gồm số tiền và nội dung chuyển khoản tự động. Thầy/Cô chỉ cần quét mã và xác nhận giao dịch!</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cột Phải: VietQR & Realtime Scanner -->
+                        <div class="md:col-span-5 space-y-3">
+                            <div class="bg-white rounded-2xl border border-gray-200 p-4 text-center shadow-sm">
+                                <div class="flex items-center justify-between mb-2 text-[10px] font-bold text-gray-500 uppercase">
+                                    <span>Mã VietQR Thanh Toán</span>
+                                    <span id="tRegQrTimerBadge" class="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-200 font-mono text-[11px]">
+                                        <i class="fa-regular fa-clock"></i> <span id="tRegQrCountdownText">10:00</span>
+                                    </span>
+                                </div>
+
+                                <div class="relative w-44 h-44 sm:w-48 sm:h-48 mx-auto bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+                                    <img id="tRegVietQrImage" src="" class="w-full h-full object-contain rounded-xl" alt="Mã VietQR Đăng Ký Giáo Viên">
+                                    <div id="tRegQrLoading" class="absolute inset-0 bg-white/90 backdrop-blur-xs flex flex-col items-center justify-center rounded-xl z-10">
+                                        <i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600 mb-1.5"></i>
+                                        <span class="text-[10px] font-bold text-gray-500">Đang tạo mã VietQR...</span>
+                                    </div>
+                                    <div id="tRegQrExpiredOverlay" class="hidden absolute inset-0 bg-gray-900/80 backdrop-blur-xs flex flex-col items-center justify-center p-3 rounded-xl z-20 text-white text-center">
+                                        <i class="fa-solid fa-clock-rotate-left text-2xl text-amber-400 mb-1"></i>
+                                        <div class="text-xs font-bold">Mã QR đã hết hạn</div>
+                                        <button type="button" onclick="window.retryTeacherQrCode()" class="mt-2 px-3 py-1 bg-amber-500 text-slate-900 font-bold text-[10px] rounded-lg">Tạo mã mới</button>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-gray-400 mt-1.5 italic">Mở ứng dụng ngân hàng bất kỳ > Chọn Quét QR</p>
+
+                                <div class="mt-2 flex justify-center">
+                                    <button type="button" onclick="window.downloadTeacherRegQrCode()" class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold shadow-2xs active:scale-95 transition-all cursor-pointer">
+                                        <i class="fa-solid fa-download text-[9px]"></i> Tải ảnh QR
+                                    </button>
+                                </div>
+
+                                <!-- Box trạng thái quét thanh toán -->
+                                <div id="tRegPaymentStatusBox" class="mt-3.5 p-3.5 rounded-2xl border-2 border-indigo-200 bg-gradient-to-b from-indigo-50/80 to-purple-50/80 flex flex-col items-center justify-center text-center shadow-2xs relative overflow-hidden transition-all">
+                                    <div class="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase tracking-wider mb-1">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-ping"></span>
+                                        <span>Đang chờ chuyển khoản</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-600 leading-snug">
+                                        Hệ thống đang quét giao dịch tự động. Quyền Giáo viên sẽ tự động kích hoạt ngay khi ngân hàng khớp lệnh!
+                                    </p>
+
+                                    <!-- Recheck Countdown / Button -->
+                                    <div class="mt-2 w-full pt-2 border-t border-indigo-100">
+                                        <div id="tRegRecheckCountdownNotice" class="text-[10px] text-gray-500 font-medium flex items-center justify-center gap-1">
+                                            <i class="fa-regular fa-clock"></i> Có thể kiểm tra lại sau <b id="tRegRecheckCountdownNum" class="text-indigo-600">30s</b>
+                                        </div>
+                                        <button type="button" id="btnRecheckTeacherRegPayment" onclick="window.recheckTeacherRegPayment()" class="hidden w-full py-2 px-3 text-white font-bold text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-gradient-to-r from-indigo-600 to-purple-600">
+                                            <i class="fa-solid fa-rotate"></i>
+                                            <span>Kiểm tra lại giao dịch</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Nút Đã chuyển khoản, xác nhận thanh toán -->
+                                    <div class="mt-3 w-full pt-2.5 border-t border-indigo-100 space-y-2">
+                                        <button type="button" id="btnConfirmTeacherRegTransferred" onclick="window.confirmTeacherRegTransferred()" class="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            <span>Đã chuyển khoản, xác nhận thanh toán</span>
+                                        </button>
+                                        <div class="p-2 rounded-lg bg-amber-50 border border-amber-200 text-[10px] text-amber-800 flex items-start gap-1.5 text-left leading-relaxed">
+                                            <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 shrink-0 text-[11px]"></i>
+                                            <span><b>Cảnh báo:</b> Thầy/Cô vui lòng chuyển khoản trước khi bấm nút này để tránh bị hủy đơn.</span>
+                                        </div>
+                                        <div id="tRegTransferSentNotice" class="hidden p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-center">
+                                            <div class="text-[11px] font-bold text-emerald-800 flex items-center justify-center gap-1">
+                                                <i class="fa-solid fa-circle-check text-emerald-600"></i> Đã gửi yêu cầu xác nhận thanh toán!
+                                            </div>
+                                            <p class="text-[10px] text-emerald-700 mt-0.5">Admin đang kiểm tra giao dịch và kích hoạt tài khoản Giáo viên.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Box Thành Công (Ẩn ban đầu) -->
+                                <div id="tRegSuccessBox" class="hidden mt-3.5 p-4 rounded-2xl border-2 border-emerald-500 bg-gradient-to-b from-emerald-50 to-green-50 text-center shadow-lg animate-fade-in">
+                                    <div class="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center text-2xl mx-auto mb-2 shadow-md shadow-emerald-500/30">
+                                        <i class="fa-solid fa-check"></i>
+                                    </div>
+                                    <h4 class="font-black text-emerald-800 text-sm sm:text-base leading-snug">
+                                        🎉 CHÚC MỪNG THẦY/CÔ!
+                                    </h4>
+                                    <p class="text-[11px] text-emerald-700 mt-1 leading-relaxed">
+                                        Tài khoản đã được đăng ký và kích hoạt <b>Giáo viên VIP</b> thành công. Toàn bộ tính năng quản trị đã sẵn sàng!
+                                    </p>
+                                    <div class="mt-3">
+                                        <a href="dashboard.html" class="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md active:scale-95 transition-all inline-flex items-center justify-center gap-2">
+                                            <i class="fa-solid fa-chalkboard-user"></i> Vào Bàn Làm Việc Giáo Viên
+                                        </a>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <script>
-        function toggleLoginModal(show) { document.getElementById('loginModal').classList.toggle('hidden', !show); if(show) document.getElementById('registerModal').classList.add('hidden'); }
-        function toggleRegisterModal(show) { document.getElementById('registerModal').classList.toggle('hidden', !show); if(show) document.getElementById('loginModal').classList.add('hidden'); }
+        function toggleLoginModal(show) { document.getElementById('loginModal').classList.toggle('hidden', !show); if(show) { document.getElementById('registerModal').classList.add('hidden'); document.getElementById('teacherRegisterModal')?.classList.add('hidden'); } }
+        function toggleRegisterModal(show) { document.getElementById('registerModal').classList.toggle('hidden', !show); if(show) { document.getElementById('loginModal').classList.add('hidden'); document.getElementById('teacherRegisterModal')?.classList.add('hidden'); } }
         function switchModal() { toggleRegisterModal(false); toggleLoginModal(true); }
         function toggleMobileMenu() { document.getElementById('mobile-menu').classList.toggle('open'); }
     </script>
@@ -831,8 +1194,8 @@
 
         onAuthStateChanged(auth, async (user) => { // Thêm từ khóa async
             if (user) {
-                if (window.isRegistering) {
-                    console.log("Đang trong quá trình lưu hồ sơ đăng ký tài khoản, tạm hoãn chuyển hướng...");
+                if (window.isRegistering || window.isTeacherRegistering || sessionStorage.getItem('isTeacherRegistering')) {
+                    console.log("Đang trong quá trình lưu hồ sơ đăng ký tài khoản / thanh toán giáo viên, tạm hoãn chuyển hướng...");
                     return;
                 }
                 // --- TRƯỜNG HỢP 1: ĐÃ ĐĂNG NHẬP -> CHUYỂN HƯỚNG NGAY (KHÔNG TẢI GIAO DIỆN INDEX) ---
@@ -1542,8 +1905,17 @@
                     if (querySnapshot.empty) throw new Error("SĐT này chưa đăng ký!");
                     const userData = querySnapshot.docs[0].data();
                     targetEmail = userData.email || `${userData.username}@hocsinh.com`;
-                } else { // Là chữ -> Check Username
-                    targetEmail = inputVal.includes('@') ? inputVal : `${inputVal}@hocsinh.com`;
+                } else if (inputVal.includes('@')) {
+                    targetEmail = inputVal;
+                } else { // Là chữ -> Check Username trong database
+                    const cleanUser = inputVal.trim().toLowerCase();
+                    const qUser = query(collection(db, "users"), where("username", "==", cleanUser));
+                    const snapUser = await getDocs(qUser);
+                    if (!snapUser.empty) {
+                        targetEmail = snapUser.docs[0].data().email || `${cleanUser}@hocsinh.com`;
+                    } else {
+                        targetEmail = `${cleanUser}@hocsinh.com`;
+                    }
                 }
 
                 const userCredential = await signInWithEmailAndPassword(auth, targetEmail, password);
@@ -3287,6 +3659,825 @@
             }
         });
 
+        // ==========================================
+        // QUẢN LÝ ĐĂNG KÝ TÀI KHOẢN GIÁO VIÊN (TEACHER REGISTRATION)
+        // ==========================================
+        let tRegPkgConfig = null;
+        let tRegBankConfig = null;
+        let tRegOrderListener = null;
+        let tRegReqListener = null;
+        let tRegAdminListener = null;
+        let tRegQrCountdownInterval = null;
+        let tRegRecheckTimer = null;
+        let currentTRegOrderId = null;
+        let currentTRegReqId = null;
+        let currentTRegMemo = '';
+        let currentTRegUser = null;
+        let currentTRegEmail = '';
+
+        window.loadTeacherRegPackageConfig = async () => {
+            try {
+                const snap = await getDoc(doc(db, "configurations", "teacher_package_config"));
+                if (snap.exists()) {
+                    tRegPkgConfig = snap.data();
+                } else {
+                    tRegPkgConfig = {
+                        price: 500000,
+                        period: 'lifetime',
+                        title: 'Gói Tài Khoản Giáo Viên Độc Lập',
+                        features: [
+                            'Quản lý lớp học, phân nhóm & điểm danh không giới hạn',
+                            'Tạo đề thi trắc nghiệm, tự luận & trộn đề tự động kèm QR',
+                            'Trợ lý AI sinh câu hỏi ma trận BGD & giải chi tiết',
+                            'Hệ thống tự động chấm bài & phân tích phổ điểm chi tiết',
+                            'Toàn quyền bàn làm việc Quản trị Giáo viên trên di động & PC'
+                        ]
+                    };
+                }
+            } catch (err) {
+                console.warn("Lỗi tải cấu hình gói giáo viên:", err);
+                tRegPkgConfig = {
+                    price: 500000,
+                    period: 'lifetime',
+                    title: 'Gói Tài Khoản Giáo Viên Độc Lập',
+                    features: [
+                        'Quản lý lớp học, phân nhóm & điểm danh không giới hạn',
+                        'Tạo đề thi trắc nghiệm, tự luận & trộn đề tự động kèm QR',
+                        'Trợ lý AI sinh câu hỏi ma trận BGD & giải chi tiết',
+                        'Hệ thống tự động chấm bài & phân tích phổ điểm chi tiết',
+                        'Toàn quyền bàn làm việc Quản trị Giáo viên trên di động & PC'
+                    ]
+                };
+            }
+
+            const price = Number(tRegPkgConfig.price) || 500000;
+            const priceStr = price.toLocaleString('vi-VN') + ' đ';
+            const periodStr = tRegPkgConfig.period === 'yearly' ? 'Gói 1 Năm' : 'Vĩnh viễn';
+
+            const titleEl = document.getElementById('tRegPkgTitle');
+            const priceEl = document.getElementById('tRegPkgPrice');
+            const periodEl = document.getElementById('tRegPkgPeriod');
+            if (titleEl) titleEl.textContent = tRegPkgConfig.title || 'Gói Tài Khoản Giáo Viên Độc Lập';
+            if (priceEl) priceEl.textContent = priceStr;
+            if (periodEl) periodEl.textContent = periodStr;
+
+            if (Array.isArray(tRegPkgConfig.features) && tRegPkgConfig.features.length > 0) {
+                const listEl = document.getElementById('tRegFeaturesList');
+                if (listEl) {
+                    listEl.innerHTML = tRegPkgConfig.features.map(f => `
+                        <div class="flex items-start gap-2">
+                            <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 shrink-0 text-[11px]"></i>
+                            <span>${f}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+        };
+
+        window.openTeacherRegisterModal = async () => {
+            const modal = document.getElementById('teacherRegisterModal');
+            if (!modal) return;
+            document.getElementById('registerModal')?.classList.add('hidden');
+            document.getElementById('loginModal')?.classList.add('hidden');
+            modal.classList.remove('hidden');
+
+            window.backToTeacherRegStep1();
+            await window.loadTeacherRegPackageConfig();
+        };
+
+        window.closeTeacherRegisterModal = () => {
+            if (tRegQrCountdownInterval) { clearInterval(tRegQrCountdownInterval); tRegQrCountdownInterval = null; }
+            if (tRegRecheckTimer) { clearInterval(tRegRecheckTimer); tRegRecheckTimer = null; }
+            if (tRegOrderListener) { tRegOrderListener(); tRegOrderListener = null; }
+            if (tRegReqListener) { tRegReqListener(); tRegReqListener = null; }
+            if (tRegAdminListener) { tRegAdminListener(); tRegAdminListener = null; }
+            document.getElementById('teacherRegisterModal')?.classList.add('hidden');
+        };
+
+        window.backToTeacherRegStep1 = () => {
+            if (tRegQrCountdownInterval) { clearInterval(tRegQrCountdownInterval); tRegQrCountdownInterval = null; }
+            if (tRegRecheckTimer) { clearInterval(tRegRecheckTimer); tRegRecheckTimer = null; }
+            if (tRegOrderListener) { tRegOrderListener(); tRegOrderListener = null; }
+            if (tRegReqListener) { tRegReqListener(); tRegReqListener = null; }
+            if (tRegAdminListener) { tRegAdminListener(); tRegAdminListener = null; }
+
+            const i1 = document.getElementById('tRegStepInd1');
+            const i2 = document.getElementById('tRegStepInd2');
+            const b1 = document.getElementById('tRegStepBadge1');
+            const b2 = document.getElementById('tRegStepBadge2');
+            const line = document.getElementById('tRegStepProgressLine');
+
+            if (i1 && b1) {
+                i1.className = 'flex items-center gap-2 font-black text-indigo-700 cursor-pointer';
+                b1.className = 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black shadow-2xs';
+                b1.innerHTML = '1';
+            }
+            if (i2 && b2) {
+                i2.className = 'flex items-center gap-2 font-bold text-gray-400';
+                b2.className = 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[11px] font-black';
+                b2.innerHTML = '2';
+            }
+            if (line) line.style.width = '50%';
+
+            document.getElementById('tRegStep1')?.classList.remove('hidden');
+            document.getElementById('tRegStep2')?.classList.add('hidden');
+        };
+
+        window.handleTeacherRegisterSubmit = async (event) => {
+            event.preventDefault();
+            const btn = document.getElementById('btnTeacherRegSubmit');
+            const msgEl = document.getElementById('tRegMessage');
+
+            const showMsg = (txt, type = 'error') => {
+                if (!msgEl) return;
+                msgEl.textContent = txt;
+                msgEl.className = `text-xs font-bold p-3 rounded-xl ${type === 'error' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`;
+                msgEl.classList.remove('hidden');
+            };
+
+            const name = (document.getElementById('tRegName')?.value || '').trim();
+            const phone = (document.getElementById('tRegPhone')?.value || '').trim();
+            const cleanPhone = phone.replace(/\s+/g, '');
+            const rawUserOrEmail = (document.getElementById('tRegEmail')?.value || '').trim();
+            const pass = document.getElementById('tRegPass')?.value || '';
+            const rePass = document.getElementById('tRegRePass')?.value || '';
+            const school = (document.getElementById('tRegSchool')?.value || '').trim();
+
+            if (!name) return showMsg("Vui lòng nhập họ và tên Thầy/Cô!");
+            if (!cleanPhone || cleanPhone.length < 9) return showMsg("Vui lòng nhập số điện thoại hợp lệ!");
+            if (!rawUserOrEmail) return showMsg("Vui lòng nhập tên đăng nhập hoặc email!");
+
+            let isEmail = rawUserOrEmail.includes('@');
+            let username = '';
+            let authEmail = '';
+
+            if (isEmail) {
+                authEmail = rawUserOrEmail.toLowerCase();
+                username = authEmail.split('@')[0].replace(/[^a-z0-9._]/g, '');
+            } else {
+                username = rawUserOrEmail.toLowerCase().replace(/\s+/g, '');
+                if (!/^[a-z0-9._]{3,30}$/.test(username)) {
+                    return showMsg("Tên đăng nhập từ 3 - 30 ký tự, viết liền không dấu (gồm chữ, số, dấu chấm hoặc gạch dưới)!");
+                }
+                authEmail = `${username}@giaovien.com`;
+            }
+
+            if (pass.length < 6) return showMsg("Mật khẩu phải có ít nhất 6 ký tự!");
+            if (pass !== rePass) return showMsg("Mật khẩu nhập lại không khớp!");
+
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Đang kiểm tra & khởi tạo...'; }
+            if (msgEl) msgEl.classList.add('hidden');
+
+            try {
+                // 1. KIỂM TRA TRÙNG LẶP TÊN ĐĂNG NHẬP / EMAIL / SĐT (Yêu cầu 5)
+                // 1a. Kiểm tra số điện thoại trong users
+                try {
+                    const qPhone = query(collection(db, "users"), where("phone", "==", cleanPhone));
+                    const snapPhone = await getDocs(qPhone);
+                    if (!snapPhone.empty) {
+                        throw new Error(`Số điện thoại "${phone}" đã được đăng ký trên hệ thống! Vui lòng dùng số khác hoặc đăng nhập.`);
+                    }
+                } catch(eP) {
+                    if (eP.message.includes("đã được đăng ký")) throw eP;
+                }
+
+                // 1b. Kiểm tra username & email trong users
+                const qUser1 = query(collection(db, "users"), where("username", "==", username));
+                const snapUser1 = await getDocs(qUser1);
+                if (!snapUser1.empty) {
+                    throw new Error(`Tên đăng nhập "${rawUserOrEmail}" đã có người sử dụng! Vui lòng chọn tên đăng nhập khác.`);
+                }
+
+                const qUser2 = query(collection(db, "users"), where("email", "==", authEmail));
+                const snapUser2 = await getDocs(qUser2);
+                if (!snapUser2.empty) {
+                    throw new Error(`Tên đăng nhập hoặc Email "${rawUserOrEmail}" đã tồn tại trên hệ thống! Vui lòng chọn tên đăng nhập khác.`);
+                }
+
+                try {
+                    const docUserCheck = await getDoc(doc(db, "users", username));
+                    if (docUserCheck.exists()) {
+                        throw new Error(`Tên đăng nhập "${rawUserOrEmail}" đã tồn tại! Vui lòng chọn tên đăng nhập khác.`);
+                    }
+                } catch(eD) {
+                    if (eD.message.includes("đã tồn tại")) throw eD;
+                }
+
+                // 1c. Kiểm tra trong configurations/admin_roles
+                try {
+                    const cfgSnap = await getDoc(doc(db, "configurations", "admin_roles"));
+                    if (cfgSnap.exists()) {
+                        const accs = cfgSnap.data().accounts || [];
+                        const dup = accs.find(a => 
+                            (a.email && a.email.toLowerCase() === authEmail) ||
+                            (a.username && a.username.toLowerCase() === username) ||
+                            (a.id && (a.id.toLowerCase() === username || a.id.toLowerCase() === 'admin_' + username))
+                        );
+                        if (dup) {
+                            throw new Error(`Tên tài khoản "${rawUserOrEmail}" đã trùng với một Giáo viên trên hệ thống! Vui lòng chọn tên khác.`);
+                        }
+                    }
+                } catch(eR) {
+                    if (eR.message.includes("đã trùng")) throw eR;
+                }
+
+                // 2. KHÓA TẠM THỜI onAuthStateChanged ĐỂ KHÔNG CHUYỂN HƯỚNG VỀ student.html (Yêu cầu 3)
+                window.isTeacherRegistering = true;
+                sessionStorage.setItem('isTeacherRegistering', 'true');
+
+                // 3. Tạo tài khoản Firebase Auth
+                let user = auth.currentUser;
+                currentTRegEmail = authEmail;
+
+                if (!user || (user.email && user.email.toLowerCase() !== authEmail)) {
+                    try {
+                        const cred = await createUserWithEmailAndPassword(auth, authEmail, pass);
+                        user = cred.user;
+                        await updateProfile(user, { displayName: name });
+                    } catch(eAuth) {
+                        if (eAuth.code === 'auth/email-already-in-use') {
+                            throw new Error(`Tên đăng nhập "${rawUserOrEmail}" đã tồn tại! Vui lòng chọn tên đăng nhập khác.`);
+                        } else {
+                            throw eAuth;
+                        }
+                    }
+                }
+
+                currentTRegUser = user;
+
+                // 4. Lưu thông tin sơ bộ vào users collection
+                await setDoc(doc(db, "users", user.uid), {
+                    displayName: name,
+                    username: username,
+                    email: authEmail,
+                    loginId: rawUserOrEmail,
+                    phone: cleanPhone,
+                    school: school || 'Giáo viên',
+                    role: 'teacher_pending',
+                    isTeacher: false,
+                    authType: isEmail ? 'email' : 'username',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+
+                // 5. Tải cấu hình ngân hàng & Gói giáo viên
+                if (!tRegBankConfig) {
+                    try {
+                        const snapBank = await getDoc(doc(db, "site_settings", "payment_config"));
+                        tRegBankConfig = snapBank.exists() ? snapBank.data() : { BANK_ID: "970422", BANK_NAME: "MB Bank", ACCOUNT_NO: "0000", ACCOUNT_NAME: "ADMIN", TEMPLATE: "compact2" };
+                    } catch(e) {
+                        tRegBankConfig = { BANK_ID: "970422", BANK_NAME: "MB Bank", ACCOUNT_NO: "0000", ACCOUNT_NAME: "ADMIN", TEMPLATE: "compact2" };
+                    }
+                }
+
+                if (!tRegPkgConfig) await window.loadTeacherRegPackageConfig();
+                const price = Number(tRegPkgConfig?.price) || 500000;
+                const priceFormatted = price.toLocaleString('vi-VN') + ' đ';
+
+                // 6. Tạo mã chuyển khoản độc nhất: GV {orderCode}
+                const randCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+                currentTRegMemo = `GV ${randCode}`;
+
+                // 7. Cập nhật UI Bước 2
+                const bNameEl = document.getElementById('tRegBankNameDisplay');
+                const bAccEl = document.getElementById('tRegAccountNoDisplay');
+                const bOwnerEl = document.getElementById('tRegAccountOwnerDisplay');
+                const bAmtEl = document.getElementById('tRegAmountDisplay');
+                const bAmtRawEl = document.getElementById('tRegAmountRaw');
+                const bMemoEl = document.getElementById('tRegMemoDisplay');
+                const ordUserEl = document.getElementById('tRegOrderUserDisplay');
+                const ordPriceBadge = document.getElementById('tRegOrderPriceBadge');
+
+                if (bNameEl) bNameEl.textContent = tRegBankConfig.BANK_NAME || tRegBankConfig.BANK_ID || 'MB Bank';
+                if (bAccEl) bAccEl.textContent = tRegBankConfig.ACCOUNT_NO || '';
+                if (bOwnerEl) bOwnerEl.textContent = tRegBankConfig.ACCOUNT_NAME ? `(${tRegBankConfig.ACCOUNT_NAME})` : '';
+                if (bAmtEl) bAmtEl.textContent = priceFormatted;
+                if (bAmtRawEl) bAmtRawEl.textContent = String(price);
+                if (bMemoEl) bMemoEl.textContent = currentTRegMemo;
+                if (ordUserEl) ordUserEl.textContent = `${name} (${rawUserOrEmail})`;
+                if (ordPriceBadge) ordPriceBadge.textContent = `${priceFormatted} (${tRegPkgConfig?.period === 'yearly' ? '1 Năm' : 'Vĩnh viễn'})`;
+
+                // 8. Tạo VietQR
+                const bankId = tRegBankConfig.BANK_ID || '970422';
+                const accNo = tRegBankConfig.ACCOUNT_NO || '';
+                const template = tRegBankConfig.TEMPLATE || 'compact2';
+                const qrUrl = `https://img.vietqr.io/image/${bankId}-${accNo}-${template}.png?amount=${price}&addInfo=${encodeURIComponent(currentTRegMemo)}&accountName=${encodeURIComponent(tRegBankConfig.ACCOUNT_NAME || '')}`;
+
+                const qrImg = document.getElementById('tRegVietQrImage');
+                const qrLoading = document.getElementById('tRegQrLoading');
+                if (qrLoading) qrLoading.classList.remove('hidden');
+                if (qrImg) {
+                    qrImg.onload = () => qrLoading?.classList.add('hidden');
+                    qrImg.onerror = () => qrLoading?.classList.add('hidden');
+                    qrImg.src = qrUrl;
+                }
+
+                // 9. Lưu đơn hàng vào collection `orders` và `access_requests`
+                const ordRef = await addDoc(collection(db, "orders"), {
+                    orderType: 'teacher_registration',
+                    userId: user.uid,
+                    userName: name,
+                    username: username,
+                    userEmail: authEmail,
+                    loginId: rawUserOrEmail,
+                    userPhone: cleanPhone,
+                    userSchool: school,
+                    amount: price,
+                    memo: currentTRegMemo,
+                    content: currentTRegMemo,
+                    orderCode: randCode,
+                    packageTitle: tRegPkgConfig?.title || 'Đăng ký Giáo viên VIP',
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                });
+                currentTRegOrderId = ordRef.id;
+
+                try {
+                    const reqRef = await addDoc(collection(db, "access_requests"), {
+                        type: 'teacher_registration',
+                        studentId: user.uid,
+                        studentName: name,
+                        studentEmail: authEmail,
+                        amount: price,
+                        content: currentTRegMemo,
+                        orderId: ordRef.id,
+                        status: 'pending',
+                        createdAt: new Date().toISOString()
+                    });
+                    currentTRegReqId = reqRef.id;
+                } catch(eReq) {}
+
+                // 10. Chuyển sang Bước 2 UI (MÃ QR & BẢNG THANH TOÁN NGAY LẬP TỨC)
+                const i1 = document.getElementById('tRegStepInd1');
+                const i2 = document.getElementById('tRegStepInd2');
+                const b1 = document.getElementById('tRegStepBadge1');
+                const b2 = document.getElementById('tRegStepBadge2');
+                const line = document.getElementById('tRegStepProgressLine');
+
+                if (i1 && b1) {
+                    i1.className = 'flex items-center gap-2 font-black text-emerald-600 transition-colors cursor-pointer';
+                    b1.className = 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[11px] font-black shadow-2xs';
+                    b1.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i>';
+                }
+                if (i2 && b2) {
+                    i2.className = 'flex items-center gap-2 font-black text-indigo-700 transition-colors';
+                    b2.className = 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black shadow-2xs';
+                    b2.innerHTML = '2';
+                }
+                if (line) line.style.width = '100%';
+
+                document.getElementById('tRegStep1')?.classList.add('hidden');
+                document.getElementById('tRegStep2')?.classList.remove('hidden');
+
+                // Reset trạng thái scanning
+                document.getElementById('tRegPaymentStatusBox')?.classList.remove('hidden');
+                document.getElementById('tRegSuccessBox')?.classList.add('hidden');
+                document.getElementById('tRegQrExpiredOverlay')?.classList.add('hidden');
+                document.getElementById('tRegTransferSentNotice')?.classList.add('hidden');
+                const btnConfirm = document.getElementById('btnConfirmTeacherRegTransferred');
+                if (btnConfirm) {
+                    btnConfirm.disabled = false;
+                    btnConfirm.className = "w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer";
+                    btnConfirm.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Đã chuyển khoản, xác nhận thanh toán</span>';
+                }
+
+                // 11. Khởi chạy timer & listeners
+                window.startTeacherRegQrCountdown();
+                window.startTeacherRegRecheckTimer();
+                window.startTeacherRegRealtimeListener(currentTRegOrderId, currentTRegReqId, authEmail, user.uid);
+
+                // Kích hoạt webhook quét ngân hàng tự động ngay
+                try {
+                    if (tRegBankConfig.SCAN_TRIGGER_URL) {
+                        fetch(tRegBankConfig.SCAN_TRIGGER_URL, { mode: 'no-cors' }).catch(() => {});
+                    }
+                } catch(eTrig) {}
+
+            } catch(err) {
+                console.error("Lỗi đăng ký giáo viên:", err);
+                window.isTeacherRegistering = false;
+                sessionStorage.removeItem('isTeacherRegistering');
+                showMsg(err.message || "Lỗi khởi tạo tài khoản giáo viên!");
+            } finally {
+                if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
+            }
+        };
+
+        // Kích hoạt quét tức thì đơn Giáo viên qua Google Apps Script Webhook (Non-blocking & Smart Ping)
+        window.triggerTeacherScan = (isAuto = true) => {
+            const scanUrl = tRegBankConfig?.SCAN_TRIGGER_URL || dynamicBankConfig?.SCAN_TRIGGER_URL || "https://script.google.com/macros/s/AKfycbxTRrSksmNVCb9UjOXhfTmKjY4XFrZO5QlIc_CnPoemUEEo5akhPoCmpYv3_x78AN_neQ/exec";
+            if (!scanUrl) return;
+
+            try {
+                const pingUrl = scanUrl + (scanUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                const img = new Image();
+                img.src = pingUrl;
+            } catch(e) {}
+
+            try {
+                fetch(scanUrl, {
+                    method: 'GET',
+                    mode: 'no-cors',
+                    credentials: 'omit',
+                    cache: 'no-store'
+                }).catch(() => {});
+            } catch(e) {}
+
+            if (!isAuto && window.showNotification) {
+                window.showNotification("⚡ Đã gửi yêu cầu đối soát tới hệ thống ngân hàng!", "info");
+            }
+        };
+
+        // NÚT XÁC NHẬN ĐÃ CHUYỂN KHOẢN (YÊU CẦU 4 & YÊU CẦU 1)
+        window.confirmTeacherRegTransferred = async () => {
+            const price = Number(tRegPkgConfig?.price) || 500000;
+            const priceFormatted = price.toLocaleString('vi-VN') + ' đ';
+            const memo = currentTRegMemo || '';
+            const ok = confirm(
+                "⚠️ CẢNH BÁO QUAN TRỌNG TRƯỚC KHI XÁC NHẬN:\n\n" +
+                "Thầy/Cô vui lòng đảm bảo ĐÃ THỰC HIỆN CHUYỂN KHOẢN thành công qua app ngân hàng:\n" +
+                `• Số tiền: ${priceFormatted}\n` +
+                `• Nội dung CK: ${memo}\n\n` +
+                "Để tránh trường hợp đơn hàng bị từ chối hoặc sai sót, Thầy/Cô đã thực sự chuyển khoản chưa?"
+            );
+            if (!ok) return;
+
+            const btn = document.getElementById('btnConfirmTeacherRegTransferred');
+            const notice = document.getElementById('tRegTransferSentNotice');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang gửi xác nhận & đối soát...';
+            }
+
+            try {
+                if (currentTRegOrderId) {
+                    await updateDoc(doc(db, "orders", currentTRegOrderId), {
+                        manualTransferred: true,
+                        transferredAt: new Date().toISOString()
+                    });
+                }
+                if (currentTRegReqId) {
+                    await updateDoc(doc(db, "access_requests", currentTRegReqId), {
+                        manualTransferred: true,
+                        transferredAt: new Date().toISOString()
+                    });
+                }
+
+                if (btn) {
+                    btn.className = "w-full py-2.5 px-3 bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs cursor-default flex items-center justify-center gap-1.5 opacity-90";
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã gửi báo chuyển khoản';
+                }
+                if (notice) notice.classList.remove('hidden');
+
+                // Kích hoạt quét thủ công script ngân hàng
+                if (window.triggerTeacherScan) {
+                    window.triggerTeacherScan(true);
+                }
+
+                // Smart polling kiểm tra kết quả duyệt/thanh toán ngay
+                let isMatched = false;
+                if (currentTRegOrderId) {
+                    // Check lần 1 sau 1.2s
+                    await new Promise(r => setTimeout(r, 1200));
+                    const snap1 = await getDoc(doc(db, "orders", currentTRegOrderId));
+                    if (snap1.exists()) {
+                        const s = String(snap1.data().status || '').toLowerCase();
+                        if (s === 'completed' || s === 'approved' || s === 'paid' || s === 'resolved') isMatched = true;
+                    }
+
+                    // Check lần 2 sau 1.5s nữa nếu chưa matched
+                    if (!isMatched) {
+                        await new Promise(r => setTimeout(r, 1500));
+                        const snap2 = await getDoc(doc(db, "orders", currentTRegOrderId));
+                        if (snap2.exists()) {
+                            const s = String(snap2.data().status || '').toLowerCase();
+                            if (s === 'completed' || s === 'approved' || s === 'paid' || s === 'resolved') isMatched = true;
+                        }
+                    }
+                }
+
+                if (isMatched) {
+                    await window.handleTeacherRegPaymentSuccess();
+                    return;
+                }
+
+                if (window.showNotification) {
+                    window.showNotification("🎉 Đã gửi xác nhận chuyển khoản & lệnh đối soát! Hệ thống đang kiểm tra giao dịch...", "success");
+                }
+            } catch (err) {
+                console.error("Lỗi xác nhận chuyển khoản:", err);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Đã chuyển khoản, xác nhận thanh toán';
+                }
+                alert("Lỗi khi gửi xác nhận: " + err.message);
+            }
+        };
+
+        window.startTeacherRegQrCountdown = () => {
+            if (tRegQrCountdownInterval) clearInterval(tRegQrCountdownInterval);
+            let timeLeft = 10 * 60;
+            const textEl = document.getElementById('tRegQrCountdownText');
+            const overlay = document.getElementById('tRegQrExpiredOverlay');
+            if (overlay) overlay.classList.add('hidden');
+
+            const update = () => {
+                const m = Math.floor(timeLeft / 60);
+                const s = timeLeft % 60;
+                if (textEl) textEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            };
+            update();
+
+            tRegQrCountdownInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(tRegQrCountdownInterval);
+                    tRegQrCountdownInterval = null;
+                    if (overlay) overlay.classList.remove('hidden');
+                } else {
+                    update();
+                }
+            }, 1000);
+        };
+
+        window.startTeacherRegRecheckTimer = () => {
+            if (tRegRecheckTimer) clearInterval(tRegRecheckTimer);
+            let sec = 30;
+            const numEl = document.getElementById('tRegRecheckCountdownNum');
+            const noticeEl = document.getElementById('tRegRecheckCountdownNotice');
+            const btnEl = document.getElementById('btnRecheckTeacherRegPayment');
+
+            if (noticeEl) noticeEl.classList.remove('hidden');
+            if (btnEl) btnEl.classList.add('hidden');
+
+            tRegRecheckTimer = setInterval(() => {
+                sec--;
+                if (numEl) numEl.textContent = `${sec}s`;
+                if (sec <= 0) {
+                    clearInterval(tRegRecheckTimer);
+                    tRegRecheckTimer = null;
+                    if (noticeEl) noticeEl.classList.add('hidden');
+                    if (btnEl) btnEl.classList.remove('hidden');
+                }
+            }, 1000);
+        };
+
+        window.copyTeacherRegField = (elemId, label) => {
+            const el = document.getElementById(elemId);
+            const val = el ? (el.textContent || el.innerText || '').trim() : '';
+            if (!val) return;
+            navigator.clipboard.writeText(val).then(() => {
+                if (window.showNotification) window.showNotification(`Đã sao chép ${label}!`, 'success');
+            }).catch(() => {
+                prompt(`Sao chép ${label}:`, val);
+            });
+        };
+
+        window.downloadTeacherRegQrCode = () => {
+            const qrImg = document.getElementById('tRegVietQrImage');
+            if (!qrImg || !qrImg.src) return;
+            try {
+                const link = document.createElement('a');
+                link.href = qrImg.src;
+                link.download = `VietQR_GiaoVien_${currentTRegMemo || 'QMath'}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                if (window.showNotification) window.showNotification("Đã tải ảnh mã QR về máy thành công!", "success");
+            } catch(e) {
+                window.open(qrImg.src, '_blank');
+            }
+        };
+
+        window.retryTeacherQrCode = () => {
+            window.backToTeacherRegStep1();
+        };
+
+        window.startTeacherRegRealtimeListener = (ordId, reqId, email, uid) => {
+            if (tRegOrderListener) { tRegOrderListener(); tRegOrderListener = null; }
+            if (tRegReqListener) { tRegReqListener(); tRegReqListener = null; }
+            if (tRegAdminListener) { tRegAdminListener(); tRegAdminListener = null; }
+
+            const isDone = (data) => {
+                if (!data) return false;
+                const s = String(data.status || '').toLowerCase().trim();
+                return s === 'completed' || s === 'approved' || s === 'paid' || s === 'resolved' || s === 'success';
+            };
+
+            // 1. Lắng nghe orders doc
+            if (ordId) {
+                tRegOrderListener = onSnapshot(doc(db, "orders", ordId), async (snap) => {
+                    if (snap.exists() && isDone(snap.data())) {
+                        await window.handleTeacherRegPaymentSuccess();
+                    }
+                }, (err) => console.warn("Lỗi listener orders:", err));
+            }
+
+            // 2. Lắng nghe access_requests doc
+            if (reqId) {
+                tRegReqListener = onSnapshot(doc(db, "access_requests", reqId), async (snap) => {
+                    if (snap.exists() && isDone(snap.data())) {
+                        await window.handleTeacherRegPaymentSuccess();
+                    }
+                }, (err) => console.warn("Lỗi listener access_requests:", err));
+            }
+
+            // 3. Lắng nghe configurations/admin_roles (khi Super Admin duyệt tay)
+            if (email || uid) {
+                const cleanEmail = (email || '').toLowerCase().trim();
+                tRegAdminListener = onSnapshot(doc(db, "configurations", "admin_roles"), async (snap) => {
+                    if (snap.exists()) {
+                        const accounts = snap.data().accounts || [];
+                        const hasRole = accounts.some(a => 
+                            (cleanEmail && (a.email || '').toLowerCase() === cleanEmail) || 
+                            (uid && a.id === uid)
+                        );
+                        if (hasRole) {
+                            await window.handleTeacherRegPaymentSuccess();
+                        }
+                    }
+                }, (err) => console.warn("Lỗi listener admin_roles:", err));
+            }
+        };
+
+        window.recheckTeacherRegPayment = async () => {
+            const btn = document.getElementById('btnRecheckTeacherRegPayment');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đối soát và kiểm tra đơn...'; }
+
+            try {
+                // 1. Kiểm tra nhanh (<100ms) trong Firestore
+                let success = false;
+                if (currentTRegOrderId) {
+                    const snapOrd = await getDoc(doc(db, "orders", currentTRegOrderId));
+                    if (snapOrd.exists()) {
+                        const s = String(snapOrd.data().status || '').toLowerCase();
+                        if (s === 'completed' || s === 'approved' || s === 'paid' || s === 'resolved') success = true;
+                    }
+                }
+
+                if (!success && currentTRegEmail) {
+                    const snapCfg = await getDoc(doc(db, "configurations", "admin_roles"));
+                    if (snapCfg.exists()) {
+                        const accounts = snapCfg.data().accounts || [];
+                        if (accounts.some(a => (a.email || '').toLowerCase() === currentTRegEmail.toLowerCase())) {
+                            success = true;
+                        }
+                    }
+                }
+
+                if (success) {
+                    await window.handleTeacherRegPaymentSuccess();
+                    return;
+                }
+
+                // 2. Kích hoạt webhook quét ngân hàng thủ công (chạy nền)
+                if (window.triggerTeacherScan) {
+                    window.triggerTeacherScan(false);
+                }
+
+                // 3. Smart Polling kiểm tra lại Firestore (lần 1 sau 1.2s)
+                await new Promise(r => setTimeout(r, 1200));
+                if (currentTRegOrderId) {
+                    const snap1 = await getDoc(doc(db, "orders", currentTRegOrderId));
+                    if (snap1.exists()) {
+                        const s = String(snap1.data().status || '').toLowerCase();
+                        if (s === 'completed' || s === 'approved' || s === 'paid' || s === 'resolved') success = true;
+                    }
+                }
+
+                // 4. Smart Polling kiểm tra lại Firestore (lần 2 sau 1.5s nữa)
+                if (!success && currentTRegOrderId) {
+                    await new Promise(r => setTimeout(r, 1500));
+                    const snap2 = await getDoc(doc(db, "orders", currentTRegOrderId));
+                    if (snap2.exists()) {
+                        const s = String(snap2.data().status || '').toLowerCase();
+                        if (s === 'completed' || s === 'approved' || s === 'paid' || s === 'resolved') success = true;
+                    }
+                }
+
+                if (success) {
+                    await window.handleTeacherRegPaymentSuccess();
+                } else {
+                    if (window.showNotification) {
+                        window.showNotification("Hệ thống đã gửi yêu cầu đối soát tới ngân hàng. Nếu Thầy/Cô vừa chuyển tiền, ngân hàng có thể mất 30s - 1 phút để cập nhật số dư. Thầy/Cô vui lòng thử bấm lại sau giây lát nhé!", "info");
+                    }
+                }
+            } catch(e) {
+                console.error("Lỗi recheck giáo viên:", e);
+            } finally {
+                if (btn) { btn.innerHTML = origHtml; btn.disabled = false; }
+            }
+        };
+
+        window.handleTeacherRegPaymentSuccess = async () => {
+            if (tRegQrCountdownInterval) { clearInterval(tRegQrCountdownInterval); tRegQrCountdownInterval = null; }
+            if (tRegRecheckTimer) { clearInterval(tRegRecheckTimer); tRegRecheckTimer = null; }
+            if (tRegOrderListener) { tRegOrderListener(); tRegOrderListener = null; }
+            if (tRegReqListener) { tRegReqListener(); tRegReqListener = null; }
+            if (tRegAdminListener) { tRegAdminListener(); tRegAdminListener = null; }
+
+            // Cấp quyền Admin/Giáo viên chuẩn theo cấu hình Super Admin
+            await window.grantTeacherRoleToNewAccount();
+
+            // Hiển thị UI thành công
+            document.getElementById('tRegPaymentStatusBox')?.classList.add('hidden');
+            document.getElementById('tRegSuccessBox')?.classList.remove('hidden');
+
+            if (window.showNotification) {
+                window.showNotification("🎉 Chúc mừng Thầy/Cô đã trở thành Giáo viên VIP!", "success");
+            }
+        };
+
+        window.grantTeacherRoleToNewAccount = async () => {
+            const user = currentTRegUser || auth.currentUser;
+            const email = (currentTRegEmail || user?.email || '').toLowerCase().trim();
+            const name = user?.displayName || (email ? email.split('@')[0] : 'Thầy Cô');
+            const uid = user?.uid;
+
+            if (!email && !uid) return;
+
+            try {
+                // Đọc cấu hình quyền mặc định và khóa học từ configurations/teacher_package_config
+                let defaultPerms = [
+                    'classes.view', 'classes.manage', 'students.manage',
+                    'exams.create', 'exams.assign', 'exams.grade', 'exams.manage_own', 'exams.delete_own',
+                    'bank.use_shared', 'courses.use', 'courses.view', 'books.create', 'topics.use',
+                    'ai.use', 'security.anti_screenshot'
+                ];
+                let defaultAssignedCourses = ['*'];
+
+                try {
+                    const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config"));
+                    if (pkgSnap.exists()) {
+                        const pkgData = pkgSnap.data();
+                        if (Array.isArray(pkgData.defaultPermissions) && pkgData.defaultPermissions.length > 0) {
+                            defaultPerms = pkgData.defaultPermissions;
+                        }
+                        if (Array.isArray(pkgData.defaultAssignedCourseIds) && pkgData.defaultAssignedCourseIds.length > 0) {
+                            defaultAssignedCourses = pkgData.defaultAssignedCourseIds;
+                        }
+                    }
+                } catch(ePkg) {
+                    console.warn("Không đọc được configurations/teacher_package_config, dùng preset mặc định:", ePkg);
+                }
+
+                const cfgRef = doc(db, "configurations", "admin_roles");
+                let accounts = [];
+                try {
+                    const snap = await getDoc(cfgRef);
+                    if (snap.exists()) accounts = snap.data().accounts || [];
+                } catch(e) {}
+
+                const existingIdx = accounts.findIndex(a => 
+                    (email && (a.email || '').toLowerCase() === email) || 
+                    (uid && a.id === uid)
+                );
+
+                const teacherRecord = {
+                    id: uid || ('admin_' + email.replace(/[@.]/g, '_')),
+                    email: email,
+                    displayName: name,
+                    role: 'admin',
+                    status: 'active',
+                    permissions: defaultPerms,
+                    assignedCourseIds: defaultAssignedCourses,
+                    note: 'Đăng ký mới tài khoản Giáo viên VIP (Thanh toán tự động / Super Admin duyệt)',
+                    registeredVia: 'teacher_package',
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: email || 'system'
+                };
+
+                if (existingIdx >= 0) {
+                    accounts[existingIdx] = { ...accounts[existingIdx], ...teacherRecord };
+                } else {
+                    accounts.push(teacherRecord);
+                }
+
+                await setDoc(cfgRef, { accounts, updatedAt: new Date().toISOString() }, { merge: true });
+
+                // Fallback admin_accounts
+                try {
+                    const cleanId = (email || uid).replace(/[@.]/g, '_');
+                    await setDoc(doc(db, "admin_accounts", cleanId), teacherRecord, { merge: true });
+                } catch(e) {}
+
+                // Cập nhật users/{uid}
+                if (uid) {
+                    await setDoc(doc(db, "users", uid), {
+                        role: 'teacher',
+                        isTeacher: true,
+                        permissions: defaultPerms,
+                        assignedCourseIds: defaultAssignedCourses,
+                        updatedAt: new Date().toISOString()
+                    }, { merge: true });
+                }
+            } catch(err) {
+                console.error("Lỗi cấp quyền giáo viên cho tài khoản mới:", err);
+            }
+        };
+
         // ── BẢO TOÀN TRẠNG THÁI ĐƠN KHI RỜI TRANG HOẶC ĐỔI APP ──
         window.addEventListener('pagehide', () => {
             // Không hủy hoặc xóa đơn khi người dùng chuyển tab/app sang app ngân hàng để quét mã QR
@@ -3309,7 +4500,7 @@
         })();
 
     </script>
-<script src="/sw-register.js?v=32"></script>
+<script src="/sw-register.js?v=33"></script>
 <script src="/app-installer.js?v=2"></script>
 </body>
 </html>

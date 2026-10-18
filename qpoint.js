@@ -21,9 +21,10 @@ import {
 } from "./supabase-db-compat.js?v=25";
 
 export const QP_COSTS = {
-    ai_hint: 5,      // 1 lượt Gợi ý AI
-    use_5050: 3,     // 1 lượt trợ giúp 50/50
-    streak_freeze: 15 // vé đóng băng chuỗi (dành cho tương lai)
+    ai_hint: 5,           // 1 lượt Gợi ý AI
+    use_5050: 3,          // 1 lượt trợ giúp 50/50
+    streak_freeze: 15,    // vé đóng băng chuỗi (dành cho tương lai)
+    question_lookup: 5    // 1 lượt tra cứu câu hỏi trong khóa học có phí (quản trị viên có thể tùy chỉnh)
 };
 
 export const QP_REWARDS = {
@@ -48,6 +49,7 @@ export async function getQPointConfig(db) {
             return {
                 enabled: data.enabled !== false,
                 packages: (Array.isArray(data.packages) && data.packages.length > 0) ? data.packages : DEFAULT_QPOINT_PACKAGES,
+                costs: { ...QP_COSTS, ...(data.costs || {}) },
                 note: data.note || 'QPoint dùng để xem gợi ý AI, dùng trợ giúp 50/50 và xem lời giải chi tiết.'
             };
         }
@@ -57,6 +59,7 @@ export async function getQPointConfig(db) {
     return {
         enabled: true,
         packages: DEFAULT_QPOINT_PACKAGES,
+        costs: QP_COSTS,
         note: 'QPoint dùng để xem gợi ý AI, dùng trợ giúp 50/50 và xem lời giải chi tiết.'
     };
 }

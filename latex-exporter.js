@@ -63,10 +63,53 @@
         return content;
     }
 
+    function htmlTableToLatexTabular(html) {
+        if (!html || !html.includes('<table')) return html;
+        return html.replace(/<table[^>]*>([\s\S]*?)<\/table>/gi, function(match, tableBody) {
+            const rowMatches = tableBody.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi);
+            if (!rowMatches || rowMatches.length === 0) return '';
+            
+            const tableRows = [];
+            let maxCols = 0;
+            for (const r of rowMatches) {
+                const cells = [];
+                const cellMatches = r.match(/<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/gi);
+                if (cellMatches) {
+                    for (const c of cellMatches) {
+                        let cellContent = c.replace(/^<(?:td|th)[^>]*>/i, '').replace(/<\/(?:td|th)>$/i, '').trim();
+                        cellContent = cellContent.replace(/<br\s*\/?>/gi, ' ');
+                        cellContent = cellContent.replace(/<b>(.*?)<\/b>/gi, '\\textbf{$1}');
+                        cellContent = cellContent.replace(/<strong>(.*?)<\/strong>/gi, '\\textbf{$1}');
+                        cellContent = cellContent.replace(/<i>(.*?)<\/i>/gi, '\\textit{$1}');
+                        cellContent = cellContent.replace(/<em>(.*?)<\/em>/gi, '\\textit{$1}');
+                        cellContent = cellContent.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+                        cellContent = cellContent.replace(/<\/?(?:div|span|p)[^>]*>/gi, ' ').trim();
+                        cells.push(cellContent);
+                    }
+                }
+                if (cells.length > 0) {
+                    tableRows.push(cells);
+                    if (cells.length > maxCols) maxCols = cells.length;
+                }
+            }
+            if (tableRows.length === 0 || maxCols === 0) return '';
+            
+            const colSpec = '|' + Array(maxCols).fill('c|').join('');
+            let tex = `\\begin{tabular}{${colSpec}}\n\\hline\n`;
+            for (const row of tableRows) {
+                while (row.length < maxCols) row.push('');
+                tex += row.join(' & ') + ' \\\\\n\\hline\n';
+            }
+            tex += '\\end{tabular}\n';
+            return '\n\n' + tex + '\n\n';
+        });
+    }
+
     // 2.5 Làm sạch HTML sang LaTeX khi xuất câu hỏi
     function cleanHtmlToLatex(text) {
         if (!text) return "";
         let s = String(text);
+        s = htmlTableToLatexTabular(s);
         // Thay thẻ img thành \begin{center}\includegraphics[width=0.7\linewidth]{url}\end{center}
         s = s.replace(/<div[^>]*>\s*<img[^>]*src="([^"]+)"[^>]*>\s*<\/div>/gi, '\n\\begin{center}\n\\includegraphics[width=0.7\\linewidth]{$1}\n\\end{center}\n');
         s = s.replace(/<img[^>]*src="([^"]+)"[^>]*>/gi, '\n\\begin{center}\n\\includegraphics[width=0.7\\linewidth]{$1}\n\\end{center}\n');
