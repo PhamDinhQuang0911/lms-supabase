@@ -600,10 +600,10 @@
             <button onclick="window.openQrScannerModal()" id="nav-qr-scan" class="sidebar-item w-full text-left px-4 py-3 text-gray-600 flex items-center gap-3 transition-all rounded-xl hover:bg-blue-50 hover:text-blue-700"><i class="fa-solid fa-qrcode w-5 text-blue-600"></i> <span>Quét mã QR</span></button>
             <button onclick="window.openMyStudentCardModal()" id="nav-my-card" class="sidebar-item w-full text-left px-4 py-3 text-gray-600 flex items-center gap-3 transition-all rounded-xl hover:bg-amber-50 hover:text-amber-700 cursor-pointer"><i class="fa-solid fa-id-card w-5 text-amber-600"></i> <span>Thẻ học sinh của em</span></button>
             
-            <div class="px-4 pt-3 pb-1 text-[10px] font-black text-indigo-500 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-crown text-amber-500 text-[11px]"></i> Giảng dạy</div>
-            <button onclick="window.openStudentTeacherUpgradeModal()" id="nav-teacher-upgrade" class="sidebar-item w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center justify-between text-indigo-700 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 border border-indigo-200/80 font-bold shadow-2xs cursor-pointer">
-                <span class="flex items-center gap-2.5"><i class="fa-solid fa-graduation-cap text-indigo-600 text-base"></i> Đăng ký Giáo viên</span>
-                <span class="text-[9px] bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider shadow-2xs">VIP</span>
+            <div id="nav-teacher-heading" class="px-4 pt-3 pb-1 text-[10px] font-black text-indigo-500 uppercase tracking-wider flex items-center gap-1.5"><i id="nav-teacher-head-icon" class="fa-solid fa-crown text-amber-500 text-[11px]"></i> <span>Giảng dạy</span></div>
+            <button onclick="window.handleTeacherAction()" id="nav-teacher-upgrade" class="sidebar-item w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center justify-between text-indigo-700 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 border border-indigo-200/80 font-bold shadow-2xs cursor-pointer">
+                <span id="nav-teacher-label" class="flex items-center gap-2.5"><i id="nav-teacher-icon" class="fa-solid fa-graduation-cap text-indigo-600 text-base"></i> <span id="nav-teacher-text">Đăng ký Giáo viên</span></span>
+                <span id="nav-teacher-badge" class="text-[9px] bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider shadow-2xs">VIP</span>
             </button>
         </nav>
         
@@ -646,9 +646,9 @@
                 <span class="font-black text-brand text-lg">Góc Học Tập</span>
             </div>
             <div class="flex items-center gap-2">
-                <button type="button" onclick="window.openStudentTeacherUpgradeModal()" class="h-8 px-2.5 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 hover:from-indigo-100 hover:to-purple-100 border border-indigo-200 flex items-center gap-1 font-bold text-xs shadow-2xs active:scale-95 transition-all cursor-pointer" title="Đăng ký làm Giáo viên">
-                    <i class="fa-solid fa-graduation-cap text-indigo-600 text-sm"></i>
-                    <span class="text-[10px] hidden xs:inline font-black uppercase">Làm GV</span>
+                <button type="button" id="mobileTeacherBtn" onclick="window.handleTeacherAction()" class="h-8 px-2.5 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 hover:from-indigo-100 hover:to-purple-100 border border-indigo-200 flex items-center gap-1 font-bold text-xs shadow-2xs active:scale-95 transition-all cursor-pointer" title="Giảng dạy">
+                    <i id="mobileTeacherBtnIcon" class="fa-solid fa-graduation-cap text-indigo-600 text-sm"></i>
+                    <span id="mobileTeacherBtnText" class="text-[10px] hidden xs:inline font-black uppercase">Làm GV</span>
                 </button>
                 <button type="button" onclick="window.openQrScannerModal()" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 flex items-center justify-center text-sm shadow-2xs active:scale-95 transition-all cursor-pointer" title="Quét mã QR">
                     <i class="fa-solid fa-qrcode"></i>
@@ -676,26 +676,6 @@
         
     </div>
 
-    <!-- BANNER NÂNG CẤP TÀI KHOẢN GIÁO VIÊN -->
-    <div onclick="window.openStudentTeacherUpgradeModal()" class="cursor-pointer bg-gradient-to-r from-slate-900 via-purple-950 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl md:rounded-3xl shadow-lg border border-purple-500/30 flex items-center justify-between gap-4 hover:border-purple-400 transition-all group relative overflow-hidden">
-        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-purple-500/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
-        <div class="flex items-center gap-3.5 relative z-10">
-            <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 text-white flex items-center justify-center text-xl sm:text-2xl shrink-0 shadow-md shadow-amber-500/30 group-hover:scale-110 group-hover:rotate-6 transition-transform">
-                <i class="fa-solid fa-graduation-cap"></i>
-            </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <span class="font-black text-sm sm:text-base text-amber-300 tracking-tight">Thầy/Cô muốn giảng dạy trên QMath?</span>
-                    <span class="text-[9px] bg-gradient-to-r from-amber-400 to-orange-400 text-slate-900 font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">GIÁO VIÊN VIP</span>
-                </div>
-                <p class="text-xs text-purple-200/90 mt-0.5 max-w-xl">Nâng cấp tài khoản Giáo viên để quản lý lớp học, tổ chức thi trắc nghiệm và sử dụng AI soạn đề tự động</p>
-            </div>
-        </div>
-        <button class="shrink-0 px-3.5 py-2 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-900 font-black rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 group-hover:translate-x-0.5 cursor-pointer relative z-10">
-            <span>Đăng ký ngay</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
-        </button>
-    </div>
-    
     <!-- KHU NÚT THAO TÁC NHANH (MODERN CARDS) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
         <!-- 1. Nút Luyện tập AI -->
@@ -1484,13 +1464,87 @@
             setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 500); }, 3000);
         }
 
+        window.isCurrentUserTeacher = false;
+
+        window.updateTeacherSwitchUI = function(isTeacher) {
+            window.isCurrentUserTeacher = isTeacher;
+            const navText = document.getElementById('nav-teacher-text');
+            const navIcon = document.getElementById('nav-teacher-icon');
+            const navBadge = document.getElementById('nav-teacher-badge');
+            const navUpgrade = document.getElementById('nav-teacher-upgrade');
+            const mobBtn = document.getElementById('mobileTeacherBtn');
+            const mobText = document.getElementById('mobileTeacherBtnText');
+            const mobIcon = document.getElementById('mobileTeacherBtnIcon');
+
+            if (isTeacher) {
+                if (navText) navText.textContent = "Bàn làm việc GV";
+                if (navIcon) navIcon.className = "fa-solid fa-chalkboard-user text-indigo-600 text-base";
+                if (navBadge) {
+                    navBadge.textContent = "VÀO";
+                    navBadge.className = "text-[9px] bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider shadow-2xs";
+                }
+                if (navUpgrade) navUpgrade.title = "Chuyển sang Bàn làm việc Giáo viên";
+
+                if (mobText) mobText.textContent = "Vào GV";
+                if (mobIcon) mobIcon.className = "fa-solid fa-chalkboard-user text-indigo-600 text-sm";
+                if (mobBtn) mobBtn.title = "Vào Bàn làm việc Giáo viên";
+            } else {
+                if (navText) navText.textContent = "Đăng ký Giáo viên";
+                if (navIcon) navIcon.className = "fa-solid fa-graduation-cap text-indigo-600 text-base";
+                if (navBadge) {
+                    navBadge.textContent = "VIP";
+                    navBadge.className = "text-[9px] bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider shadow-2xs";
+                }
+                if (navUpgrade) navUpgrade.title = "Đăng ký làm Giáo viên";
+
+                if (mobText) mobText.textContent = "Làm GV";
+                if (mobIcon) mobIcon.className = "fa-solid fa-graduation-cap text-indigo-600 text-sm";
+                if (mobBtn) mobBtn.title = "Đăng ký làm Giáo viên";
+            }
+        };
+
+        window.handleTeacherAction = function() {
+            if (window.isCurrentUserTeacher) {
+                window.switchToTeacherMode();
+            } else {
+                window.openStudentTeacherUpgradeModal();
+            }
+        };
+
+        window.switchToTeacherMode = function() {
+            try { localStorage.setItem('qmath_role_mode', 'teacher'); } catch(e) {}
+            window.location.href = "dashboard.html";
+        };
+
         // --- AUTH & LOAD DATA ---
         // --- AUTH & LOAD DATA (ĐÃ SỬA LỖI HIỂN THỊ NÚT VÀO HỌC) ---
         // --- AUTH & LOAD DATA (TỐI ƯU TỐC ĐỘ - PARALLEL LOADING) ---
         // --- AUTH & LOAD DATA (NON-BLOCKING - KHÔNG CHẶN GIAO DIỆN) ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                if (ADMIN_EMAILS.map(e => e.toLowerCase()).includes((user.email || '').toLowerCase()) || ['admin', 'teacher', 'super_admin'].includes(user.role)) { window.location.href = "dashboard.html"; return; }
+                const userEmail = (user.email || '').toLowerCase().trim();
+                const isExplicitAdmin = ADMIN_EMAILS.map(e => e.toLowerCase()).includes(userEmail);
+                let isTeacher = isExplicitAdmin || ['admin', 'teacher', 'super_admin'].includes(user.role);
+
+                if (!isTeacher) {
+                    try {
+                        const uSnap = await getDoc(doc(db, "users", user.uid));
+                        if (uSnap.exists()) {
+                            const uData = uSnap.data();
+                            if (uData.role === 'teacher' || uData.role === 'admin' || uData.isTeacher === true) {
+                                isTeacher = true;
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                const preferredMode = localStorage.getItem('qmath_role_mode');
+                if (isTeacher && preferredMode !== 'student') {
+                    window.location.href = "dashboard.html";
+                    return;
+                }
+
+                window.updateTeacherSwitchUI(isTeacher);
                 
                 // 1. Tải thông tin người dùng (Nhanh)
                 loadSiteLogo();

@@ -1394,7 +1394,12 @@
                 }
 
                 if (isStaffUser) {
-                    window.location.href = "dashboard.html"; 
+                    const preferredMode = localStorage.getItem('qmath_role_mode');
+                    if (preferredMode === 'student') {
+                        window.location.href = "student.html";
+                    } else {
+                        window.location.href = "dashboard.html"; 
+                    }
                 } else {
                     window.location.href = "student.html";   
                 }
