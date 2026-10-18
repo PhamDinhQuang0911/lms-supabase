@@ -3225,23 +3225,23 @@
 
             <!-- Nội dung thẻ -->
             <div class="p-5 md:p-6 space-y-4 overflow-y-auto">
-                <!-- KHUNG THẺ HỌC SINH CHUẨN DESIGN -->
-                <div id="singleCardWrapper" class="relative mx-auto rounded-2xl p-4 md:p-5 text-slate-800 shadow-xl overflow-hidden bg-white border-2 border-indigo-500" style="max-width: 440px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-                    <!-- Pattern chìm -->
-                    <div class="absolute inset-0 opacity-15 pointer-events-none" style="background-image: radial-gradient(#6366f1 1px, transparent 1px); background-size: 16px 16px;"></div>
+                <!-- KHUNG THẺ HỌC SINH CHUẨN DESIGN (NỀN TÍM HOÀNG GIA & VIỀN BO VÀNG HỔ PHÁCH SANG TRỌNG) -->
+                <div id="singleCardWrapper" class="relative mx-auto rounded-3xl p-5 text-white shadow-2xl overflow-hidden" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%) !important; border: 2.5px solid rgba(251, 191, 36, 0.75) !important; max-width: 440px; box-shadow: 0 16px 36px -4px rgba(49, 46, 129, 0.45); -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                    <!-- Pattern chìm sao chấm sáng -->
+                    <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 16px 16px;"></div>
 
                     <!-- Header Thẻ -->
-                    <div class="relative flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl p-2.5 mb-3">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <div class="w-8 h-8 rounded-lg bg-amber-500 text-white font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+                    <div class="relative flex items-center justify-between border-b border-white/20 pb-2.5 mb-3.5">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 font-black flex items-center justify-center text-sm shadow-sm shrink-0 border border-amber-200">
                                 <i class="fa-solid fa-graduation-cap"></i>
                             </div>
                             <div class="min-w-0">
-                                <h5 class="font-black text-xs md:text-sm tracking-wide text-slate-900 truncate uppercase" id="cardSchoolName">QMATH • TOÁN THẦY QUANG</h5>
-                                <p class="text-[9px] text-indigo-600 font-bold tracking-wider uppercase">THẺ HỌC SINH THÔNG MINH</p>
+                                <h5 class="font-black text-xs md:text-sm tracking-wide text-white truncate uppercase" id="cardSchoolName">QMATH • TOÁN THẦY QUANG</h5>
+                                <p class="text-[9px] text-amber-300 font-extrabold tracking-wider uppercase">THẺ HỌC SINH THÔNG MINH</p>
                             </div>
                         </div>
-                        <span class="text-[9px] bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 font-bold">STUDENT ID</span>
+                        <span class="text-[9px] bg-white/15 border border-white/25 text-white font-mono px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 font-bold">STUDENT ID</span>
                     </div>
 
                     <!-- Thân Thẻ -->
@@ -3249,33 +3249,33 @@
                         <!-- Thông tin bên trái -->
                         <div class="flex-1 min-w-0 space-y-1.5">
                             <div>
-                                <span class="text-[10px] text-slate-500 block uppercase font-semibold">Họ và tên</span>
-                                <h4 class="font-black text-slate-900 text-base md:text-lg leading-tight truncate" id="cardStudentName">Nguyễn Văn A</h4>
+                                <span class="text-[10px] text-indigo-200 block uppercase font-bold tracking-wider">Họ và tên học sinh</span>
+                                <h4 class="font-black text-white text-base md:text-lg leading-tight truncate drop-shadow-sm" id="cardStudentName">Nguyễn Văn A</h4>
                             </div>
                             <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                                <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold" id="cardClassName">Lớp: ---</span>
-                                <span class="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-300 rounded text-[10px] font-black" id="cardStudentSbd">SBD: ---</span>
+                                <span class="px-2 py-0.5 bg-indigo-950/80 text-indigo-100 border border-indigo-400/40 rounded-lg text-[10px] font-bold" id="cardClassName">Lớp: ---</span>
+                                <span class="px-2 py-0.5 bg-amber-400 text-slate-950 rounded-lg text-[10px] font-black" id="cardStudentSbd">SBD: ---</span>
                             </div>
-                            <div class="pt-1 text-[11px] text-slate-600 font-mono">
-                                <span>TK: </span><span class="font-bold text-slate-900" id="cardStudentUser">---</span>
+                            <div class="pt-1 text-[11px] text-indigo-200 font-mono">
+                                <span>TK: </span><span class="font-bold text-white" id="cardStudentUser">---</span>
                             </div>
                         </div>
 
                         <!-- Khung QR bên phải -->
                         <div class="shrink-0 text-center">
-                            <div class="bg-white p-1.5 rounded-xl shadow-xs inline-block border-2 border-indigo-100">
-                                <div id="cardQrCodeBox" class="w-[100px] h-[100px] md:w-[110px] md:h-[110px] flex items-center justify-center bg-white overflow-hidden">
+                            <div class="bg-white p-2 rounded-2xl shadow-lg inline-block border-2 border-amber-300">
+                                <div id="cardQrCodeBox" class="w-[100px] h-[100px] md:w-[110px] md:h-[110px] flex items-center justify-center bg-white overflow-hidden rounded-lg">
                                     <!-- QR Image mounts here -->
                                 </div>
                             </div>
-                            <p class="text-[8px] font-black tracking-wider text-indigo-600 uppercase mt-1">QUÉT ĐĂNG NHẬP</p>
+                            <p class="text-[8px] font-black tracking-wider text-amber-300 uppercase mt-1">QUÉT ĐĂNG NHẬP</p>
                         </div>
                     </div>
 
                     <!-- Footer Thẻ -->
-                    <div class="relative border-t border-slate-200 pt-2 mt-3 flex items-center justify-between text-[9px] text-slate-500">
-                        <span class="flex items-center gap-1"><i class="fa-solid fa-shield-halved text-emerald-600"></i> Mã bảo mật cá nhân</span>
-                        <span class="font-mono font-bold text-indigo-600">qmath.io.vn</span>
+                    <div class="relative border-t border-white/20 pt-2 mt-3 flex items-center justify-between text-[9px] text-indigo-200">
+                        <span class="flex items-center gap-1"><i class="fa-solid fa-shield-halved text-amber-400"></i> Mã bảo mật cá nhân</span>
+                        <span class="font-mono font-bold text-white/90">qmath.io.vn</span>
                     </div>
                 </div>
 
@@ -3288,23 +3288,23 @@
                     </div>
                 </div>
 
-                <!-- Nhóm nút thao tác -->
+                <!-- Nhóm nút thao tác (Định dạng màu sắc trực tiếp, luôn hiển thị sắc nét trong cả giao diện Sáng & Tối) -->
                 <div class="grid grid-cols-2 gap-2.5 pt-2">
-                    <button type="button" onclick="window.printSingleStudentCard()" class="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer" style="color: #ffffff !important;">
+                    <button type="button" onclick="window.printSingleStudentCard()" class="py-2.5 px-3 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 hover:opacity-90" style="background-color: #4f46e5 !important; color: #ffffff !important;">
                         <i class="fa-solid fa-print text-white"></i>
-                        <span class="text-white">In Thẻ này</span>
+                        <span class="text-white font-bold">In Thẻ này</span>
                     </button>
-                    <button type="button" onclick="window.copyStudentLoginLink()" class="py-2.5 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer" style="color: #ffffff !important;">
+                    <button type="button" onclick="window.copyStudentLoginLink()" class="py-2.5 px-3 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 hover:opacity-90" style="background-color: #0284c7 !important; color: #ffffff !important;">
                         <i class="fa-solid fa-link text-white"></i>
-                        <span class="text-white">Sao chép Link QR</span>
+                        <span class="text-white font-bold">Sao chép Link QR</span>
                     </button>
-                    <button type="button" onclick="window.downloadStudentCardImage()" class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer" style="color: #ffffff !important;">
+                    <button type="button" onclick="window.downloadStudentCardImage()" class="py-2.5 px-3 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 hover:opacity-90" style="background-color: #059669 !important; color: #ffffff !important;">
                         <i class="fa-solid fa-download text-white"></i>
-                        <span class="text-white">Tải ảnh Thẻ (Gửi Zalo)</span>
+                        <span class="text-white font-bold">Tải ảnh Thẻ (Gửi Zalo)</span>
                     </button>
-                    <button type="button" onclick="window.handleResetCurrentStudentQr()" class="py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer" style="color: #ffffff !important;" title="Hủy thẻ cũ, tạo mã QR hoàn toàn mới">
+                    <button type="button" onclick="window.handleResetCurrentStudentQr()" class="py-2.5 px-3 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 hover:opacity-90" style="background-color: #e11d48 !important; color: #ffffff !important;" title="Hủy thẻ cũ, tạo mã QR hoàn toàn mới">
                         <i class="fa-solid fa-arrows-rotate text-white"></i>
-                        <span class="text-white">Cấp lại mã QR mới</span>
+                        <span class="text-white font-bold">Cấp lại mã QR mới</span>
                     </button>
                 </div>
             </div>
@@ -9326,21 +9326,98 @@
             }
         };
 
-        window.printSingleStudentCard = function() {
-            const cardWrapper = document.getElementById('singleCardWrapper');
-            if (!cardWrapper) return;
-            const printArea = document.getElementById('printAreaWrapper');
-            printArea.innerHTML = `
-                <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
-                    <div style="width: 86mm; height: 54mm; border: 1px dashed #cbd5e1; padding: 2px; border-radius: 12px; overflow: hidden;">
-                        ${cardWrapper.outerHTML}
+        // HÀM TẠO BẢN IN GIẤY CHUYÊN DỤNG (NỀN TRẮNG, TIẾT KIỆM MỰC, KHÔNG BỊ ĐEN XÌ KHI IN MÁY IN ĐEN TRẮNG)
+        window.generatePrintCardHtml = function(data) {
+            let qrContent = '';
+            if (data.qrElement) {
+                const qrCanvas = data.qrElement.querySelector('canvas');
+                const qrImg = data.qrElement.querySelector('img');
+                if (qrCanvas && qrCanvas.width > 0) {
+                    qrContent = `<img src="${qrCanvas.toDataURL()}" style="width: 105px; height: 105px; display: block;" />`;
+                } else if (qrImg && qrImg.src) {
+                    qrContent = `<img src="${qrImg.src}" style="width: 105px; height: 105px; display: block;" />`;
+                }
+            }
+
+            return `
+                <div class="print-clean-card" style="width: 440px; border: 2px solid #0f172a; border-radius: 20px; padding: 18px 20px; background: #ffffff !important; color: #0f172a !important; font-family: 'Segoe UI', Inter, Arial, sans-serif; box-sizing: border-box; page-break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0 auto; box-shadow: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 10px; margin-bottom: 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 32px; height: 32px; background: #f59e0b; color: #ffffff; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900;">Q</div>
+                            <div>
+                                <div style="font-size: 13px; font-weight: 900; color: #0f172a; text-transform: uppercase;">${data.schoolTitle || 'QMATH LMS'}</div>
+                                <div style="font-size: 9px; font-weight: 800; color: #4338ca; text-transform: uppercase; letter-spacing: 0.5px;">THẺ HỌC SINH THÔNG MINH</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 9px; font-weight: bold; border: 1.5px solid #64748b; color: #334155; padding: 2px 8px; border-radius: 12px; font-family: monospace;">STUDENT ID</div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px;">Họ và tên học sinh</div>
+                            <div style="font-size: 18px; font-weight: 900; color: #0f172a; margin-bottom: 8px; line-height: 1.2;">${data.studentName || 'Học sinh'}</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                                <span style="font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; color: #1e293b;">${data.className || 'Lớp: ---'}</span>
+                                <span style="font-size: 10px; font-weight: 900; padding: 3px 8px; border-radius: 6px; background: #fef3c7; border: 1px solid #f59e0b; color: #78350f;">${data.sbd || 'SBD: ---'}</span>
+                            </div>
+                            <div style="font-size: 11px; font-family: monospace; color: #334155;">TK: <b style="color: #0f172a;">${data.username || '---'}</b></div>
+                        </div>
+
+                        <div style="text-align: center; flex-shrink: 0;">
+                            <div style="background: #ffffff; padding: 6px; border-radius: 12px; border: 1.5px solid #94a3b8; display: inline-block;">
+                                ${qrContent || '<div style="width: 105px; height: 105px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 10px;">QR Code</div>'}
+                            </div>
+                            <div style="font-size: 8px; font-weight: 900; color: #0f172a; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px;">QUÉT ĐĂNG NHẬP</div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #cbd5e1; padding-top: 8px; margin-top: 12px; font-size: 9px; color: #64748b;">
+                        <span style="color: #059669; font-weight: bold;">🔒 Thẻ học sinh chính thức • Đăng nhập không cần mật khẩu</span>
+                        <span style="font-family: monospace; font-weight: bold; color: #4338ca;">qmath.io.vn</span>
                     </div>
                 </div>
+            `;
+        };
+
+        window.printSingleStudentCard = function() {
+            const schoolTitle = document.getElementById('cardSchoolName')?.textContent || 'QMATH';
+            const sName = document.getElementById('cardStudentName')?.textContent || 'Học sinh';
+            const cName = document.getElementById('cardClassName')?.textContent || 'Lớp: ---';
+            const sbd = document.getElementById('cardStudentSbd')?.textContent || 'SBD: ---';
+            const user = document.getElementById('cardStudentUser')?.textContent || '---';
+            const qrBox = document.getElementById('cardQrCodeBox');
+
+            let printArea = document.getElementById('printAreaWrapper');
+            if (!printArea) {
+                printArea = document.createElement('div');
+                printArea.id = 'printAreaWrapper';
+                document.body.appendChild(printArea);
+            }
+
+            const cardHtml = window.generatePrintCardHtml({
+                schoolTitle: schoolTitle,
+                studentName: sName,
+                className: cName,
+                sbd: sbd,
+                username: user,
+                qrElement: qrBox
+            });
+
+            printArea.innerHTML = `
+                <style>
+                    @media print {
+                        @page { size: auto; margin: 15mm; }
+                        body { background: white !important; }
+                        #printAreaWrapper { display: flex !important; justify-content: center !important; align-items: center !important; min-height: 90vh !important; background: white !important; }
+                    }
+                </style>
+                ${cardHtml}
             `;
             window.print();
         };
 
         // HÀM VẼ THẺ HỌC SINH LÊN CANVAS ĐỘ PHÂN GIẢI CAO (1000x630px) ĐỂ TẢI ẢNH CHUẨN ĐẸP 100%
+        // (NỀN TÍM HOÀNG GIA SANG TRỌNG, VIỀN BO VÀNG HỔ PHÁCH RỰC RỠ, CHỮ NỔI RÕ NÉT)
         window.drawStudentCardToCanvas = function(data) {
             const canvas = document.createElement('canvas');
             canvas.width = 1000;
@@ -9358,76 +9435,98 @@
                 ctx.closePath();
             }
 
-            // Nền thẻ trắng tinh tế & bo góc 28px
+            // Bo góc toàn thẻ 32px
             ctx.save();
-            roundRect(ctx, 0, 0, 1000, 630, 28);
+            roundRect(ctx, 0, 0, 1000, 630, 32);
             ctx.clip();
 
-            ctx.fillStyle = '#ffffff';
+            // Nền gradient tím hoàng gia sâu lắng, sang trọng
+            const cardGrad = ctx.createLinearGradient(0, 0, 1000, 630);
+            cardGrad.addColorStop(0, '#1e1b4b'); // deep midnight indigo
+            cardGrad.addColorStop(0.45, '#312e81'); // royal purple
+            cardGrad.addColorStop(1, '#4338ca'); // rich vibrant indigo
+            ctx.fillStyle = cardGrad;
             ctx.fillRect(0, 0, 1000, 630);
 
-            // Pattern chìm trang nhã (chấm tròn li ti)
-            ctx.fillStyle = 'rgba(99, 102, 241, 0.05)';
+            // Pattern hạt sao sáng li ti
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
             for (let px = 20; px < 1000; px += 24) {
                 for (let py = 20; py < 630; py += 24) {
                     ctx.beginPath();
-                    ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+                    ctx.arc(px, py, 1.2, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
 
-            // Header Dải trên
-            const headerGrad = ctx.createLinearGradient(0, 0, 1000, 0);
-            headerGrad.addColorStop(0, '#f8fafc');
-            headerGrad.addColorStop(1, '#f1f5f9');
-            ctx.fillStyle = headerGrad;
-            ctx.fillRect(0, 0, 1000, 115);
+            // Vệt sáng gradient điểm nhấn góc phải trên và góc trái dưới
+            const glow1 = ctx.createRadialGradient(900, 60, 20, 900, 60, 300);
+            glow1.addColorStop(0, 'rgba(129, 140, 248, 0.25)');
+            glow1.addColorStop(1, 'rgba(129, 140, 248, 0)');
+            ctx.fillStyle = glow1;
+            ctx.fillRect(600, 0, 400, 360);
 
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, 115);
-            ctx.lineTo(1000, 115);
+            const glow2 = ctx.createRadialGradient(100, 550, 20, 100, 550, 250);
+            glow2.addColorStop(0, 'rgba(251, 191, 36, 0.15)');
+            glow2.addColorStop(1, 'rgba(251, 191, 36, 0)');
+            ctx.fillStyle = glow2;
+            ctx.fillRect(0, 300, 400, 330);
+
+            // Đường viền trong mảnh tinh tế
+            roundRect(ctx, 10, 10, 980, 610, 24);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.lineWidth = 1.5;
             ctx.stroke();
 
-            // Logo icon hộp màu vàng cam
-            roundRect(ctx, 40, 25, 65, 65, 16);
+            // Logo icon hộp màu vàng cam rực rỡ
+            roundRect(ctx, 42, 28, 64, 64, 16);
             ctx.fillStyle = '#f59e0b';
             ctx.fill();
+            ctx.strokeStyle = '#fde68a';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
             ctx.fillStyle = '#ffffff';
             ctx.font = '900 36px "Segoe UI", Inter, Arial, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('Q', 72, 57);
+            ctx.fillText('Q', 74, 60);
 
             // Tiêu đề trường / giáo viên
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
-            ctx.fillStyle = '#0f172a';
+            ctx.fillStyle = '#ffffff';
             ctx.font = '900 24px "Segoe UI", Inter, Arial, sans-serif';
             let title = (data.schoolTitle || 'QMATH • HỆ THỐNG TOÁN THẦY QUANG').toUpperCase();
-            if (title.length > 36) title = title.substring(0, 34) + '...';
-            ctx.fillText(title, 120, 52);
+            if (title.length > 34) title = title.substring(0, 32) + '...';
+            ctx.fillText(title, 120, 54);
 
-            ctx.fillStyle = '#4f46e5';
+            ctx.fillStyle = '#fbbf24';
             ctx.font = '800 15px "Segoe UI", Inter, Arial, sans-serif';
-            ctx.fillText('THẺ HỌC SINH THÔNG MINH • SMART STUDENT PASS', 120, 78);
+            ctx.fillText('THẺ HỌC SINH THÔNG MINH • SMART STUDENT PASS', 120, 80);
 
             // Badge STUDENT ID góc phải
             roundRect(ctx, 810, 38, 150, 38, 19);
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
             ctx.fill();
-            ctx.strokeStyle = '#cbd5e1';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
             ctx.lineWidth = 1.5;
             ctx.stroke();
-            ctx.fillStyle = '#334155';
+            ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 15px monospace';
             ctx.textAlign = 'center';
             ctx.fillText('STUDENT ID', 885, 63);
 
+            // Dải phân cách Header
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(40, 115);
+            ctx.lineTo(960, 115);
+            ctx.stroke();
+
             // Cột thông tin học sinh bên trái
             ctx.textAlign = 'left';
-            ctx.fillStyle = '#64748b';
+            ctx.fillStyle = '#c7d2fe';
             ctx.font = 'bold 15px "Segoe UI", Inter, Arial, sans-serif';
             ctx.fillText('HỌ VÀ TÊN HỌC SINH', 45, 175);
 
@@ -9437,7 +9536,7 @@
             else if (sName.length > 20) nameFontSize = 30;
             else if (sName.length > 15) nameFontSize = 34;
 
-            ctx.fillStyle = '#0f172a';
+            ctx.fillStyle = '#ffffff';
             ctx.font = `900 ${nameFontSize}px "Segoe UI", Inter, Arial, sans-serif`;
             ctx.fillText(sName, 45, 225);
 
@@ -9446,12 +9545,12 @@
             ctx.font = 'bold 17px "Segoe UI", Inter, Arial, sans-serif';
             let classWidth = ctx.measureText(classText).width + 30;
             roundRect(ctx, 45, 255, classWidth, 38, 10);
-            ctx.fillStyle = '#eef2ff';
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
             ctx.fill();
-            ctx.strokeStyle = '#c7d2fe';
+            ctx.strokeStyle = 'rgba(129, 140, 248, 0.5)';
             ctx.lineWidth = 1.5;
             ctx.stroke();
-            ctx.fillStyle = '#3730a3';
+            ctx.fillStyle = '#e0e7ff';
             ctx.fillText(classText, 60, 280);
 
             // Badge SBD
@@ -9459,39 +9558,37 @@
             let sbdWidth = ctx.measureText(sbdText).width + 30;
             let sbdX = 45 + classWidth + 12;
             roundRect(ctx, sbdX, 255, sbdWidth, 38, 10);
-            ctx.fillStyle = '#fef3c7';
+            ctx.fillStyle = '#fbbf24';
             ctx.fill();
-            ctx.strokeStyle = '#fcd34d';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            ctx.fillStyle = '#92400e';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 17px "Segoe UI", Inter, Arial, sans-serif';
             ctx.fillText(sbdText, sbdX + 15, 280);
 
             // Tài khoản (Username)
-            ctx.fillStyle = '#475569';
+            ctx.fillStyle = '#c7d2fe';
             ctx.font = '16px monospace';
             ctx.fillText('Tài khoản: ', 45, 345);
-            ctx.fillStyle = '#0f172a';
+            ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 22px monospace';
-            ctx.fillText(data.username || '---', 145, 345);
+            ctx.fillText(data.username || '---', 150, 345);
 
             // Ghi chú bảo mật
-            ctx.fillStyle = '#64748b';
+            ctx.fillStyle = '#a5b4fc';
             ctx.font = '14px "Segoe UI", Inter, Arial, sans-serif';
             ctx.fillText('• Dùng camera hoặc Zalo quét mã QR để vào thẳng hệ thống học tập', 45, 400);
             ctx.fillText('• Thẻ bảo mật cá nhân, có thể đổi mã mới bất kỳ lúc nào', 45, 430);
 
-            // Khung mã QR bên phải
+            // Khung mã QR bên phải (nền trắng bo tròn viền vàng hổ phách)
             const qrBoxX = 665;
             const qrBoxY = 145;
             const qrBoxW = 290;
             const qrBoxH = 350;
 
-            roundRect(ctx, qrBoxX, qrBoxY, qrBoxW, qrBoxH, 20);
+            roundRect(ctx, qrBoxX, qrBoxY, qrBoxW, qrBoxH, 24);
             ctx.fillStyle = '#ffffff';
             ctx.fill();
-            ctx.strokeStyle = '#cbd5e1';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 3.5;
             ctx.stroke();
 
             // Vẽ QR Code từ element
@@ -9521,13 +9618,13 @@
                 ctx.fillText('MÃ QR ĐĂNG NHẬP', qrBoxX + 145, qrBoxY + 145);
             }
 
-            ctx.fillStyle = '#4f46e5';
+            ctx.fillStyle = '#d97706';
             ctx.font = '900 16px "Segoe UI", Inter, Arial, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('QUÉT ĐĂNG NHẬP', qrBoxX + 145, qrBoxY + 310);
+            ctx.fillText('QUÉT ĐĂNG NHẬP', qrBoxX + 145, qrBoxY + 312);
 
             // Footer
-            ctx.strokeStyle = '#e2e8f0';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(40, 545);
@@ -9535,21 +9632,21 @@
             ctx.stroke();
 
             ctx.textAlign = 'left';
-            ctx.fillStyle = '#059669';
+            ctx.fillStyle = '#34d399';
             ctx.font = 'bold 15px "Segoe UI", Inter, Arial, sans-serif';
             ctx.fillText('🔒 Thẻ học sinh chính thức • Đăng nhập không cần mật khẩu', 45, 585);
 
             ctx.textAlign = 'right';
-            ctx.fillStyle = '#4f46e5';
+            ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 18px monospace';
             ctx.fillText('qmath.io.vn', 955, 585);
 
             ctx.restore();
 
-            // Viền ngoài thẻ bo 28px, stroke 3px #4f46e5
-            roundRect(ctx, 1.5, 1.5, 997, 627, 28);
-            ctx.strokeStyle = '#4f46e5';
-            ctx.lineWidth = 3;
+            // Viền bo ngoài cùng toàn thẻ màu vàng hổ phách bo 32px
+            roundRect(ctx, 2, 2, 996, 626, 32);
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 4;
             ctx.stroke();
 
             return canvas;
