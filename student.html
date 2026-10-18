@@ -463,16 +463,23 @@
             background: #f59e0b !important;
         }
         @media print {
+            html, body {
+                height: auto !important;
+                overflow: visible !important;
+                position: static !important;
+                background: #ffffff !important;
+            }
             body > *:not(#printAreaWrapper) {
                 display: none !important;
             }
             #printAreaWrapper {
-                display: block !important;
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                background: white !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                min-height: 85vh !important;
+                position: static !important;
+                width: 100% !important;
+                background: #ffffff !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -8800,6 +8807,84 @@
             window.printMyStudentCard();
         };
 
+        window.executePrintHtml = function(cardHtml) {
+            // Cập nhật cả printAreaWrapper dự phòng cho window.print
+            const printArea = document.getElementById('printAreaWrapper');
+            if (printArea) {
+                printArea.style.display = 'block';
+                printArea.innerHTML = cardHtml;
+            }
+
+            // In chuyên dụng qua iframe độc lập (Khắc phục 100% lỗi trắng màn của trình duyệt Chrome khi body có overflow:hidden)
+            const oldFrame = document.getElementById('qmathStudentPrintFrame');
+            if (oldFrame) oldFrame.remove();
+
+            const iframe = document.createElement('iframe');
+            iframe.id = 'qmathStudentPrintFrame';
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            iframe.style.opacity = '0';
+            iframe.style.pointerEvents = 'none';
+            document.body.appendChild(iframe);
+
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>In Thẻ Học Sinh</title>
+                    <style>
+                        @page { size: auto; margin: 10mm; }
+                        * { box-sizing: border-box; margin: 0; padding: 0; }
+                        html, body {
+                            width: 100%;
+                            height: 100%;
+                            background: #ffffff !important;
+                            color: #0f172a !important;
+                            font-family: 'Segoe UI', Inter, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+                        .print-wrapper {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 85vh;
+                            width: 100%;
+                            padding: 15px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-wrapper">
+                        ${cardHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            doc.close();
+
+            setTimeout(() => {
+                try {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                } catch(e) {
+                    console.warn("Iframe print fallback to window.print():", e);
+                    window.print();
+                }
+                setTimeout(() => {
+                    if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                    if (printArea) printArea.style.display = 'none';
+                }, 2500);
+            }, 300);
+        };
+
         window.printMyStudentCard = function() {
             const schoolTitle = document.getElementById('myCardSchoolName')?.textContent || 'QMATH LMS';
             const studentName = document.getElementById('myCardStudentName')?.textContent || 'Học sinh';
@@ -8807,13 +8892,6 @@
             const sbd = document.getElementById('myCardStudentSbd')?.textContent || 'SBD: ---';
             const username = document.getElementById('myCardStudentUser')?.textContent || '---';
             const qrBox = document.getElementById('myCardQrCodeBox');
-
-            let printArea = document.getElementById('printAreaWrapper');
-            if (!printArea) {
-                printArea = document.createElement('div');
-                printArea.id = 'printAreaWrapper';
-                document.body.appendChild(printArea);
-            }
 
             const cardHtml = window.generatePrintCardHtml({
                 schoolTitle: schoolTitle,
@@ -8824,17 +8902,7 @@
                 qrElement: qrBox
             });
 
-            printArea.innerHTML = `
-                <style>
-                    @media print {
-                        @page { size: auto; margin: 15mm; }
-                        body { background: white !important; }
-                        #printAreaWrapper { display: flex !important; justify-content: center !important; align-items: center !important; min-height: 90vh !important; background: white !important; }
-                    }
-                </style>
-                ${cardHtml}
-            `;
-            window.print();
+            window.executePrintHtml(cardHtml);
         };
 
 

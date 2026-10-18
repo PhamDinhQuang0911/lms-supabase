@@ -1265,16 +1265,23 @@
             }
         }
         @media print {
+            html, body {
+                height: auto !important;
+                overflow: visible !important;
+                position: static !important;
+                background: #ffffff !important;
+            }
             body > *:not(#printAreaWrapper) {
                 display: none !important;
             }
             #printAreaWrapper {
-                display: block !important;
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                background: white !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                min-height: 85vh !important;
+                position: static !important;
+                width: 100% !important;
+                background: #ffffff !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
@@ -4665,16 +4672,20 @@
 
                             <!-- CỘT 2: HỌC LIỆU & BÀI GIẢNG DÙNG CHUNG (6 quyền) -->
                             <div class="space-y-2">
-                                <!-- 3. Ngân hàng đề hệ thống (2) -->
+                                <!-- 3. Ngân hàng đề & Câu hỏi (3) -->
                                 <div class="admin-perm-group p-2.5 space-y-1 rounded-xl">
                                     <div class="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center justify-between pb-1 border-b border-amber-100 dark:border-amber-900/40">
-                                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-crown text-amber-500 text-xs"></i> 3. Ngân Hàng Đề Chung</span>
-                                        <span class="text-[9px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1 rounded font-bold">Dùng chung</span>
+                                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-crown text-amber-500 text-xs"></i> 3. Ngân Hàng Đề & Câu Hỏi</span>
+                                        <span class="text-[9px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1 rounded font-bold">Kho & Đề</span>
                                     </div>
                                     <div class="space-y-0.5 text-[11px]">
                                         <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded font-medium hover:bg-black/5 dark:hover:bg-white/5">
                                             <input type="checkbox" class="perm-chk accent-amber-600" value="bank.use_shared">
                                             <span>🌐 Xem & Giao đề hệ thống</span>
+                                        </label>
+                                        <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40">
+                                            <input type="checkbox" class="perm-chk accent-emerald-600" value="bank.manage_own">
+                                            <span>🗄️ Tạo & Quản lý Ngân hàng câu hỏi riêng</span>
                                         </label>
                                         <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-950/40">
                                             <input type="checkbox" class="perm-chk accent-red-600" value="bank.manage_system">
@@ -5662,7 +5673,7 @@
         const ALL_PERMISSIONS = [
             'classes.view', 'classes.manage', 'students.manage',
             'exams.create', 'exams.assign', 'exams.grade', 'exams.manage_own', 'exams.delete_own',
-            'bank.use_shared', 'bank.manage_system',
+            'bank.use_shared', 'bank.manage_own', 'bank.manage_system',
             'courses.use', 'courses.manage', 'courses.delete',
             'books.create',
             'topics.use',
@@ -5678,7 +5689,7 @@
             teacher_full: [
                 'classes.view', 'classes.manage', 'students.manage',
                 'exams.create', 'exams.assign', 'exams.grade', 'exams.manage_own', 'exams.delete_own',
-                'bank.use_shared', 'courses.use', 'books.create', 'topics.use', 'ai.use', 'security.anti_screenshot',
+                'bank.use_shared', 'bank.manage_own', 'courses.use', 'books.create', 'topics.use', 'ai.use', 'security.anti_screenshot',
                 'exams.view', 'courses.view'
             ],
             teacher_basic: [
@@ -5744,13 +5755,22 @@
             return true;
         };
 
-        // Kiểm tra quyền chỉnh sửa và quản lý ngân hàng câu hỏi
+        // Kiểm tra quyền chỉnh sửa và quản lý ngân hàng câu hỏi chung
         window.canManageQuestionBank = () => {
             if (typeof window.checkIsSuperAdmin === 'function' && window.checkIsSuperAdmin()) return true;
             if (typeof window.hasPermission === 'function') {
                 return window.hasPermission('bank.manage_system') || 
                        window.hasPermission('questions.manage') || 
                        window.hasPermission('bank.manage');
+            }
+            return false;
+        };
+
+        // Kiểm tra quyền tạo & quản lý Ngân hàng câu hỏi riêng biệt của Giáo viên
+        window.canManagePersonalBank = () => {
+            if (typeof window.checkIsSuperAdmin === 'function' && window.checkIsSuperAdmin()) return true;
+            if (typeof window.hasPermission === 'function') {
+                return window.hasPermission('bank.manage_own') || window.hasPermission('bank.manage_system');
             }
             return false;
         };
@@ -9534,6 +9554,83 @@
             `;
         };
 
+        window.executePrintHtml = function(contentHtml, pageOrientation = 'portrait') {
+            const printArea = document.getElementById('printAreaWrapper');
+            if (printArea) {
+                printArea.style.display = 'block';
+                printArea.innerHTML = contentHtml;
+            }
+
+            const oldFrame = document.getElementById('qmathDashboardPrintFrame');
+            if (oldFrame) oldFrame.remove();
+
+            const iframe = document.createElement('iframe');
+            iframe.id = 'qmathDashboardPrintFrame';
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            iframe.style.opacity = '0';
+            iframe.style.pointerEvents = 'none';
+            document.body.appendChild(iframe);
+
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>In Thẻ Học Sinh</title>
+                    <style>
+                        @page { size: auto ${pageOrientation}; margin: 10mm; }
+                        * { box-sizing: border-box; margin: 0; padding: 0; }
+                        html, body {
+                            width: 100%;
+                            height: 100%;
+                            background: #ffffff !important;
+                            color: #0f172a !important;
+                            font-family: 'Segoe UI', Inter, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                        }
+                        .print-wrapper {
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            min-height: 85vh;
+                            width: 100%;
+                            padding: 15px;
+                        }
+                        .card-print-item { break-inside: avoid !important; page-break-inside: avoid !important; }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-wrapper">
+                        ${contentHtml}
+                    </div>
+                </body>
+                </html>
+            `);
+            doc.close();
+
+            setTimeout(() => {
+                try {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                } catch(e) {
+                    console.warn("Iframe print fallback to window.print():", e);
+                    window.print();
+                }
+                setTimeout(() => {
+                    if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                    if (printArea) printArea.style.display = 'none';
+                }, 2500);
+            }, 300);
+        };
+
         window.printSingleStudentCard = function() {
             const schoolTitle = document.getElementById('cardSchoolName')?.textContent || 'QMATH';
             const sName = document.getElementById('cardStudentName')?.textContent || 'Học sinh';
@@ -9541,13 +9638,6 @@
             const sbd = document.getElementById('cardStudentSbd')?.textContent || 'SBD: ---';
             const user = document.getElementById('cardStudentUser')?.textContent || '---';
             const qrBox = document.getElementById('cardQrCodeBox');
-
-            let printArea = document.getElementById('printAreaWrapper');
-            if (!printArea) {
-                printArea = document.createElement('div');
-                printArea.id = 'printAreaWrapper';
-                document.body.appendChild(printArea);
-            }
 
             const cardHtml = window.generatePrintCardHtml({
                 schoolTitle: schoolTitle,
@@ -9558,17 +9648,7 @@
                 qrElement: qrBox
             });
 
-            printArea.innerHTML = `
-                <style>
-                    @media print {
-                        @page { size: auto; margin: 15mm; }
-                        body { background: white !important; }
-                        #printAreaWrapper { display: flex !important; justify-content: center !important; align-items: center !important; min-height: 90vh !important; background: white !important; }
-                    }
-                </style>
-                ${cardHtml}
-            `;
-            window.print();
+            window.executePrintHtml(cardHtml);
         };
 
         // HÀM VẼ THẺ HỌC SINH LÊN CANVAS ĐỘ PHÂN GIẢI CAO (1000x630px) ĐỂ TẢI ẢNH CHUẨN ĐẸP 100%
@@ -9993,22 +10073,18 @@
         window.triggerBatchPrint = function() {
             const grid = document.getElementById('batchCardsGrid');
             if (!grid) return;
-            const printArea = document.getElementById('printAreaWrapper');
-            printArea.innerHTML = `
-                <style>
-                    @media print {
-                        @page { size: A4 portrait; margin: 10mm; }
-                        body { background: white !important; }
-                        .card-print-item { break-inside: avoid !important; page-break-inside: avoid !important; }
-                    }
-                </style>
-                <div style="padding: 0; background: white;">
+            const contentHtml = `
+                <div style="padding: 0; background: white; width: 100%;">
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
                         ${grid.innerHTML}
                     </div>
                 </div>
             `;
-            window.print();
+            if (typeof window.executePrintHtml === 'function') {
+                window.executePrintHtml(contentHtml, 'portrait');
+            } else {
+                window.print();
+            }
         };
 
         window.generateClassPrefix = (classId) => {
@@ -15698,11 +15774,38 @@ function renderTagFilterUI() {
         const autoAi = document.getElementById('chkBankAutoAiAssign')?.checked;
         const isSuper = window.checkIsSuperAdmin ? window.checkIsSuperAdmin() : false;
 
+        // 1. KIỂM TRA PHÂN QUYỀN: Giáo viên phải được Super Admin cấp quyền tạo ngân hàng riêng
+        if (!isSuper && (!window.canManagePersonalBank || !window.canManagePersonalBank())) {
+            btn.disabled = false;
+            btn.innerHTML = oldBtnText;
+            const noPermMsg = "⛔ Thầy/Cô chưa được Super Admin cấp quyền tạo & quản lý Ngân hàng câu hỏi riêng. Vui lòng liên hệ Quản trị viên để được mở tính năng này trong Cài đặt phân quyền!";
+            if (window.showNotification) window.showNotification(noPermMsg, 'error');
+            else if (window.showToast) window.showToast(noPermMsg, 'error');
+            else alert(noPermMsg);
+            return;
+        }
+
         try {
-            // 1. Tự động gán MapID bằng AI nếu người dùng chọn và có câu thiếu MapID
+            // 2. TỰ ĐỘNG GÁN MAPID BẰNG AI (ĐIỀU KIỆN: GIÁO VIÊN PHẢI TỰ CẤU HÌNH API KEY CÁ NHÂN)
             if (autoAi && typeof window.checkAndAssignMissingIds === 'function') {
                 const missing = window.bankImportQueue.filter(q => !q.mapId || !q.mapId.trim());
                 if (missing.length > 0) {
+                    if (!isSuper) {
+                        const personalKey = window.getTeacherPersonalAIKey ? window.getTeacherPersonalAIKey() : null;
+                        if (!personalKey) {
+                            btn.disabled = false;
+                            btn.innerHTML = oldBtnText;
+                            if (typeof window.openTeacherAIKeyModal === 'function') {
+                                window.openTeacherAIKeyModal();
+                            }
+                            const keyAlert = "⚠️ Để sử dụng AI tự động gán ID câu hỏi, Thầy/Cô phải tự cấu hình Gemini API Key cá nhân của mình! Vui lòng dán API Key vào cửa sổ vừa mở và thử lại.";
+                            if (window.showNotification) window.showNotification(keyAlert, 'warning');
+                            else if (window.showToast) window.showToast(keyAlert, 'warning');
+                            else alert(keyAlert);
+                            return;
+                        }
+                    }
+
                     btn.innerHTML = `<i class="fa-solid fa-robot"></i> Đang gán MapID (${missing.length} câu)...`;
                     try {
                         await window.checkAndAssignMissingIds(missing, { db: window.db, forceAll: false, defaultClass: grade });
@@ -15712,13 +15815,27 @@ function renderTagFilterUI() {
                 }
             }
 
-            // PHÂN QUYỀN: NẾU KHÔNG PHẢI SUPER ADMIN -> LƯU VÀO KHO R2 CÁ NHÂN CỦA GIÁO VIÊN (CHỜ DUYỆT)
+            // 3. ĐIỀU KIỆN BẮT BUỘC ĐỐI VỚI GIÁO VIÊN: TẤT CẢ CÂU HỎI PHẢI ĐƯỢC GÁN ID CÂU HỎI (MAPID)
+            if (!isSuper) {
+                const stillMissing = window.bankImportQueue.filter(q => !q.mapId || !q.mapId.trim());
+                if (stillMissing.length > 0) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldBtnText;
+                    const msgErr = `⚠️ Không thể nạp: Phát hiện ${stillMissing.length} câu hỏi chưa có ID câu hỏi (MapID)!\n\nĐiều kiện nạp vào Ngân hàng câu hỏi riêng: Toàn bộ câu hỏi phải được gán ID câu hỏi (Thầy/Cô có thể gán thủ công từng câu trên bảng hoặc dùng AI với API Key cá nhân).`;
+                    if (window.showNotification) window.showNotification(msgErr, 'error');
+                    else if (window.showToast) window.showToast(msgErr, 'error');
+                    else alert(msgErr);
+                    return;
+                }
+            }
+
+            // PHÂN QUYỀN: NẾU KHÔNG PHẢI SUPER ADMIN -> LƯU VÀO NGÂN HÀNG CÂU HỎI RIÊNG CỦA GIÁO VIÊN TRÊN R2
             if (!isSuper) {
                 const teacherUid = window.currentUser?.uid || window.currentAdminProfile?.uid || (window.auth && window.auth.currentUser ? window.auth.currentUser.uid : 'anonymous_teacher');
                 const teacherName = window.currentAdminProfile?.displayName || window.currentUser?.displayName || (window.auth && window.auth.currentUser ? window.auth.currentUser.displayName : 'Giáo viên');
                 const teacherEmail = window.currentAdminProfile?.email || window.currentUser?.email || (window.auth && window.auth.currentUser ? window.auth.currentUser.email : '');
 
-                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Đang tải lên Kho R2 cá nhân (0/${window.bankImportQueue.length})...`;
+                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Đang nạp Ngân hàng riêng (0/${window.bankImportQueue.length})...`;
 
                 const uploadRes = await window.BankService.uploadTeacherQuestions(
                     teacherUid,
@@ -15727,7 +15844,7 @@ function renderTagFilterUI() {
                     {
                         concurrency: 4,
                         onProgress: (done, total, succ, fail) => {
-                            btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Đang tải lên Kho R2 (${done}/${total})...`;
+                            btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Đang nạp Ngân hàng riêng (${done}/${total})...`;
                         }
                     }
                 );
@@ -15735,13 +15852,16 @@ function renderTagFilterUI() {
                 window.closeBankDirectImportModal();
                 window.bankImportQueue = [];
 
-                const teacherSuccessMsg = `✅ Đã tải thành công ${uploadRes.successCount} câu hỏi lên Kho R2 cá nhân!\nCâu hỏi đang ở trạng thái Chờ Super Admin kiểm duyệt và nạp vào Ngân hàng chung.`;
+                const teacherSuccessMsg = `✅ Đã nạp thành công ${uploadRes.successCount} câu hỏi vào Ngân hàng câu hỏi riêng của Thầy/Cô (Cloudflare R2)!\nToàn bộ câu hỏi đã có MapID và sẵn sàng sử dụng khi tạo đề thi.`;
                 if (window.showNotification) window.showNotification(teacherSuccessMsg, 'success');
                 else if (window.showToast) window.showToast(teacherSuccessMsg, 'success');
                 else alert(teacherSuccessMsg);
 
-                // Chuyển sang xem Kho R2 của tôi
+                // Chuyển sang xem Ngân hàng riêng của tôi
                 window.switchBankSubView('my_vault');
+                if (typeof window.updateBankVaultBadges === 'function') window.updateBankVaultBadges();
+                return;
+            }
                 if (typeof window.updateBankVaultBadges === 'function') window.updateBankVaultBadges();
                 return;
             }

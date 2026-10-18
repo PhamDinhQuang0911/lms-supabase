@@ -9443,23 +9443,46 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
             const ROOT_SUPER_ADMINS = ['phamngockhanh.942001@gmail.com', 'phamdinhquang0911@gmail.com'];
             let isSuper = ROOT_SUPER_ADMINS.includes(userEmail);
 
+            let canManageOwnBank = isSuper;
             if (!isSuper && currentUser?.uid) {
                 try {
                     const adminSnap = await getDoc(doc(db, "admin_users", currentUser.uid));
-                    if (adminSnap.exists() && adminSnap.data().role === 'super_admin') {
-                        isSuper = true;
+                    if (adminSnap.exists()) {
+                        const data = adminSnap.data();
+                        if (data.role === 'super_admin') {
+                            isSuper = true;
+                            canManageOwnBank = true;
+                        } else {
+                            const perms = Array.isArray(data.permissions) ? data.permissions : [];
+                            if (perms.includes('bank.manage_own') || perms.includes('bank.manage_system')) {
+                                canManageOwnBank = true;
+                            }
+                        }
                     }
                 } catch(e) {}
             }
 
-            // --- PHÂN QUYỀN: NẾU LÀ GIÁO VIÊN -> LƯU VÀO KHO R2 CÁ NHÂN CỦA GIÁO VIÊN (CHỜ DUYỆT) ---
+            // --- KIỂM TRA PHÂN QUYỀN TẠO NGÂN HÀNG RIÊNG ---
+            if (!isSuper && !canManageOwnBank) {
+                window.customAlert("⛔ Thầy/Cô chưa được Super Admin cấp quyền tạo & quản lý Ngân hàng câu hỏi riêng trong Cài đặt phân quyền!", "error");
+                return;
+            }
+
+            // --- PHÂN QUYỀN: NẾU LÀ GIÁO VIÊN -> LƯU VÀO NGÂN HÀNG CÂU HỎI RIÊNG CỦA GIÁO VIÊN TRÊN R2 ---
             if (!isSuper) {
-                const confirmMsg = `Hệ thống sẽ tải ${validQuestions.length} câu hỏi lên Kho R2 cá nhân của Thầy/Cô (thư mục: teachers/${teacherUid}/questions/).\n\nCác câu hỏi này sẽ được Super Admin kiểm duyệt, gán ID và nạp vào Ngân hàng câu hỏi dùng chung toàn hệ thống.\n\nThầy/Cô đồng ý tải lên chứ?`;
+                // ĐIỀU KIỆN TIÊN QUYẾT: TẤT CẢ CÂU HỎI PHẢI ĐƯỢC GÁN ID CÂU HỎI (MAPID)
+                const missingMapId = validQuestions.filter(q => !q.mapId || !q.mapId.trim());
+                if (missingMapId.length > 0) {
+                    window.customAlert(`⚠️ Không thể lưu: Có ${missingMapId.length} câu hỏi chưa được gán ID câu hỏi (MapID)!\n\nĐiều kiện lưu vào Ngân hàng câu hỏi riêng: Tất cả câu hỏi phải được gán ID câu hỏi (Thầy/Cô có thể gán thủ công hoặc bấm nút 'AI Gán ID' với API Key cá nhân).`, "error");
+                    return;
+                }
+
+                const confirmMsg = `Hệ thống sẽ lưu ${validQuestions.length} câu hỏi vào Ngân hàng câu hỏi riêng của Thầy/Cô trên Cloudflare R2 (thư mục: teachers/${teacherUid}/questions/).\n\nToàn bộ câu hỏi đã có MapID và sẽ sẵn sàng sử dụng khi tạo đề thi.\n\nThầy/Cô đồng ý lưu chứ?`;
                 if (!await window.customConfirm(confirmMsg)) return;
 
                 const btn = document.querySelector('button[onclick*="saveCurrentQuestionsToBank"]');
-                const oldHtml = btn ? btn.innerHTML : 'Lưu Kho R2';
-                if (btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải lên Kho...'; btn.disabled = true; }
+                const oldHtml = btn ? btn.innerHTML : 'Lưu Ngân hàng riêng';
+                if (btn) { btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang nạp Ngân hàng...'; btn.disabled = true; }
 
                 try {
                     const examId = window.currentExamId || "";
@@ -9480,11 +9503,11 @@ YÊU CẦU NỘI DUNG LỜI PHÊ:
                         window.saveExam(currentStatus).catch(() => {});
                     }
 
-                    window.showToast(`✅ Đã tải thành công ${res.successCount} câu hỏi lên Kho R2 cá nhân! Super Admin sẽ duyệt và nạp vào Ngân hàng.`, "success");
+                    window.showToast(`✅ Đã nạp thành công ${res.successCount} câu hỏi vào Ngân hàng câu hỏi riêng của Thầy/Cô (Cloudflare R2)!`, "success");
 
                 } catch (err) {
-                    console.error("Lỗi lưu Kho R2 GV:", err);
-                    window.customAlert("Lỗi quá trình tải lên Kho: " + err.message, "error");
+                    console.error("Lỗi lưu Ngân hàng riêng GV:", err);
+                    window.customAlert("Lỗi quá trình tải lên: " + err.message, "error");
                 } finally {
                     if (btn) { btn.innerHTML = oldHtml; btn.disabled = false; }
                 }
