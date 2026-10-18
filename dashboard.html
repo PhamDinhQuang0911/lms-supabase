@@ -1295,6 +1295,37 @@
             </button>
         </div>
 
+        <!-- Khối Nâng Cấp VIP & QPoint dành cho Giáo Viên Free -->
+        <div id="freeTeacherSidebarContainer" class="hidden px-3 pt-2.5 pb-1 space-y-2 border-b border-gray-100 dark:border-slate-800 shrink-0">
+            <!-- Banner Nâng Cấp VIP -->
+            <div id="freeTeacherUpgradeBanner" class="p-2.5 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-xl shadow-2xs space-y-2 text-center">
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="font-extrabold text-amber-800 dark:text-amber-300 flex items-center gap-1"><i class="fa-solid fa-leaf text-emerald-500"></i> Gói: <b>GV Free</b></span>
+                    <span class="text-[9px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-black px-1.5 py-0.2 rounded-full uppercase">Cơ bản</span>
+                </div>
+                <button type="button" onclick="window.openTeacherVipUpgradeModal()" class="w-full py-2 px-2.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer">
+                    <i class="fa-solid fa-crown text-slate-950 text-xs"></i>
+                    <span>⭐ NÂNG CẤP VIP NGAY</span>
+                </button>
+            </div>
+
+            <!-- Thẻ QPoint Giáo Viên Free -->
+            <div id="teacherQPointCard" onclick="window.switchView('qpoint')" class="p-2.5 bg-white dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 hover:border-amber-400 dark:hover:border-amber-500 rounded-xl flex items-center justify-between cursor-pointer transition-all shadow-2xs group">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-300 flex items-center justify-center text-xs font-bold shrink-0 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-coins"></i>
+                    </div>
+                    <div>
+                        <div class="text-[9px] text-gray-400 dark:text-gray-400 font-bold uppercase tracking-wider">Số dư QPoint</div>
+                        <div class="text-xs font-black text-amber-900 dark:text-amber-200 leading-tight"><span id="teacherSidebarQpVal">0</span> <span class="text-[10px] text-amber-600">Qp</span></div>
+                    </div>
+                </div>
+                <button type="button" class="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800 transition-colors">
+                    <i class="fa-solid fa-plus text-[9px]"></i> Nạp
+                </button>
+            </div>
+        </div>
+
         <div id="sidebarNav" class="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar min-h-0 pb-16">
             <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-3 mt-2">Quản lý</p>
             <button onclick="switchView('home')" id="nav-home" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-house"></i> Sảnh chính</button>
@@ -1366,6 +1397,9 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <button type="button" id="headerVipUpgradeBtn" onclick="window.openTeacherVipUpgradeModal()" class="hidden px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-[11px] shadow-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0">
+                    <i class="fa-solid fa-crown text-[10px]"></i> <span>Nâng VIP</span>
+                </button>
                 <button onclick="window.toggleTheme()" class="w-8 h-8 rounded-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 hover:text-indigo-500 flex items-center justify-center transition-all shadow-2xs shrink-0"><i class="fa-solid fa-moon dark-icon text-sm"></i></button>
                 <button onclick="toggleNotificationPanel()" class="w-8 h-8 rounded-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 hover:text-primary-600 flex items-center justify-center transition-all shadow-2xs relative shrink-0">
                     <i class="fa-regular fa-bell text-sm"></i>
@@ -3629,6 +3663,134 @@
                         </div>
                     </div>
 
+                    <!-- Card A2: Cài đặt Gói Giáo Viên Miễn Phí (Free) & Biểu Phí QPoint -->
+                    <div class="bg-white dark:bg-[#1a1726] p-4 sm:p-5 rounded-xl border border-emerald-100 dark:border-emerald-900/40 shadow-2xs space-y-4">
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                                    <i class="fa-solid fa-gift"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-800 dark:text-white text-sm">Cài Đặt Gói Giáo Viên Miễn Phí (Free) & Biểu Phí QPoint</h4>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400">Giáo viên Free được dùng các tính năng cơ bản và dùng QPoint cho các tính năng nâng cao</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="window.saveTeacherPackageConfig()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-floppy-disk"></i> Lưu Cấu Hình Gói
+                            </button>
+                        </div>
+
+                        <!-- 1. Cấu hình gói Free -->
+                        <div class="space-y-3">
+                            <div class="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide flex items-center gap-1.5">
+                                <i class="fa-solid fa-leaf text-emerald-600"></i> 1. Cấu hình Gói Giáo Viên Free (0 VNĐ)
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Số QPoint tặng ngay khi đăng ký Free (*)</label>
+                                    <div class="relative">
+                                        <input type="number" id="cfgTeacherFreeWelcomeQp" value="150" min="0" step="10" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-gray-50 focus:bg-white dark:bg-gray-800 outline-none focus:border-emerald-500">
+                                        <span class="absolute right-3 top-2 text-[11px] font-bold text-gray-400 pointer-events-none">QPoint</span>
+                                    </div>
+                                    <p class="text-[10px] text-gray-400 mt-0.5">Tự động cộng vào ví của GV Free để trải nghiệm các tính năng nâng cao</p>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">Tiêu đề gói Free hiển thị</label>
+                                    <input type="text" id="cfgTeacherFreeTitle" value="GÓI GIÁO VIÊN MIỄN PHÍ" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-800 dark:text-white bg-gray-50 focus:bg-white dark:bg-gray-800 outline-none focus:border-emerald-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1.5">Tính năng cơ bản được dùng miễn phí (Super Admin cấu hình):</label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                                    <label class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 cursor-pointer">
+                                        <input type="checkbox" id="cfgFreePerm_classes" class="accent-emerald-600 rounded" checked>
+                                        <span class="font-bold text-gray-700 dark:text-gray-200">Tạo & Quản lý Lớp học</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 cursor-pointer">
+                                        <input type="checkbox" id="cfgFreePerm_students" class="accent-emerald-600 rounded" checked>
+                                        <span class="font-bold text-gray-700 dark:text-gray-200">Thêm & Quản lý Học sinh</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 cursor-pointer">
+                                        <input type="checkbox" id="cfgFreePerm_mixer" class="accent-emerald-600 rounded" checked>
+                                        <span class="font-bold text-gray-700 dark:text-gray-200">Trộn đề thi trắc nghiệm Word</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 cursor-pointer">
+                                        <input type="checkbox" id="cfgFreePerm_word_importer" class="accent-emerald-600 rounded" checked>
+                                        <span class="font-bold text-gray-700 dark:text-gray-200">Tạo đề thi từ file Word</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 cursor-pointer">
+                                        <input type="checkbox" id="cfgFreePerm_exams_assign" class="accent-emerald-600 rounded" checked>
+                                        <span class="font-bold text-gray-700 dark:text-gray-200">Giao bài tập cho học sinh</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 cursor-pointer">
+                                        <input type="checkbox" id="cfgFreePerm_bank_shared" class="accent-emerald-600 rounded">
+                                        <span class="font-bold text-gray-700 dark:text-gray-200">Dùng ngân hàng chia sẻ</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Cấu hình bảng giá QPoint cho tính năng nâng cao -->
+                        <div class="space-y-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                            <div class="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wide flex items-center justify-between">
+                                <span class="flex items-center gap-1.5"><i class="fa-solid fa-coins text-amber-500"></i> 2. Biểu phí QPoint khi dùng tính năng nâng cao (Áp dụng cho GV Free)</span>
+                                <span class="text-[10px] text-gray-400 font-normal lowercase">(giáo viên VIP được dùng miễn phí 100%)</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                <div class="p-2.5 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20 space-y-1">
+                                    <div class="text-[11px] font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i> AI Soạn câu hỏi & Gán ID6
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="cfgQpCost_ai_question" value="2" min="0" class="w-20 px-2 py-1 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-400">
+                                        <span class="text-[10px] text-gray-500 font-bold">QPoint / câu</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-2.5 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20 space-y-1">
+                                    <div class="text-[11px] font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-qrcode text-blue-600"></i> Chấm thi tự động QM / TNMaker
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="cfgQpCost_ai_grading" value="5" min="0" class="w-20 px-2 py-1 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-400">
+                                        <span class="text-[10px] text-gray-500 font-bold">QPoint / lượt</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-2.5 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20 space-y-1">
+                                    <div class="text-[11px] font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-file-word text-blue-700"></i> Xuất TeX sang MathType Pro
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="cfgQpCost_tex_mathtype" value="5" min="0" class="w-20 px-2 py-1 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-400">
+                                        <span class="text-[10px] text-gray-500 font-bold">QPoint / đề</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-2.5 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20 space-y-1">
+                                    <div class="text-[11px] font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-book text-indigo-600"></i> Xưởng Chuyên Đề & Kho Đề VIP
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="cfgQpCost_topic_workshop" value="10" min="0" class="w-20 px-2 py-1 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-400">
+                                        <span class="text-[10px] text-gray-500 font-bold">QPoint / lần</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-2.5 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20 space-y-1">
+                                    <div class="text-[11px] font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-camera text-teal-600"></i> Trích xuất OCR Đề thi (Ảnh/PDF)
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" id="cfgQpCost_ocr_extract" value="5" min="0" class="w-20 px-2 py-1 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-400">
+                                        <span class="text-[10px] text-gray-500 font-bold">QPoint / trang</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Card B: Cài Đặt Phân Quyền & Khóa Học Cấp Phép Mặc Định Cho Giáo Viên / Admin -->
                     <div class="bg-white dark:bg-[#1a1726] p-4 sm:p-5 rounded-xl border border-purple-100 dark:border-purple-900/40 shadow-2xs space-y-3">
                         <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pb-2.5 border-b border-gray-100 dark:border-gray-800">
@@ -5275,14 +5437,52 @@
         window.applyUIPermissions = () => {
             if (!window.currentAdminProfile) return;
             const isSuper = window.currentAdminProfile.role === 'super_admin';
+            const isFree = window.currentAdminProfile.teacherTier === 'free';
+            window.isFreeTeacher = isFree;
+            window.isVipTeacher = (!isFree && !isSuper);
 
             // Cập nhật tên và vai trò lên mobile header và banner chào mừng
             const greetingEl = document.getElementById('homeTeacherGreeting');
             if (greetingEl) greetingEl.textContent = window.currentAdminProfile.displayName || 'Thầy Cô';
             const roleBadgeEl = document.getElementById('homeTeacherRoleBadge');
-            if (roleBadgeEl) roleBadgeEl.textContent = isSuper ? '👑 Root Super Admin' : '👨‍🏫 Giáo viên Quản trị';
+            if (roleBadgeEl) {
+                if (isSuper) {
+                    roleBadgeEl.innerHTML = '<i class="fa-solid fa-crown text-amber-400 mr-1"></i> Root Super Admin';
+                } else if (isFree) {
+                    roleBadgeEl.innerHTML = '<i class="fa-solid fa-leaf text-emerald-400 mr-1"></i> Giáo viên Miễn Phí';
+                } else {
+                    roleBadgeEl.innerHTML = '<i class="fa-solid fa-crown text-amber-400 mr-1"></i> Giáo viên VIP';
+                }
+            }
             const mobRoleBadge = document.getElementById('mobileRoleBadge');
-            if (mobRoleBadge) mobRoleBadge.textContent = isSuper ? 'Super Admin' : 'Giáo viên';
+            if (mobRoleBadge) {
+                if (isSuper) mobRoleBadge.textContent = 'Super Admin';
+                else if (isFree) mobRoleBadge.textContent = 'GV Free';
+                else mobRoleBadge.textContent = 'GV VIP';
+            }
+
+            // Cập nhật vai trò trên Sidebar
+            const sidebarRole = document.getElementById('sidebarRole');
+            if (sidebarRole) {
+                if (isSuper) {
+                    sidebarRole.innerHTML = '<span class="text-amber-600 font-bold flex items-center gap-1"><i class="fa-solid fa-crown text-[10px]"></i> Super Admin</span>';
+                } else if (isFree) {
+                    sidebarRole.innerHTML = '<span class="text-emerald-600 font-bold flex items-center gap-1"><i class="fa-solid fa-leaf text-[10px]"></i> GV Miễn phí</span>';
+                } else {
+                    sidebarRole.innerHTML = '<span class="text-purple-600 font-bold flex items-center gap-1"><i class="fa-solid fa-crown text-[10px] text-amber-500"></i> Giáo viên VIP</span>';
+                }
+            }
+
+            // Ẩn/hiện khối nâng cấp VIP và thẻ QPoint cho GV Free
+            const freeSidebarBox = document.getElementById('freeTeacherSidebarContainer');
+            if (freeSidebarBox) freeSidebarBox.classList.toggle('hidden', !isFree);
+
+            const mobVipBtn = document.getElementById('headerVipUpgradeBtn');
+            if (mobVipBtn) mobVipBtn.classList.toggle('hidden', !isFree);
+
+            if (isFree && typeof window.loadTeacherQPointBalance === 'function') {
+                window.loadTeacherQPointBalance();
+            }
 
             // Menu Quản trị phân quyền (Chỉ Super Admin hoặc có quyền admin.manage)
             const navAdminRoles = document.getElementById('nav-admin-roles');
@@ -5505,12 +5705,13 @@
                             return false;
                         }
 
-                        // Tự động kiểm tra & nâng cấp cấp đủ quyền cho Giáo viên nếu tài khoản bị thiếu quyền hoặc chứa quyền cũ
+                        // Tự động kiểm tra & nâng cấp cấp đủ quyền cho Giáo viên VIP nếu tài khoản bị thiếu quyền hoặc chứa quyền cũ
+                        const isFree = found.teacherTier === 'free' || found.role === 'teacher_free';
                         let perms = Array.isArray(found.permissions) ? [...found.permissions] : [];
                         const needsUpgrade = perms.length === 0 || 
                                              perms.includes('view_dashboard') || 
                                              !perms.includes('classes.view');
-                        if (found.role === 'admin' && needsUpgrade) {
+                        if (found.role === 'admin' && needsUpgrade && !isFree) {
                             try {
                                 const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config"));
                                 let defPerms = [...(ADMIN_PRESETS.teacher_full || [])];
@@ -5536,21 +5737,26 @@
                                     } catch(eUp) { console.warn("Lỗi đồng bộ auto-upgrade permissions:", eUp); }
                                 })();
                             } catch(eUpgrade) {}
+                        } else if (isFree && perms.length === 0) {
+                            perms = ['classes.view', 'classes.manage', 'students.manage', 'exams.create', 'exams.view', 'exams.manage_own', 'mixer.use', 'word_importer.use', 'exams.assign'];
                         }
 
                         window.currentAdminProfile = {
                             id: found.id || user.uid,
                             ...found,
+                            teacherTier: isFree ? 'free' : 'vip',
                             permissions: perms,
                             isRoot: false
                         };
                         try {
                             await setDoc(doc(db, "users", user.uid), {
                                 role: 'teacher',
+                                isTeacher: true,
+                                teacherTier: isFree ? 'free' : 'vip',
                                 email: userEmail,
                                 displayName: window.currentAdminProfile.displayName || user.displayName || userEmail.split('@')[0],
                                 permissions: perms,
-                                assignedCourseIds: found.assignedCourseIds || ['*'],
+                                assignedCourseIds: found.assignedCourseIds || (isFree ? [] : ['*']),
                                 updatedAt: new Date().toISOString()
                             }, { merge: true });
                         } catch (eU) {}
@@ -5574,8 +5780,9 @@
                         return false;
                     }
 
+                    const isFree = data.teacherTier === 'free' || data.role === 'teacher_free';
                     let perms = Array.isArray(data.permissions) ? [...data.permissions] : [];
-                    if (data.role === 'admin' && (perms.length === 0 || perms.includes('view_dashboard') || !perms.includes('classes.view'))) {
+                    if (data.role === 'admin' && (perms.length === 0 || perms.includes('view_dashboard') || !perms.includes('classes.view')) && !isFree) {
                         perms = Array.from(new Set([...perms.filter(p => !p.includes('_dashboard')), ...(ADMIN_PRESETS.teacher_full || [])]));
                         data.permissions = perms;
                         if (!data.assignedCourseIds || data.assignedCourseIds.length === 0) data.assignedCourseIds = ['*'];
@@ -5584,16 +5791,19 @@
                     window.currentAdminProfile = {
                         id: qSnap.docs[0].id,
                         ...data,
+                        teacherTier: isFree ? 'free' : 'vip',
                         permissions: perms,
                         isRoot: false
                     };
                     try {
                         await setDoc(doc(db, "users", user.uid), {
                             role: 'teacher',
+                            isTeacher: true,
+                            teacherTier: isFree ? 'free' : 'vip',
                             email: userEmail,
                             displayName: window.currentAdminProfile.displayName || user.displayName || userEmail.split('@')[0],
                             permissions: perms,
-                            assignedCourseIds: data.assignedCourseIds || ['*'],
+                            assignedCourseIds: data.assignedCourseIds || (isFree ? [] : ['*']),
                             updatedAt: new Date().toISOString()
                         }, { merge: true });
                     } catch (eU) {}
@@ -5609,6 +5819,7 @@
                     email: userEmail,
                     displayName: user.displayName || userEmail.split('@')[0].toUpperCase(),
                     role: 'super_admin',
+                    teacherTier: 'root',
                     status: 'active',
                     permissions: [...ALL_PERMISSIONS],
                     note: 'Legacy Super Admin tự động kích hoạt',
@@ -5623,6 +5834,61 @@
                     }, { merge: true });
                 } catch (eU) {}
                 return true;
+            }
+
+            // 4. Kiểm tra trong collection users (Dành cho Giáo viên đăng ký Free hoặc được gán role='teacher')
+            try {
+                const uSnap = await getDoc(doc(db, "users", user.uid));
+                if (uSnap.exists()) {
+                    const uData = uSnap.data();
+                    const isTeacherRole = uData.role === 'teacher' || uData.isTeacher === true || uData.role === 'admin';
+                    if (isTeacherRole) {
+                        const isFree = (uData.teacherTier === 'free' || uData.plan === 'free');
+                        let perms = Array.isArray(uData.permissions) && uData.permissions.length > 0 ? uData.permissions : null;
+                        if (!perms) {
+                            if (isFree) {
+                                const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config")).catch(() => null);
+                                perms = (pkgSnap && pkgSnap.exists() && pkgSnap.data().freePermissions) || [
+                                    'classes.view', 'classes.manage', 'students.manage',
+                                    'exams.create', 'exams.view', 'exams.manage_own', 'mixer.use', 'word_importer.use', 'exams.assign'
+                                ];
+                            } else {
+                                perms = [...(ADMIN_PRESETS.teacher_full || [])];
+                            }
+                        }
+
+                        window.currentAdminProfile = {
+                            id: user.uid,
+                            uid: user.uid,
+                            email: userEmail,
+                            displayName: uData.displayName || user.displayName || userEmail.split('@')[0],
+                            role: 'admin',
+                            teacherTier: isFree ? 'free' : 'vip',
+                            status: 'active',
+                            permissions: perms,
+                            assignedCourseIds: uData.assignedCourseIds || (isFree ? [] : ['*']),
+                            isRoot: false
+                        };
+
+                        // Tự động đồng bộ lên configurations/admin_roles
+                        (async () => {
+                            try {
+                                const cfgRef = doc(db, "configurations", "admin_roles");
+                                const cfgSnap = await getDoc(cfgRef);
+                                let accounts = cfgSnap.exists() ? (cfgSnap.data().accounts || []) : [];
+                                const existingIdx = accounts.findIndex(a => (a.email || '').toLowerCase() === userEmail || a.id === user.uid);
+                                const accObj = { ...window.currentAdminProfile, updatedAt: new Date().toISOString() };
+                                if (existingIdx >= 0) accounts[existingIdx] = { ...accounts[existingIdx], ...accObj };
+                                else accounts.push(accObj);
+                                await setDoc(cfgRef, { accounts, updatedAt: new Date().toISOString() }, { merge: true });
+                            } catch(eSync) {}
+                        })();
+
+                        return true;
+                    }
+                }
+            } catch(eUser) {
+                console.warn("Lỗi kiểm tra users doc trong loadAdminProfile:", eUser);
             }
 
             return false;
@@ -5963,6 +6229,9 @@
                 if (snap.exists()) {
                     data = snap.data();
                 }
+                window.cachedTeacherPkgConfig = data || {};
+
+                // 2a. Gói VIP
                 const priceEl = document.getElementById('cfgTeacherPackagePrice');
                 const periodEl = document.getElementById('cfgTeacherPackagePeriod');
                 const titleEl = document.getElementById('cfgTeacherPackageTitle');
@@ -5976,7 +6245,32 @@
                     featEl.value = featList.join('\n');
                 }
 
-                // Tải bộ 22 quyền hạn mặc định cho Giáo viên
+                // 2b. Gói Free & QPoint
+                const freeQpEl = document.getElementById('cfgTeacherFreeWelcomeQp');
+                const freeTitleEl = document.getElementById('cfgTeacherFreeTitle');
+                if (freeQpEl) freeQpEl.value = data?.freeWelcomeQPoints !== undefined ? data.freeWelcomeQPoints : 150;
+                if (freeTitleEl) freeTitleEl.value = data?.freeTitle || 'GÓI GIÁO VIÊN MIỄN PHÍ';
+
+                const freePerms = Array.isArray(data?.freePermissions) ? data.freePermissions : [
+                    'classes.view', 'classes.manage', 'students.manage',
+                    'exams.create', 'exams.view', 'exams.manage_own', 'mixer.use', 'word_importer.use', 'exams.assign'
+                ];
+                if (document.getElementById('cfgFreePerm_classes')) document.getElementById('cfgFreePerm_classes').checked = freePerms.includes('classes.manage');
+                if (document.getElementById('cfgFreePerm_students')) document.getElementById('cfgFreePerm_students').checked = freePerms.includes('students.manage');
+                if (document.getElementById('cfgFreePerm_mixer')) document.getElementById('cfgFreePerm_mixer').checked = freePerms.includes('mixer.use');
+                if (document.getElementById('cfgFreePerm_word_importer')) document.getElementById('cfgFreePerm_word_importer').checked = freePerms.includes('word_importer.use');
+                if (document.getElementById('cfgFreePerm_exams_assign')) document.getElementById('cfgFreePerm_exams_assign').checked = freePerms.includes('exams.assign');
+                if (document.getElementById('cfgFreePerm_bank_shared')) document.getElementById('cfgFreePerm_bank_shared').checked = freePerms.includes('bank.use_shared');
+
+                // 2c. Bảng giá QPoint tính năng nâng cao
+                const costs = data?.featureCosts || {};
+                if (document.getElementById('cfgQpCost_ai_question')) document.getElementById('cfgQpCost_ai_question').value = costs.ai_question !== undefined ? costs.ai_question : 2;
+                if (document.getElementById('cfgQpCost_ai_grading')) document.getElementById('cfgQpCost_ai_grading').value = costs.ai_grading !== undefined ? costs.ai_grading : 5;
+                if (document.getElementById('cfgQpCost_tex_mathtype')) document.getElementById('cfgQpCost_tex_mathtype').value = costs.tex_mathtype !== undefined ? costs.tex_mathtype : 5;
+                if (document.getElementById('cfgQpCost_topic_workshop')) document.getElementById('cfgQpCost_topic_workshop').value = costs.topic_workshop !== undefined ? costs.topic_workshop : 10;
+                if (document.getElementById('cfgQpCost_ocr_extract')) document.getElementById('cfgQpCost_ocr_extract').value = costs.ocr_extract !== undefined ? costs.ocr_extract : 5;
+
+                // Tải bộ 22 quyền hạn mặc định cho Giáo viên VIP
                 const defaultPerms = Array.isArray(data?.defaultPermissions) && data.defaultPermissions.length > 0
                     ? data.defaultPermissions
                     : (ADMIN_PRESETS.teacher_full || []);
@@ -6025,6 +6319,32 @@
                 defaultCoursesToSave = Array.from(document.querySelectorAll('.cfg-default-course-chk:checked')).map(c => c.value);
             }
 
+            // Đọc cấu hình Gói Free
+            const freeWelcomeQpVal = parseInt(document.getElementById('cfgTeacherFreeWelcomeQp')?.value, 10);
+            const freeTitleVal = (document.getElementById('cfgTeacherFreeTitle')?.value || '').trim() || 'GÓI GIÁO VIÊN MIỄN PHÍ';
+            const freePermsToSave = ['classes.view', 'exams.view'];
+            if (document.getElementById('cfgFreePerm_classes')?.checked) freePermsToSave.push('classes.manage');
+            if (document.getElementById('cfgFreePerm_students')?.checked) freePermsToSave.push('students.manage');
+            if (document.getElementById('cfgFreePerm_mixer')?.checked) freePermsToSave.push('mixer.use');
+            if (document.getElementById('cfgFreePerm_word_importer')?.checked) { freePermsToSave.push('word_importer.use'); freePermsToSave.push('exams.create'); freePermsToSave.push('exams.manage_own'); }
+            if (document.getElementById('cfgFreePerm_exams_assign')?.checked) freePermsToSave.push('exams.assign');
+            if (document.getElementById('cfgFreePerm_bank_shared')?.checked) freePermsToSave.push('bank.use_shared');
+
+            // Đọc biểu phí QPoint
+            const qpAiQues = parseInt(document.getElementById('cfgQpCost_ai_question')?.value, 10);
+            const qpAiGrad = parseInt(document.getElementById('cfgQpCost_ai_grading')?.value, 10);
+            const qpTexMat = parseInt(document.getElementById('cfgQpCost_tex_mathtype')?.value, 10);
+            const qpTopicW = parseInt(document.getElementById('cfgQpCost_topic_workshop')?.value, 10);
+            const qpOcrExt = parseInt(document.getElementById('cfgQpCost_ocr_extract')?.value, 10);
+
+            const featureCostsToSave = {
+                ai_question: isNaN(qpAiQues) ? 2 : Math.max(0, qpAiQues),
+                ai_grading: isNaN(qpAiGrad) ? 5 : Math.max(0, qpAiGrad),
+                tex_mathtype: isNaN(qpTexMat) ? 5 : Math.max(0, qpTexMat),
+                topic_workshop: isNaN(qpTopicW) ? 10 : Math.max(0, qpTopicW),
+                ocr_extract: isNaN(qpOcrExt) ? 5 : Math.max(0, qpOcrExt)
+            };
+
             const btnA = document.getElementById('btnSaveTeacherPkgCfg');
             const btns = document.querySelectorAll('button[onclick*="saveTeacherPackageConfig"]');
             btns.forEach(b => { b.disabled = true; });
@@ -6040,11 +6360,19 @@
                     defaultPermissions: defaultPermsToSave,
                     defaultAssignedCourseIds: defaultCoursesToSave,
                     defaultPreset: 'teacher_full',
+
+                    // Free Package fields
+                    freeTitle: freeTitleVal,
+                    freeWelcomeQPoints: isNaN(freeWelcomeQpVal) ? 150 : Math.max(0, freeWelcomeQpVal),
+                    freePermissions: freePermsToSave,
+                    featureCosts: featureCostsToSave,
+
                     updatedAt: new Date().toISOString(),
                     updatedBy: window.currentAdminProfile?.email || 'admin'
                 };
                 await setDoc(doc(db, "configurations", "teacher_package_config"), payload, { merge: true });
-                window.showNotification("🎉 Đã lưu cấu hình Gói, Phân quyền & Khóa học mặc định thành công!", "success");
+                window.cachedTeacherPkgConfig = payload;
+                window.showNotification("🎉 Đã lưu cấu hình Gói VIP, Gói Free & Biểu phí QPoint thành công!", "success");
             } catch (err) {
                 console.error("Lỗi lưu cấu hình gói giáo viên:", err);
                 window.showNotification("Lỗi khi lưu cấu hình: " + err.message, "error");
@@ -6213,7 +6541,7 @@
         };
 
         // 5. HÀM TỔNG HỢP CẤP QUYỀN GIÁO VIÊN VÀO HỆ THỐNG RBAC
-        window.grantTeacherRoleToUser = async ({ userId, email, displayName, phone }) => {
+        window.grantTeacherRoleToUser = async ({ userId, email, displayName, phone, teacherTier = 'vip' }) => {
             const userEmail = (email || '').toLowerCase().trim();
             if (!userEmail && !userId) throw new Error("Thiếu thông tin email hoặc ID người dùng!");
 
@@ -6237,11 +6565,17 @@
                 const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config"));
                 if (pkgSnap.exists()) {
                     const pkgData = pkgSnap.data();
-                    if (Array.isArray(pkgData.defaultPermissions) && pkgData.defaultPermissions.length > 0) {
-                        defaultPerms = pkgData.defaultPermissions;
-                    }
-                    if (Array.isArray(pkgData.defaultAssignedCourseIds) && pkgData.defaultAssignedCourseIds.length > 0) {
-                        defaultAssignedCourses = pkgData.defaultAssignedCourseIds;
+                    if (teacherTier === 'free') {
+                        defaultPerms = Array.isArray(pkgData.freePermissions) && pkgData.freePermissions.length > 0
+                            ? pkgData.freePermissions
+                            : ['classes.view', 'classes.manage', 'students.manage', 'exams.create', 'exams.view', 'exams.manage_own', 'mixer.use', 'word_importer.use', 'exams.assign'];
+                    } else {
+                        if (Array.isArray(pkgData.defaultPermissions) && pkgData.defaultPermissions.length > 0) {
+                            defaultPerms = pkgData.defaultPermissions;
+                        }
+                        if (Array.isArray(pkgData.defaultAssignedCourseIds) && pkgData.defaultAssignedCourseIds.length > 0) {
+                            defaultAssignedCourses = pkgData.defaultAssignedCourseIds;
+                        }
                     }
                 }
             } catch(e) {}
@@ -6252,10 +6586,11 @@
                 displayName: displayName || (userEmail ? userEmail.split('@')[0] : 'Thầy Cô'),
                 phone: phone || null,
                 role: 'admin',
+                teacherTier: teacherTier,
                 status: 'active',
                 permissions: defaultPerms,
                 assignedCourseIds: defaultAssignedCourses,
-                note: 'Đăng ký tài khoản Giáo viên (Đã thanh toán/Duyệt)',
+                note: teacherTier === 'vip' ? 'Đăng ký tài khoản Giáo viên VIP (Đã thanh toán/Duyệt)' : 'Đăng ký tài khoản Giáo viên Miễn Phí (Free)',
                 registeredVia: 'teacher_package',
                 updatedAt: new Date().toISOString(),
                 updatedBy: window.currentAdminProfile?.email || 'system'
@@ -6282,11 +6617,282 @@
                     await setDoc(doc(db, "users", userId), {
                         role: 'teacher',
                         isTeacher: true,
+                        teacherTier: teacherTier,
                         permissions: defaultPerms,
                         assignedCourseIds: defaultAssignedCourses,
                         updatedAt: new Date().toISOString()
                     }, { merge: true });
                 } catch(e) {}
+            }
+        };
+
+        // 6. XỬ LÝ NÂNG CẤP VIP & QUẢN LÝ QPOINT CHO GIÁO VIÊN
+        let teacherUpgradeQrCountdownInterval = null;
+        let teacherUpgradeOrderListener = null;
+        let currentTeacherUpgradeOrderId = null;
+        let currentTeacherUpgradeMemo = null;
+        let teacherUpgradeBankConfig = null;
+
+        window.openTeacherVipUpgradeModal = async () => {
+            const modal = document.getElementById('teacherVipUpgradeModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+
+            const user = auth.currentUser;
+            if (!user) return;
+
+            // Nạp cấu hình gói nếu chưa có
+            if (!window.cachedTeacherPkgConfig) {
+                try {
+                    const snap = await getDoc(doc(db, "configurations", "teacher_package_config"));
+                    if (snap.exists()) window.cachedTeacherPkgConfig = snap.data();
+                } catch(e) {}
+            }
+            const pkg = window.cachedTeacherPkgConfig || {};
+            const price = Number(pkg.price) || 500000;
+            const priceFormatted = price.toLocaleString('vi-VN') + ' đ';
+
+            const priceTableEl = document.getElementById('teacherUpgradeTableVipPrice');
+            if (priceTableEl) priceTableEl.textContent = `${priceFormatted} / ${pkg.period === 'yearly' ? '1 Năm' : 'Vĩnh viễn'}`;
+
+            // Nạp thông tin ngân hàng
+            if (!teacherUpgradeBankConfig) {
+                try {
+                    const snapBank = await getDoc(doc(db, "site_settings", "payment_config"));
+                    teacherUpgradeBankConfig = snapBank.exists() ? snapBank.data() : { BANK_ID: "970422", BANK_NAME: "MB Bank", ACCOUNT_NO: "0000", ACCOUNT_NAME: "ADMIN", TEMPLATE: "compact2" };
+                } catch(e) {
+                    teacherUpgradeBankConfig = { BANK_ID: "970422", BANK_NAME: "MB Bank", ACCOUNT_NO: "0000", ACCOUNT_NAME: "ADMIN", TEMPLATE: "compact2" };
+                }
+            }
+
+            const randCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+            currentTeacherUpgradeMemo = `GV ${randCode}`;
+
+            const bNameEl = document.getElementById('tUpgradeBankNameDisplay');
+            const bAccEl = document.getElementById('tUpgradeAccountNoDisplay');
+            const bOwnerEl = document.getElementById('tUpgradeAccountOwnerDisplay');
+            const bAmtEl = document.getElementById('tUpgradeAmountDisplay');
+            const bAmtRawEl = document.getElementById('tUpgradeAmountRaw');
+            const bMemoEl = document.getElementById('tUpgradeMemoDisplay');
+
+            if (bNameEl) bNameEl.textContent = teacherUpgradeBankConfig.BANK_NAME || teacherUpgradeBankConfig.BANK_ID || 'MB Bank';
+            if (bAccEl) bAccEl.textContent = teacherUpgradeBankConfig.ACCOUNT_NO || '';
+            if (bOwnerEl) bOwnerEl.textContent = teacherUpgradeBankConfig.ACCOUNT_NAME ? `(${teacherUpgradeBankConfig.ACCOUNT_NAME})` : '';
+            if (bAmtEl) bAmtEl.textContent = priceFormatted;
+            if (bAmtRawEl) bAmtRawEl.textContent = String(price);
+            if (bMemoEl) bMemoEl.textContent = currentTeacherUpgradeMemo;
+
+            const bankId = teacherUpgradeBankConfig.BANK_ID || '970422';
+            const accNo = teacherUpgradeBankConfig.ACCOUNT_NO || '';
+            const template = teacherUpgradeBankConfig.TEMPLATE || 'compact2';
+            const qrUrl = `https://img.vietqr.io/image/${bankId}-${accNo}-${template}.png?amount=${price}&addInfo=${encodeURIComponent(currentTeacherUpgradeMemo)}&accountName=${encodeURIComponent(teacherUpgradeBankConfig.ACCOUNT_NAME || '')}`;
+
+            const qrImg = document.getElementById('tUpgradeVietQrImage');
+            const qrLoading = document.getElementById('tUpgradeQrLoading');
+            if (qrLoading) qrLoading.classList.remove('hidden');
+            if (qrImg) {
+                qrImg.onload = () => qrLoading?.classList.add('hidden');
+                qrImg.onerror = () => qrLoading?.classList.add('hidden');
+                qrImg.src = qrUrl;
+            }
+
+            // Tạo order lưu vào collection `orders`
+            try {
+                const ordRef = await addDoc(collection(db, "orders"), {
+                    orderType: 'teacher_upgrade',
+                    userId: user.uid,
+                    userName: window.currentAdminProfile?.displayName || user.displayName || user.email?.split('@')[0],
+                    userEmail: (user.email || '').toLowerCase().trim(),
+                    amount: price,
+                    memo: currentTeacherUpgradeMemo,
+                    content: currentTeacherUpgradeMemo,
+                    orderCode: randCode,
+                    packageTitle: 'Nâng cấp Giáo Viên VIP',
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                });
+                currentTeacherUpgradeOrderId = ordRef.id;
+
+                // Lắng nghe realtime
+                if (teacherUpgradeOrderListener) { teacherUpgradeOrderListener(); teacherUpgradeOrderListener = null; }
+                teacherUpgradeOrderListener = onSnapshot(doc(db, "orders", ordRef.id), async (snap) => {
+                    if (snap.exists()) {
+                        const s = String(snap.data().status || '').toLowerCase().trim();
+                        if (s === 'completed' || s === 'approved' || s === 'paid' || s === 'resolved' || s === 'success') {
+                            await window.onTeacherVipUpgradeSuccess();
+                        }
+                    }
+                });
+            } catch(eOrd) {
+                console.warn("Lỗi lưu đơn hàng nâng cấp:", eOrd);
+            }
+
+            // Đếm ngược 10 phút
+            if (teacherUpgradeQrCountdownInterval) clearInterval(teacherUpgradeQrCountdownInterval);
+            let timeLeft = 600;
+            const cdEl = document.getElementById('tUpgradeQrCountdown');
+            const updateCd = () => {
+                const m = Math.floor(timeLeft / 60);
+                const s = timeLeft % 60;
+                if (cdEl) cdEl.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            };
+            updateCd();
+            teacherUpgradeQrCountdownInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(teacherUpgradeQrCountdownInterval);
+                    teacherUpgradeQrCountdownInterval = null;
+                } else {
+                    updateCd();
+                }
+            }, 1000);
+        };
+
+        window.closeTeacherVipUpgradeModal = () => {
+            const modal = document.getElementById('teacherVipUpgradeModal');
+            if (modal) modal.classList.add('hidden');
+            if (teacherUpgradeQrCountdownInterval) { clearInterval(teacherUpgradeQrCountdownInterval); teacherUpgradeQrCountdownInterval = null; }
+            if (teacherUpgradeOrderListener) { teacherUpgradeOrderListener(); teacherUpgradeOrderListener = null; }
+        };
+
+        window.copyUpgradeField = (elemId, label) => {
+            const el = document.getElementById(elemId);
+            const val = el ? (el.textContent || el.innerText || '').trim() : '';
+            if (!val) return;
+            navigator.clipboard.writeText(val).then(() => {
+                window.showNotification(`Đã sao chép ${label}!`, 'success');
+            }).catch(() => {
+                prompt(`Sao chép ${label}:`, val);
+            });
+        };
+
+        window.confirmTeacherVipTransferred = async () => {
+            const btn = document.getElementById('btnConfirmTeacherVipTransferred');
+            const orig = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang xác nhận & đối soát...'; }
+
+            try {
+                if (currentTeacherUpgradeOrderId) {
+                    await updateDoc(doc(db, "orders", currentTeacherUpgradeOrderId), {
+                        manualTransferred: true,
+                        transferredAt: new Date().toISOString()
+                    });
+                }
+                if (teacherUpgradeBankConfig?.SCAN_TRIGGER_URL) {
+                    try { fetch(teacherUpgradeBankConfig.SCAN_TRIGGER_URL, { mode: 'no-cors' }); } catch(e) {}
+                }
+                window.showNotification("🎉 Đã gửi xác nhận chuyển khoản! Hệ thống đang đối soát và tự động nâng cấp cho Thầy/Cô...", "info");
+                if (btn) {
+                    btn.className = "w-full py-2.5 px-3 bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-default flex items-center justify-center gap-1.5 opacity-90";
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã gửi báo chuyển khoản';
+                }
+            } catch(e) {
+                console.error("Lỗi xác nhận chuyển khoản VIP:", e);
+                window.showNotification("Lỗi: " + e.message, "error");
+                if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+            }
+        };
+
+        window.onTeacherVipUpgradeSuccess = async () => {
+            window.closeTeacherVipUpgradeModal();
+            const user = auth.currentUser;
+            if (!user) return;
+
+            // Kích hoạt VIP role
+            await window.grantTeacherRoleToUser({
+                userId: user.uid,
+                email: user.email,
+                displayName: window.currentAdminProfile?.displayName || user.displayName,
+                teacherTier: 'vip'
+            });
+
+            if (window.currentAdminProfile) {
+                window.currentAdminProfile.teacherTier = 'vip';
+                window.currentAdminProfile.permissions = [...(ADMIN_PRESETS.teacher_full || [])];
+            }
+            window.applyUIPermissions();
+            window.showNotification("👑 Chúc mừng Thầy/Cô đã nâng cấp thành công Giáo viên VIP! Toàn bộ tính năng cao cấp đã được mở khóa trọn đời.", "success");
+        };
+
+        window.closeTeacherInsufficientQpModal = () => {
+            document.getElementById('teacherInsufficientQpModal')?.classList.add('hidden');
+        };
+
+        window.loadTeacherQPointBalance = async () => {
+            const user = auth.currentUser;
+            if (!user) return 0;
+            try {
+                const snap = await getDoc(doc(db, "users", user.uid));
+                const qp = snap.exists() ? (Number(snap.data().qpoints) || 0) : 0;
+                const el = document.getElementById('teacherSidebarQpVal');
+                if (el) el.textContent = `${qp} Qp`;
+                return qp;
+            } catch(e) {
+                console.warn("Lỗi tải số dư QPoint:", e);
+                return 0;
+            }
+        };
+
+        window.checkTeacherFeatureAccess = async (featureKey, featureName) => {
+            // Nếu là super_admin hoặc VIP -> cho phép không giới hạn
+            if (window.currentAdminProfile?.role === 'super_admin' || window.currentAdminProfile?.teacherTier === 'vip') {
+                return true;
+            }
+
+            // Với GV Free -> kiểm tra chi phí QPoint
+            const costs = window.cachedTeacherPkgConfig?.featureCosts || {
+                ai_question: 2,
+                ai_grading: 5,
+                tex_mathtype: 5,
+                topic_workshop: 10,
+                ocr_extract: 5
+            };
+
+            const cost = costs[featureKey] !== undefined ? Number(costs[featureKey]) : 0;
+            if (cost <= 0) return true;
+
+            const user = auth.currentUser;
+            if (!user) return false;
+
+            const currentQp = await window.loadTeacherQPointBalance();
+            if (currentQp < cost) {
+                const reqEl = document.getElementById('insufficientQpRequired');
+                const curEl = document.getElementById('insufficientQpCurrent');
+                const msgEl = document.getElementById('insufficientQpMsg');
+                if (reqEl) reqEl.textContent = `${cost} QPoint`;
+                if (curEl) curEl.textContent = `${currentQp} QPoint`;
+                if (msgEl) {
+                    msgEl.innerHTML = `Tính năng <b>${featureName || featureKey}</b> yêu cầu <span class="font-bold text-amber-600">${cost} QPoint</span>, nhưng số dư hiện tại của Thầy/Cô chỉ còn <span class="font-bold text-gray-700 dark:text-gray-300">${currentQp} QPoint</span>.`;
+                }
+                document.getElementById('teacherInsufficientQpModal')?.classList.remove('hidden');
+                return false;
+            }
+
+            // Đủ QPoint -> Trừ điểm và ghi log giao dịch
+            try {
+                const newQp = currentQp - cost;
+                await updateDoc(doc(db, "users", user.uid), {
+                    qpoints: newQp,
+                    updatedAt: new Date().toISOString()
+                });
+                await addDoc(collection(db, "qpoint_transactions"), {
+                    userId: user.uid,
+                    userEmail: (user.email || '').toLowerCase().trim(),
+                    amount: -cost,
+                    type: 'feature_usage',
+                    featureKey: featureKey,
+                    featureName: featureName || featureKey,
+                    balanceAfter: newQp,
+                    description: `Sử dụng tính năng ${featureName || featureKey}`,
+                    createdAt: new Date().toISOString()
+                });
+                const el = document.getElementById('teacherSidebarQpVal');
+                if (el) el.textContent = `${newQp} Qp`;
+                window.showNotification(`Đã sử dụng ${cost} QPoint cho "${featureName || featureKey}". Số dư còn lại: ${newQp} Qp`, "info");
+                return true;
+            } catch(eDed) {
+                console.error("Lỗi trừ QPoint:", eDed);
+                return true;
             }
         };
 
@@ -7082,11 +7688,14 @@
                     emailEl.classList.remove('hidden');
                 }
                 const roleEl = document.getElementById('sidebarRole');
+                const isFree = window.currentAdminProfile?.teacherTier === 'free';
                 if (roleEl) {
                     if (isSuper) {
                         roleEl.innerHTML = '<span class="text-amber-600 font-bold flex items-center gap-1"><i class="fa-solid fa-crown text-[10px]"></i> Super Admin</span>';
+                    } else if (isFree) {
+                        roleEl.innerHTML = '<span class="text-emerald-600 font-bold flex items-center gap-1"><i class="fa-solid fa-leaf text-[10px]"></i> GV Miễn phí</span>';
                     } else {
-                        roleEl.innerHTML = '<span class="text-purple-600 font-bold flex items-center gap-1"><i class="fa-solid fa-shield-halved text-[10px]"></i> Quản trị viên (Admin)</span>';
+                        roleEl.innerHTML = '<span class="text-purple-600 font-bold flex items-center gap-1"><i class="fa-solid fa-crown text-[10px] text-amber-500"></i> Giáo viên VIP</span>';
                     }
                 }
 
@@ -19101,7 +19710,206 @@ window.deleteTag = async (id) => {
     </div>
 </div>
 
+<!-- Teacher VIP Upgrade Modal (Bảng so sánh Free vs VIP + Thanh toán VietQR) -->
+<div id="teacherVipUpgradeModal" class="hidden fixed inset-0 z-[170] overflow-y-auto p-2 sm:p-4 md:p-6 bg-gray-900/80 backdrop-blur-sm flex justify-center items-start sm:items-center">
+    <div class="relative bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[94vh] sm:max-h-[90vh] my-auto rounded-3xl shadow-2xl border border-indigo-200 dark:border-indigo-900/60 overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="px-4 py-3.5 sm:px-6 sm:py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-slate-950 font-black text-lg sm:text-xl shadow-md shadow-amber-500/20 shrink-0">
+                    <i class="fa-solid fa-crown text-slate-950"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-black text-base sm:text-lg text-white tracking-tight">Nâng Cấp Giáo Viên VIP (Pro)</h3>
+                        <span class="text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 px-2 py-0.5 rounded-full shadow-2xs">TRỌN ĐỜI</span>
+                    </div>
+                    <p class="text-[11px] sm:text-xs text-purple-200/80 mt-0.5 hidden xs:block">Sử dụng toàn bộ tính năng cao cấp không giới hạn, không tốn QPoint</p>
+                </div>
+            </div>
+            <button type="button" onclick="window.closeTeacherVipUpgradeModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer" title="Đóng">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
 
+        <!-- Body Scrollable -->
+        <div class="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 bg-slate-50/50 dark:bg-slate-900/50 space-y-5">
+            <!-- Bảng so sánh tính năng Free vs VIP -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm">
+                <div class="p-3.5 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-750 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                    <span class="font-black text-xs sm:text-sm text-gray-800 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
+                        <i class="fa-solid fa-scale-balanced text-indigo-600"></i> Bảng So Sánh Tính Năng: Giáo Viên Free vs. Giáo Viên VIP
+                    </span>
+                    <span class="text-[11px] font-bold text-amber-600 bg-amber-100 dark:bg-amber-950/60 dark:text-amber-400 px-2.5 py-0.5 rounded-full">Đặc quyền VIP</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-gray-100/80 dark:bg-slate-900/80 text-gray-700 dark:text-gray-300 font-black uppercase text-[10px] border-b border-gray-200 dark:border-slate-700">
+                            <tr>
+                                <th class="p-3 sm:px-4">Tính năng & Công cụ</th>
+                                <th class="p-3 sm:px-4 text-center w-36 sm:w-44 bg-gray-50/60 dark:bg-slate-850">
+                                    <span class="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">🌱 GV Free</span>
+                                    <div class="text-[9px] text-gray-400 font-normal">Miễn phí 0đ + 🎁 150 Qp</div>
+                                </th>
+                                <th class="p-3 sm:px-4 text-center w-40 sm:w-48 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                                    <span class="font-extrabold text-xs text-amber-600 dark:text-amber-400">👑 GV VIP (Pro)</span>
+                                    <div class="text-[9px] text-amber-600/80 dark:text-amber-400 font-bold" id="teacherUpgradeTableVipPrice">500.000 đ / Vĩnh viễn</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-slate-700 font-medium">
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Quản lý lớp học & danh sách học sinh</td>
+                                <td class="p-2.5 text-center bg-gray-50/30 text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Không giới hạn</td>
+                                <td class="p-2.5 text-center bg-amber-500/5 text-emerald-600 font-bold"><i class="fa-solid fa-check-double text-amber-500"></i> Không giới hạn</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Tạo đề thi từ file Word & Trộn đề tự động OLE</td>
+                                <td class="p-2.5 text-center bg-gray-50/30 text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Miễn phí</td>
+                                <td class="p-2.5 text-center bg-amber-500/5 text-emerald-600 font-bold"><i class="fa-solid fa-check-double text-amber-500"></i> Miễn phí</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Gán đề thi cho lớp học sinh & Báo cáo kết quả</td>
+                                <td class="p-2.5 text-center bg-gray-50/30 text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Đầy đủ</td>
+                                <td class="p-2.5 text-center bg-amber-500/5 text-emerald-600 font-bold"><i class="fa-solid fa-check-double text-amber-500"></i> Đầy đủ</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Trợ lý AI gán ID6 & Sinh câu hỏi tương đương</td>
+                                <td class="p-2.5 text-center bg-gray-50/30 text-amber-600 font-semibold"><span class="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-[10px]">Tốn 2 QPoint/câu</span></td>
+                                <td class="p-2.5 text-center bg-amber-500/5 text-purple-600 font-bold"><i class="fa-solid fa-infinity text-amber-500"></i> Không tốn QPoint</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Chấm thi tự động QM / TNMaker phiếu tô</td>
+                                <td class="p-2.5 text-center bg-gray-50/30 text-amber-600 font-semibold"><span class="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-[10px]">Tốn 5 QPoint/lượt</span></td>
+                                <td class="p-2.5 text-center bg-amber-500/5 text-purple-600 font-bold"><i class="fa-solid fa-infinity text-amber-500"></i> Không tốn QPoint</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Xuất file Word TeX2MathType Pro chuẩn OLE</td>
+                                <td class="p-2.5 text-center bg-gray-50/30 text-amber-600 font-semibold"><span class="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-[10px]">Tốn 5 QPoint/đề</span></td>
+                                <td class="p-2.5 text-center bg-amber-500/5 text-purple-600 font-bold"><i class="fa-solid fa-infinity text-amber-500"></i> Không giới hạn</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Xưởng Chuyên Đề & Ngân hàng câu hỏi nâng cao</td>
+                                <td class="p-2.5 text-center bg-gray-50/30 text-amber-600 font-semibold"><span class="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-[10px]">Tốn 10 QPoint/lần</span></td>
+                                <td class="p-2.5 text-center bg-amber-500/5 text-purple-600 font-bold"><i class="fa-solid fa-infinity text-amber-500"></i> Mở khóa toàn bộ</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">OCR Quét hình ảnh nhận diện công thức LaTeX</td>
+                                <td class="p-2.5 text-center bg-gray-50/30 text-amber-600 font-semibold"><span class="px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-[10px]">Tốn 5 QPoint/trang</span></td>
+                                <td class="p-2.5 text-center bg-amber-500/5 text-purple-600 font-bold"><i class="fa-solid fa-infinity text-amber-500"></i> Không tốn QPoint</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VietQR Box -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div class="md:col-span-7 space-y-3">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-4 space-y-3 shadow-sm">
+                        <h4 class="text-xs sm:text-sm font-black text-gray-800 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2 border-b border-gray-100 dark:border-slate-700 pb-2">
+                            <i class="fa-solid fa-building-columns text-indigo-600"></i> Thông tin thanh toán VietQR
+                        </h4>
+                        <div class="space-y-2 text-xs">
+                            <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800/80 border border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                                <div>
+                                    <div class="text-[10px] text-gray-400 font-bold uppercase">Ngân hàng nhận</div>
+                                    <div id="tUpgradeBankNameDisplay" class="font-bold text-gray-800 dark:text-white text-xs sm:text-sm mt-0.5">...</div>
+                                </div>
+                                <button type="button" onclick="window.copyUpgradeField('tUpgradeBankNameDisplay', 'Tên ngân hàng')" class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-700 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-slate-600 hover:bg-indigo-50 active:scale-95 cursor-pointer shadow-2xs">Sao chép</button>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800/80 border border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                                <div>
+                                    <div class="text-[10px] text-gray-400 font-bold uppercase">Số tài khoản</div>
+                                    <div id="tUpgradeAccountNoDisplay" class="font-mono font-black text-indigo-700 dark:text-indigo-400 text-sm sm:text-base mt-0.5 tracking-wider">...</div>
+                                    <div id="tUpgradeAccountOwnerDisplay" class="text-[11px] font-bold text-gray-500 uppercase mt-0.5"></div>
+                                </div>
+                                <button type="button" onclick="window.copyUpgradeField('tUpgradeAccountNoDisplay', 'Số tài khoản')" class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-700 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-slate-600 hover:bg-indigo-50 active:scale-95 cursor-pointer shadow-2xs">Sao chép</button>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-center justify-between">
+                                <div>
+                                    <div class="text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase">Số tiền kích hoạt</div>
+                                    <div id="tUpgradeAmountDisplay" class="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 mt-0.5">500.000 đ</div>
+                                </div>
+                                <button type="button" onclick="window.copyUpgradeField('tUpgradeAmountRaw', 'Số tiền')" class="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-white dark:bg-slate-700 px-2.5 py-1 rounded-lg border border-amber-300 dark:border-amber-700 hover:bg-amber-100 active:scale-95 cursor-pointer shadow-2xs">Sao chép</button>
+                                <span id="tUpgradeAmountRaw" class="hidden">500000</span>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border-2 border-purple-300 dark:border-purple-800 flex items-center justify-between">
+                                <div>
+                                    <div class="text-[10px] text-purple-700 dark:text-purple-300 font-black uppercase flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation"></i> Nội dung chuyển khoản (bắt buộc)</div>
+                                    <div id="tUpgradeMemoDisplay" class="font-mono font-black text-purple-950 dark:text-purple-200 text-sm sm:text-base mt-0.5 tracking-wider select-all">GV ...</div>
+                                </div>
+                                <button type="button" onclick="window.copyUpgradeField('tUpgradeMemoDisplay', 'Nội dung chuyển khoản')" class="text-[10px] font-bold text-white bg-purple-600 px-2.5 py-1.5 rounded-lg hover:bg-purple-700 active:scale-95 cursor-pointer shadow-2xs">Sao chép</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-900/50 flex items-start gap-2.5 text-xs text-blue-900 dark:text-blue-300">
+                        <i class="fa-solid fa-circle-info text-blue-600 mt-0.5 shrink-0"></i>
+                        <span>Sau khi Quý Thầy/Cô hoàn tất chuyển khoản với đúng <b>Nội dung CK</b>, hệ thống sẽ tự động đối soát và kích hoạt Gói VIP tức thì.</span>
+                    </div>
+                </div>
+
+                <div class="md:col-span-5 flex flex-col items-center justify-between bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-4 shadow-sm space-y-3">
+                    <div class="text-center w-full">
+                        <div class="text-xs font-black text-gray-800 dark:text-white uppercase tracking-wider flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-qrcode text-indigo-600"></i> Quét mã VietQR Nhanh
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Tự động điền đúng STK, Số tiền và Nội dung</p>
+                    </div>
+
+                    <div class="relative w-48 sm:w-56 aspect-square bg-gray-50 dark:bg-slate-900 rounded-2xl border-2 border-dashed border-indigo-200 dark:border-indigo-800 p-2 flex items-center justify-center shadow-inner">
+                        <img id="tUpgradeVietQrImage" src="" alt="Mã VietQR" class="w-full h-full object-contain rounded-xl">
+                        <div id="tUpgradeQrLoading" class="absolute inset-0 bg-white/90 dark:bg-slate-900/90 rounded-2xl flex flex-col items-center justify-center gap-2">
+                            <i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600"></i>
+                            <span class="text-[11px] font-bold text-gray-600 dark:text-gray-300">Đang tạo mã VietQR...</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full space-y-2">
+                        <div class="text-center text-[11px] font-semibold text-gray-500">
+                            Hiệu lực mã QR: <span id="tUpgradeQrCountdown" class="font-mono font-bold text-amber-600">10:00</span>
+                        </div>
+                        <button type="button" id="btnConfirmTeacherVipTransferred" onclick="window.confirmTeacherVipTransferred()" class="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-circle-check"></i> Đã chuyển khoản, xác nhận ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thông báo thiếu QPoint -->
+<div id="teacherInsufficientQpModal" class="hidden fixed inset-0 z-[180] overflow-y-auto p-4 bg-gray-900/80 backdrop-blur-sm flex justify-center items-center">
+    <div class="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl border border-amber-200 dark:border-amber-900/60 overflow-hidden flex flex-col p-6 text-center space-y-4">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-100 text-amber-600 dark:bg-amber-950/80 dark:text-amber-400 flex items-center justify-center text-2xl shadow-inner">
+            <i class="fa-solid fa-coins"></i>
+        </div>
+        <div>
+            <h3 class="text-base font-black text-gray-900 dark:text-white">Không đủ QPoint để sử dụng!</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="insufficientQpMsg">
+                Tính năng này yêu cầu <span id="insufficientQpRequired" class="font-bold text-amber-600">0 QPoint</span>, nhưng số dư hiện tại của Thầy/Cô chỉ còn <span id="insufficientQpCurrent" class="font-bold text-gray-700 dark:text-gray-300">0 QPoint</span>.
+            </p>
+        </div>
+        <div class="p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-800 dark:to-slate-800 rounded-xl border border-amber-200 dark:border-amber-900/40 text-left text-xs space-y-1">
+            <div class="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                <i class="fa-solid fa-crown text-amber-500"></i> Lời khuyên: Nâng cấp Gói VIP
+            </div>
+            <p class="text-[11px] text-gray-600 dark:text-gray-400">
+                Khi nâng cấp Giáo viên VIP, Thầy/Cô được sử dụng không giới hạn toàn bộ tính năng cao cấp (AI, OCR, Chấm thi, TeX MathType Pro) mà không tốn bất kỳ QPoint nào!
+            </p>
+        </div>
+        <div class="flex flex-col gap-2 pt-2">
+            <button type="button" onclick="window.closeTeacherInsufficientQpModal(); window.openTeacherVipUpgradeModal();" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <i class="fa-solid fa-crown"></i> Nâng cấp Giáo Viên VIP Ngay
+            </button>
+            <button type="button" onclick="window.closeTeacherInsufficientQpModal()" class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300 font-bold text-xs rounded-xl transition-all cursor-pointer">
+                Đóng lại
+            </button>
+        </div>
+    </div>
+</div>
 
 <script src="/sw-register.js?v=33"></script>
 <script src="/season-theme.js?v=1"></script>

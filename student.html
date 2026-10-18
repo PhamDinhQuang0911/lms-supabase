@@ -7462,6 +7462,7 @@
 
             document.getElementById('stuTeacherStep1')?.classList.remove('hidden');
             document.getElementById('stuTeacherStep2')?.classList.add('hidden');
+            document.getElementById('stuTeacherFreeSuccessBox')?.classList.add('hidden');
         };
 
         window.proceedStudentTeacherUpgrade = async () => {
@@ -7987,10 +7988,11 @@
                     displayName: user.displayName || (userEmail ? userEmail.split('@')[0] : 'Thầy Cô'),
                     phone: user.phoneNumber || null,
                     role: 'admin',
+                    teacherTier: 'vip',
                     status: 'active',
                     permissions: defaultPerms,
                     assignedCourseIds: defaultAssignedCourses,
-                    note: 'Nâng cấp từ tài khoản Học sinh (Thanh toán tự động / Super Admin duyệt)',
+                    note: 'Nâng cấp Giáo viên VIP từ tài khoản Học sinh (Thanh toán tự động / Super Admin duyệt)',
                     registeredVia: 'teacher_package',
                     updatedAt: new Date().toISOString(),
                     updatedBy: userEmail || 'system'
@@ -8014,13 +8016,139 @@
                 await setDoc(doc(db, "users", user.uid), {
                     role: 'teacher',
                     isTeacher: true,
+                    teacherTier: 'vip',
                     permissions: defaultPerms,
                     assignedCourseIds: defaultAssignedCourses,
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
 
             } catch (err) {
-                console.error("Lỗi kích hoạt quyền giáo viên:", err);
+                console.error("Lỗi kích hoạt quyền giáo viên VIP:", err);
+            }
+        };
+
+        // ĐĂNG KÝ GÓI GIÁO VIÊN MIỄN PHÍ (FREE) & TẶNG 150 QPOINT
+        window.registerFreeTeacherFromStudent = async () => {
+            const user = auth.currentUser;
+            if (!user) {
+                if (window.showNotification) window.showNotification("Vui lòng đăng nhập để đăng ký tài khoản Giáo viên!", "warning");
+                return;
+            }
+
+            const btn = document.getElementById('btnRegisterFreeTeacher');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Đang kích hoạt gói Free...'; }
+
+            try {
+                // 1. Tải cấu hình gói Free
+                let freePerms = [
+                    'classes.view', 'classes.manage', 'students.manage',
+                    'exams.create', 'exams.view', 'exams.manage_own', 'mixer.use', 'word_importer.use', 'exams.assign'
+                ];
+                let welcomeQp = 150;
+
+                try {
+                    const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config"));
+                    if (pkgSnap.exists()) {
+                        const d = pkgSnap.data();
+                        if (Array.isArray(d.freePermissions) && d.freePermissions.length > 0) freePerms = d.freePermissions;
+                        if (d.freeWelcomeQPoints !== undefined) welcomeQp = Number(d.freeWelcomeQPoints) || 0;
+                    }
+                } catch(e) {}
+
+                // 2. Kiểm tra số dư QPoint và cờ thưởng
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+                const userData = userSnap.exists() ? userSnap.data() : {};
+                const currentQp = Number(userData.qpoints) || 0;
+                const bonusClaimed = Boolean(userData.freeTeacherBonusClaimed);
+                const finalQp = bonusClaimed ? currentQp : (currentQp + welcomeQp);
+
+                // Ghi nhận giao dịch tặng QPoint nếu chưa nhận
+                if (!bonusClaimed && welcomeQp > 0) {
+                    try {
+                        await addDoc(collection(db, "qpoint_transactions"), {
+                            userId: user.uid,
+                            userEmail: (user.email || '').toLowerCase().trim(),
+                            amount: welcomeQp,
+                            type: 'teacher_free_welcome',
+                            balanceAfter: finalQp,
+                            description: `Tặng ${welcomeQp} QPoint chào mừng đăng ký Giáo viên Free`,
+                            createdAt: new Date().toISOString()
+                        });
+                    } catch(eTx) {}
+                }
+
+                // 3. Cập nhật users/{uid}
+                const userEmail = (user.email || '').toLowerCase().trim();
+                await setDoc(userRef, {
+                    role: 'teacher',
+                    isTeacher: true,
+                    teacherTier: 'free',
+                    qpoints: finalQp,
+                    freeTeacherBonusClaimed: true,
+                    permissions: freePerms,
+                    assignedCourseIds: ['*'],
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+
+                // 4. Cập nhật configurations/admin_roles
+                const cfgRef = doc(db, "configurations", "admin_roles");
+                let accounts = [];
+                try {
+                    const snap = await getDoc(cfgRef);
+                    if (snap.exists()) accounts = snap.data().accounts || [];
+                } catch(e) {}
+
+                const existingIdx = accounts.findIndex(a => 
+                    (userEmail && (a.email || '').toLowerCase() === userEmail) || 
+                    (user.uid && a.id === user.uid)
+                );
+
+                const teacherRecord = {
+                    id: user.uid,
+                    email: userEmail,
+                    displayName: user.displayName || (userEmail ? userEmail.split('@')[0] : 'Thầy Cô'),
+                    phone: user.phoneNumber || null,
+                    role: 'admin',
+                    teacherTier: 'free',
+                    status: 'active',
+                    permissions: freePerms,
+                    assignedCourseIds: ['*'],
+                    note: 'Đăng ký Giáo viên Miễn Phí (Free) từ Học sinh',
+                    registeredVia: 'teacher_free',
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: userEmail || 'system'
+                };
+
+                if (existingIdx >= 0) {
+                    accounts[existingIdx] = { ...accounts[existingIdx], ...teacherRecord };
+                } else {
+                    accounts.push(teacherRecord);
+                }
+
+                await setDoc(cfgRef, { accounts, updatedAt: new Date().toISOString() }, { merge: true });
+
+                // Fallback admin_accounts
+                try {
+                    const cleanId = (userEmail || user.uid).replace(/[@.]/g, '_');
+                    await setDoc(doc(db, "admin_accounts", cleanId), teacherRecord, { merge: true });
+                } catch(e) {}
+
+                // 5. Hiển thị thông báo và box thành công Free
+                document.getElementById('stuTeacherStep1')?.classList.add('hidden');
+                const freeSuccessBox = document.getElementById('stuTeacherFreeSuccessBox');
+                if (freeSuccessBox) freeSuccessBox.classList.remove('hidden');
+
+                if (window.showNotification) {
+                    window.showNotification(`🎉 Chúc mừng Thầy/Cô đã kích hoạt thành công Gói Giáo viên Miễn Phí và nhận ${welcomeQp} QPoint!`, "success");
+                }
+            } catch(err) {
+                console.error("Lỗi đăng ký giáo viên free:", err);
+                if (window.showNotification) window.showNotification("Lỗi kích hoạt: " + err.message, "error");
+                else alert("Lỗi: " + err.message);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
             }
         };
 
@@ -8762,115 +8890,250 @@
             <!-- 3. Modal Body (Scrollable) -->
             <div class="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0 bg-slate-50/50 dark:bg-slate-900/50">
                 
-                <!-- === BƯỚC 1: ƯU ĐÃI & XÁC NHẬN === -->
+                <!-- === BƯỚC 1: LỰA CHỌN GÓI GIÁO VIÊN (FREE VS VIP) & SO SÁNH === -->
                 <div id="stuTeacherStep1" class="space-y-5">
-                    <!-- Pricing Hero Card -->
-                    <div class="bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-950 text-white p-5 sm:p-7 rounded-3xl shadow-xl relative overflow-hidden border border-purple-500/30">
-                        <div class="absolute -right-12 -top-12 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
-                        <div class="absolute right-10 bottom-0 text-white/5 text-9xl font-black pointer-events-none select-none">GV</div>
+                    
+                    <!-- 1. Hai Card Lựa Chọn Gói: Free vs VIP -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                         
-                        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                            <div class="space-y-2">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 uppercase tracking-wider shadow-sm">
-                                    <i class="fa-solid fa-crown text-[10px]"></i> Gói Giảng Dạy Tiêu Chuẩn
-                                </span>
-                                <h4 id="stuTeacherHeroTitle" class="text-xl sm:text-2xl font-black text-white tracking-tight">Tài Khoản Giáo Viên Độc Lập</h4>
-                                <p class="text-xs sm:text-sm text-purple-200/90 max-w-xl leading-relaxed">
-                                    Giải pháp quản lý lớp học, ngân hàng đề thi trắc nghiệm và tổ chức kiểm tra trực tuyến thông minh với trợ lý AI dành cho Thầy Cô.
-                                </p>
-                            </div>
-                            <div class="shrink-0 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 text-center min-w-[190px]">
-                                <div class="text-[10px] uppercase font-bold text-purple-200">Phí kích hoạt trọn gói</div>
-                                <div id="stuTeacherHeroPrice" class="text-2xl sm:text-3xl font-black text-amber-300 tracking-tight my-0.5">500.000 đ</div>
-                                <div id="stuTeacherHeroPeriod" class="text-[10px] font-bold text-emerald-300 flex items-center justify-center gap-1">
-                                    <i class="fa-solid fa-infinity"></i> Sử dụng vĩnh viễn
+                        <!-- CARD 1: GÓI GIÁO VIÊN MIỄN PHÍ (FREE) -->
+                        <div class="relative bg-white dark:bg-slate-800 rounded-3xl p-5 sm:p-6 border-2 border-emerald-300 dark:border-emerald-700/80 shadow-md hover:shadow-xl transition-all flex flex-col justify-between overflow-hidden group">
+                            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 uppercase tracking-wider">
+                                        <i class="fa-solid fa-leaf text-[10px]"></i> Gói Cơ Bản (Free)
+                                    </span>
+                                    <span class="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                        🎁 Tặng 150 QPoint
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white tracking-tight">Giáo Viên Miễn Phí</h4>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Trải nghiệm ngay bộ công cụ giảng dạy, quản lý lớp & tạo đề trắc nghiệm chuẩn OLE không tốn phí.</p>
+                                </div>
+
+                                <div class="p-3.5 bg-emerald-50/70 dark:bg-slate-900/60 rounded-2xl border border-emerald-100 dark:border-slate-700 flex items-baseline justify-between">
+                                    <div>
+                                        <div class="text-[10px] text-gray-400 font-bold uppercase">Chi phí kích hoạt</div>
+                                        <div class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">0 VNĐ</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-[10px] text-gray-400 font-bold uppercase">Quà tặng chào mừng</div>
+                                        <div class="text-sm font-black text-amber-600 dark:text-amber-400 flex items-center justify-end gap-1">
+                                            <i class="fa-solid fa-coins"></i> +150 QPoint
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Tạo lớp học & thêm học sinh không giới hạn</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Tạo đề từ file Word & Trộn đề tự động chuẩn OLE</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Gán đề thi cho lớp học sinh & Báo cáo kết quả</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-coins text-amber-500 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Dùng 150 QPoint để thử AI gán ID6, Chấm thi, TeX MathType Pro</span>
+                                    </div>
                                 </div>
                             </div>
+
+                            <div class="pt-5 mt-4 border-t border-gray-100 dark:border-slate-700">
+                                <button type="button" id="btnRegisterFreeTeacher" onclick="window.registerFreeTeacherFromStudent()" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                    <i class="fa-solid fa-gift"></i>
+                                    <span>Đăng Ký Gói Free Ngay (Nhận 150 QPoint)</span>
+                                </button>
+                            </div>
                         </div>
+
+                        <!-- CARD 2: GÓI GIÁO VIÊN VIP (PRO) -->
+                        <div class="relative bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-950 text-white rounded-3xl p-5 sm:p-6 border-2 border-purple-400/40 shadow-xl flex flex-col justify-between overflow-hidden group">
+                            <div class="absolute -right-10 -bottom-10 w-36 h-36 bg-purple-500/25 rounded-full blur-3xl pointer-events-none"></div>
+                            <div class="absolute right-4 bottom-2 text-white/5 text-8xl font-black pointer-events-none select-none">VIP</div>
+                            
+                            <div class="space-y-4 relative z-10">
+                                <div class="flex items-center justify-between">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 uppercase tracking-wider shadow-sm">
+                                        <i class="fa-solid fa-crown text-[10px]"></i> VIP Khuyên Dùng
+                                    </span>
+                                    <span class="text-[10px] font-black uppercase text-amber-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/20">
+                                        ⭐ Trọn Đời Không Giới Hạn
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-lg sm:text-xl font-black text-white tracking-tight">Giáo Viên VIP (Pro)</h4>
+                                    <p class="text-xs text-purple-200/90 mt-1">Toàn quyền khai thác mọi tính năng cao cấp không giới hạn, không tốn bất kỳ QPoint nào.</p>
+                                </div>
+
+                                <div class="p-3.5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/15 flex items-baseline justify-between">
+                                    <div>
+                                        <div class="text-[10px] text-purple-200 font-bold uppercase">Phí kích hoạt trọn gói</div>
+                                        <div id="stuTeacherHeroPrice" class="text-2xl sm:text-3xl font-black text-amber-300">500.000 đ</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-[10px] text-purple-200 font-bold uppercase">Thời hạn</div>
+                                        <div id="stuTeacherHeroPeriod" class="text-sm font-black text-emerald-300 flex items-center justify-end gap-1">
+                                            <i class="fa-solid fa-infinity"></i> Sử dụng vĩnh viễn
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2 text-xs text-purple-100">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-check-double text-amber-400 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Bao gồm toàn bộ tính năng của Gói Free</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-infinity text-amber-400 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Trợ lý AI gán ID6 & giải chi tiết KHÔNG TỐN QPoint</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-infinity text-amber-400 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Chấm thi phiếu tô QM / TNMaker KHÔNG TỐN QPoint</span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fa-solid fa-infinity text-amber-400 mt-0.5 shrink-0 text-[11px]"></i>
+                                        <span>Xuất Word TeX2MathType Pro & Xưởng Chuyên Đề mở khóa trọn đời</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="pt-5 mt-4 border-t border-white/10 relative z-10">
+                                <button type="button" id="btnProceedStuTeacherUpgrade" onclick="window.proceedStudentTeacherUpgrade()" class="w-full py-3 px-4 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-amber-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                                    <i class="fa-solid fa-crown text-slate-950"></i>
+                                    <span>Nâng Cấp Gói VIP Ngay (Thanh toán VietQR)</span>
+                                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
                     </div>
 
-                    <!-- Perks & Benefits Grid -->
-                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 border border-gray-200 dark:border-slate-800 shadow-sm space-y-4">
-                        <div class="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-3">
-                            <h4 class="text-xs sm:text-sm font-black text-gray-800 dark:text-gray-100 uppercase tracking-wide flex items-center gap-2">
-                                <i class="fa-solid fa-gift text-indigo-600"></i> Đặc quyền dành riêng cho Giáo viên
+                    <!-- 2. BẢNG QUẢNG CÁO SO SÁNH TÍNH NĂNG CHI TIẾT (FREE VS VIP) -->
+                    <div class="bg-white dark:bg-slate-800 rounded-3xl border border-gray-200 dark:border-slate-700 overflow-hidden shadow-sm">
+                        <div class="p-3.5 sm:p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-750 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+                            <h4 class="font-black text-xs sm:text-sm text-gray-800 dark:text-gray-200 uppercase tracking-wide flex items-center gap-2">
+                                <i class="fa-solid fa-scale-balanced text-indigo-600"></i> Bảng So Sánh Quyền Lợi & Tính Năng: Free vs. VIP
                             </h4>
-                            <span class="text-[11px] text-gray-400 font-bold hidden sm:inline">Tự động kích hoạt sau khi thanh toán</span>
+                            <span class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hidden sm:inline">Minh bạch & Rõ ràng</span>
                         </div>
-
-                        <div id="stuTeacherFeaturesGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <!-- Fallback cards -->
-                            <div class="p-3 rounded-xl bg-indigo-50/60 dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 flex items-start gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs mt-0.5">
-                                    <i class="fa-solid fa-chalkboard-user"></i>
-                                </div>
-                                <div>
-                                    <h5 class="text-xs font-bold text-gray-900 dark:text-white">Quản lý lớp học & học sinh</h5>
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Tạo lớp không giới hạn, quản lý danh sách học sinh, điểm danh và phân chia nhóm học tập.</p>
-                                </div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-purple-50/60 dark:bg-slate-800 border border-purple-100 dark:border-slate-700 flex items-start gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs mt-0.5">
-                                    <i class="fa-solid fa-file-signature"></i>
-                                </div>
-                                <div>
-                                    <h5 class="text-xs font-bold text-gray-900 dark:text-white">Tạo đề thi & Trộn đề tự động</h5>
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Soạn đề trắc nghiệm, tự luận, tự động xáo câu hỏi và xuất mã QR đề thi tức thì.</p>
-                                </div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-amber-50/60 dark:bg-slate-800 border border-amber-100 dark:border-slate-700 flex items-start gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs mt-0.5">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                                </div>
-                                <div>
-                                    <h5 class="text-xs font-bold text-gray-900 dark:text-white">Trợ lý AI soạn đề & Lời giải</h5>
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Tích hợp AI sinh câu hỏi theo chuẩn ma trận BGD và tạo lời giải chi tiết theo từng bước.</p>
-                                </div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-emerald-50/60 dark:bg-slate-800 border border-emerald-100 dark:border-slate-700 flex items-start gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs mt-0.5">
-                                    <i class="fa-solid fa-chart-pie"></i>
-                                </div>
-                                <div>
-                                    <h5 class="text-xs font-bold text-gray-900 dark:text-white">Chấm bài tự động & Thống kê</h5>
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Hệ thống tự động chấm điểm bài nộp, phân tích phổ điểm, câu hỏi hay sai và xuất file Excel.</p>
-                                </div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-blue-50/60 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 flex items-start gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs mt-0.5">
-                                    <i class="fa-solid fa-folder-tree"></i>
-                                </div>
-                                <div>
-                                    <h5 class="text-xs font-bold text-gray-900 dark:text-white">Kho học liệu & Khóa học riêng</h5>
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Lưu trữ tài liệu PDF, video bài giảng và phân phối trực tiếp cho học sinh của Thầy/Cô.</p>
-                                </div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-rose-50/60 dark:bg-slate-800 border border-rose-100 dark:border-slate-700 flex items-start gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs mt-0.5">
-                                    <i class="fa-solid fa-shield-halved"></i>
-                                </div>
-                                <div>
-                                    <h5 class="text-xs font-bold text-gray-900 dark:text-white">Quyền Admin Bàn Làm Việc</h5>
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Truy cập toàn quyền trang quản trị giáo viên với giao diện mobile hiện đại thông minh.</p>
-                                </div>
-                            </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-gray-100/80 dark:bg-slate-900/80 text-gray-700 dark:text-gray-300 font-black uppercase text-[10px] border-b border-gray-200 dark:border-slate-700">
+                                    <tr>
+                                        <th class="p-3 sm:px-4">Tính năng & Công cụ Giảng dạy</th>
+                                        <th class="p-3 sm:px-4 text-center w-36 sm:w-44 bg-emerald-50/50 dark:bg-slate-850">
+                                            <span class="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">🌱 GV Free</span>
+                                            <div class="text-[9px] text-gray-400 font-normal">0 VNĐ + 🎁 150 Qp</div>
+                                        </th>
+                                        <th class="p-3 sm:px-4 text-center w-40 sm:w-48 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                                            <span class="font-extrabold text-xs text-amber-600 dark:text-amber-400">👑 GV VIP (Pro)</span>
+                                            <div class="text-[9px] text-amber-600/80 dark:text-amber-400 font-bold">500.000 đ / Vĩnh viễn</div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-slate-700 font-medium">
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Quản lý lớp học, phân nhóm & thêm học sinh</td>
+                                        <td class="p-2.5 text-center bg-emerald-50/20 text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Không giới hạn</td>
+                                        <td class="p-2.5 text-center bg-amber-500/5 text-emerald-600 font-bold"><i class="fa-solid fa-check-double text-amber-500"></i> Không giới hạn</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Tạo đề thi từ file Word & Trộn đề tự động OLE</td>
+                                        <td class="p-2.5 text-center bg-emerald-50/20 text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Đầy đủ</td>
+                                        <td class="p-2.5 text-center bg-amber-500/5 text-emerald-600 font-bold"><i class="fa-solid fa-check-double text-amber-500"></i> Đầy đủ</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Gán đề thi cho lớp học sinh & Báo cáo kết quả</td>
+                                        <td class="p-2.5 text-center bg-emerald-50/20 text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Đầy đủ</td>
+                                        <td class="p-2.5 text-center bg-amber-500/5 text-emerald-600 font-bold"><i class="fa-solid fa-check-double text-amber-500"></i> Đầy đủ</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Trợ lý AI gán ID6 & Sinh câu hỏi tương đương ma trận</td>
+                                        <td class="p-2.5 text-center bg-emerald-50/20 text-amber-600 font-semibold"><span class="px-2 py-0.5 rounded bg-amber-50 dark:bg-slate-900 border border-amber-200 text-[10px]">Tốn 2 Qp/câu</span></td>
+                                        <td class="p-2.5 text-center bg-amber-500/5 text-purple-600 font-bold"><i class="fa-solid fa-infinity text-amber-500"></i> Không tốn QPoint</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Chấm thi tự động QM / TNMaker bằng phiếu tô</td>
+                                        <td class="p-2.5 text-center bg-emerald-50/20 text-amber-600 font-semibold"><span class="px-2 py-0.5 rounded bg-amber-50 dark:bg-slate-900 border border-amber-200 text-[10px]">Tốn 5 Qp/lượt</span></td>
+                                        <td class="p-2.5 text-center bg-amber-500/5 text-purple-600 font-bold"><i class="fa-solid fa-infinity text-amber-500"></i> Không tốn QPoint</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Xuất file Word TeX2MathType Pro chuẩn OLE OMath</td>
+                                        <td class="p-2.5 text-center bg-emerald-50/20 text-amber-600 font-semibold"><span class="px-2 py-0.5 rounded bg-amber-50 dark:bg-slate-900 border border-amber-200 text-[10px]">Tốn 5 Qp/đề</span></td>
+                                        <td class="p-2.5 text-center bg-amber-500/5 text-purple-600 font-bold"><i class="fa-solid fa-infinity text-amber-500"></i> Không giới hạn</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Xưởng Chuyên Đề & Ngân hàng VIP chia sẻ</td>
+                                        <td class="p-2.5 text-center bg-emerald-50/20 text-amber-600 font-semibold"><span class="px-2 py-0.5 rounded bg-amber-50 dark:bg-slate-900 border border-amber-200 text-[10px]">Tốn 10 Qp/lần</span></td>
+                                        <td class="p-2.5 text-center bg-amber-500/5 text-purple-600 font-bold"><i class="fa-solid fa-infinity text-amber-500"></i> Mở khóa toàn bộ</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="p-2.5 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">OCR Quét hình ảnh nhận diện công thức LaTeX</td>
+                                        <td class="p-2.5 text-center bg-emerald-50/20 text-amber-600 font-semibold"><span class="px-2 py-0.5 rounded bg-amber-50 dark:bg-slate-900 border border-amber-200 text-[10px]">Tốn 5 Qp/trang</span></td>
+                                        <td class="p-2.5 text-center bg-amber-500/5 text-purple-600 font-bold"><i class="fa-solid fa-infinity text-amber-500"></i> Không tốn QPoint</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
-                    <!-- Current Account Box & Action CTA -->
-                    <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <!-- 3. Current Account Box -->
+                    <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 flex items-center justify-between gap-4 shadow-sm">
+                        <div class="flex items-center gap-3 min-w-0">
                             <img id="stuTeacherUserAvatar" src="https://placehold.co/100" class="w-11 h-11 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800 object-cover shadow-2xs shrink-0">
                             <div class="min-w-0">
-                                <div class="text-[10px] text-gray-400 font-extrabold uppercase">Tài khoản nâng cấp</div>
+                                <div class="text-[10px] text-gray-400 font-extrabold uppercase">Tài khoản nâng cấp giáo viên</div>
                                 <h4 id="stuTeacherUserName" class="text-sm font-black text-gray-900 dark:text-white truncate">Đang tải...</h4>
                                 <p id="stuTeacherUserEmail" class="text-xs text-indigo-600 dark:text-indigo-400 font-mono truncate"></p>
                             </div>
                         </div>
-                        <button type="button" id="btnProceedStuTeacherUpgrade" onclick="window.proceedStudentTeacherUpgrade()" class="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-indigo-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0">
-                            <span>Tiếp tục thanh toán VietQR</span>
-                            <i class="fa-solid fa-arrow-right text-xs"></i>
-                        </button>
+                        <div class="text-[11px] text-gray-400 text-right hidden sm:block">
+                            Chọn <b>Gói Free</b> để bắt đầu ngay hoặc <b>Gói VIP</b> để dùng trọn đời không giới hạn.
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Box Chúc Mừng Kích Hoạt Gói Free Thành Công -->
+                <div id="stuTeacherFreeSuccessBox" class="hidden space-y-4 text-center p-6 bg-white dark:bg-slate-900 rounded-3xl border-2 border-emerald-500 shadow-xl animate-fade-in my-auto">
+                    <div class="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center text-3xl mx-auto shadow-lg shadow-emerald-500/30">
+                        <i class="fa-solid fa-gift"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <h4 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white">
+                            🎉 Chúc Mừng Thầy/Cô Đã Kích Hoạt Gói Free Thành Công!
+                        </h4>
+                        <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-300 max-w-md mx-auto">
+                            Tài khoản đã sẵn sàng quản lý lớp học, thêm học sinh và trộn đề thi. Hệ thống đã tặng ngay <span class="font-black text-amber-600 dark:text-amber-400">150 QPoint</span> để trải nghiệm các tính năng nâng cao!
+                        </p>
+                    </div>
+
+                    <div class="p-4 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800/60 max-w-sm mx-auto text-xs text-emerald-900 dark:text-emerald-300 text-left space-y-1.5">
+                        <div class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-check text-emerald-600"></i> Quyền hạn đang có:</div>
+                        <ul class="list-disc list-inside text-[11px] space-y-0.5 text-emerald-800 dark:text-emerald-400">
+                            <li>Tạo & quản lý lớp học, học sinh</li>
+                            <li>Tạo đề từ file Word & Trộn đề tự động OLE</li>
+                            <li>Gán đề thi cho lớp và xem báo cáo</li>
+                            <li>Số dư QPoint: <b>150 QPoint</b> (Có thể nạp thêm hoặc nâng cấp VIP bất kỳ lúc nào)</li>
+                        </ul>
+                    </div>
+
+                    <div class="pt-2">
+                        <a href="dashboard.html" class="px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-500/25 active:scale-95 transition-all inline-flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-chalkboard-user"></i>
+                            <span>👉 Đến Bàn Làm Việc Giáo Viên Ngay</span>
+                        </a>
                     </div>
                 </div>
 
