@@ -438,7 +438,7 @@
     <script>
     // Tự động giải phóng triệt để Service Worker & Cache cũ để cập nhật ngay kiến trúc mới
     (function() {
-        const CACHE_RESET_ID = 'qmath_season_v20261006_v1';
+        const CACHE_RESET_ID = 'qmath_reset_v20261022_v52';
         if (localStorage.getItem('qm_reset_cache') !== CACHE_RESET_ID) {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
