@@ -438,7 +438,7 @@
     <script>
     // Tự động giải phóng triệt để Service Worker & Cache cũ để cập nhật ngay kiến trúc mới
     (function() {
-        const CACHE_RESET_ID = 'qmath_reset_v20261022_v52';
+        const CACHE_RESET_ID = 'qmath_reset_v20261022_v53';
         if (localStorage.getItem('qm_reset_cache') !== CACHE_RESET_ID) {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -5419,10 +5419,7 @@
             return cleanPhone;
         };
 
-        window._moduleSwitchView = (viewName, pushHistory = true) => {
-            // Chặn Giáo viên truy cập Quản lý QPoint (Chỉ Super Admin)
-            if (viewName === 'qpoint' && typeof 
-    // Mở ứng dụng Bảng Vẽ & Note (note.qmath.io.vn) với phân quyền tài khoản LMS
+        // Mở ứng dụng Bảng Vẽ & Note (note.qmath.io.vn) với phân quyền tài khoản LMS
     window.openNoteRendererApp = () => {
         const isSuper = window.checkIsSuperAdmin ? window.checkIsSuperAdmin() : false;
         const canUseNote = isSuper || (window.hasPermission && window.hasPermission('note.use'));
@@ -5452,7 +5449,9 @@
         window.open(targetUrl, '_blank');
     };
 
-        window.checkIsSuperAdmin === 'function' && !window.checkIsSuperAdmin()) {
+        window._moduleSwitchView = (viewName, pushHistory = true) => {
+            // Chặn Giáo viên truy cập Quản lý QPoint (Chỉ Super Admin)
+            if (viewName === 'qpoint' && typeof window.checkIsSuperAdmin === 'function' && !window.checkIsSuperAdmin()) {
                 if (window.showNotification) {
                     window.showNotification("⛔ Chỉ Super Admin mới có quyền truy cập Quản lý QPoint!", "warning");
                 } else {
