@@ -1368,6 +1368,10 @@
             <button onclick="window.location.href='course-manager.html'" id="nav-courses" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-layer-group"></i> Quản lý Khóa học</button>
             <button onclick="window.location.href='dashboard-mapid.html'" id="nav-mapid" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-sitemap"></i> Quản lý ID</button>
             <button onclick="window.location.href='book-manager.html'" id="nav-books" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-3"><i class="fa-solid fa-book-journal-whills"></i> Sách Số Hóa</button>
+            <button onclick="window.openNoteRendererApp()" id="nav-note-renderer" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
+                <span class="flex items-center gap-3"><i class="fa-solid fa-pen-ruler text-pink-500"></i> Bảng Vẽ & Note</span>
+                <span class="text-[9px] bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-300 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Note App</span>
+            </button>
             <button onclick="window.open('tex2mathtype.html', '_blank')" id="nav-tex2mathtype" class="nav-item w-full text-left px-3 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between">
                 <span class="flex items-center gap-3"><i class="fa-solid fa-square-root-variable text-blue-500"></i> TeX2MathType Pro</span>
                 <span class="text-[9px] bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Web Wasm</span>
@@ -4259,6 +4263,10 @@
                                                 <input type="checkbox" class="cfg-default-perm-chk accent-rose-600" value="topics.use">
                                                 <span>🧩 Khai thác Xưởng Chuyên Đề</span>
                                             </label>
+                                        <label class="flex items-center gap-1.5 cursor-pointer p-1 rounded font-medium text-pink-700 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/40">
+                                            <input type="checkbox" class="perm-chk accent-pink-600" value="note.use">
+                                            <span>🎨 Bảng Vẽ & Note (note.qmath.io.vn)</span>
+                                        </label>
                                         </div>
                                     </div>
                                 </div>
@@ -5413,7 +5421,38 @@
 
         window._moduleSwitchView = (viewName, pushHistory = true) => {
             // Chặn Giáo viên truy cập Quản lý QPoint (Chỉ Super Admin)
-            if (viewName === 'qpoint' && typeof window.checkIsSuperAdmin === 'function' && !window.checkIsSuperAdmin()) {
+            if (viewName === 'qpoint' && typeof 
+    // Mở ứng dụng Bảng Vẽ & Note (note.qmath.io.vn) với phân quyền tài khoản LMS
+    window.openNoteRendererApp = () => {
+        const isSuper = window.checkIsSuperAdmin ? window.checkIsSuperAdmin() : false;
+        const canUseNote = isSuper || (window.hasPermission && window.hasPermission('note.use'));
+
+        if (!canUseNote) {
+            const noPermMsg = "⛔ Thầy/Cô chưa được Super Admin cấp quyền truy cập Ứng dụng Bảng vẽ & Note (note.qmath.io.vn). Vui lòng liên hệ Quản trị viên để được mở tính năng này!";
+            if (window.showNotification) window.showNotification(noPermMsg, 'warning');
+            else if (window.showToast) window.showToast(noPermMsg, 'warning');
+            else alert(noPermMsg);
+            return;
+        }
+
+        const user = window.auth?.currentUser || window.currentUser;
+        const profile = window.currentAdminProfile || {};
+        const uid = user?.uid || profile.uid || 'guest';
+        const email = user?.email || profile.email || '';
+        const name = profile.displayName || user?.displayName || 'Giáo viên';
+        const role = isSuper ? 'super_admin' : (profile.role || 'teacher');
+        const token = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify({ uid, email, role, name, time: Date.now() })))));
+
+        const targetUrl = "https://note.qmath.io.vn/?uid=" + encodeURIComponent(uid) + 
+                          "&email=" + encodeURIComponent(email) + 
+                          "&name=" + encodeURIComponent(name) + 
+                          "&role=" + encodeURIComponent(role) + 
+                          "&auth_source=qmath_lms&token=" + token;
+        
+        window.open(targetUrl, '_blank');
+    };
+
+        window.checkIsSuperAdmin === 'function' && !window.checkIsSuperAdmin()) {
                 if (window.showNotification) {
                     window.showNotification("⛔ Chỉ Super Admin mới có quyền truy cập Quản lý QPoint!", "warning");
                 } else {
@@ -5676,7 +5715,7 @@
             'bank.use_shared', 'bank.manage_own', 'bank.manage_system',
             'courses.use', 'courses.manage', 'courses.delete',
             'books.create',
-            'topics.use',
+            'topics.use', 'note.use',
             'ai.use', 'ai.manage',
             'orders.view', 'orders.process', 'orders.delete',
             'vouchers.manage',
@@ -5689,7 +5728,7 @@
             teacher_full: [
                 'classes.view', 'classes.manage', 'students.manage',
                 'exams.create', 'exams.assign', 'exams.grade', 'exams.manage_own', 'exams.delete_own',
-                'bank.use_shared', 'bank.manage_own', 'courses.use', 'books.create', 'topics.use', 'ai.use', 'security.anti_screenshot',
+                'bank.use_shared', 'bank.manage_own', 'courses.use', 'books.create', 'topics.use', 'note.use', 'ai.use', 'security.anti_screenshot',
                 'exams.view', 'courses.view'
             ],
             teacher_basic: [
@@ -5939,7 +5978,12 @@
             if (btnBankBackup) btnBankBackup.style.display = isSuper ? '' : 'none';
 
             // 5. Xưởng Chuyên Đề (CHỈ Super Admin hoặc có quyền topics.use - Yêu cầu 3)
-            const canTopics = isSuper || window.hasPermission('topics.use');
+            
+            // Quyền sử dụng Bảng Vẽ & Note (note.qmath.io.vn)
+            const canNote = isSuper || window.hasPermission('note.use');
+            const navNote = document.getElementById('nav-note-renderer');
+            if (navNote) navNote.style.display = canNote ? '' : 'none';
+        const canTopics = isSuper || window.hasPermission('topics.use');
             const navTopicBuilder = document.getElementById('nav-topic-builder');
             if (navTopicBuilder) navTopicBuilder.style.display = canTopics ? '' : 'none';
             const homeCardTopics = document.getElementById('home-card-topics');
@@ -15859,9 +15903,6 @@ function renderTagFilterUI() {
 
                 // Chuyển sang xem Ngân hàng riêng của tôi
                 window.switchBankSubView('my_vault');
-                if (typeof window.updateBankVaultBadges === 'function') window.updateBankVaultBadges();
-                return;
-            }
                 if (typeof window.updateBankVaultBadges === 'function') window.updateBankVaultBadges();
                 return;
             }
