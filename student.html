@@ -31,7 +31,7 @@
     <script>
     // Tự động giải phóng Service Worker & Cache cũ để cập nhật phiên bản mới
     (function() {
-        const CACHE_RESET_ID = 'qmath_student_v18_reset';
+        const CACHE_RESET_ID = 'qmath_student_v19_reset';
         if (localStorage.getItem('qm_reset_cache_student') !== CACHE_RESET_ID) {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -606,12 +606,6 @@
             <button onclick="switchTab('market')" id="nav-market" class="sidebar-item w-full text-left px-4 py-3 text-gray-600 flex items-center gap-3 transition-all rounded-xl"><i class="fa-solid fa-store w-5"></i> Đăng ký khóa mới</button>
             <button onclick="window.openQrScannerModal()" id="nav-qr-scan" class="sidebar-item w-full text-left px-4 py-3 text-gray-600 flex items-center gap-3 transition-all rounded-xl hover:bg-blue-50 hover:text-blue-700"><i class="fa-solid fa-qrcode w-5 text-blue-600"></i> <span>Quét mã QR</span></button>
             <button onclick="window.openMyStudentCardModal()" id="nav-my-card" class="sidebar-item w-full text-left px-4 py-3 text-gray-600 flex items-center gap-3 transition-all rounded-xl hover:bg-amber-50 hover:text-amber-700 cursor-pointer"><i class="fa-solid fa-id-card w-5 text-amber-600"></i> <span>Thẻ học sinh của em</span></button>
-            
-            <div id="nav-teacher-heading" class="px-4 pt-3 pb-1 text-[10px] font-black text-indigo-500 uppercase tracking-wider flex items-center gap-1.5"><i id="nav-teacher-head-icon" class="fa-solid fa-crown text-amber-500 text-[11px]"></i> <span>Giảng dạy</span></div>
-            <button onclick="window.handleTeacherAction()" id="nav-teacher-upgrade" class="sidebar-item w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center justify-between text-indigo-700 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 border border-indigo-200/80 font-bold shadow-2xs cursor-pointer">
-                <span id="nav-teacher-label" class="flex items-center gap-2.5"><i id="nav-teacher-icon" class="fa-solid fa-graduation-cap text-indigo-600 text-base"></i> <span id="nav-teacher-text">Đăng ký Giáo viên</span></span>
-                <span id="nav-teacher-badge" class="text-[9px] bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider shadow-2xs">VIP</span>
-            </button>
         </nav>
         
         <div class="p-3 md:p-4 border-t border-primary-100 bg-primary-50/30 relative z-10 space-y-3 shrink-0 pb-8 md:pb-4 mt-auto">
@@ -631,13 +625,26 @@
                 </button>
             </div>
 
-            <div class="flex items-center gap-3 cursor-pointer group bg-white p-3 rounded-xl border border-primary-50 shadow-sm hover:border-primary-200 transition-all" onclick="openProfileModal()">
-                <img id="userAvatar" src="https://placehold.co/150" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
+            <div class="flex items-center gap-3 cursor-pointer group bg-white dark:bg-slate-800 p-3 rounded-xl border border-primary-50 dark:border-slate-700 shadow-sm hover:border-primary-200 dark:hover:border-slate-600 transition-all" onclick="openProfileModal()">
+                <img id="userAvatar" src="https://placehold.co/150" class="w-10 h-10 rounded-full border-2 border-white dark:border-slate-700 shadow-sm object-cover shrink-0">
                 <div class="flex-1 min-w-0">
-                    <p id="userName" class="text-sm font-bold text-gray-800 truncate">Đang tải...</p>
-                    <p class="text-[10px] text-primary-600 font-bold uppercase flex items-center gap-1"><span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Học sinh</p>
+                    <p id="userName" class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate leading-snug">Đang tải...</p>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <span class="text-[10px] text-primary-600 dark:text-primary-400 font-bold uppercase flex items-center gap-1 whitespace-nowrap">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Học sinh
+                        </span>
+                        <!-- Nút swap sang giao diện Giáo viên đặt gọn gàng cạnh chữ Học sinh -->
+                        <button type="button" 
+                                id="btnSwitchTeacher" 
+                                onclick="event.stopPropagation(); window.handleTeacherAction()" 
+                                class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-200/90 dark:border-emerald-800 shadow-2xs hover:shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap" 
+                                title="Chuyển sang Bàn làm việc Giáo viên">
+                            <i id="btnSwitchTeacherIcon" class="fa-solid fa-chalkboard-user text-emerald-600 dark:text-emerald-400 text-[10px]"></i>
+                            <span id="btnSwitchTeacherText">Vào GV</span>
+                        </button>
+                    </div>
                 </div>
-                <i class="fa-solid fa-gear text-gray-300 group-hover:text-primary-600 transition-colors"></i>
+                <i class="fa-solid fa-gear text-gray-300 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors shrink-0" title="Cài đặt tài khoản"></i>
             </div>
             <div class="flex gap-2">
                 <button onclick="toggleDarkMode()" id="darkModeBtn" title="Chế độ Sáng/Tối" class="py-2.5 px-3.5 bg-white border border-gray-200 text-gray-500 hover:text-primary-600 hover:border-primary-200 font-bold text-sm flex items-center justify-center transition-all rounded-xl shadow-sm"><i class="fa-solid fa-moon"></i></button>
@@ -1512,34 +1519,32 @@
 
         window.updateTeacherSwitchUI = function(isTeacher) {
             window.isCurrentUserTeacher = isTeacher;
-            const navText = document.getElementById('nav-teacher-text');
-            const navIcon = document.getElementById('nav-teacher-icon');
-            const navBadge = document.getElementById('nav-teacher-badge');
-            const navUpgrade = document.getElementById('nav-teacher-upgrade');
             const mobBtn = document.getElementById('mobileTeacherBtn');
             const mobText = document.getElementById('mobileTeacherBtnText');
             const mobIcon = document.getElementById('mobileTeacherBtnIcon');
 
+            const btnSwitch = document.getElementById('btnSwitchTeacher');
+            const btnSwitchText = document.getElementById('btnSwitchTeacherText');
+            const btnSwitchIcon = document.getElementById('btnSwitchTeacherIcon');
+
             if (isTeacher) {
-                if (navText) navText.textContent = "Bàn làm việc GV";
-                if (navIcon) navIcon.className = "fa-solid fa-chalkboard-user text-indigo-600 text-base";
-                if (navBadge) {
-                    navBadge.textContent = "VÀO";
-                    navBadge.className = "text-[9px] bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider shadow-2xs";
+                if (btnSwitch) {
+                    btnSwitch.title = "Chuyển sang Bàn làm việc Giáo viên";
+                    btnSwitch.className = "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-200/90 dark:border-emerald-800 shadow-2xs hover:shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap";
                 }
-                if (navUpgrade) navUpgrade.title = "Chuyển sang Bàn làm việc Giáo viên";
+                if (btnSwitchText) btnSwitchText.textContent = "Vào GV";
+                if (btnSwitchIcon) btnSwitchIcon.className = "fa-solid fa-chalkboard-user text-emerald-600 dark:text-emerald-400 text-[10px]";
 
                 if (mobText) mobText.textContent = "Vào GV";
                 if (mobIcon) mobIcon.className = "fa-solid fa-chalkboard-user text-indigo-600 text-sm";
                 if (mobBtn) mobBtn.title = "Vào Bàn làm việc Giáo viên";
             } else {
-                if (navText) navText.textContent = "Đăng ký Giáo viên";
-                if (navIcon) navIcon.className = "fa-solid fa-graduation-cap text-indigo-600 text-base";
-                if (navBadge) {
-                    navBadge.textContent = "VIP";
-                    navBadge.className = "text-[9px] bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-wider shadow-2xs";
+                if (btnSwitch) {
+                    btnSwitch.title = "Đăng ký làm Giáo viên VIP";
+                    btnSwitch.className = "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/70 hover:bg-purple-100 dark:hover:bg-purple-900/80 border border-purple-200/90 dark:border-purple-800 shadow-2xs hover:shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap";
                 }
-                if (navUpgrade) navUpgrade.title = "Đăng ký làm Giáo viên";
+                if (btnSwitchText) btnSwitchText.textContent = "Làm GV";
+                if (btnSwitchIcon) btnSwitchIcon.className = "fa-solid fa-graduation-cap text-purple-600 dark:text-purple-400 text-[10px]";
 
                 if (mobText) mobText.textContent = "Làm GV";
                 if (mobIcon) mobIcon.className = "fa-solid fa-graduation-cap text-indigo-600 text-sm";
@@ -1548,7 +1553,11 @@
         };
 
         window.handleTeacherAction = function() {
-            if (window.isCurrentUserTeacher) {
+            const currentUser = window.auth?.currentUser;
+            const userEmail = (currentUser?.email || '').toLowerCase().trim();
+            const isExplicitAdmin = (typeof ADMIN_EMAILS !== 'undefined' ? ADMIN_EMAILS : []).map(e => e.toLowerCase()).includes(userEmail);
+
+            if (window.isCurrentUserTeacher || isExplicitAdmin) {
                 window.switchToTeacherMode();
             } else {
                 window.openStudentTeacherUpgradeModal();
