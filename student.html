@@ -31,7 +31,7 @@
     <script>
     // Tự động giải phóng Service Worker & Cache cũ để cập nhật phiên bản mới
     (function() {
-        const CACHE_RESET_ID = 'qmath_student_v19_reset';
+        const CACHE_RESET_ID = 'qmath_student_v20_reset';
         if (localStorage.getItem('qm_reset_cache_student') !== CACHE_RESET_ID) {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -629,26 +629,19 @@
                 <img id="userAvatar" src="https://placehold.co/150" class="w-10 h-10 rounded-full border-2 border-white dark:border-slate-700 shadow-sm object-cover shrink-0">
                 <div class="flex-1 min-w-0">
                     <p id="userName" class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate leading-snug">Đang tải...</p>
-                    <div class="flex items-center gap-1.5 mt-0.5">
-                        <span class="text-[10px] text-primary-600 dark:text-primary-400 font-bold uppercase flex items-center gap-1 whitespace-nowrap">
-                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Học sinh
-                        </span>
-                        <!-- Nút swap sang giao diện Giáo viên đặt gọn gàng cạnh chữ Học sinh -->
-                        <button type="button" 
-                                id="btnSwitchTeacher" 
-                                onclick="event.stopPropagation(); window.handleTeacherAction()" 
-                                class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-200/90 dark:border-emerald-800 shadow-2xs hover:shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap" 
-                                title="Chuyển sang Bàn làm việc Giáo viên">
-                            <i id="btnSwitchTeacherIcon" class="fa-solid fa-chalkboard-user text-emerald-600 dark:text-emerald-400 text-[10px]"></i>
-                            <span id="btnSwitchTeacherText">Vào GV</span>
-                        </button>
-                    </div>
+                    <p class="text-[10px] text-primary-600 dark:text-primary-400 font-bold uppercase flex items-center gap-1 mt-0.5"><span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Học sinh</p>
                 </div>
                 <i class="fa-solid fa-gear text-gray-300 dark:text-slate-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors shrink-0" title="Cài đặt tài khoản"></i>
             </div>
             <div class="flex gap-2">
-                <button onclick="toggleDarkMode()" id="darkModeBtn" title="Chế độ Sáng/Tối" class="py-2.5 px-3.5 bg-white border border-gray-200 text-gray-500 hover:text-primary-600 hover:border-primary-200 font-bold text-sm flex items-center justify-center transition-all rounded-xl shadow-sm"><i class="fa-solid fa-moon"></i></button>
-                <button onclick="handleLogout()" class="flex-1 py-2.5 bg-white border border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 font-bold text-sm flex items-center justify-center gap-2 transition-all rounded-xl shadow-sm"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+                <button onclick="toggleDarkMode()" id="darkModeBtn" title="Chế độ Sáng/Tối" class="py-2.5 px-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 hover:text-primary-600 font-bold text-sm flex items-center justify-center transition-all rounded-xl shadow-sm shrink-0"><i class="fa-solid fa-moon"></i></button>
+                <button type="button" onclick="window.handleTeacherAction()" id="btnSwitchTeacher" title="Chuyển sang Bàn làm việc Giáo viên" class="py-2.5 px-3 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-300 font-bold text-sm flex items-center justify-center gap-1.5 transition-all rounded-xl shadow-sm shrink-0 active:scale-95 cursor-pointer">
+                    <i id="btnSwitchTeacherIcon" class="fa-solid fa-chalkboard-user text-sm"></i>
+                    <span id="btnSwitchTeacherText" class="text-xs font-bold">GV</span>
+                </button>
+                <button onclick="handleLogout()" class="flex-1 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-950/40 font-bold text-sm flex items-center justify-center gap-2 transition-all rounded-xl shadow-sm truncate">
+                    <i class="fa-solid fa-right-from-bracket shrink-0"></i> <span class="truncate">Đăng xuất</span>
+                </button>
             </div>
         </div>
     </aside>
@@ -1530,10 +1523,10 @@
             if (isTeacher) {
                 if (btnSwitch) {
                     btnSwitch.title = "Chuyển sang Bàn làm việc Giáo viên";
-                    btnSwitch.className = "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-200/90 dark:border-emerald-800 shadow-2xs hover:shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap";
+                    btnSwitch.className = "py-2.5 px-3 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-300 font-bold text-sm flex items-center justify-center gap-1.5 transition-all rounded-xl shadow-sm shrink-0 active:scale-95 cursor-pointer";
                 }
-                if (btnSwitchText) btnSwitchText.textContent = "Vào GV";
-                if (btnSwitchIcon) btnSwitchIcon.className = "fa-solid fa-chalkboard-user text-emerald-600 dark:text-emerald-400 text-[10px]";
+                if (btnSwitchText) btnSwitchText.textContent = "GV";
+                if (btnSwitchIcon) btnSwitchIcon.className = "fa-solid fa-chalkboard-user text-sm text-indigo-600 dark:text-indigo-400";
 
                 if (mobText) mobText.textContent = "Vào GV";
                 if (mobIcon) mobIcon.className = "fa-solid fa-chalkboard-user text-indigo-600 text-sm";
@@ -1541,10 +1534,10 @@
             } else {
                 if (btnSwitch) {
                     btnSwitch.title = "Đăng ký làm Giáo viên VIP";
-                    btnSwitch.className = "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/70 hover:bg-purple-100 dark:hover:bg-purple-900/80 border border-purple-200/90 dark:border-purple-800 shadow-2xs hover:shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap";
+                    btnSwitch.className = "py-2.5 px-2.5 bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:border-purple-300 font-bold text-sm flex items-center justify-center gap-1.5 transition-all rounded-xl shadow-sm shrink-0 active:scale-95 cursor-pointer";
                 }
                 if (btnSwitchText) btnSwitchText.textContent = "Làm GV";
-                if (btnSwitchIcon) btnSwitchIcon.className = "fa-solid fa-graduation-cap text-purple-600 dark:text-purple-400 text-[10px]";
+                if (btnSwitchIcon) btnSwitchIcon.className = "fa-solid fa-graduation-cap text-sm text-purple-600 dark:text-purple-400";
 
                 if (mobText) mobText.textContent = "Làm GV";
                 if (mobIcon) mobIcon.className = "fa-solid fa-graduation-cap text-indigo-600 text-sm";
