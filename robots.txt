@@ -1,0 +1,50 @@
+# QMath LMS Anti-Agent & Anti-Scraper Policy
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: OAI-SearchBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
+
+User-agent: HTTrack
+Disallow: /
+
+User-agent: WebCopier
+Disallow: /
+
+User-agent: TeleportPro
+Disallow: /
+
+User-agent: *
+Disallow: /dashboard.html
+Disallow: /exam-editor.html
+Disallow: /omr-grader.html
+Disallow: /course-manager.html
+Disallow: /book-manager.html
+Disallow: /omr/

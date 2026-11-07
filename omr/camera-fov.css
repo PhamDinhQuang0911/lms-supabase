@@ -1,0 +1,2 @@
+/* Giữ toàn bộ góc nhìn gốc của camera, không cắt zoom để lấp màn hình. */
+.camera-overlay video{object-fit:contain}

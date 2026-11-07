@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Trung Tâm Giám Sát Phòng Thi Trực Tiếp - Toán Thầy Choang</title>
+    <link rel="icon" type="image/png" href="/apple-touch-icon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/styles.css?v=18">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        try {
+            if (localStorage.theme === 'dark' || localStorage.getItem('qmath_theme') === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) {}
+        (function() {
+            var m = new Date().getMonth() + 1;
+            var s = 'autumn';
+            if (m === 11 || m === 12 || m === 1) s = 'winter';
+            else if (m >= 2 && m <= 4) s = 'spring';
+            else if (m >= 5 && m <= 7) s = 'summer';
+            try {
+                var saved = localStorage.getItem('app_season_override');
+                if (saved && ['spring', 'summer', 'autumn', 'winter'].indexOf(saved) !== -1) s = saved;
+            } catch (e) {}
+            document.documentElement.setAttribute('data-season', s);
+        })();
+    </script>
+    <style>
+        :root {
+            --season-from: #f59e0b;
+            --season-to: #ea580c;
+            --season-hover-from: #d97706;
+            --season-hover-to: #c2410c;
+            --season-shadow: rgba(234, 88, 12, 0.25);
+            --season-glow: rgba(234, 88, 12, 0.12);
+            --season-badge-bg: #fff7ed;
+            --season-badge-border: #fed7aa;
+            --season-badge-text: #c2410c;
+        }
+        [data-season="spring"] {
+            --season-from: #f472b6;
+            --season-to: #e11d48;
+            --season-hover-from: #ec4899;
+            --season-hover-to: #be123c;
+            --season-shadow: rgba(225, 29, 72, 0.25);
+            --season-glow: rgba(225, 29, 72, 0.12);
+            --season-badge-bg: #fdf2f8;
+            --season-badge-border: #fbcfe8;
+            --season-badge-text: #be185d;
+        }
+        [data-season="summer"] {
+            --season-from: #38bdf8;
+            --season-to: #2563eb;
+            --season-hover-from: #0284c7;
+            --season-hover-to: #1d4ed8;
+            --season-shadow: rgba(37, 99, 235, 0.25);
+            --season-glow: rgba(37, 99, 235, 0.12);
+            --season-badge-bg: #eff6ff;
+            --season-badge-border: #bfdbfe;
+            --season-badge-text: #1d4ed8;
+        }
+        [data-season="autumn"] {
+            --season-from: #f59e0b;
+            --season-to: #ea580c;
+            --season-hover-from: #d97706;
+            --season-hover-to: #c2410c;
+            --season-shadow: rgba(234, 88, 12, 0.25);
+            --season-glow: rgba(234, 88, 12, 0.12);
+            --season-badge-bg: #fff7ed;
+            --season-badge-border: #fed7aa;
+            --season-badge-text: #c2410c;
+        }
+        [data-season="winter"] {
+            --season-from: #818cf8;
+            --season-to: #4f46e5;
+            --season-hover-from: #6366f1;
+            --season-hover-to: #4338ca;
+            --season-shadow: rgba(79, 70, 229, 0.25);
+            --season-glow: rgba(79, 70, 229, 0.12);
+            --season-badge-bg: #eef2ff;
+            --season-badge-border: #c7d2fe;
+            --season-badge-text: #4338ca;
+        }
+
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        html, body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+
+        .season-bg-surface {
+            background: radial-gradient(circle at top right, var(--season-glow), transparent 45%),
+                        radial-gradient(circle at bottom left, var(--season-glow), transparent 45%),
+                        #f8fafc;
+        }
+        .dark .season-bg-surface {
+            background: radial-gradient(circle at top right, var(--season-glow), transparent 45%), #0f172a;
+        }
+
+        .btn-season-primary {
+            background: linear-gradient(135deg, var(--season-from), var(--season-to)) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255,255,255,0.2) !important;
+            box-shadow: 0 4px 14px var(--season-shadow), inset 0 1px 0 rgba(255,255,255,0.25) !important;
+            transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1) !important;
+        }
+        .btn-season-primary:hover {
+            background: linear-gradient(135deg, var(--season-hover-from), var(--season-hover-to)) !important;
+            box-shadow: 0 6px 20px var(--season-shadow), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+            transform: translateY(-1px);
+        }
+        .btn-season-primary:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .btn-season-secondary {
+            background: var(--season-badge-bg) !important;
+            color: var(--season-badge-text) !important;
+            border: 1px solid var(--season-badge-border) !important;
+            transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1) !important;
+        }
+        .btn-season-secondary:hover {
+            background: linear-gradient(135deg, var(--season-from), var(--season-to)) !important;
+            color: #ffffff !important;
+            border-color: transparent !important;
+            box-shadow: 0 4px 12px var(--season-shadow) !important;
+            transform: translateY(-1px);
+        }
+        .dark .btn-season-secondary {
+            background: rgba(255, 255, 255, 0.07) !important;
+            border-color: rgba(255, 255, 255, 0.14) !important;
+            color: var(--season-from) !important;
+        }
+
+        .badge-season {
+            background: var(--season-badge-bg) !important;
+            color: var(--season-badge-text) !important;
+            border: 1px solid var(--season-badge-border) !important;
+        }
+        .dark .badge-season {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            color: var(--season-from) !important;
+        }
+
+        .season-text {
+            color: var(--season-to) !important;
+        }
+        .dark .season-text {
+            color: var(--season-from) !important;
+        }
+
+        .season-progress-bar {
+            background: linear-gradient(90deg, var(--season-from), var(--season-to)) !important;
+            box-shadow: 0 0 10px var(--season-shadow);
+        }
+
+        .glossy-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .glossy-card:hover {
+            border-color: var(--season-badge-border);
+            box-shadow: 0 10px 26px -6px var(--season-shadow);
+            transform: translateY(-2px);
+        }
+        .dark .glossy-card {
+            background: rgba(30, 41, 59, 0.88);
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.3);
+        }
+
+        .kpi-card-active {
+            border-color: var(--season-to) !important;
+            background: var(--season-badge-bg) !important;
+            box-shadow: 0 6px 18px -4px var(--season-shadow) !important;
+        }
+        .dark .kpi-card-active {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: var(--season-from) !important;
+        }
+
+        @keyframes fadeUpSmooth {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-card-enter {
+            animation: fadeUpSmooth 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        /* Explicit Layout & Responsive Grid System (independent of purged Tailwind classes) */
+        .lm-header-wrap {
+            max-width: 1440px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        @media (min-width: 640px) {
+            .lm-header-wrap { padding: 12px 20px; }
+        }
+        .lm-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+        }
+        .lm-header-selectors {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(226, 232, 240, 0.75);
+        }
+        .dark .lm-header-selectors {
+            border-top-color: rgba(51, 65, 85, 0.75);
+        }
+        @media (min-width: 640px) {
+            .lm-header-selectors {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            .lm-selector-exam { flex: 1; max-width: 440px; }
+            .lm-selector-class { width: 260px; }
+        }
+
+        .lm-main-layout {
+            flex: 1;
+            max-width: 1440px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 14px 12px 28px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+        @media (min-width: 640px) {
+            .lm-main-layout { padding: 18px 20px 32px; }
+        }
+        @media (min-width: 1024px) {
+            .lm-main-layout {
+                grid-template-columns: minmax(0, 1fr) 340px;
+                gap: 20px;
+            }
+        }
+
+        .lm-left-col {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .lm-right-col {
+            min-width: 0;
+        }
+        .lm-event-panel {
+            height: 440px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        @media (min-width: 1024px) {
+            .lm-event-panel {
+                height: 650px;
+                position: sticky;
+                top: 96px;
+            }
+        }
+
+        .lm-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .lm-kpi-span-mobile {
+            grid-column: span 2 / span 2;
+        }
+        @media (min-width: 640px) {
+            .lm-kpi-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+            .lm-kpi-span-mobile {
+                grid-column: span 1 / span 1;
+            }
+        }
+        @media (min-width: 1024px) {
+            .lm-kpi-grid {
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+            }
+        }
+
+        .lm-filter-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 12px;
+        }
+        @media (min-width: 768px) {
+            .lm-filter-bar {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+        }
+
+        .lm-filter-tabs {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 6px;
+            width: 100%;
+        }
+        @media (min-width: 640px) {
+            .lm-filter-tabs {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                width: auto;
+                gap: 6px;
+            }
+        }
+        .lm-filter-btn {
+            padding: 7px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        @media (min-width: 640px) {
+            .lm-filter-btn { padding: 7px 13px; }
+        }
+
+        .lm-search-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .lm-search-group { width: auto; }
+        }
+        .lm-search-input-wrap {
+            position: relative;
+            flex: 1;
+        }
+        @media (min-width: 768px) {
+            .lm-search-input-wrap { width: 220px; flex: none; }
+        }
+
+        .lm-students-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 640px) {
+            .lm-students-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (min-width: 1180px) {
+            .lm-students-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 14px;
+            }
+        }
+
+        .lm-qr-print-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+        @media (min-width: 640px) {
+            .lm-qr-print-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (min-width: 960px) {
+            .lm-qr-print-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        .lm-q-grid {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            gap: 6px;
+        }
+        @media (min-width: 640px) {
+            .lm-q-grid {
+                grid-template-columns: repeat(10, minmax(0, 1fr));
+            }
+        }
+
+        .lm-label-sm { display: none; }
+        @media (min-width: 640px) {
+            .lm-label-sm { display: inline; }
+        }
+        .lm-label-md { display: none; }
+        @media (min-width: 768px) {
+            .lm-label-md { display: inline; }
+        }
+        .lm-label-xl { display: none; }
+        @media (min-width: 1200px) {
+            .lm-label-xl { display: inline; }
+        }
+
+        @media print {
+            body * { visibility: hidden !important; }
+            #printQrSheetArea, #printQrSheetArea * { visibility: visible !important; }
+            #printQrSheetArea {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                background: #fff !important;
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body class="season-bg-surface text-gray-800 dark:text-gray-100 min-h-screen flex flex-col">
+
+    <!-- Glossy Seasonal Top Header (Fits mobile & desktop cleanly) -->
+    <header class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md sticky top-0 z-30 border-b border-gray-200/80 dark:border-gray-800 shadow-xs">
+        <div class="lm-header-wrap">
+            <!-- Row 1: Title + Quick Action Toolbar -->
+            <div class="lm-header-top">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <a href="dashboard.html" class="w-9 h-9 rounded-xl btn-season-secondary flex items-center justify-center shrink-0" title="Quay lại Bàn làm việc Giáo viên">
+                        <i class="fa-solid fa-arrow-left text-xs sm:text-sm"></i>
+                    </a>
+                    <div class="w-9 h-9 rounded-xl btn-season-primary flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-satellite-dish text-white text-xs sm:text-sm animate-pulse"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5">
+                            <h1 class="text-xs sm:text-base font-black tracking-tight text-gray-900 dark:text-white truncate">GIÁM SÁT PHÒNG THI TRỰC TIẾP</h1>
+                            <span class="lm-label-sm items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold badge-season uppercase shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-current animate-ping inline-block mr-1"></span>Live
+                            </span>
+                        </div>
+                        <p id="headerExamSubtitle" class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium truncate">Đang đồng bộ dữ liệu lớp & đề thi...</p>
+                    </div>
+                </div>
+
+                <!-- Unified Monochromatic Seasonal Action Buttons (Icon-only on mobile, Icon+Text on desktop) -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="window.openBatchZaloModal()" class="h-9 px-2.5 sm:px-3.5 rounded-xl btn-season-primary font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer" title="Gửi link theo dõi trực tiếp qua Zalo cho Phụ huynh cả lớp">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                        <span class="lm-label-md">Gửi Zalo PHHS</span>
+                    </button>
+
+                    <button type="button" onclick="window.openBatchQrPrintModal()" class="h-9 px-2.5 sm:px-3.5 rounded-xl btn-season-secondary font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer" title="In hoặc tải thẻ QR theo dõi bài thi cho Phụ huynh cả lớp">
+                        <i class="fa-solid fa-qrcode text-xs"></i>
+                        <span class="lm-label-md">QR Phụ huynh</span>
+                    </button>
+
+                    <button type="button" onclick="window.promptBroadcastAll('warn')" class="h-9 px-2.5 sm:px-3 rounded-xl btn-season-secondary font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer" title="Gửi thông báo nhắc nhở cho toàn bộ học sinh đang làm bài">
+                        <i class="fa-solid fa-bullhorn text-xs"></i>
+                        <span class="lm-label-xl">Nhắc cả phòng</span>
+                    </button>
+
+                    <button type="button" onclick="window.promptBroadcastAll('extend')" class="h-9 px-2.5 sm:px-3 rounded-xl btn-season-secondary font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer" title="Cộng thêm thời gian làm bài cho toàn bộ học sinh đang thi">
+                        <i class="fa-solid fa-clock text-xs"></i>
+                        <span class="lm-label-xl">+Giờ</span>
+                    </button>
+
+                    <button type="button" onclick="window.refreshAllData(true)" class="h-9 w-9 rounded-xl btn-season-secondary flex items-center justify-center text-xs font-bold cursor-pointer" title="Làm mới dữ liệu ngay">
+                        <i id="topRefreshIcon" class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Row 2: Exam & Class Selectors (Fits cleanly on mobile in a 2-col grid) -->
+            <div class="lm-header-selectors">
+                <div class="lm-selector-exam flex items-center gap-1.5 min-w-0">
+                    <span class="lm-label-sm text-[11px] font-extrabold text-gray-400 uppercase shrink-0"><i class="fa-solid fa-file-signature mr-1"></i>Đề thi:</span>
+                    <select id="examSelectDropdown" onchange="window.onSwitchExam(this.value)" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 text-xs font-bold rounded-xl px-2.5 py-1.5 outline-none focus:border-orange-500 truncate cursor-pointer">
+                        <option value="">-- Chọn đề thi cần theo dõi --</option>
+                    </select>
+                </div>
+
+                <div class="lm-selector-class flex items-center gap-1.5 min-w-0">
+                    <span class="lm-label-sm text-[11px] font-extrabold text-gray-400 uppercase shrink-0"><i class="fa-solid fa-users-rectangle mr-1"></i>Lớp:</span>
+                    <select id="classSelectDropdown" onchange="window.onSwitchClassFilter(this.value)" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 text-xs font-bold rounded-xl px-2.5 py-1.5 outline-none focus:border-orange-500 truncate cursor-pointer">
+                        <option value="ALL">Tất cả lớp được giao</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="lm-main-layout">
+
+        <!-- Left / Center Column -->
+        <div class="lm-left-col">
+
+            <!-- KPI Summary Cards (Unified Seasonal Glossy Cards) -->
+            <div class="lm-kpi-grid" id="kpiCardsContainer">
+                <div data-kpi="ALL" onclick="window.setStatusFilter('ALL')" class="glossy-card kpi-card-active cursor-pointer rounded-2xl p-3">
+                    <div class="text-[10px] font-extrabold text-gray-500 dark:text-gray-400 uppercase flex items-center justify-between">
+                        <span>Tổng sĩ số</span>
+                        <i class="fa-solid fa-users season-text"></i>
+                    </div>
+                    <div id="kpiTotalStudents" class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-1">0</div>
+                    <div class="text-[10px] font-semibold text-gray-400 mt-0.5 truncate">Trong danh sách</div>
+                </div>
+
+                <div data-kpi="doing" onclick="window.setStatusFilter('doing')" class="glossy-card cursor-pointer rounded-2xl p-3">
+                    <div class="text-[10px] font-extrabold text-gray-500 dark:text-gray-400 uppercase flex items-center justify-between">
+                        <span>Đang làm</span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    </div>
+                    <div id="kpiDoing" class="text-xl sm:text-2xl font-black season-text mt-1">0</div>
+                    <div class="text-[10px] font-semibold text-gray-400 mt-0.5 truncate">Trực tuyến</div>
+                </div>
+
+                <div data-kpi="idle" onclick="window.setStatusFilter('idle')" class="glossy-card cursor-pointer rounded-2xl p-3">
+                    <div class="text-[10px] font-extrabold text-gray-500 dark:text-gray-400 uppercase flex items-center justify-between">
+                        <span>Ít tương tác</span>
+                        <i class="fa-regular fa-hourglass-half season-text"></i>
+                    </div>
+                    <div id="kpiIdle" class="text-xl sm:text-2xl font-black text-gray-800 dark:text-gray-100 mt-1">0</div>
+                    <div class="text-[10px] font-semibold text-gray-400 mt-0.5 truncate">Ngưng &gt; 35s</div>
+                </div>
+
+                <div data-kpi="offline" onclick="window.setStatusFilter('offline')" class="glossy-card cursor-pointer rounded-2xl p-3">
+                    <div class="text-[10px] font-extrabold text-gray-500 dark:text-gray-400 uppercase flex items-center justify-between">
+                        <span>Mất kết nối</span>
+                        <i class="fa-solid fa-wifi season-text opacity-70"></i>
+                    </div>
+                    <div id="kpiOffline" class="text-xl sm:text-2xl font-black text-gray-800 dark:text-gray-100 mt-1">0</div>
+                    <div class="text-[10px] font-semibold text-gray-400 mt-0.5 truncate">Mất tín hiệu</div>
+                </div>
+
+                <div data-kpi="submitted" onclick="window.setStatusFilter('submitted')" class="glossy-card cursor-pointer rounded-2xl p-3">
+                    <div class="text-[10px] font-extrabold text-gray-500 dark:text-gray-400 uppercase flex items-center justify-between">
+                        <span>Đã nộp bài</span>
+                        <i class="fa-solid fa-circle-check season-text"></i>
+                    </div>
+                    <div id="kpiSubmitted" class="text-xl sm:text-2xl font-black season-text mt-1">0</div>
+                    <div id="kpiAvgScore" class="text-[10px] font-bold season-text mt-0.5 truncate">Điểm TB: --</div>
+                </div>
+
+                <div data-kpi="not_started" onclick="window.setStatusFilter('not_started')" class="glossy-card cursor-pointer rounded-2xl p-3">
+                    <div class="text-[10px] font-extrabold text-gray-500 dark:text-gray-400 uppercase flex items-center justify-between">
+                        <span>Chưa vào</span>
+                        <i class="fa-regular fa-clock text-gray-400"></i>
+                    </div>
+                    <div id="kpiNotStarted" class="text-xl sm:text-2xl font-black text-gray-700 dark:text-gray-200 mt-1">0</div>
+                    <div class="text-[10px] font-semibold text-gray-400 mt-0.5 truncate">Chưa mở đề</div>
+                </div>
+
+                <div data-kpi="violation" onclick="window.setStatusFilter('violation')" class="glossy-card cursor-pointer rounded-2xl p-3 lm-kpi-span-mobile">
+                    <div class="text-[10px] font-extrabold text-gray-500 dark:text-gray-400 uppercase flex items-center justify-between">
+                        <span>Rời màn hình</span>
+                        <i class="fa-solid fa-shield-halved season-text"></i>
+                    </div>
+                    <div id="kpiViolations" class="text-xl sm:text-2xl font-black season-text mt-1">0</div>
+                    <div class="text-[10px] font-semibold text-gray-400 mt-0.5 truncate">Lượt chuyển tab</div>
+                </div>
+            </div>
+
+            <!-- Filter & Search Toolbar (Fits mobile cleanly without horizontal drag) -->
+            <div class="glossy-card rounded-2xl lm-filter-bar">
+                <div class="lm-filter-tabs" id="statusFilterTabs">
+                    <button type="button" data-status="ALL" onclick="window.setStatusFilter('ALL')" class="lm-filter-btn font-extrabold btn-season-primary" title="Tất cả học sinh">
+                        <i class="fa-solid fa-layer-group text-[11px]"></i>
+                        <span class="lm-label-sm">Tất cả</span>
+                    </button>
+                    <button type="button" data-status="doing" onclick="window.setStatusFilter('doing')" class="lm-filter-btn font-bold btn-season-secondary" title="Đang làm bài">
+                        <i class="fa-solid fa-pen-to-square text-[11px]"></i>
+                        <span class="lm-label-sm">Đang làm</span>
+                    </button>
+                    <button type="button" data-status="offline" onclick="window.setStatusFilter('offline')" class="lm-filter-btn font-bold btn-season-secondary" title="Mất kết nối">
+                        <i class="fa-solid fa-plug-circle-xmark text-[11px]"></i>
+                        <span class="lm-label-sm">Mất kết nối</span>
+                    </button>
+                    <button type="button" data-status="violation" onclick="window.setStatusFilter('violation')" class="lm-filter-btn font-bold btn-season-secondary" title="Có vi phạm rời màn hình">
+                        <i class="fa-solid fa-triangle-exclamation text-[11px]"></i>
+                        <span class="lm-label-sm">Vi phạm</span>
+                    </button>
+                    <button type="button" data-status="submitted" onclick="window.setStatusFilter('submitted')" class="lm-filter-btn font-bold btn-season-secondary" title="Đã nộp bài">
+                        <i class="fa-solid fa-check-double text-[11px]"></i>
+                        <span class="lm-label-sm">Đã nộp</span>
+                    </button>
+                    <button type="button" data-status="not_started" onclick="window.setStatusFilter('not_started')" class="lm-filter-btn font-bold btn-season-secondary" title="Chưa vào thi">
+                        <i class="fa-regular fa-user text-[11px]"></i>
+                        <span class="lm-label-sm">Chưa vào</span>
+                    </button>
+                </div>
+
+                <div class="lm-search-group">
+                    <div class="lm-search-input-wrap">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        <input id="studentSearchInput" oninput="window.renderStudentMonitorList()" type="text" placeholder="Tìm tên, SBD, lớp..." class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-semibold outline-none focus:border-orange-500">
+                    </div>
+                    <select id="sortSelect" onchange="window.renderStudentMonitorList()" class="px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 outline-none shrink-0 cursor-pointer">
+                        <option value="status">Trạng thái</option>
+                        <option value="cheat_desc">Vi phạm nhiều</option>
+                        <option value="progress_desc">Tiến độ cao</option>
+                        <option value="progress_asc">Tiến độ thấp</option>
+                        <option value="name_asc">Tên A → Z</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Students Grid -->
+            <div id="studentsMonitorGrid" class="lm-students-grid">
+                <div class="col-span-full glossy-card rounded-2xl p-10 text-center text-gray-400 font-semibold text-sm">
+                    <i class="fa-solid fa-circle-notch fa-spin text-2xl season-text mb-2"></i>
+                    <p>Đang tải danh sách học sinh...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Live Event Stream -->
+        <div class="lm-right-col">
+            <div class="glossy-card rounded-2xl lm-event-panel">
+                <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-current season-text animate-ping"></span>
+                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-gray-700 dark:text-gray-200">Dòng sự kiện trực tiếp</h3>
+                    </div>
+                    <span id="liveStreamCount" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full badge-season">0 sự kiện</span>
+                </div>
+                <div id="liveEventsContainer" class="flex-1 overflow-y-auto p-3 space-y-2 text-xs">
+                    <div class="text-center text-gray-400 py-10 font-medium">Chưa có sự kiện nào được ghi nhận.</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Student Detail Drawer Modal -->
+    <div id="studentDetailModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-lg h-full shadow-2xl flex flex-col overflow-hidden animate-fade-in">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between" style="background: linear-gradient(135deg, var(--season-from), var(--season-to)); color: #fff;">
+                <div class="min-w-0">
+                    <span id="drawerClassBadge" class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-white/20 text-white border border-white/30">Lớp</span>
+                    <h3 id="drawerStudentName" class="text-base font-black mt-1 truncate">Học sinh</h3>
+                </div>
+                <button type="button" onclick="window.closeStudentDrawer()" class="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center cursor-pointer shrink-0">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+                <!-- Unified Seasonal Quick Action Buttons -->
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" onclick="window.drawerActionWarn()" class="px-2.5 py-2.5 rounded-xl btn-season-secondary font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-bullhorn"></i> Nhắc nhở
+                    </button>
+                    <button type="button" onclick="window.drawerActionExtend(5)" class="px-2.5 py-2.5 rounded-xl btn-season-secondary font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-clock"></i> +5 phút
+                    </button>
+                    <button type="button" onclick="window.drawerActionExtend(10)" class="px-2.5 py-2.5 rounded-xl btn-season-secondary font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-clock-rotate-left"></i> +10 phút
+                    </button>
+                    <button type="button" onclick="window.drawerActionSendZalo()" class="px-2.5 py-2.5 rounded-xl btn-season-primary font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-paper-plane"></i> Gửi Zalo PH
+                    </button>
+                    <button type="button" onclick="window.drawerActionCopyWatchLink()" class="px-2.5 py-2.5 rounded-xl btn-season-secondary font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-link"></i> Copy Link
+                    </button>
+                    <button type="button" onclick="window.drawerActionForceSubmit()" class="px-2.5 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-extrabold text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-file-import"></i> Thu bài
+                    </button>
+                </div>
+
+                <!-- Parent Watch QR Box -->
+                <div class="p-3.5 rounded-2xl badge-season flex items-center gap-3.5">
+                    <div id="drawerQrContainer" class="w-24 h-24 bg-white p-1.5 rounded-xl border border-gray-200 flex items-center justify-center shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-extrabold">Mã QR Phụ huynh theo dõi trực tiếp</div>
+                        <p class="text-[11px] opacity-85 mt-0.5 leading-relaxed">Phụ huynh quét mã này để xem tiến độ làm bài và kết quả của con theo thời gian thực.</p>
+                        <input id="drawerWatchUrlInput" readonly onclick="this.select()" class="mt-2 w-full px-2.5 py-1.5 rounded-lg bg-white text-gray-700 border border-gray-200 text-[11px] font-mono select-all outline-none" value="">
+                    </div>
+                </div>
+
+                <!-- Question Palette Map -->
+                <div>
+                    <div class="text-xs font-extrabold uppercase text-gray-500 mb-2">Bản đồ câu hỏi của học sinh</div>
+                    <div id="drawerQuestionGrid" class="lm-q-grid"></div>
+                </div>
+
+                <!-- Student Event Log -->
+                <div>
+                    <div class="text-xs font-extrabold uppercase text-gray-500 mb-2">Nhật ký hoạt động cá nhân</div>
+                    <div id="drawerEventList" class="space-y-1.5 text-xs"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Zalo Send Modal -->
+    <div id="batchZaloModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 animate-fade-in">
+            <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl badge-season flex items-center justify-center text-base shrink-0">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-black text-gray-900 dark:text-white">Gửi Link Theo Dõi Trực Tiếp qua Zalo</h3>
+                        <p class="text-xs text-gray-500">Mỗi phụ huynh nhận 1 đường link riêng chỉ xem được con mình</p>
+                    </div>
+                </div>
+                <button type="button" onclick="document.getElementById('batchZaloModal').classList.add('hidden')" class="w-8 h-8 rounded-lg btn-season-secondary flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-bold text-gray-700 dark:text-gray-300 block mb-1">Đối tượng gửi:</label>
+                    <select id="batchZaloTargetFilter" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 font-bold text-gray-700 dark:text-gray-200 outline-none">
+                        <option value="all">Tất cả học sinh trong danh sách đang lọc</option>
+                        <option value="doing">Chỉ học sinh đang làm bài</option>
+                        <option value="not_started">Chỉ học sinh chưa vào phòng thi (nhắc PHHS)</option>
+                        <option value="submitted">Chỉ học sinh đã nộp bài (báo kết quả)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-bold text-gray-700 dark:text-gray-300 block mb-1">Webhook Zalo n8n (Tự động lấy từ cấu hình đề thi / hệ thống):</label>
+                    <input id="batchZaloWebhookInput" type="text" placeholder="https://n8n.../webhook/..." class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 font-mono text-xs outline-none">
+                </div>
+                <div id="batchZaloProgressBox" class="hidden p-3 rounded-xl badge-season space-y-2">
+                    <div class="flex justify-between font-bold">
+                        <span id="batchZaloProgressText">Đang gửi...</span>
+                        <span id="batchZaloProgressCount">0/0</span>
+                    </div>
+                    <div class="w-full h-2 bg-white/60 rounded-full overflow-hidden">
+                        <div id="batchZaloProgressBar" class="h-full season-progress-bar transition-all" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <button type="button" onclick="window.copyAllParentLinksClipboard()" class="px-3.5 py-2.5 rounded-xl btn-season-secondary font-bold text-xs cursor-pointer">
+                    <i class="fa-regular fa-copy mr-1"></i> Copy danh sách Link PH
+                </button>
+                <button type="button" id="btnStartBatchZalo" onclick="window.runBatchZaloSend()" class="px-4 py-2.5 rounded-xl btn-season-primary font-extrabold text-xs cursor-pointer">
+                    <i class="fa-solid fa-paper-plane mr-1"></i> Bắt đầu gửi Zalo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Printable QR Sheet Area -->
+    <div id="printQrSheetModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fade-in">
+            <div class="px-4 sm:px-5 py-3.5 flex items-center justify-between text-white gap-2" style="background: linear-gradient(135deg, var(--season-from), var(--season-to));">
+                <div class="min-w-0">
+                    <h3 class="text-xs sm:text-sm font-black uppercase truncate">Bảng Mã QR Theo Dõi Bài Thi Cho Phụ Huynh</h3>
+                    <p class="text-[11px] text-white/85 truncate">In hoặc tải trọn bộ thẻ QR gửi cho từng phụ huynh quét bằng Zalo / Camera</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" id="btnDownloadAllParentQr" onclick="window.downloadAllParentQrCards()" class="px-3.5 py-1.5 rounded-xl bg-white/95 hover:bg-white text-gray-900 font-extrabold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-download season-text"></i>
+                        <span>Tải về toàn bộ thẻ</span>
+                    </button>
+                    <button type="button" onclick="window.print()" class="px-3.5 py-1.5 rounded-xl bg-white text-gray-900 font-extrabold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-print season-text"></i>
+                        <span>In A4</span>
+                    </button>
+                    <button type="button" onclick="document.getElementById('printQrSheetModal').classList.add('hidden')" class="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center cursor-pointer">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="printQrSheetArea" class="flex-1 overflow-y-auto p-4 sm:p-6 bg-white text-gray-900">
+                <div id="printQrGrid" class="lm-qr-print-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import {
+            initializeApp, getAuth, getFirestore, onAuthStateChanged,
+            supabase, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs,
+            getOrCreateParentWatchToken
+        } from './supabase-db-compat.js?v=20261025';
+
+        const app = initializeApp({});
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let currentExamId = '';
+        let currentClassFilter = 'ALL';
+        let currentStatusFilter = 'ALL';
+        let examData = null;
+        let allExamsList = [];
+        let classesMap = {};
+        let attemptsMap = {};
+        let resultsMap = {};
+        let mergedStudents = [];
+        let liveEvents = [];
+        let selectedStudentId = null;
+        let realtimeChannel = null;
+        let pollInterval = null;
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function formatSec(sec) {
+            if (sec === null || sec === undefined || isNaN(sec) || sec < 0) return '--:--';
+            const s = Math.max(0, Math.floor(sec));
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+        }
+
+        function formatTimeShort(iso) {
+            if (!iso) return '--:--';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '--:--';
+            return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function computeStudentLiveState(st) {
+            const att = st.attempt;
+            const res = st.result;
+            if ((att && att.status === 'submitted') || res) {
+                return 'submitted';
+            }
+            if (!att) {
+                return 'not_started';
+            }
+            const lastHb = new Date(att.lastHeartbeat || att.lastUpdated || att.startedAt || 0).getTime();
+            const diffSec = Math.max(0, (Date.now() - lastHb) / 1000);
+            if (diffSec <= 38) return 'doing';
+            if (diffSec <= 68) return 'idle';
+            return 'offline';
+        }
+
+        function isExamAssignedToClass(ex, cid) {
+            if (!ex || !cid || cid === 'ALL') return true;
+            if (ex.allowedClassId === cid) return true;
+            if (Array.isArray(ex.allowedClassIds) && ex.allowedClassIds.includes(cid)) return true;
+            if (Array.isArray(ex.assignTo) && ex.assignTo.includes(cid)) return true;
+            return false;
+        }
+
+        function populateClassDropdown() {
+            const clsSel = document.getElementById('classSelectDropdown');
+            if (!clsSel) return;
+            const allowedClassIds = (examData && Array.isArray(examData.allowedClassIds) && examData.allowedClassIds.length > 0)
+                ? examData.allowedClassIds
+                : Object.keys(classesMap);
+
+            // Make sure currentClassFilter is included if valid
+            const targetClassIds = [...allowedClassIds];
+            if (currentClassFilter !== 'ALL' && classesMap[currentClassFilter] && !targetClassIds.includes(currentClassFilter)) {
+                targetClassIds.unshift(currentClassFilter);
+            }
+
+            clsSel.innerHTML = '<option value="ALL">Tất cả lớp (' + targetClassIds.length + ')</option>' +
+                targetClassIds.map(cid => {
+                    const c = classesMap[cid];
+                    return c ? `<option value="${escapeHtml(cid)}" ${cid === currentClassFilter ? 'selected' : ''}>${escapeHtml(c.name || cid)}</option>` : '';
+                }).join('');
+        }
+
+        function populateExamDropdown() {
+            const sel = document.getElementById('examSelectDropdown');
+            if (!sel) return;
+            // Prioritize exams belonging to currentClassFilter if set
+            const sortedExams = [...allExamsList].sort((a, b) => {
+                if (currentClassFilter !== 'ALL') {
+                    const aMatch = isExamAssignedToClass(a, currentClassFilter) ? 1 : 0;
+                    const bMatch = isExamAssignedToClass(b, currentClassFilter) ? 1 : 0;
+                    if (aMatch !== bMatch) return bMatch - aMatch;
+                }
+                return new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0);
+            });
+
+            sel.innerHTML = '<option value="">-- Chọn đề thi cần theo dõi --</option>' +
+                sortedExams.map(ex => {
+                    const tag = (currentClassFilter !== 'ALL' && isExamAssignedToClass(ex, currentClassFilter)) ? '★ ' : '';
+                    return `<option value="${escapeHtml(ex.id)}" ${ex.id === currentExamId ? 'selected' : ''}>${tag}${escapeHtml(ex.title || 'Đề thi')}</option>`;
+                }).join('');
+        }
+
+        async function loadTeacherExamsAndClasses() {
+            try {
+                const [examsSnap, classesSnap] = await Promise.all([
+                    getDocs(collection(db, 'exams')),
+                    getDocs(collection(db, 'classes'))
+                ]);
+
+                classesMap = {};
+                classesSnap.forEach(d => {
+                    classesMap[d.id] = { id: d.id, ...d.data() };
+                });
+
+                allExamsList = [];
+                examsSnap.forEach(d => {
+                    const data = d.data();
+                    if (data && !data.isDeleted) {
+                        allExamsList.push({ id: d.id, ...data });
+                    }
+                });
+                allExamsList.sort((a, b) => new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0));
+
+                // If opened with ?classId=... and no examId, pick the latest exam assigned to that class
+                if (!currentExamId && currentClassFilter !== 'ALL') {
+                    const classExam = allExamsList.find(ex => isExamAssignedToClass(ex, currentClassFilter));
+                    if (classExam) {
+                        currentExamId = classExam.id;
+                    }
+                }
+                if (!currentExamId && currentClassFilter === 'ALL' && allExamsList.length > 0) {
+                    currentExamId = allExamsList[0].id;
+                }
+
+                populateExamDropdown();
+                populateClassDropdown();
+
+                if (currentExamId) {
+                    await loadExamMonitorContext(currentExamId);
+                } else {
+                    // Render class student roster even if the class has no assigned exam yet
+                    const clsName = classesMap[currentClassFilter]?.name || 'Lớp học';
+                    document.getElementById('headerExamSubtitle').textContent =
+                        `${clsName} • Sẵn sàng cấp mã QR Phụ huynh (Chọn đề thi ở thanh trên để giám sát trực tiếp)`;
+                    rebuildMergedRoster();
+                    renderKpiAndEvents();
+                    window.renderStudentMonitorList();
+                }
+            } catch (e) {
+                console.error('[live-monitor] loadTeacherExamsAndClasses error:', e);
+                document.getElementById('headerExamSubtitle').textContent = 'Không thể tải danh sách đề thi: ' + (e.message || e);
+            }
+        }
+
+        async function loadExamMonitorContext(examId) {
+            if (!examId) {
+                examData = null;
+                rebuildMergedRoster();
+                renderKpiAndEvents();
+                window.renderStudentMonitorList();
+                return;
+            }
+            currentExamId = examId;
+            try {
+                const exSnap = await getDoc(doc(db, 'exams', examId));
+                if (exSnap.exists()) {
+                    examData = { id: exSnap.id, ...exSnap.data() };
+                } else {
+                    examData = allExamsList.find(x => x.id === examId) || { id: examId, title: 'Đề thi' };
+                }
+
+                populateClassDropdown();
+
+                const qCount = examData.questionCount || (Array.isArray(examData.questions) ? examData.questions.length : 0);
+                const clsLabel = currentClassFilter !== 'ALL' && classesMap[currentClassFilter]
+                    ? `Lớp: ${classesMap[currentClassFilter].name} • `
+                    : '';
+                document.getElementById('headerExamSubtitle').textContent =
+                    `${clsLabel}${examData.title || 'Đề thi'} • ${examData.duration || 45} phút${qCount ? ' • ' + qCount + ' câu' : ''}`;
+
+                const whUrl = (examData.n8nWebhooks && (examData.n8nWebhooks.assign || examData.n8nWebhooks.submit || examData.n8nWebhooks.publish)) || '';
+                const whInput = document.getElementById('batchZaloWebhookInput');
+                if (whInput && whUrl) whInput.value = whUrl;
+
+                await refreshAllData(true);
+                subscribeExamRealtime(examId);
+            } catch (e) {
+                console.error('[live-monitor] loadExamMonitorContext error:', e);
+            }
+        }
+
+        async function refreshAllData(showSpinner = false) {
+            const icon = document.getElementById('topRefreshIcon');
+            if (icon && showSpinner) icon.classList.add('fa-spin');
+            try {
+                if (currentExamId) {
+                    const [attSnap, resSnap] = await Promise.all([
+                        getDocs(query(collection(db, 'exam_attempts'), where('examId', '==', currentExamId))),
+                        getDocs(query(collection(db, 'results'), where('examId', '==', currentExamId)))
+                    ]);
+
+                    attemptsMap = {};
+                    attSnap.forEach(d => {
+                        const data = d.data();
+                        const sid = data.studentId || data.student_id || d.id.split('_')[0];
+                        if (sid) attemptsMap[sid] = { id: d.id, ...data };
+                    });
+
+                    resultsMap = {};
+                    resSnap.forEach(d => {
+                        const data = d.data();
+                        const sid = data.studentId || data.student_id;
+                        if (!sid) return;
+                        if (!resultsMap[sid] || new Date(data.submittedAt || 0) > new Date(resultsMap[sid].submittedAt || 0)) {
+                            resultsMap[sid] = { id: d.id, ...data };
+                        }
+                    });
+                }
+
+                rebuildMergedRoster();
+                renderKpiAndEvents();
+                window.renderStudentMonitorList();
+                if (selectedStudentId) renderStudentDrawerContent(selectedStudentId);
+            } catch (e) {
+                console.warn('[live-monitor] refreshAllData error:', e);
+            } finally {
+                if (icon) icon.classList.remove('fa-spin');
+            }
+        }
+
+        function rebuildMergedRoster() {
+            const studentDict = {};
+            const allowedClassIds = (Array.isArray(examData?.allowedClassIds) && examData.allowedClassIds.length > 0)
+                ? examData.allowedClassIds
+                : Object.keys(classesMap);
+
+            const activeClassIds = currentClassFilter !== 'ALL' ? [currentClassFilter] : allowedClassIds;
+
+            activeClassIds.forEach(cid => {
+                const cls = classesMap[cid];
+                if (!cls || !Array.isArray(cls.students)) return;
+                cls.students.forEach(s => {
+                    const uid = s?.uid || s?.id || s?.username;
+                    if (!s || !uid) return;
+                    studentDict[uid] = {
+                        studentId: uid,
+                        studentName: s.name || s.displayName || s.username || s.email || 'Học sinh',
+                        sbd: s.sbd || '',
+                        phoneParent: s.phoneParent || '',
+                        phoneStudent: s.phoneStudent || s.phone || '',
+                        zaloUid: s.zaloUid || '',
+                        classId: cid,
+                        className: cls.name || 'Lớp học',
+                        attempt: attemptsMap[uid] || null,
+                        result: resultsMap[uid] || null
+                    };
+                });
+            });
+
+            Object.keys(attemptsMap).forEach(sid => {
+                const att = attemptsMap[sid];
+                if (currentClassFilter !== 'ALL' && att.classId && att.classId !== currentClassFilter) return;
+                if (!studentDict[sid]) {
+                    studentDict[sid] = {
+                        studentId: sid,
+                        studentName: att.studentName || 'Học sinh',
+                        sbd: att.sbd || '',
+                        phoneParent: '',
+                        phoneStudent: '',
+                        zaloUid: '',
+                        classId: att.classId || 'vang_lai',
+                        className: att.className || (classesMap[att.classId]?.name) || 'Tự do',
+                        attempt: att,
+                        result: resultsMap[sid] || null
+                    };
+                }
+            });
+
+            Object.keys(resultsMap).forEach(sid => {
+                const res = resultsMap[sid];
+                if (currentClassFilter !== 'ALL' && res.classId && res.classId !== currentClassFilter) return;
+                if (!studentDict[sid]) {
+                    studentDict[sid] = {
+                        studentId: sid,
+                        studentName: res.studentName || 'Học sinh',
+                        sbd: '',
+                        phoneParent: '',
+                        phoneStudent: '',
+                        zaloUid: '',
+                        classId: res.classId || 'vang_lai',
+                        className: (classesMap[res.classId]?.name) || 'Tự do',
+                        attempt: attemptsMap[sid] || null,
+                        result: res
+                    };
+                }
+            });
+
+            mergedStudents = Object.values(studentDict).map(st => {
+                st.liveState = computeStudentLiveState(st);
+                const totalQ = Number(st.attempt?.totalQuestions) || Number(st.result?.totalQuestions) || Number(examData?.questionCount) || (Array.isArray(examData?.questions) ? examData.questions.length : 0);
+                const answered = st.liveState === 'submitted'
+                    ? (Number(st.attempt?.answeredCount) || Number(st.result?.totalQuestions) || totalQ)
+                    : (Number(st.attempt?.answeredCount) || Object.keys(st.attempt?.answers || {}).length || 0);
+                st.totalQuestions = totalQ;
+                st.answeredCount = answered;
+                st.progressPct = totalQ > 0 ? Math.min(100, Math.round((answered / totalQ) * 100)) : 0;
+                st.cheatCount = Math.max(Number(st.attempt?.cheatCount) || 0, Number(st.result?.cheatCount) || 0);
+                st.score = st.result?.score ?? st.attempt?.score ?? null;
+                return st;
+            });
+
+            const allEvs = [];
+            mergedStudents.forEach(st => {
+                const evs = st.attempt?.events;
+                if (Array.isArray(evs)) {
+                    evs.forEach(ev => {
+                        allEvs.push({
+                            studentId: st.studentId,
+                            studentName: st.studentName,
+                            className: st.className,
+                            type: ev.type,
+                            detail: ev.detail,
+                            at: ev.at
+                        });
+                    });
+                }
+            });
+            allEvs.sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
+            liveEvents = allEvs.slice(0, 80);
+        }
+
+        function renderKpiAndEvents() {
+            const total = mergedStudents.length;
+            let doing = 0, idle = 0, offline = 0, submitted = 0, notStarted = 0, totalCheat = 0;
+            let scoreSum = 0, scoreCount = 0;
+
+            mergedStudents.forEach(s => {
+                if (s.liveState === 'doing') doing++;
+                else if (s.liveState === 'idle') idle++;
+                else if (s.liveState === 'offline') offline++;
+                else if (s.liveState === 'submitted') submitted++;
+                else notStarted++;
+
+                totalCheat += (s.cheatCount || 0);
+                if (s.score !== null && s.score !== undefined && !isNaN(Number(s.score))) {
+                    scoreSum += Number(s.score);
+                    scoreCount++;
+                }
+            });
+
+            document.getElementById('kpiTotalStudents').textContent = total;
+            document.getElementById('kpiDoing').textContent = doing;
+            document.getElementById('kpiIdle').textContent = idle;
+            document.getElementById('kpiOffline').textContent = offline;
+            document.getElementById('kpiSubmitted').textContent = submitted;
+            document.getElementById('kpiNotStarted').textContent = notStarted;
+            document.getElementById('kpiViolations').textContent = totalCheat;
+            document.getElementById('kpiAvgScore').textContent = scoreCount > 0
+                ? `Điểm TB: ${(scoreSum / scoreCount).toFixed(2)}`
+                : 'Điểm TB: --';
+
+            document.getElementById('liveStreamCount').textContent = `${liveEvents.length} sự kiện`;
+            const evBox = document.getElementById('liveEventsContainer');
+            if (liveEvents.length === 0) {
+                evBox.innerHTML = `<div class="text-center text-gray-400 py-10 font-medium">Chưa có sự kiện nào được ghi nhận.</div>`;
+            } else {
+                evBox.innerHTML = liveEvents.map(ev => {
+                    let icon = 'fa-circle-info season-text';
+                    if (ev.type === 'tab_blur' || ev.type === 'violation') {
+                        icon = 'fa-triangle-exclamation text-red-500';
+                    } else if (ev.type === 'submit') {
+                        icon = 'fa-circle-check season-text';
+                    } else if (ev.type === 'join') {
+                        icon = 'fa-right-to-bracket season-text';
+                    }
+                    return `
+                        <div onclick="window.openStudentDrawer('${escapeHtml(ev.studentId)}')" class="p-2.5 rounded-xl bg-gray-50/80 dark:bg-gray-800/70 border border-gray-200/80 dark:border-gray-700 cursor-pointer hover:border-orange-300 transition-all">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-extrabold text-xs flex items-center gap-1.5 truncate">
+                                    <i class="fa-solid ${icon}"></i>
+                                    ${escapeHtml(ev.studentName)}
+                                </span>
+                                <span class="text-[10px] font-mono text-gray-400 shrink-0">${formatTimeShort(ev.at)}</span>
+                            </div>
+                            <div class="text-[11px] text-gray-600 dark:text-gray-300 font-medium mt-1">${escapeHtml(ev.detail)}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        window.renderStudentMonitorList = () => {
+            const q = (document.getElementById('studentSearchInput')?.value || '').trim().toLowerCase();
+            const sortBy = document.getElementById('sortSelect')?.value || 'status';
+
+            const filtered = mergedStudents.filter(s => {
+                if (currentStatusFilter !== 'ALL') {
+                    if (currentStatusFilter === 'violation') {
+                        if (!s.cheatCount || s.cheatCount <= 0) return false;
+                    } else if (s.liveState !== currentStatusFilter) {
+                        return false;
+                    }
+                }
+                if (q) {
+                    const hay = `${s.studentName} ${s.sbd} ${s.className} ${s.phoneParent}`.toLowerCase();
+                    if (!hay.includes(q)) return false;
+                }
+                return true;
+            });
+
+            const stateWeight = { doing: 1, idle: 2, offline: 3, submitted: 4, not_started: 5 };
+            filtered.sort((a, b) => {
+                if (sortBy === 'cheat_desc') return (b.cheatCount || 0) - (a.cheatCount || 0);
+                if (sortBy === 'progress_desc') return (b.progressPct || 0) - (a.progressPct || 0);
+                if (sortBy === 'progress_asc') return (a.progressPct || 0) - (b.progressPct || 0);
+                if (sortBy === 'name_asc') return (a.studentName || '').localeCompare(b.studentName || '', 'vi');
+                const wa = stateWeight[a.liveState] || 9;
+                const wb = stateWeight[b.liveState] || 9;
+                if (wa !== wb) return wa - wb;
+                return (b.cheatCount || 0) - (a.cheatCount || 0);
+            });
+
+            const grid = document.getElementById('studentsMonitorGrid');
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full glossy-card rounded-2xl p-10 text-center text-gray-400 font-semibold text-sm">Không có học sinh nào khớp bộ lọc hiện tại.</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map((st, idx) => {
+                let statusBadge = '';
+                if (st.liveState === 'doing') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold badge-season flex items-center gap-1.5 shrink-0"><span class="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span> Đang làm</span>`;
+                } else if (st.liveState === 'idle') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold badge-season shrink-0">Ít tương tác</span>`;
+                } else if (st.liveState === 'offline') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-50 text-red-600 border border-red-200 shrink-0">Mất kết nối</span>`;
+                } else if (st.liveState === 'submitted') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold badge-season shrink-0"><i class="fa-solid fa-check mr-1"></i>Đã nộp${st.score !== null ? ` (${st.score}đ)` : ''}</span>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-500 shrink-0">Chưa vào</span>`;
+                }
+
+                const curQText = st.liveState === 'doing' || st.liveState === 'idle'
+                    ? `Câu ${(Number(st.attempt?.currentIndex) || 0) + 1}`
+                    : (st.liveState === 'submitted' ? 'Hoàn thành' : 'Chưa mở đề');
+
+                const tlSec = st.attempt?.timeLeftSec;
+                const timeText = (st.liveState === 'doing' || st.liveState === 'idle') && tlSec !== undefined
+                    ? formatSec(tlSec)
+                    : '--:--';
+
+                return `
+                    <div onclick="window.openStudentDrawer('${escapeHtml(st.studentId)}')" style="animation-delay:${Math.min(idx * 25, 250)}ms" class="glossy-card animate-card-enter rounded-2xl p-3.5 sm:p-4 cursor-pointer flex flex-col justify-between gap-3">
+                        <div>
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0">
+                                    <div class="text-[10px] font-bold text-gray-400 uppercase truncate">${escapeHtml(st.className)} ${st.sbd ? `• SBD: ${escapeHtml(st.sbd)}` : ''}</div>
+                                    <h4 class="font-extrabold text-sm text-gray-900 dark:text-white truncate mt-0.5">${escapeHtml(st.studentName)}</h4>
+                                </div>
+                                ${statusBadge}
+                            </div>
+
+                            <!-- Progress bar -->
+                            <div class="mt-3">
+                                <div class="flex items-center justify-between text-xs font-bold text-gray-600 dark:text-gray-300 mb-1">
+                                    <span>Tiến độ: <b>${st.answeredCount}/${st.totalQuestions || '--'}</b> câu</span>
+                                    <span class="season-text font-extrabold">${st.progressPct}%</span>
+                                </div>
+                                <div class="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div class="h-full season-progress-bar rounded-full transition-all duration-500" style="width:${st.progressPct}%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-[11px] font-bold text-gray-500">
+                            <span><i class="fa-regular fa-compass mr-1 season-text"></i>${curQText}</span>
+                            <span class="font-mono"><i class="fa-regular fa-clock mr-1 season-text"></i>${timeText}</span>
+                            <span class="${st.cheatCount > 0 ? 'text-red-600 font-extrabold' : 'text-gray-400'}">
+                                <i class="fa-solid fa-eye-slash mr-1"></i>${st.cheatCount || 0} lỗi
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        function subscribeExamRealtime(examId) {
+            try {
+                if (realtimeChannel) {
+                    supabase.removeChannel(realtimeChannel);
+                    realtimeChannel = null;
+                }
+                if (!examId) return;
+                realtimeChannel = supabase.channel(`exam-live:${examId}`)
+                    .on('broadcast', { event: 'student_progress' }, ({ payload }) => {
+                        if (!payload || !payload.studentId) return;
+                        attemptsMap[payload.studentId] = {
+                            ...(attemptsMap[payload.studentId] || {}),
+                            ...payload
+                        };
+                        rebuildMergedRoster();
+                        renderKpiAndEvents();
+                        window.renderStudentMonitorList();
+                        if (selectedStudentId === payload.studentId) renderStudentDrawerContent(selectedStudentId);
+                    })
+                    .on('broadcast', { event: 'student_violation' }, ({ payload }) => {
+                        if (!payload || !payload.studentId) return;
+                        const cur = attemptsMap[payload.studentId] || { studentId: payload.studentId, studentName: payload.studentName };
+                        cur.cheatCount = payload.cheatCount;
+                        if (payload.event) {
+                            cur.events = Array.isArray(cur.events) ? [...cur.events, payload.event] : [payload.event];
+                        }
+                        attemptsMap[payload.studentId] = cur;
+                        rebuildMergedRoster();
+                        renderKpiAndEvents();
+                        window.renderStudentMonitorList();
+                        if (selectedStudentId === payload.studentId) renderStudentDrawerContent(selectedStudentId);
+                    })
+                    .on('broadcast', { event: 'student_submit' }, () => {
+                        refreshAllData(false);
+                    })
+                    .subscribe();
+            } catch (e) {
+                console.warn('[live-monitor] subscribeExamRealtime error:', e);
+            }
+        }
+
+        async function sendTeacherCommand(targetStudentId, action, extraData = {}) {
+            if (!currentExamId) {
+                alert('Vui lòng chọn đề thi trên thanh công cụ trước khi gửi lệnh phòng thi!');
+                return;
+            }
+            const cmdPayload = {
+                cmdId: `cmd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                examId: currentExamId,
+                targetStudentId: targetStudentId || 'ALL',
+                action,
+                teacherName: currentUser?.displayName || 'Giáo viên',
+                issuedAt: new Date().toISOString(),
+                ...extraData
+            };
+
+            if (realtimeChannel) {
+                try {
+                    await realtimeChannel.send({
+                        type: 'broadcast',
+                        event: 'teacher_cmd',
+                        payload: cmdPayload
+                    });
+                } catch (e) {}
+            }
+
+            if (targetStudentId && targetStudentId !== 'ALL') {
+                try {
+                    const attemptRef = doc(db, 'exam_attempts', `${targetStudentId}_${currentExamId}`);
+                    await setDoc(attemptRef, {
+                        examId: currentExamId,
+                        studentId: targetStudentId,
+                        teacherCommand: cmdPayload,
+                        lastUpdated: new Date().toISOString()
+                    }, { merge: true });
+                } catch (e) {}
+            }
+        }
+
+        window.openStudentDrawer = async (studentId) => {
+            selectedStudentId = studentId;
+            document.getElementById('studentDetailModal').classList.remove('hidden');
+            await renderStudentDrawerContent(studentId);
+        };
+
+        window.closeStudentDrawer = () => {
+            selectedStudentId = null;
+            document.getElementById('studentDetailModal').classList.add('hidden');
+        };
+
+        async function renderStudentDrawerContent(studentId) {
+            const st = mergedStudents.find(x => x.studentId === studentId);
+            if (!st) return;
+
+            document.getElementById('drawerClassBadge').textContent = st.className || 'Lớp học';
+            document.getElementById('drawerStudentName').textContent = st.studentName;
+
+            let token = st.attempt?.parentWatchToken || '';
+            if (!token) {
+                token = await getOrCreateParentWatchToken({
+                    studentId: st.studentId,
+                    studentName: st.studentName,
+                    classId: st.classId,
+                    className: st.className,
+                    examId: currentExamId || '',
+                    examTitle: examData?.title || ''
+                }) || '';
+            }
+            const origin = window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'https://qmath.io.vn';
+            const watchUrl = `${origin}/parent-watch.html?t=${encodeURIComponent(token)}${currentExamId ? '&exam=' + encodeURIComponent(currentExamId) : ''}`;
+            document.getElementById('drawerWatchUrlInput').value = watchUrl;
+
+            const qrBox = document.getElementById('drawerQrContainer');
+            qrBox.innerHTML = '';
+            if (window.QRCode && token) {
+                new window.QRCode(qrBox, {
+                    text: watchUrl,
+                    width: 84,
+                    height: 84,
+                    colorDark: '#0f172a',
+                    colorLight: '#ffffff'
+                });
+            }
+
+            const qGrid = document.getElementById('drawerQuestionGrid');
+            const totalQ = st.totalQuestions || 0;
+            const ansMap = st.attempt?.answeredMap || {};
+            const rawAns = st.attempt?.answers || st.result?.answers || {};
+            const curIdx = Number(st.attempt?.currentIndex) || 0;
+            qGrid.innerHTML = '';
+            if (totalQ === 0) {
+                qGrid.innerHTML = '<div class="col-span-full text-gray-400 italic text-xs">Chưa có dữ liệu câu hỏi.</div>';
+            } else {
+                for (let i = 0; i < totalQ; i++) {
+                    const cell = document.createElement('div');
+                    const code = ansMap[i] !== undefined ? ansMap[i] : (rawAns[i] !== undefined && rawAns[i] !== '' ? 1 : 0);
+                    const isCur = st.liveState === 'doing' && i === curIdx;
+                    let cls = 'h-8 rounded-lg flex items-center justify-center text-xs font-extrabold border ';
+                    if (isCur) cls += 'btn-season-primary';
+                    else if (code === 2) cls += 'badge-season';
+                    else if (code === 1) cls += 'bg-emerald-500 text-white border-emerald-600';
+                    else cls += 'bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700';
+                    cell.className = cls;
+                    cell.textContent = i + 1;
+                    qGrid.appendChild(cell);
+                }
+            }
+
+            const evList = document.getElementById('drawerEventList');
+            const evs = Array.isArray(st.attempt?.events) ? [...st.attempt.events].reverse() : [];
+            if (evs.length === 0) {
+                evList.innerHTML = `<div class="text-gray-400 italic py-2">Chưa có sự kiện nào.</div>`;
+            } else {
+                evList.innerHTML = evs.map(ev => `
+                    <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+                        <span class="font-semibold text-gray-700 dark:text-gray-200">${escapeHtml(ev.detail)}</span>
+                        <span class="text-[10px] font-mono text-gray-400 shrink-0">${formatTimeShort(ev.at)}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        window.drawerActionWarn = async () => {
+            if (!selectedStudentId) return;
+            const msg = prompt('Nhập nội dung nhắc nhở gửi tới màn hình của học sinh:', 'Vui lòng tập trung làm bài nghiêm túc, không chuyển sang cửa sổ khác!');
+            if (!msg) return;
+            await sendTeacherCommand(selectedStudentId, 'warn', { message: msg });
+            alert('Đã gửi cảnh báo trực tiếp tới màn hình học sinh!');
+        };
+
+        window.drawerActionExtend = async (mins) => {
+            if (!selectedStudentId) return;
+            if (!confirm(`Cộng thêm +${mins} phút làm bài cho học sinh này?`)) return;
+            await sendTeacherCommand(selectedStudentId, 'extend', { extraMinutes: mins, extraSeconds: mins * 60 });
+            alert(`Đã cộng thêm +${mins} phút cho học sinh!`);
+        };
+
+        window.drawerActionForceSubmit = async () => {
+            if (!selectedStudentId) return;
+            if (!confirm('Bạn có chắc chắn muốn THU BÀI TỪ XA của học sinh này ngay lập tức?')) return;
+            await sendTeacherCommand(selectedStudentId, 'force_submit', {});
+            alert('Đã gửi lệnh thu bài từ xa!');
+        };
+
+        window.drawerActionCopyWatchLink = () => {
+            const inp = document.getElementById('drawerWatchUrlInput');
+            if (!inp || !inp.value) return;
+            navigator.clipboard.writeText(inp.value);
+            alert('Đã sao chép đường link theo dõi dành cho Phụ huynh!');
+        };
+
+        window.drawerActionSendZalo = async () => {
+            if (!selectedStudentId) return;
+            const st = mergedStudents.find(x => x.studentId === selectedStudentId);
+            if (!st) return;
+            const watchUrl = document.getElementById('drawerWatchUrlInput').value;
+            const whUrl = (document.getElementById('batchZaloWebhookInput')?.value || '').trim();
+            if (!whUrl) {
+                navigator.clipboard.writeText(`Kính gửi Phụ huynh em ${st.studentName}, mời Phụ huynh theo dõi trực tiếp tiến độ làm bài "${examData?.title || 'trên lớp'}" của con tại: ${watchUrl}`);
+                alert('Đã sao chép nội dung tin nhắn kèm Link theo dõi vào bộ nhớ tạm (Clipboard) để dán gửi Zalo!');
+                return;
+            }
+            try {
+                await fetch(whUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        event: 'parent_live_watch',
+                        examId: currentExamId,
+                        examTitle: examData?.title || 'Bài kiểm tra',
+                        studentId: st.studentId,
+                        studentName: st.studentName,
+                        className: st.className,
+                        phoneParent: st.phoneParent,
+                        phoneStudent: st.phoneStudent,
+                        zaloUid: st.zaloUid,
+                        watchUrl,
+                        message: `Kính gửi Phụ huynh em ${st.studentName}, con đang tham gia bài kiểm tra "${examData?.title || ''}". Phụ huynh bấm vào đường dẫn sau để theo dõi trực tiếp tiến độ và kết quả bài làm của con: ${watchUrl}`
+                    })
+                });
+                alert(`Đã gửi thông báo Zalo kèm link theo dõi cho PHHS em ${st.studentName}!`);
+            } catch (e) {
+                alert('Lỗi gọi Webhook Zalo: ' + e.message);
+            }
+        };
+
+        window.promptBroadcastAll = async (action) => {
+            if (action === 'warn') {
+                const msg = prompt('Nhập thông báo nhắc nhở chung cho TOÀN BỘ học sinh đang làm bài:', 'Cả lớp chú ý tập trung làm bài và kiểm tra kỹ đáp án trước khi nộp!');
+                if (!msg) return;
+                await sendTeacherCommand('ALL', 'warn', { message: msg });
+                alert('Đã phát thông báo nhắc nhở tới toàn phòng thi!');
+            } else if (action === 'extend') {
+                const m = parseInt(prompt('Nhập số phút muốn cộng thêm cho TOÀN BỘ học sinh đang làm bài:', '5') || '0', 10);
+                if (!m || m <= 0) return;
+                await sendTeacherCommand('ALL', 'extend', { extraMinutes: m, extraSeconds: m * 60 });
+                alert(`Đã cộng thêm +${m} phút cho toàn bộ học sinh đang làm bài!`);
+            }
+        };
+
+        window.openBatchZaloModal = () => {
+            document.getElementById('batchZaloModal').classList.remove('hidden');
+        };
+
+        window.copyAllParentLinksClipboard = async () => {
+            if (mergedStudents.length === 0) {
+                alert('Chưa có học sinh nào trong danh sách!');
+                return;
+            }
+            const origin = window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'https://qmath.io.vn';
+            const lines = [];
+            for (const st of mergedStudents) {
+                const tok = st.attempt?.parentWatchToken || await getOrCreateParentWatchToken({
+                    studentId: st.studentId,
+                    studentName: st.studentName,
+                    classId: st.classId,
+                    className: st.className,
+                    examId: currentExamId || '',
+                    examTitle: examData?.title || ''
+                });
+                const url = `${origin}/parent-watch.html?t=${encodeURIComponent(tok)}${currentExamId ? '&exam=' + encodeURIComponent(currentExamId) : ''}`;
+                lines.push(`${st.studentName} (${st.className}): ${url}`);
+            }
+            await navigator.clipboard.writeText(lines.join('\n'));
+            alert(`Đã sao chép danh sách ${lines.length} đường link theo dõi Phụ huynh vào Clipboard!`);
+        };
+
+        window.runBatchZaloSend = async () => {
+            const whUrl = (document.getElementById('batchZaloWebhookInput').value || '').trim();
+            if (!whUrl) {
+                alert('Vui lòng nhập URL Webhook Zalo n8n hoặc dùng nút "Copy danh sách Link PH"!');
+                return;
+            }
+            const targetFilter = document.getElementById('batchZaloTargetFilter').value;
+            const list = mergedStudents.filter(s => {
+                if (targetFilter === 'all') return true;
+                return s.liveState === targetFilter;
+            });
+            if (list.length === 0) {
+                alert('Không có học sinh nào thuộc nhóm đã chọn!');
+                return;
+            }
+
+            const progBox = document.getElementById('batchZaloProgressBox');
+            const progTxt = document.getElementById('batchZaloProgressText');
+            const progCnt = document.getElementById('batchZaloProgressCount');
+            const progBar = document.getElementById('batchZaloProgressBar');
+            const btn = document.getElementById('btnStartBatchZalo');
+
+            progBox.classList.remove('hidden');
+            btn.disabled = true;
+            const origin = window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'https://qmath.io.vn';
+
+            for (let i = 0; i < list.length; i++) {
+                const st = list[i];
+                progTxt.textContent = `Đang gửi: ${st.studentName}...`;
+                progCnt.textContent = `${i + 1}/${list.length}`;
+                progBar.style.width = `${Math.round(((i + 1) / list.length) * 100)}%`;
+
+                try {
+                    const tok = st.attempt?.parentWatchToken || await getOrCreateParentWatchToken({
+                        studentId: st.studentId,
+                        studentName: st.studentName,
+                        classId: st.classId,
+                        className: st.className,
+                        examId: currentExamId || '',
+                        examTitle: examData?.title || ''
+                    });
+                    const watchUrl = `${origin}/parent-watch.html?t=${encodeURIComponent(tok)}${currentExamId ? '&exam=' + encodeURIComponent(currentExamId) : ''}`;
+                    await fetch(whUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            event: 'parent_live_watch',
+                            examId: currentExamId,
+                            examTitle: examData?.title || 'Bài kiểm tra',
+                            studentId: st.studentId,
+                            studentName: st.studentName,
+                            className: st.className,
+                            phoneParent: st.phoneParent,
+                            phoneStudent: st.phoneStudent,
+                            zaloUid: st.zaloUid,
+                            watchUrl,
+                            message: `Kính gửi Phụ huynh em ${st.studentName}, mời Phụ huynh theo dõi trực tiếp bài thi "${examData?.title || ''}" của con tại: ${watchUrl}`
+                        })
+                    });
+                } catch (e) {
+                    console.warn('Batch Zalo send error for', st.studentName, e);
+                }
+                await new Promise(r => setTimeout(r, 1200));
+            }
+
+            progTxt.textContent = 'Đã hoàn tất gửi Zalo cho Phụ huynh!';
+            btn.disabled = false;
+        };
+
+        window.openBatchQrPrintModal = async () => {
+            const modal = document.getElementById('printQrSheetModal');
+            const grid = document.getElementById('printQrGrid');
+            modal.classList.remove('hidden');
+
+            if (mergedStudents.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center py-8 text-gray-400 font-bold">Chưa có học sinh nào trong danh sách để tạo mã QR.</div>';
+                return;
+            }
+
+            grid.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500 font-bold"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Đang tạo mã QR theo dõi cho ' + mergedStudents.length + ' học sinh...</div>';
+
+            const origin = window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'https://qmath.io.vn';
+            const fragment = document.createDocumentFragment();
+            const qrTasks = [];
+
+            for (const st of mergedStudents) {
+                const tok = st.attempt?.parentWatchToken || await getOrCreateParentWatchToken({
+                    studentId: st.studentId,
+                    studentName: st.studentName,
+                    classId: st.classId,
+                    className: st.className,
+                    examId: currentExamId || '',
+                    examTitle: examData?.title || ''
+                });
+                const watchUrl = `${origin}/parent-watch.html?t=${encodeURIComponent(tok)}${currentExamId ? '&exam=' + encodeURIComponent(currentExamId) : ''}`;
+                const card = document.createElement('div');
+                card.className = 'p-3.5 rounded-2xl border-2 border-gray-200 flex items-center gap-3.5 bg-white break-inside-avoid';
+                const qrDivId = `qr_item_${String(st.studentId).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+                card.innerHTML = `
+                    <div id="${qrDivId}" class="w-24 h-24 p-1 border border-gray-200 rounded-xl flex items-center justify-center shrink-0"></div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-[10px] font-extrabold uppercase season-text">PHỤ HUYNH THEO DÕI BÀI THI</div>
+                        <div class="font-black text-sm text-gray-900 truncate mt-0.5">${escapeHtml(st.studentName)}</div>
+                        <div class="text-xs font-semibold text-gray-500">${escapeHtml(st.className)}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 line-clamp-2">Quét mã QR bằng Zalo hoặc Camera để xem trực tiếp tiến độ & điểm bài thi của con.</div>
+                    </div>
+                `;
+                fragment.appendChild(card);
+                qrTasks.push({ qrDivId, watchUrl });
+            }
+
+            grid.innerHTML = '';
+            grid.appendChild(fragment);
+
+            qrTasks.forEach(({ qrDivId, watchUrl }) => {
+                const qrEl = document.getElementById(qrDivId);
+                if (qrEl && window.QRCode) {
+                    new window.QRCode(qrEl, {
+                        text: watchUrl,
+                        width: 84,
+                        height: 84,
+                        colorDark: '#0f172a',
+                        colorLight: '#ffffff'
+                    });
+                }
+            });
+        };
+
+        function drawParentWatchCardCanvas(st, qrElement) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 960;
+            canvas.height = 540;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return null;
+
+            function roundRect(c, x, y, w, h, r) {
+                c.beginPath();
+                c.moveTo(x + r, y);
+                c.arcTo(x + w, y, x + w, y + h, r);
+                c.arcTo(x + w, y + h, x, y + h, r);
+                c.arcTo(x, y + h, x, y, r);
+                c.arcTo(x, y, x + w, y, r);
+                c.closePath();
+            }
+
+            const cs = getComputedStyle(document.documentElement);
+            const cFrom = (cs.getPropertyValue('--season-from') || '#f59e0b').trim();
+            const cTo = (cs.getPropertyValue('--season-to') || '#ea580c').trim();
+
+            ctx.save();
+            roundRect(ctx, 0, 0, 960, 540, 28);
+            ctx.clip();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 960, 540);
+
+            const hdrGrad = ctx.createLinearGradient(0, 0, 960, 110);
+            hdrGrad.addColorStop(0, cFrom);
+            hdrGrad.addColorStop(1, cTo);
+            ctx.fillStyle = hdrGrad;
+            ctx.fillRect(0, 0, 960, 108);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 24px Inter, "Segoe UI", Arial, sans-serif';
+            ctx.fillText('QMATH • CỔNG THEO DÕI BÀI THI PHỤ HUYNH', 38, 48);
+            ctx.font = '700 15px Inter, "Segoe UI", Arial, sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.fillText('Giám sát tiến độ làm bài và kết quả trực tiếp theo thời gian thực', 38, 78);
+
+            ctx.fillStyle = '#64748b';
+            ctx.font = '800 14px Inter, "Segoe UI", Arial, sans-serif';
+            ctx.fillText('HỌ VÀ TÊN HỌC SINH', 38, 165);
+
+            ctx.fillStyle = '#0f172a';
+            const sName = st.studentName || 'Học sinh';
+            ctx.font = `900 ${sName.length > 22 ? 28 : 34}px Inter, "Segoe UI", Arial, sans-serif`;
+            ctx.fillText(sName, 38, 210);
+
+            roundRect(ctx, 38, 235, 320, 40, 12);
+            ctx.fillStyle = '#fff7ed';
+            ctx.fill();
+            ctx.strokeStyle = cFrom;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.fillStyle = cTo;
+            ctx.font = '800 17px Inter, "Segoe UI", Arial, sans-serif';
+            ctx.fillText(`Lớp: ${st.className || '---'}${st.sbd ? '  •  SBD: ' + st.sbd : ''}`, 54, 261);
+
+            ctx.fillStyle = '#334155';
+            ctx.font = '600 16px Inter, "Segoe UI", Arial, sans-serif';
+            ctx.fillText('• Mở Zalo hoặc Camera điện thoại quét mã QR bên phải', 38, 325);
+            ctx.fillText('• Xem trực tiếp câu đang làm, thời gian còn lại & điểm số', 38, 358);
+            ctx.fillText('• Mã QR riêng biệt, bảo mật cho từng Phụ huynh học sinh', 38, 391);
+
+            roundRect(ctx, 640, 140, 280, 310, 22);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = cFrom;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            if (qrElement) {
+                const qrCanvas = qrElement.querySelector('canvas');
+                const qrImg = qrElement.querySelector('img');
+                try {
+                    if (qrCanvas && qrCanvas.width > 0) {
+                        ctx.drawImage(qrCanvas, 670, 160, 220, 220);
+                    } else if (qrImg && qrImg.src) {
+                        ctx.drawImage(qrImg, 670, 160, 220, 220);
+                    }
+                } catch (e) {}
+            }
+
+            ctx.fillStyle = cTo;
+            ctx.font = '900 15px Inter, "Segoe UI", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('QUÉT XEM TRỰC TIẾP', 780, 418);
+
+            ctx.textAlign = 'left';
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(38, 478);
+            ctx.lineTo(922, 478);
+            ctx.stroke();
+
+            ctx.fillStyle = '#64748b';
+            ctx.font = '700 14px Inter, "Segoe UI", Arial, sans-serif';
+            ctx.fillText('🔒 Thẻ theo dõi trực tiếp dành cho Phụ huynh • Hệ thống Toán Thầy Choang', 38, 510);
+
+            ctx.restore();
+            roundRect(ctx, 2, 2, 956, 536, 28);
+            ctx.strokeStyle = cFrom;
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            return canvas;
+        }
+
+        window.downloadAllParentQrCards = async () => {
+            if (!mergedStudents || mergedStudents.length === 0) {
+                alert('Chưa có học sinh nào trong danh sách để tải thẻ!');
+                return;
+            }
+            const btn = document.getElementById('btnDownloadAllParentQr');
+            const oldHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Đang đóng gói thẻ...</span>';
+            }
+            try {
+                await new Promise(r => setTimeout(r, 120));
+                const clsName = (currentClassFilter !== 'ALL' && classesMap[currentClassFilter]?.name)
+                    ? classesMap[currentClassFilter].name
+                    : 'Lop_Hoc';
+                const safeCls = clsName.trim().replace(/[\s\/\\:*?"<>|]+/g, '_');
+
+                if (window.JSZip) {
+                    const zip = new window.JSZip();
+                    for (let i = 0; i < mergedStudents.length; i++) {
+                        const st = mergedStudents[i];
+                        const qrDivId = `qr_item_${String(st.studentId).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+                        const qrEl = document.getElementById(qrDivId);
+                        const c = drawParentWatchCardCanvas(st, qrEl);
+                        if (c) {
+                            const dataUrl = c.toDataURL('image/png');
+                            const base64 = dataUrl.split(',')[1];
+                            const safeName = (st.studentName || `HS_${i + 1}`).trim().replace(/[\s\/\\:*?"<>|]+/g, '_');
+                            const idxStr = String(i + 1).padStart(2, '0');
+                            zip.file(`${idxStr}_${safeName}.png`, base64, { base64: true });
+                        }
+                    }
+                    const blob = await zip.generateAsync({ type: 'blob' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `The_QR_Phu_Huynh_${safeCls}.zip`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                } else {
+                    for (let i = 0; i < mergedStudents.length; i++) {
+                        const st = mergedStudents[i];
+                        const qrDivId = `qr_item_${String(st.studentId).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+                        const qrEl = document.getElementById(qrDivId);
+                        const c = drawParentWatchCardCanvas(st, qrEl);
+                        if (c) {
+                            const a = document.createElement('a');
+                            a.href = c.toDataURL('image/png');
+                            a.download = `The_QR_PH_${(st.studentName || i + 1).replace(/\s+/g, '_')}.png`;
+                            a.click();
+                            await new Promise(r => setTimeout(r, 150));
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('downloadAllParentQrCards error:', e);
+                alert('Không thể tải trọn bộ thẻ: ' + (e.message || e));
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = oldHtml;
+                }
+            }
+        };
+
+        window.onSwitchExam = (examId) => {
+            const url = new URL(window.location.href);
+            if (examId) url.searchParams.set('examId', examId);
+            else url.searchParams.delete('examId');
+            window.history.replaceState({}, '', url.toString());
+            currentExamId = examId || '';
+            loadExamMonitorContext(currentExamId);
+        };
+
+        window.onSwitchClassFilter = (classId) => {
+            currentClassFilter = classId || 'ALL';
+            const url = new URL(window.location.href);
+            if (currentClassFilter !== 'ALL') url.searchParams.set('classId', currentClassFilter);
+            else url.searchParams.delete('classId');
+            window.history.replaceState({}, '', url.toString());
+            populateExamDropdown();
+            rebuildMergedRoster();
+            renderKpiAndEvents();
+            window.renderStudentMonitorList();
+        };
+
+        window.setStatusFilter = (status) => {
+            currentStatusFilter = status || 'ALL';
+            document.querySelectorAll('#statusFilterTabs button').forEach(btn => {
+                const isActive = btn.getAttribute('data-status') === currentStatusFilter;
+                btn.className = `lm-filter-btn ${isActive ? 'font-extrabold btn-season-primary' : 'font-bold btn-season-secondary'}`;
+            });
+            document.querySelectorAll('#kpiCardsContainer [data-kpi]').forEach(card => {
+                if (card.getAttribute('data-kpi') === currentStatusFilter) {
+                    card.classList.add('kpi-card-active');
+                } else {
+                    card.classList.remove('kpi-card-active');
+                }
+            });
+            window.renderStudentMonitorList();
+        };
+
+        window.refreshAllData = refreshAllData;
+
+        // Init
+        const params = new URLSearchParams(window.location.search);
+        currentExamId = params.get('examId') || params.get('id') || '';
+        currentClassFilter = params.get('classId') || 'ALL';
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            loadTeacherExamsAndClasses();
+        });
+
+        pollInterval = setInterval(() => {
+            if (document.visibilityState !== 'hidden') {
+                refreshAllData(false);
+            }
+        }, 8000);
+    </script>
+</body>
+</html>

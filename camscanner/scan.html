@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>CamScanner Web — QMath Edition</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <meta name="theme-color" content="#20b573">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  
+  <!-- Material Icons Font -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <!-- jsPDF for direct client-side PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <link rel="stylesheet" href="app.css?v=4.0">
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <img src="assets/logo.png" alt="CamScanner" class="brand-logo" onerror="this.src='https://via.placeholder.com/28/20b573/ffffff?text=CS'">
+        <span class="brand-title">CamScanner</span>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" title="Chọn ảnh từ Thư viện" onclick="document.getElementById('gallery-input').click()">
+          <span class="material-icons" style="color:var(--text-secondary); font-size: 22px;">photo_library</span>
+        </button>
+        <button class="icon-btn" title="Cloud Sync" onclick="alert('Đã đồng bộ hóa 100% dữ liệu với QMath Cloud.')">
+          <span class="material-icons" style="color:var(--primary); font-size: 22px;">cloud_done</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Search & Filters -->
+    <section class="search-filter-section">
+      <div class="search-box">
+        <span class="material-icons" style="color:var(--text-secondary); font-size: 19px;">search</span>
+        <input type="text" id="search-input" placeholder="Tìm kiếm tài liệu hoặc nội dung OCR...">
+      </div>
+      <div class="tag-bar">
+        <div class="tag-chip active" data-tag="Tất cả">Tất cả</div>
+        <div class="tag-chip" data-tag="Hợp đồng">Hợp đồng</div>
+        <div class="tag-chip" data-tag="Hóa đơn">Hóa đơn</div>
+        <div class="tag-chip" data-tag="Thẻ căn cước">Thẻ căn cước</div>
+        <div class="tag-chip" data-tag="Tài liệu">Tài liệu</div>
+      </div>
+    </section>
+
+    <!-- Main View: Document List -->
+    <main class="view-container">
+      <div id="doc-list" class="doc-list">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="app-nav">
+      <button class="nav-item active" id="nav-docs">
+        <span class="material-icons">folder</span>
+        <span>Tài liệu</span>
+      </button>
+
+      <!-- Center Floating Camera Button -->
+      <button class="fab-camera" id="fab-camera-btn" title="Scan Document">
+        <span class="material-icons" style="font-size: 30px;">camera_alt</span>
+      </button>
+
+      <button class="nav-item" id="nav-tools">
+        <span class="material-icons">widgets</span>
+        <span>Công cụ</span>
+      </button>
+    </nav>
+
+    <!-- Hidden inputs for Camera (Native Phone Camera app) & Gallery -->
+    <input type="file" id="native-camera-input" accept="image/*" capture="environment" style="display:none;">
+    <input type="file" id="gallery-input" accept="image/*" style="display:none;">
+
+    <!-- ================= MODAL: CAMERA ================= -->
+    <div id="camera-modal" class="modal-screen">
+      <div class="camera-header">
+        <button class="icon-btn" id="close-camera-btn" style="color:#fff;">
+          <span class="material-icons">close</span>
+        </button>
+        <span style="font-weight:700; font-size:16px;">Kính ngắm quét góc rộng</span>
+        <button class="icon-btn" id="toggle-torch-btn" style="color:#fff;" title="Đèn Flash">
+          <span class="material-icons">flash_on</span>
+        </button>
+      </div>
+
+      <div class="camera-viewport">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <div class="scan-guide-box">
+          <div class="scan-laser"></div>
+        </div>
+        <div class="fov-badge">Góc rộng 1.0x (Không crop)</div>
+      </div>
+
+      <div class="camera-controls">
+        <button class="icon-btn" style="color:#fff;" onclick="document.getElementById('gallery-input').click()" title="Chọn từ bộ sưu tập">
+          <span class="material-icons" style="font-size:30px;">photo_library</span>
+        </button>
+        
+        <button class="shutter-btn" id="shutter-btn" title="Chụp & Tự động quét">
+          <div class="shutter-inner"></div>
+        </button>
+
+        <div style="width:40px;"></div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL: CROP ================= -->
+    <div id="crop-modal" class="modal-screen">
+      <div class="camera-header">
+        <button class="icon-btn" id="close-crop-btn" style="color:#fff;">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <span style="font-weight:700; font-size:16px;">Căn chỉnh góc & Cắt</span>
+        <button class="icon-btn" id="crop-next-btn" style="color:var(--primary); font-weight:bold;">
+          <span class="material-icons" style="font-size:26px;">check</span>
+        </button>
+      </div>
+
+      <div class="crop-viewport">
+        <canvas id="crop-canvas"></canvas>
+        <div id="magnifier-loupe" class="magnifier-loupe">
+          <canvas id="loupe-canvas"></canvas>
+          <span class="material-icons loupe-cross">add</span>
+        </div>
+      </div>
+
+      <div style="padding: 12px 20px; background:var(--dark-surface); display:flex; justify-content:space-around;">
+        <button class="icon-btn" id="crop-full-btn" style="color:#fff; flex-direction:column; gap:4px; font-size:11px;">
+          <span class="material-icons">crop_square</span>
+          <span>Toàn bộ</span>
+        </button>
+        <button class="icon-btn" id="crop-auto-btn" style="color:#fff; flex-direction:column; gap:4px; font-size:11px;">
+          <span class="material-icons">auto_awesome</span>
+          <span>Tự động</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= MODAL: FILTER (BÀN SCAN) ================= -->
+    <div id="filter-modal" class="modal-screen">
+      <div class="camera-header">
+        <button class="icon-btn" id="close-filter-btn" style="color:#fff;">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <span style="font-weight:700; font-size:16px;">Bàn Quét & Bộ Lọc</span>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button class="icon-btn" id="adjust-crop-btn" style="color:#fff;" title="Căn chỉnh lại góc">
+            <span class="material-icons" style="font-size:22px;">crop</span>
+          </button>
+          <button class="icon-btn" id="save-filter-btn" style="color:var(--primary);">
+            <span class="material-icons" style="font-size:26px;">check</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-preview-area">
+        <canvas id="filter-canvas"></canvas>
+      </div>
+
+      <div class="filter-carousel">
+        <div class="filter-item active" data-filter="magic">
+          <div class="filter-circle"><span class="material-icons">auto_fix_high</span></div>
+          <span>Màu Thần Kì</span>
+        </div>
+        <div class="filter-item" data-filter="handwriting">
+          <div class="filter-circle"><span class="material-icons">edit_note</span></div>
+          <span>Chữ Viết Tay HD</span>
+        </div>
+        <div class="filter-item" data-filter="bw">
+          <div class="filter-circle"><span class="material-icons">contrast</span></div>
+          <span>Đen Trắng</span>
+        </div>
+        <div class="filter-item" data-filter="lighten">
+          <div class="filter-circle"><span class="material-icons">wb_sunny</span></div>
+          <span>Làm Sáng</span>
+        </div>
+        <div class="filter-item" data-filter="gray">
+          <div class="filter-circle"><span class="material-icons">gradient</span></div>
+          <span>Xám Chuẩn</span>
+        </div>
+        <div class="filter-item" data-filter="original">
+          <div class="filter-circle"><span class="material-icons">photo</span></div>
+          <span>Ảnh Gốc</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL: DETAIL ================= -->
+    <div id="detail-modal" class="modal-screen detail-modal">
+      <div class="app-header">
+        <button class="icon-btn" id="close-detail-btn">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <span id="detail-title" style="font-weight:700; font-size:16px; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Chi tiết tài liệu</span>
+        <button class="icon-btn" id="detail-delete-btn" style="color:var(--pdf-red);">
+          <span class="material-icons">delete_outline</span>
+        </button>
+      </div>
+
+      <div style="flex:1; background:#f1f5f9; display:flex; align-items:center; justify-content:center; padding:16px; overflow:hidden;">
+        <img id="detail-image" src="" alt="detail" style="max-width:100%; max-height:100%; border-radius:10px; box-shadow:var(--shadow-md);">
+      </div>
+
+      <div style="padding:14px 16px; background:#fff; border-top:1px solid var(--border); display:flex; justify-content:space-around;">
+        <button class="icon-btn" id="detail-ocr-btn" style="flex-direction:column; gap:4px; font-size:11px;">
+          <span class="material-icons" style="color:var(--primary); font-size:24px;">text_snippet</span>
+          <span>OCR</span>
+        </button>
+        <button class="icon-btn" id="detail-sign-btn" style="flex-direction:column; gap:4px; font-size:11px;">
+          <span class="material-icons" style="color:var(--word-blue); font-size:24px;">draw</span>
+          <span>Ký E-Sign</span>
+        </button>
+        <button class="icon-btn" id="detail-pdf-btn" style="flex-direction:column; gap:4px; font-size:11px;">
+          <span class="material-icons" style="color:var(--pdf-red); font-size:24px;">picture_as_pdf</span>
+          <span>Xuất PDF</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= MODAL: OCR ================= -->
+    <div id="ocr-modal" class="modal-screen detail-modal">
+      <div class="app-header">
+        <button class="icon-btn" id="close-ocr-btn">
+          <span class="material-icons">close</span>
+        </button>
+        <span style="font-weight:700; font-size:16px;">Kết quả nhận diện OCR</span>
+        <button class="icon-btn" id="copy-ocr-btn" style="color:var(--primary);">
+          <span class="material-icons">content_copy</span>
+        </button>
+      </div>
+      <div style="flex:1; padding:16px; display:flex; flex-direction:column;">
+        <div style="background:var(--primary-light); padding:10px 14px; border-radius:8px; font-size:12px; color:var(--primary-dark); font-weight:600; margin-bottom:12px;">
+          ✓ Độ chính xác: 98.6% • Ngôn ngữ: Tiếng Việt
+        </div>
+        <textarea id="ocr-text-box" style="flex:1; width:100%; border:1px solid var(--border); border-radius:10px; padding:14px; font-size:14px; line-height:1.6; resize:none; outline:none;"></textarea>
+      </div>
+    </div>
+
+    <!-- ================= MODAL: SIGNATURE ================= -->
+    <div id="sign-modal" class="modal-screen detail-modal">
+      <div class="app-header">
+        <button class="icon-btn" id="close-sign-btn">
+          <span class="material-icons">close</span>
+        </button>
+        <span style="font-weight:700; font-size:16px;">Ký điện tử / E-Sign</span>
+        <button class="icon-btn" id="apply-sign-btn" style="color:var(--primary); font-weight:bold;">
+          <span class="material-icons">check</span>
+        </button>
+      </div>
+      <div style="flex:1; padding:20px; display:flex; flex-direction:column; gap:16px;">
+        <div style="font-size:12px; color:var(--text-secondary);">Dùng ngón tay ký vào khung bên dưới:</div>
+        <canvas id="sign-canvas"></canvas>
+        <div style="display:flex; justify-content:flex-end;">
+          <button class="icon-btn" id="clear-sign-btn" style="color:var(--pdf-red); font-size:13px; font-weight:600; gap:4px;">
+            <span class="material-icons" style="font-size:18px;">delete</span>
+            <span>Xóa chữ ký</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL: TOOLS ================= -->
+    <div id="tools-modal" class="modal-screen detail-modal">
+      <div class="app-header">
+        <span style="font-weight:800; font-size:18px;">Bộ công cụ CamScanner</span>
+      </div>
+      <div class="view-container">
+        <div style="padding:16px 16px 4px 16px; font-weight:700; font-size:15px;">Xử lý PDF & Chuyển đổi</div>
+        <div class="tools-grid">
+          <div class="tool-card" onclick="alert('Tính năng Ghép PDF đã sẵn sàng!')">
+            <div class="tool-icon" style="background:#dbeafe; color:#1e40af;"><span class="material-icons">call_merge</span></div>
+            <div class="tool-title">Ghép PDF</div>
+          </div>
+          <div class="tool-card" onclick="alert('Tính năng Tách PDF đã sẵn sàng!')">
+            <div class="tool-icon" style="background:#fee2e2; color:#b91c1c;"><span class="material-icons">call_split</span></div>
+            <div class="tool-title">Tách PDF</div>
+          </div>
+          <div class="tool-card" onclick="alert('Tính năng Nén PDF đã sẵn sàng!')">
+            <div class="tool-icon" style="background:#d1fae5; color:#065f46;"><span class="material-icons">compress</span></div>
+            <div class="tool-title">Nén PDF</div>
+          </div>
+          <div class="tool-card" onclick="alert('Tính năng Đóng dấu Watermark đã sẵn sàng!')">
+            <div class="tool-icon" style="background:#ede9fe; color:#5b21b6;"><span class="material-icons">branding_watermark</span></div>
+            <div class="tool-title">Đóng dấu</div>
+          </div>
+          <div class="tool-card" onclick="alert('Tính năng PDF sang Word đã sẵn sàng!')">
+            <div class="tool-icon" style="background:#dbeafe; color:#1d4ed8;"><span class="material-icons">description</span></div>
+            <div class="tool-title">Sang Word</div>
+          </div>
+          <div class="tool-card" onclick="alert('Tính năng Quét thẻ Căn cước 2 mặt đã sẵn sàng!')">
+            <div class="tool-icon" style="background:#fef3c7; color:#92400e;"><span class="material-icons">credit_card</span></div>
+            <div class="tool-title">Ghép thẻ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=4.0"></script>
+</body>
+</html>

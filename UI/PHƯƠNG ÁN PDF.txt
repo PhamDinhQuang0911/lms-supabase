@@ -1,0 +1,809 @@
+Tôi sẽ viết lại **riêng Phương án 1** theo hướng một **technical specification/prompt hoàn chỉnh** để đưa cho AI khác. Nội dung sẽ giải thích rõ:
+
+* Vì sao chọn phương án 1.
+* Kiến trúc cần xây dựng.
+* Cách hoạt động của preview.
+* Cách dùng HTML/CSS Print.
+* Cách dùng MathJax.
+* Cách export PDF bằng browser.
+* Các component cần tạo.
+* Các rule layout đề thi.
+* Các điểm cần kiểm tra.
+* Không được hiểu nhầm thành PDF generator backend.
+
+Tôi chưa tạo được file trực tiếp ở lượt này do giới hạn công cụ tạo file, nên tôi xuất toàn bộ nội dung Markdown ngay dưới đây. Bạn có thể copy lưu thành:
+
+```
+LMS_Exam_Print_Preview_Phase1.md
+```
+
+---
+
+```md
+# LMS Exam Preview & PDF Export - Phase 1 Specification
+
+## 1. Mục tiêu
+
+Hệ thống LMS hiện tại đã có chức năng:
+
+- Quản lý ngân hàng câu hỏi toán học.
+- Import câu hỏi dạng LaTeX.
+- Lưu nội dung câu hỏi.
+- Render công thức toán bằng MathJax trên giao diện web.
+- Cho phép người dùng lựa chọn câu hỏi để tạo đề thi.
+
+Mục tiêu Phase 1:
+
+Xây dựng chức năng:
+
+1. Preview đề thi dạng chuẩn A4.
+2. Hiển thị đề thi với form giống đề thi thực tế.
+3. Render đầy đủ:
+   - Nội dung câu hỏi.
+   - Công thức toán.
+   - Hình ảnh.
+   - Đáp án.
+   - Lời giải (nếu có).
+4. Cho phép người dùng xuất PDF bằng chức năng Print của trình duyệt.
+
+---
+
+# 2. Phương án kỹ thuật được lựa chọn
+
+## Phương án 1:
+## Client-side PDF Export bằng Browser Print
+
+Không sử dụng:
+
+- Backend PDF Generator.
+- Puppeteer.
+- Playwright.
+- Cloud Function.
+- Server render PDF.
+
+PDF được tạo bằng:
+
+```
+
+HTML Template
++
+CSS Print Layout
++
+MathJax Render
++
+Browser Print Engine
++
+Save as PDF
+
+```
+
+Luồng:
+
+```
+
+Question Database
+|
+|
+User chọn câu hỏi
+|
+|
+Generate Exam Data
+|
+|
+Render Exam Preview HTML
+|
+|
+MathJax render công thức
+|
+|
+User kiểm tra preview
+|
+|
+Click Export PDF
+|
+|
+Browser Print Dialog
+|
+|
+Save as PDF
+
+```
+
+---
+
+# 3. Nguyên tắc thiết kế quan trọng
+
+Không coi PDF là một trang web.
+
+Không sử dụng:
+
+- Responsive layout.
+- Dashboard layout.
+- Component UI của LMS.
+
+Cần xây dựng:
+
+Một phiên bản "Document Layout".
+
+Tức là:
+
+```
+
+Web View
+|
+|
+Exam Print View
+|
+|
+PDF
+
+```
+
+Trong đó:
+
+Exam Print View phải được thiết kế giống tài liệu in.
+
+---
+
+# 4. Kiến trúc frontend đề xuất
+
+
+```
+
+src
+
+/pages
+
+```
+ExamPreviewPage
+```
+
+/components
+
+```
+ExamDocument
+
+    ExamHeader
+
+    CandidateInfo
+
+    QuestionList
+
+    QuestionItem
+
+    AnswerOption
+
+    SolutionSection
+
+    ExamFooter
+```
+
+/styles
+
+```
+exam-print.css
+```
+
+/services
+
+```
+examBuilder.js
+
+mathRenderer.js
+```
+
+```
+
+---
+
+# 5. Trang Preview đề thi
+
+Tạo một route riêng:
+
+```
+
+/exam-preview/:examId
+
+```
+
+
+Trang này chỉ phục vụ:
+
+- Xem trước đề.
+- In đề.
+- Xuất PDF.
+
+
+Không hiển thị:
+
+- Menu.
+- Sidebar.
+- Navigation.
+- Button quản trị.
+
+---
+
+# 6. Dữ liệu đầu vào
+
+Exam Preview nhận:
+
+```
+
+Exam Object
+
+{
+title,
+subject,
+duration,
+examCode,
+questions:[]
+}
+
+```
+
+
+Question Object:
+
+```
+
+{
+id,
+contentLatex,
+answers,
+images,
+solution
+}
+
+```
+
+
+---
+
+# 7. Thiết kế template đề thi
+
+
+## Header
+
+
+Bao gồm:
+
+- Logo.
+- Tên trường/trung tâm.
+- Tên kỳ thi.
+- Môn học.
+- Thời gian làm bài.
+- Mã đề.
+
+
+Ví dụ:
+
+
+```
+
+---
+
+TRUNG TÂM ABC
+
+ĐỀ KIỂM TRA TOÁN
+
+Môn: Toán 12
+
+Thời gian: 90 phút
+
+Mã đề: 001
+
+---
+
+```
+
+
+---
+
+# 8. Thông tin thí sinh
+
+
+Hiển thị:
+
+
+```
+
+Họ và tên: ........................
+
+Lớp: ...................
+
+SBD: ...................
+
+```
+
+
+---
+
+# 9. Question Rendering
+
+
+Mỗi câu hỏi là một block riêng.
+
+
+Ví dụ:
+
+
+```
+
+Câu 1.
+
+Cho hàm số:
+
+y = x² + 2x + 1
+
+A. ...
+
+B. ...
+
+C. ...
+
+D. ...
+
+````
+
+
+HTML:
+
+
+```html
+<div class="question">
+
+    <div class="question-content">
+
+    </div>
+
+    <div class="answer-list">
+
+    </div>
+
+</div>
+````
+
+---
+
+# 10. MathJax Processing
+
+Input:
+
+```
+Latex
+```
+
+Ví dụ:
+
+```
+$x^2+y^2=z^2$
+```
+
+Output:
+
+```
+Công thức toán đã render
+```
+
+Yêu cầu:
+
+* Không hiển thị Latex raw.
+* Không xuất PDF khi MathJax chưa hoàn thành.
+* Công thức không bị vỡ.
+
+Flow:
+
+```
+Load Exam Page
+
+↓
+
+Render HTML
+
+↓
+
+MathJax Typeset
+
+↓
+
+Check Complete
+
+↓
+
+Allow Print
+
+```
+
+---
+
+# 11. Hình ảnh trong câu hỏi
+
+Hỗ trợ:
+
+* Hình học.
+* Đồ thị.
+* Hình minh họa.
+
+Yêu cầu:
+
+```
+image {
+    max-width:100%;
+    height:auto;
+}
+```
+
+Không được:
+
+* Tràn trang.
+* Mất ảnh.
+* Ảnh loading khi print.
+
+Trước khi in phải kiểm tra:
+
+```
+All images loaded = true
+```
+
+---
+
+# 12. Layout trang A4
+
+Sử dụng:
+
+```css
+
+@page {
+
+    size:A4;
+
+    margin:15mm;
+
+}
+
+```
+
+Không dùng:
+
+```
+vh
+vw
+responsive breakpoint
+```
+
+Ưu tiên:
+
+```
+mm
+cm
+pt
+px
+```
+
+---
+
+# 13. Page Break
+
+Mục tiêu:
+
+Không xảy ra:
+
+```
+Trang 1:
+
+Câu 5
+Nội dung
+
+
+Trang 2:
+
+Đáp án của câu 5
+```
+
+CSS:
+
+```css
+
+.question {
+
+    break-inside:avoid;
+
+    page-break-inside:avoid;
+
+}
+
+```
+
+---
+
+# 14. Đáp án trắc nghiệm
+
+Hỗ trợ:
+
+## Trường hợp 1:
+
+Đáp án ngắn:
+
+```
+A.1    B.2    C.3    D.4
+```
+
+## Trường hợp 2:
+
+Đáp án dài:
+
+```
+A. Nội dung dài...
+
+B. Nội dung dài...
+
+C. Nội dung dài...
+
+D. Nội dung dài...
+```
+
+Layout tự thay đổi.
+
+---
+
+# 15. Preview UI
+
+Preview cần mô phỏng:
+
+```
++--------------------+
+|      A4 PAGE       |
+|                    |
+| Header             |
+|                    |
+| Question           |
+| Question           |
+|                    |
+| Footer             |
++--------------------+
+```
+
+Không preview theo chiều ngang website.
+
+---
+
+# 16. Export PDF
+
+Không tạo file PDF bằng code.
+
+Sử dụng:
+
+Javascript:
+
+```javascript
+
+window.print();
+
+```
+
+Browser xử lý:
+
+```
+HTML
+ ↓
+Print Engine
+ ↓
+PDF
+```
+
+---
+
+# 17. Print CSS
+
+Cần tạo:
+
+```css
+
+@media print {
+
+
+}
+
+
+```
+
+Xử lý:
+
+Ẩn:
+
+```
+button
+menu
+navigation
+control
+```
+
+Giữ:
+
+```
+exam-content
+header
+footer
+question
+image
+formula
+```
+
+---
+
+# 18. Kiểm tra trước khi export
+
+Trước khi gọi print:
+
+Check:
+
+## MathJax
+
+```
+MathJax completed
+```
+
+## Image
+
+```
+All image loaded
+```
+
+## Font
+
+```
+Font loaded
+```
+
+Nếu chưa đạt:
+
+Không cho export.
+
+---
+
+# 19. Các option cần thiết kế mở rộng
+
+Chuẩn bị cho tương lai:
+
+```
+showAnswer
+
+showSolution
+
+showLogo
+
+twoColumn
+
+examCode
+
+shuffleQuestion
+
+shuffleAnswer
+
+```
+
+---
+
+# 20. Tiêu chuẩn nghiệm thu
+
+## Preview
+
+Đạt khi:
+
+* Hiển thị giống đề thi thật.
+* Đúng A4.
+* Công thức đúng.
+* Ảnh đầy đủ.
+* Không lỗi layout.
+
+## PDF
+
+Đạt khi:
+
+* PDF mở được.
+* Không mất công thức.
+* Không mất ảnh.
+* Không lỗi font.
+* Nội dung gần giống preview.
+
+---
+
+# 21. Giới hạn Phase 1
+
+Ưu điểm:
+
+* Chi phí gần bằng 0.
+* Không cần server PDF.
+* Triển khai nhanh.
+
+Nhược điểm:
+
+* Phụ thuộc browser.
+* Phụ thuộc setting Print của user.
+* Không phù hợp sinh hàng nghìn PDF tự động.
+
+---
+
+# 22. Chuẩn bị nâng cấp Phase 2
+
+Không thay đổi template.
+
+Sau này có thể thay:
+
+```
+window.print()
+
+```
+
+bằng:
+
+```
+Puppeteer
+
+hoặc
+
+Playwright
+
+hoặc
+
+Cloudflare Browser Rendering
+
+```
+
+và giữ nguyên:
+
+```
+Exam Template
+MathJax
+CSS Print
+Question Component
+```
+
+---
+
+# PROMPT CHO AI IMPLEMENT
+
+Tôi có một hệ thống LMS toán học.
+
+Hiện tại:
+
+* Có ngân hàng câu hỏi.
+* Câu hỏi lưu dạng LaTeX.
+* Công thức render bằng MathJax.
+* Người dùng có thể chọn câu hỏi tạo đề.
+
+Hãy xây dựng Phase 1 của chức năng Exam Preview và Export PDF.
+
+Yêu cầu bắt buộc:
+
+1. Không sử dụng backend PDF generator.
+2. Không dùng Puppeteer/Playwright.
+3. PDF được tạo bằng browser print/save as PDF.
+4. Xây dựng một Exam Print Template riêng.
+5. Template phải mô phỏng giấy A4.
+6. Có Header/Footer.
+7. Có thông tin thí sinh.
+8. Render câu hỏi LaTeX bằng MathJax.
+9. Hỗ trợ hình ảnh trong câu hỏi.
+10. Hỗ trợ đáp án trắc nghiệm.
+11. Hỗ trợ lời giải.
+12. Có CSS @media print.
+13. Kiểm soát page break.
+14. Preview phải gần giống PDF.
+15. Code phải dễ nâng cấp sang server-side PDF generator sau này.
+
+Hãy đưa ra:
+
+* Kiến trúc code.
+* Component cần tạo.
+* File cần sửa.
+* Các bước implement.
+* Code mẫu.
+* Cách test.
+
+```
+
+---
+
+Nội dung trên là prompt ở mức **đưa cho AI làm dự án**, không chỉ hỏi "tạo nút xuất PDF". Nó sẽ giúp AI hiểu đúng rằng **phương án 1 = xây dựng một trang tài liệu in A4 rồi dùng browser print**, tránh nó tự đề xuất Puppeteer/server PDF.
+```

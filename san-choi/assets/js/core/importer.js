@@ -1,0 +1,602 @@
+/* =========================================================
+   importer.js — Nhập / xuất câu hỏi: Word (.docx), JSON & Excel (SheetJS)
+   Hỗ trợ:
+   1. Word (.docx): Trắc nghiệm 4 lựa chọn (MC), Đúng/Sai (TF), Trả lời ngắn (SA),
+      nhận diện gạch chân <u>A.</u>, *A., "Chọn A", "[ĐS]", "Đáp án:", Bảng đáp án cuối đề,
+      công thức Toán LaTeX $...$ & MathType API, hình ảnh nhúng trong Word.
+   2. Excel (.xlsx/.xls/.csv) & JSON (.json/.js/.txt)
+   ========================================================= */
+(function () {
+  const COLS = ["Id", "Type", "Level", "Grade", "Subject", "Chapter", "Topic", "Question", "A", "B", "C", "D", "CorrectAnswer", "Explain", "ParentId"];
+  const ALIAS = {
+    id: "Id", "mã": "Id", "ma": "Id", "mã câu": "Id", type: "Type", "loại": "Type", "loai": "Type", "dạng": "Type",
+    level: "Level", "mức độ": "Level", "muc do": "Level", "mức": "Level", grade: "Grade", "lớp": "Grade", "lop": "Grade", "khối": "Grade",
+    subject: "Subject", "môn": "Subject", "mon": "Subject", "môn học": "Subject", chapter: "Chapter", "chương": "Chapter", "chuong": "Chapter",
+    topic: "Topic", "chủ đề": "Topic", "chu de": "Topic", "bài": "Topic", question: "Question", "câu hỏi": "Question", "cau hoi": "Question", "nội dung": "Question", "đề bài": "Question",
+    a: "A", b: "B", c: "C", d: "D", "phương án a": "A", "phương án b": "B", "phương án c": "C", "phương án d": "D",
+    correctanswer: "CorrectAnswer", answer: "CorrectAnswer", "đáp án": "CorrectAnswer", "dap an": "CorrectAnswer", "đáp án đúng": "CorrectAnswer",
+    explain: "Explain", "lời giải": "Explain", "giải thích": "Explain", "loi giai": "Explain", "hướng dẫn": "Explain",
+    parentid: "ParentId", parent: "ParentId", "nhóm": "ParentId", "thuộc nhóm": "ParentId", "id cha": "ParentId"
+  };
+  const TYPE_ALIAS = { "TN": "MC", "TRẮC NGHIỆM": "MC", "MC": "MC", "ĐS": "TF", "ĐÚNG SAI": "TF", "DS": "TF", "TF": "TF", "TLN": "SA", "TRẢ LỜI NGẮN": "SA", "SHORT": "SA", "SA": "SA", "TỰ LUẬN": "LA", "TL": "LA", "ESSAY": "LA", "NHÓM": "Group", "GROUP": "Group" };
+  const META = ["Level", "Grade", "Subject", "Chapter", "Topic"];
+  const MAMMOTH_URL = "https://unpkg.com/mammoth@1.12.1/mammoth.browser.min.js";
+
+  function normType(t, isChild) {
+    let u = String(t || "").trim().toUpperCase();
+    u = TYPE_ALIAS[u] || u;
+    if (u === "Group" || u === "GROUP") return "Group";
+    if (u.startsWith("GROUP")) return "Group" + u.slice(5);
+    if (isChild && ["MC", "TF", "SA", "LA"].includes(u)) return "Group" + u;
+    return ["MC", "TF", "SA", "LA"].includes(u) ? u : (u || "MC");
+  }
+  function cleanQ(q, isChild) {
+    const o = {};
+    o.Id = String(q.Id || q.id || "").trim();
+    o.Type = normType(q.Type || q.type, isChild);
+    META.forEach((k) => (o[k] = q[k] != null ? String(q[k]).trim() : ""));
+    if (q.mapId) o.mapId = String(q.mapId).trim();
+    if (q.cccd) o.cccd = String(q.cccd).trim();
+    o.Question = q.Question != null ? String(q.Question) : "";
+    const base = Quiz.baseType(o.Type);
+    if (base === "MC" || base === "TF") {
+      const src = q.Options || {};
+      const keys = base === "MC" ? ["A", "B", "C", "D", "E", "F"] : ["a", "b", "c", "d"];
+      o.Options = {};
+      keys.forEach((k) => {
+        const v = src[k] != null ? src[k] : src[k.toUpperCase()] != null ? src[k.toUpperCase()] : src[k.toLowerCase()];
+        if (v != null && String(v).trim() !== "") o.Options[k] = String(v);
+      });
+    }
+    if (q.CorrectAnswer != null && base !== "LA" && base !== "Group") o.CorrectAnswer = String(q.CorrectAnswer).trim();
+    if (q.Explain) o.Explain = String(q.Explain);
+    if (base === "Group") o.children = (q.children || []).map((c) => cleanQ(c, true));
+    return o;
+  }
+  function validate(q) {
+    const t = Quiz.baseType(q.Type), errs = [];
+    if (!q.Question && t !== "Group") errs.push("thiếu nội dung câu hỏi");
+    if (t === "MC") { if (Object.keys(q.Options || {}).length < 2) errs.push("cần ≥ 2 phương án"); if (!/^[A-F]$/i.test(q.CorrectAnswer || "")) errs.push("đáp án MC phải là A–D (hãy gạch chân đáp án đúng hoặc ghi Chọn A)"); }
+    if (t === "TF") { if (!q.Options || !Object.keys(q.Options).length) errs.push("thiếu các ý a–d"); if (!/^[ĐDSTF01đs]{1,4}$/i.test(String(q.CorrectAnswer || "").replace(/[\s,;\-]/g, ""))) errs.push("đáp án TF dạng ĐSĐS"); }
+    if (t === "SA" && !q.CorrectAnswer) errs.push("thiếu đáp án");
+    if (t === "Group" && !(q.children || []).length) errs.push("nhóm chưa có câu con");
+    return errs;
+  }
+
+  const IO = { COLS };
+
+  IO.needMammoth = async () => {
+    if (!window.mammoth) await U.loadScript(MAMMOTH_URL);
+    return window.mammoth;
+  };
+
+  /* ---------- Làm sạch công thức Toán từ Word / MathType ---------- */
+  function cleanWordMathLatex(str) {
+    if (!str || typeof str !== "string") return str || "";
+    const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right(?:\\\.|\.|\{|\})?\s*([\s\S]*?)\s*(?:\\\{|\\\}|\\\.|(?=\$))/g;
+    str = str.replace(regexMangledSystem, (match, eq1, eq2) => {
+      const clean1 = (eq1 || "").trim().replace(/^\\left\s*/, "");
+      let clean2 = (eq2 || "").trim().replace(/^[.\s]+/, "").replace(/^\\\./, "").replace(/\\\{$/, "").trim();
+      return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
+    });
+    str = str.replace(/\\left\\\{\s*\\begin\{array\}\s*\{[^{}]*\}([\s\S]*?)\\end\{array\}\s*\\right\.?/g, "\\begin{cases}$1\\end{cases}");
+    str = str.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, "");
+    str = str.replace(/\\left([a-zA-Z0-9])/g, "$1");
+    str = str.replace(/\\right([a-zA-Z0-9])/g, "$1");
+    return str.trim();
+  }
+  IO.cleanWordMathLatex = cleanWordMathLatex;
+
+  /* ---------- Chuyển HTML từ Mammoth sang văn bản chuẩn hóa để bóc tách ---------- */
+  function wordHtmlToImportText(html) {
+    const source = new DOMParser().parseFromString(html || "", "text/html");
+
+    // Nhận diện thẻ gạch chân <u> trên chữ cái phương án A, B, C, D hoặc a, b, c, d
+    source.querySelectorAll("u").forEach((underlined) => {
+      const txt = (underlined.textContent || "").trim();
+      const label = txt.match(/^\*?([A-Da-d])\s*[\.\)\:]?$/);
+      if (label) {
+        underlined.before(document.createTextNode(` [[WORD_UNDERLINE_${label[1].toUpperCase()}]] `));
+      } else {
+        // Trường hợp gạch chân cả phương án bắt đầu bằng "A. ..."
+        const prefixMatch = txt.match(/^\*?([A-Da-d])\s*[\.\)\:]\s+/);
+        if (prefixMatch) {
+          underlined.before(document.createTextNode(` [[WORD_UNDERLINE_${prefixMatch[1].toUpperCase()}]] `));
+        }
+      }
+    });
+
+    const rawBodyText = source.body.textContent || "";
+    const explicitMatches = rawBodyText.match(/(?:^|\n|\s)(?:Câu|Bài)\s*\d+\s*[\.:]/gi) || [];
+    const hasExplicitQuestions = explicitMatches.length >= 2;
+
+    // Khôi phục đánh số tự động <ol><li> của Word thành "Câu 1.", "Câu 2."
+    let questionNumber = 1;
+    source.querySelectorAll("ol").forEach((ol) => {
+      if (ol.closest("table")) return;
+      Array.from(ol.children).filter((child) => child.tagName === "LI").forEach((item) => {
+        const itemText = (item.textContent || "").trim();
+        if (/^\s*(?:Câu|Bài)\s*\d+\s*[\.:]/i.test(itemText)) {
+          const m = itemText.match(/^\s*(?:Câu|Bài)\s*(\d+)/i);
+          if (m) questionNumber = Math.max(questionNumber, parseInt(m[1], 10) + 1);
+          return;
+        }
+        if (hasExplicitQuestions) return;
+        const isNotQuestion =
+          /^\s*(?:Lời\s*giải|Hướng\s*dẫn|HDG|Mệnh\s*đề|Khẳng\s*định|TH\s*\d|Trường\s*hợp|Bước\s*\d|Cách\s*\d)\b/i.test(itemText) ||
+          /^\s*\*?(?:[A-Da-d]\s*[\.\)]|\([A-Da-d]\))\s*/i.test(itemText) ||
+          /^\s*(?:Đáp\s*án|Đáp\s*số|Kết\s*quả)\s*[:=]/i.test(itemText) ||
+          /^\s*[+\-*•–—>]\s*/i.test(itemText) ||
+          /^\s*(?:Đúng|Sai)\s*$/i.test(itemText);
+        if (!isNotQuestion) {
+          item.insertBefore(document.createTextNode(`Câu ${questionNumber}. `), item.firstChild);
+          questionNumber++;
+        }
+      });
+    });
+
+    // Giữ dòng cho các ô trong bảng (nếu giáo viên trình bày 4 đáp án A B C D trong bảng không viền)
+    source.querySelectorAll("td, th").forEach((cell) => cell.append("   "));
+    source.querySelectorAll("br").forEach((el) => el.replaceWith("\n"));
+    source.querySelectorAll("p, div, li, tr, h1, h2, h3, h4").forEach((el) => el.append("\n"));
+    source.querySelectorAll("img").forEach((img) => {
+      const src = img.getAttribute("src") || "";
+      if (/^(data:image\/|https?:\/\/)/i.test(src)) img.replaceWith(`\n${src}\n`);
+      else img.remove();
+    });
+
+    return (source.body.textContent || "")
+      .replace(/\u00a0/g, " ")
+      .replace(/\r/g, "")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+  IO.wordHtmlToImportText = wordHtmlToImportText;
+
+  /* ---------- Bóc tách danh sách câu hỏi từ văn bản Word ---------- */
+  IO.parseWordText = (rawText) => {
+    let text = String(rawText || "").replace(/\r/g, "").trim();
+    if (!text) return [];
+
+    // 1. Tách phần sau chữ "HẾT" hoặc "BẢNG ĐÁP ÁN" để dò bảng đáp án tổng hợp cuối đề (nếu có)
+    const endKeyMap = {};
+    const hetMatch = /(?:^|\n)\s*[-–—_*\s#]*\b(?:HẾT|Hết|BẢNG\s*ĐÁP\s*ÁN)\b[-–—_*\s#.:]*\s*(?:\n|$)/i.exec(text);
+    let tailText = "";
+    if (hetMatch) {
+      tailText = text.slice(hetMatch.index);
+      text = text.slice(0, hetMatch.index).trim();
+      // Dò các cặp "1.A", "1-A", "1: A", "Câu 1: A" trong bảng đáp án cuối đề
+      const ansPairs = [...tailText.matchAll(/(?:Câu\s*)?(\d{1,3})\s*[\.\-:)\s]\s*([ABCD])\b/gi)];
+      ansPairs.forEach((m) => {
+        const num = String(parseInt(m[1], 10));
+        if (!endKeyMap[num]) endKeyMap[num] = m[2].toUpperCase();
+      });
+    }
+
+    const questionStarts = [...text.matchAll(/(?:^|\n)\s*(?:##\s*)?(?:Câu|Bài)\s*(\d+)\s*[\.:]/gi)];
+    if (!questionStarts.length) return [];
+
+    function stripTrailingSectionHeaders(str) {
+      if (!str) return "";
+      return str
+        .replace(/(?:^|\n)\s*(?:PHẦN\s*[I|V|X\d]+|Phần\s*tự\s*luận)[\s\S]*$/i, "")
+        .replace(/(?:^|\n)\s*(?:Trả\s*lời|Thí\s*sinh)[^\n]*(?:từ\s*câu|đến\s*câu)[\s\S]*$/i, "")
+        .trim();
+    }
+
+    const out = [];
+    questionStarts.forEach((match, index) => {
+      const qNum = String(parseInt(match[1], 10) || index + 1);
+      const start = match.index + match[0].length;
+      const end = index + 1 < questionStarts.length ? questionStarts[index + 1].index : text.length;
+      let body = text.slice(start, end).trim();
+
+      body = body.replace(/^(?:PHẦN\s*[I|V|X\d]+|Phần\s*tự\s*luận)[^\n]*\n+/i, "").trim();
+
+      // Lấy các nhãn gạch chân [[WORD_UNDERLINE_A]]
+      const underlinedLabels = [...body.matchAll(/\[\[WORD_UNDERLINE_([A-D])\]\]/g)].map((m) => m[1].toUpperCase());
+      body = body.replace(/\[\[WORD_UNDERLINE_[A-D]\]\]/g, "");
+
+      // Tách phần Lời giải
+      let solution = "";
+      const solutionMatch = /(?:^|\n)\s*(?:Lời\s*giải|Hướng\s*dẫn(?:\s*giải)?|HDG)\s*[:.]?/im.exec(body);
+      if (solutionMatch) {
+        solution = body.slice(solutionMatch.index + solutionMatch[0].length).trim();
+        body = body.slice(0, solutionMatch.index).trim();
+      }
+      if (solution) solution = stripTrailingSectionHeaders(solution);
+      else body = stripTrailingSectionHeaders(body);
+
+      // Trích xuất mức độ [NB], [TH], [VD], [VDC] hoặc mã MapID [9D1H2-1]
+      let level = "Nhận biết";
+      let grade = "";
+      let subject = "Toán";
+      let mapId = "";
+
+      const tagMatches = [...body.matchAll(/\[\s*([A-Za-z0-9_\-]+)\s*\]/g)];
+      tagMatches.forEach((tm) => {
+        const tok = tm[1].toUpperCase();
+        if (tok === "NB") level = "Nhận biết";
+        else if (tok === "TH") level = "Thông hiểu";
+        else if (tok === "VD") level = "Vận dụng";
+        else if (tok === "VDC") level = "Vận dụng cao";
+        else if (/^(\d+)([A-Z]+)(\d+)([NHVCYBKGC])(\d*)(?:-([A-Za-z0-9]+))?$/i.test(tok)) {
+          mapId = tok;
+        }
+      });
+      body = body.replace(/^\s*\[\s*(?:NB|TH|VD|VDC)\s*\]\s*/i, "");
+      if (mapId) {
+        body = body.replace(new RegExp("\\[\\s*" + mapId.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&") + "\\s*\\]\\s*", "i"), "");
+        const m = mapId.match(/^(\d+)([A-Z]+)(\d+)([NHVCYBKGC])/i);
+        if (m) {
+          const gCode = m[1];
+          grade = gCode === "0" ? "10" : gCode === "1" ? "11" : gCode === "2" ? "12" : gCode;
+          const sCode = m[2].toUpperCase();
+          if (sCode === "D" || sCode === "DS") subject = "Đại số";
+          else if (sCode === "H" || sCode === "HH") subject = "Hình học";
+          else if (sCode === "X" || sCode === "XS") subject = "Xác suất";
+          else if (sCode === "G") subject = "Giải tích";
+          const lCode = m[4].toUpperCase();
+          if (lCode === "N" || lCode === "Y") level = "Nhận biết";
+          else if (lCode === "H" || lCode === "B") level = "Thông hiểu";
+          else if (lCode === "V" || lCode === "K") level = "Vận dụng";
+          else if (lCode === "C" || lCode === "G") level = "Vận dụng cao";
+        }
+      }
+
+      // Kiểm tra đánh dấu sao *A. hoặc *a)
+      const starredMC = [];
+      const starredTF = [];
+      body = body.replace(/(?:^|\n|\s)\*([ABCD])(\s*[\.\)\:])/g, (_, l, sep) => {
+        starredMC.push(l.toUpperCase());
+        return ` ${l}${sep}`;
+      });
+      body = body.replace(/(?:^|\n|\s)\*([a-d])(\s*[\.\)])/gi, (_, l, sep) => {
+        starredTF.push(l.toUpperCase());
+        return `\n${l.toLowerCase()}${sep}`;
+      });
+
+      // 1. Dò phương án MC: A. B. C. D.
+      const optionMatches = [...body.matchAll(/(?:^|\n|\s)([ABCD])\s*[\.\)\:]\s*/g)];
+
+      // 2. Dò mệnh đề Đúng/Sai: a) b) c) d)
+      const tfMatches = [...body.matchAll(/(?:^|\n|\s)([a-d])\s*[\.\)]\s*/gi)];
+      const hasDsBadge = /(?:\[\s*(?:ĐS|Đ\/S|Đúng\s*[\/,-]?\s*Sai)\s*\]|\(\s*Đúng\s*[\/,-]?\s*Sai\s*\)|tính\s*đúng[\s,/-]*sai|khẳng\s*định\s*sau|mệnh\s*đề\s*sau)/i.test(body);
+      const isTrueFalse = tfMatches.length >= 4 && (optionMatches.length < 4 || hasDsBadge);
+
+      // 3. Dò câu Trả lời ngắn: "Đáp án: ...", "Đáp số: ...", "Kết quả: ...", "<key=...>"
+      const shortAnsRegex = /(?:^|\n|\b)(?:Đáp\s*án|Đáp\s*số|Kết\s*quả)\s*[:=]\s*([^\n\r]+)|<key\s*=\s*([^>]+)>/i;
+      const shortInSolution = shortAnsRegex.exec(solution);
+      const shortInBody = shortAnsRegex.exec(body);
+      const shortMatch = shortInSolution || shortInBody;
+
+      const qId = `W${String(out.length + 1).padStart(3, "0")}`;
+
+      if (isTrueFalse) {
+        const stem = cleanWordMathLatex(
+          body.slice(0, tfMatches[0].index)
+            .replace(/\[\s*(?:ĐS|Đ\/S|Đúng\s*[\/,-]?\s*Sai)\s*\]|\(\s*Đúng\s*[\/,-]?\s*Sai\s*\)/gi, "")
+            .trim()
+        );
+        const opts = {};
+        const tfKeys = ["a", "b", "c", "d"];
+        let ansChars = "";
+
+        // Kiểm tra chuỗi đáp án tổng kiểu "Đáp án: Đ-S-Đ-S" hoặc "ĐSĐS" trong lời giải
+        let explicitPattern = "";
+        const patMatch = /(?:Đáp\s*án|Kết\s*quả)\s*[:=]?\s*([ĐDS][\s,\-–—/]*[ĐDS][\s,\-–—/]*[ĐDS][\s,\-–—/]*[ĐDS])/i.exec(solution || body);
+        if (patMatch) {
+          explicitPattern = patMatch[1].toUpperCase().replace(/[^ĐDS]/g, "").replace(/D/g, "Đ");
+        }
+
+        tfMatches.slice(0, 4).forEach((st, idx) => {
+          const stStart = st.index + st[0].length;
+          const stEnd = idx < 3 ? tfMatches[idx + 1].index : body.length;
+          let rawText = stripTrailingSectionHeaders(body.slice(stStart, stEnd).trim());
+          const answerMatch = /(?:\[\s*(Đúng|Sai|Đ|S)\s*\]|\(\s*(Đúng|Sai|Đ|S)\s*\)|[-–—:]\s*(Đúng|Sai))\s*$/i.exec(rawText);
+          const labelUpper = tfKeys[idx].toUpperCase();
+
+          let isTrue = false;
+          if (explicitPattern.length === 4) {
+            isTrue = explicitPattern[idx] === "Đ";
+          } else if (answerMatch) {
+            const tok = (answerMatch[1] || answerMatch[2] || answerMatch[3] || "").toLowerCase();
+            isTrue = tok === "đúng" || tok === "đ";
+          } else if (underlinedLabels.length > 0 || starredTF.length > 0) {
+            isTrue = underlinedLabels.includes(labelUpper) || starredTF.includes(labelUpper);
+          } else if (solution) {
+            const solMatch = new RegExp("(?:^|\\n|\\b)(?:mệnh\\s*đề\\s*|khẳng\\s*định\\s*|ý\\s*)?" + tfKeys[idx] + "\\s*[:.)\\-–—]?\\s*(?:là\\s*)?(đúng|sai)\\b", "i").exec(solution);
+            if (solMatch && solMatch[1].toLowerCase() === "đúng") isTrue = true;
+          }
+
+          opts[tfKeys[idx]] = cleanWordMathLatex(
+            rawText.replace(/(?:\[\s*(?:Đúng|Sai|Đ|S)\s*\]|\(\s*(?:Đúng|Sai|Đ|S)\s*\)|[-–—:]\s*(?:Đúng|Sai))\s*$/i, "").trim()
+          );
+          ansChars += isTrue ? "Đ" : "S";
+        });
+
+        out.push(cleanQ({
+          Id: qId,
+          Type: "TF",
+          Level: level,
+          Grade: grade,
+          Subject: subject,
+          mapId: mapId,
+          Question: stem,
+          Options: opts,
+          CorrectAnswer: ansChars || "ĐSĐS",
+          Explain: cleanWordMathLatex(solution)
+        }));
+      } else if (optionMatches.length >= 4) {
+        const stem = cleanWordMathLatex(body.slice(0, optionMatches[0].index).trim());
+        const opts = {};
+        const mcKeys = ["A", "B", "C", "D"];
+        optionMatches.slice(0, 4).forEach((opt, idx) => {
+          const optStart = opt.index + opt[0].length;
+          const optEnd = idx < 3 ? optionMatches[idx + 1].index : body.length;
+          let optText = body.slice(optStart, optEnd).trim();
+          // Loại dòng "Đáp án: A" nếu người dùng viết ở cuối phương án D
+          optText = optText.replace(/(?:^|\n)\s*(?:Chọn|Đáp\s*án)\s*[:\-]?\s*[ABCD]\s*\.?\s*$/i, "").trim();
+          opts[mcKeys[idx]] = cleanWordMathLatex(optText);
+        });
+
+        let correct = "";
+        const solCorrectMatch = /(?:chọn|đáp\s*án(?:\s*đúng)?(?:\s*là)?)\s*[:\-=]?\s*([ABCD])\b/i.exec(solution || body);
+        if (underlinedLabels.length > 0) {
+          correct = underlinedLabels[0];
+        } else if (starredMC.length > 0) {
+          correct = starredMC[0];
+        } else if (solCorrectMatch) {
+          correct = solCorrectMatch[1].toUpperCase();
+        } else if (endKeyMap[qNum]) {
+          correct = endKeyMap[qNum];
+        } else {
+          correct = "A"; // Mặc định A nếu người dùng quên đánh dấu, có thể sửa trong bảng xem trước
+        }
+
+        out.push(cleanQ({
+          Id: qId,
+          Type: "MC",
+          Level: level,
+          Grade: grade,
+          Subject: subject,
+          mapId: mapId,
+          Question: stem,
+          Options: opts,
+          CorrectAnswer: correct,
+          Explain: cleanWordMathLatex(solution)
+        }));
+      } else if (shortMatch) {
+        let rawAns = (shortMatch[1] || shortMatch[2] || "").trim();
+        rawAns = rawAns.replace(/^\$+|\$+$/g, "").replace(/\{([.,])\}/g, "$1").replace(/\.$/, "").trim();
+        const stem = cleanWordMathLatex(
+          body
+            .replace(/(?:^|\n)\s*(?:Đáp\s*án|Đáp\s*số|Kết\s*quả)\s*[:=]\s*[^\n\r]+/i, "")
+            .replace(/<key\s*=\s*[^>]+>/gi, "")
+            .trim()
+        );
+        out.push(cleanQ({
+          Id: qId,
+          Type: "SA",
+          Level: level,
+          Grade: grade,
+          Subject: subject,
+          mapId: mapId,
+          Question: stem,
+          CorrectAnswer: cleanWordMathLatex(rawAns),
+          Explain: cleanWordMathLatex(solution)
+        }));
+      }
+    });
+
+    return out;
+  };
+
+  /* ---------- Đọc file Word (.docx) bằng Mammoth + trích xuất ảnh EMF/PNG ---------- */
+  function extractEmbeddedRaster(arrayBuffer) {
+    const bytes = new Uint8Array(arrayBuffer);
+    if (!bytes || bytes.length < 16) return null;
+    for (let i = 0; i <= bytes.length - 16; i++) {
+      if (bytes[i] === 0x89 && bytes[i + 1] === 0x50 && bytes[i + 2] === 0x4e && bytes[i + 3] === 0x47 &&
+          bytes[i + 4] === 0x0d && bytes[i + 5] === 0x0a && bytes[i + 6] === 0x1a && bytes[i + 7] === 0x0a) {
+        for (let k = i + 8; k <= bytes.length - 8; k++) {
+          if (bytes[k] === 0x49 && bytes[k + 1] === 0x45 && bytes[k + 2] === 0x4e && bytes[k + 3] === 0x44) {
+            return { mime: "image/png", data: bytes.subarray(i, k + 8) };
+          }
+        }
+      }
+    }
+    for (let i = 0; i <= bytes.length - 4; i++) {
+      if (bytes[i] === 0xff && bytes[i + 1] === 0xd8 && bytes[i + 2] === 0xff) {
+        for (let k = i + 3; k <= bytes.length - 2; k++) {
+          if (bytes[k] === 0xff && bytes[k + 1] === 0xd9) {
+            return { mime: "image/jpeg", data: bytes.subarray(i, k + 2) };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function uint8ArrayToBase64(bytes) {
+    let binary = "";
+    const len = bytes.byteLength;
+    const chunkSize = 16384;
+    for (let i = 0; i < len; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    return btoa(binary);
+  }
+
+  IO.parseDocx = async (buf, fileObj) => {
+    const mammoth = await IO.needMammoth();
+    let arrayBuffer = buf;
+
+    // Nếu hệ thống có cấu hình API chuyển đổi MathType sang LaTeX thì tự động gọi trước
+    if (window.QMathBridge && typeof window.QMathBridge.getMathTypeApiUrl === "function" && fileObj) {
+      try {
+        const apiUrl = await window.QMathBridge.getMathTypeApiUrl();
+        if (apiUrl) {
+          U.toast("⏳ Đang chuyển đổi công thức MathType trong file Word sang LaTeX...", "info", 2200);
+          const fd = new FormData();
+          fd.append("file", fileObj);
+          const resp = await fetch(apiUrl, { method: "POST", body: fd });
+          if (resp.ok) {
+            arrayBuffer = await resp.arrayBuffer();
+          }
+        }
+      } catch (e) {
+        console.warn("[Word Import] Bỏ qua MathType API, dùng trực tiếp nội dung Word:", e);
+      }
+    }
+
+    const mammothOptions = {
+      styleMap: ["u => u"],
+      convertImage: mammoth.images.imgElement((element) => {
+        const contentType = element.contentType || "";
+        if (contentType === "image/x-emf" || contentType === "image/x-wmf") {
+          return element.readAsArrayBuffer().then(async (rawBuf) => {
+            try {
+              const ab = rawBuf instanceof ArrayBuffer ? rawBuf : rawBuf.buffer ? rawBuf.buffer.slice(rawBuf.byteOffset, rawBuf.byteOffset + rawBuf.byteLength) : new Uint8Array(rawBuf).buffer;
+              const embedded = extractEmbeddedRaster(ab);
+              if (embedded) {
+                return { src: `data:${embedded.mime};base64,${uint8ArrayToBase64(embedded.data)}`, alt: "Hình minh họa" };
+              }
+            } catch (e) {}
+            const b64 = await element.readAsBase64String();
+            return { src: `data:${contentType};base64,${b64}`, alt: "Hình minh họa" };
+          });
+        }
+        return element.readAsBase64String().then((b64) => ({
+          src: `data:${contentType};base64,${b64}`,
+          alt: "Hình minh họa"
+        }));
+      })
+    };
+
+    const result = await mammoth.convertToHtml({ arrayBuffer }, mammothOptions);
+    const importText = wordHtmlToImportText(result.value);
+    const questions = IO.parseWordText(importText);
+    if (!questions.length) {
+      throw new Error("Không tìm thấy câu hỏi hợp lệ trong file Word (.docx). Hãy đảm bảo các câu bắt đầu bằng 'Câu 1.', 'Câu 2.' và bấm nút '📘 Hướng dẫn file Word' để xem mẫu chuẩn.");
+    }
+    return questions;
+  };
+
+  /* JSON: mảng câu hỏi hoặc {questions:[...]} hoặc OFFLINE_DATA */
+  IO.parseJSON = (text) => {
+    text = String(text).replace(/^\uFEFF/, "").trim();
+    // Nếu người dùng dán văn bản dạng Word (Câu 1. ... A. ... B. ...) vào ô dán JSON/Text thì tự động bóc tách luôn!
+    if (/^\s*(?:Câu|Bài)\s*\d+\s*[\.:]/im.test(text) && !text.startsWith("[") && !text.startsWith("{")) {
+      return IO.parseWordText(text);
+    }
+    const m = text.match(/window\.OFFLINE_DATA\s*=\s*([\s\S]*?);?\s*$/);
+    let data = JSON.parse(m ? m[1] : text);
+    if (!Array.isArray(data)) data = data.questions || data.data || [];
+    return data.map((q) => cleanQ(q));
+  };
+
+  /* Excel/CSV -> câu hỏi */
+  IO.parseSheet = async (buf) => {
+    const XLSX = await U.needXLSX();
+    const wb = XLSX.read(buf, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
+    const out = [], groups = {}; let lastGroup = null;
+    rows.forEach((r) => {
+      const q = { Options: {} };
+      Object.keys(r).forEach((h) => {
+        const key = ALIAS[String(h).trim().toLowerCase()] || (COLS.includes(String(h).trim()) ? String(h).trim() : null);
+        if (!key) return;
+        const v = r[h];
+        if (["A", "B", "C", "D"].includes(key)) { if (String(v).trim() !== "") q.Options[key] = String(v); }
+        else q[key] = v;
+      });
+      if (!q.Question && !q.Id && !Object.keys(q.Options).length) return;
+      let t = normType(q.Type);
+      const parentId = String(q.ParentId || "").trim();
+      const isChild = !!parentId || (t.startsWith("Group") && t !== "Group");
+      if (Quiz.baseType(t) === "TF") { const o = {}; Object.keys(q.Options).forEach((k) => (o[k.toLowerCase()] = q.Options[k])); q.Options = o; }
+      delete q.ParentId;
+      if (t === "Group") { q.children = []; const c = cleanQ(q); c.children = []; out.push(c); groups[c.Id] = c; lastGroup = c; return; }
+      if (isChild) {
+        const g = groups[parentId] || lastGroup;
+        if (g) { q.Type = normType(q.Type, true); META.forEach((k) => { if (!q[k]) q[k] = g[k]; }); g.children.push(cleanQ(q, true)); return; }
+      }
+      out.push(cleanQ(q));
+    });
+    return out;
+  };
+
+  IO.parseFile = async (file) => {
+    const name = file.name.toLowerCase();
+    if (name.endsWith(".docx")) return IO.parseDocx(await U.readFile(file, "buffer"), file);
+    if (name.endsWith(".doc")) throw new Error("Hệ thống chỉ hỗ trợ định dạng .docx (Word 2010 trở lên). Hãy mở file trong Word và chọn File → Save As → .docx nhé!");
+    if (name.endsWith(".json") || name.endsWith(".js") || name.endsWith(".txt")) return IO.parseJSON(await U.readFile(file));
+    return IO.parseSheet(await U.readFile(file, "buffer"));
+  };
+
+  IO.validate = validate;
+  IO.clean = cleanQ;
+  IO.stats = (list) => {
+    const s = { total: list.length, MC: 0, TF: 0, SA: 0, LA: 0, Group: 0, children: 0, errors: [] };
+    list.forEach((q, i) => {
+      const t = Quiz.baseType(q.Type); s[t] = (s[t] || 0) + 1;
+      if (t === "Group") s.children += (q.children || []).length;
+      const e = validate(q); if (e.length) s.errors.push({ i, id: q.Id, msg: e.join(", ") });
+      (q.children || []).forEach((c) => { const ec = validate(c); if (ec.length) s.errors.push({ i, id: c.Id || q.Id + " (con)", msg: ec.join(", ") }); });
+    });
+    return s;
+  };
+
+  /* Xuất */
+  IO.toJSON = (list) => JSON.stringify(list.map((q) => { const c = U.plain(q); delete c._doc; delete c.updatedAt; return c; }), null, 2);
+  function toRows(list) {
+    const rows = [];
+    const row = (q, parent) => {
+      const t = Quiz.baseType(q.Type), r = {};
+      COLS.forEach((k) => (r[k] = ""));
+      r.Id = q.Id || ""; r.Type = q.Type || ""; META.forEach((k) => (r[k] = q[k] || ""));
+      r.Question = q.Question || ""; r.CorrectAnswer = q.CorrectAnswer || ""; r.Explain = q.Explain || ""; r.ParentId = parent ? parent.Id : "";
+      const o = q.Options || {};
+      if (t === "TF") ["a", "b", "c", "d"].forEach((k, i) => (r["ABCD"[i]] = o[k] || ""));
+      else ["A", "B", "C", "D"].forEach((k) => (r[k] = o[k] || ""));
+      rows.push(r);
+      (q.children || []).forEach((c) => row(c, q));
+    };
+    list.forEach((q) => row(q));
+    return rows;
+  }
+  IO.toExcel = async (list, name) => {
+    const XLSX = await U.needXLSX();
+    const ws = XLSX.utils.json_to_sheet(toRows(list), { header: COLS });
+    ws["!cols"] = COLS.map((c) => ({ wch: c === "Question" || c === "Explain" ? 60 : c.length < 3 ? 26 : 14 }));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "CauHoi");
+    const guide = XLSX.utils.aoa_to_sheet([
+      ["HƯỚNG DẪN NHẬP CÂU HỎI"], [""],
+      ["Type", "MC = trắc nghiệm 1 đáp án · TF = đúng/sai 4 ý · SA = trả lời ngắn · LA = tự luận · Group = nhóm câu (câu con có ParentId = Id của nhóm, Type GroupMC/GroupTF/GroupSA)"],
+      ["MC", "Cột A–D là 4 phương án; CorrectAnswer là A/B/C/D"],
+      ["TF", "Cột A–D là 4 ý a) b) c) d); CorrectAnswer dạng ĐSĐS (hoặc DSDS: D/Đ = Đúng, S = Sai)"],
+      ["SA", "CorrectAnswer là số hoặc từ; nhiều đáp án chấp nhận ngăn bằng dấu |  (ví dụ: 0,5|1/2)"],
+      ["Level", "Nhận biết · Thông hiểu · Vận dụng · Vận dụng cao"],
+      ["Công thức", "Viết LaTeX giữa dấu $...$, ví dụ $\\dfrac{a}{b}$"],
+      ["Hình ảnh", "Dán đường link ảnh (.png/.jpg) vào nội dung câu hỏi, xuống dòng riêng"],
+      ["Trống", "Các cột Môn/Lớp/Chương/Chủ đề có thể để trống, bổ sung sau trong trang Quản trị"]
+    ]);
+    guide["!cols"] = [{ wch: 14 }, { wch: 110 }];
+    XLSX.utils.book_append_sheet(wb, guide, "HuongDan");
+    XLSX.writeFile(wb, name || "ngan-hang-cau-hoi.xlsx");
+  };
+  IO.template = () => IO.toExcel([
+    { Id: "Q001", Type: "MC", Level: "Nhận biết", Grade: "10", Subject: "Toán", Chapter: "Hệ thức lượng", Topic: "Định lí sin", Question: "Theo định lí sin, $\\dfrac{a}{\\sin A}$ bằng", Options: { A: "$R$", B: "$2R$", C: "$\\dfrac{R}{2}$", D: "$4R$" }, CorrectAnswer: "B", Explain: "Định lí sin." },
+    { Id: "Q002", Type: "TF", Level: "Thông hiểu", Grade: "11", Subject: "Vật lý", Question: "Xét tính đúng sai:", Options: { a: "Ý a", b: "Ý b", c: "Ý c", d: "Ý d" }, CorrectAnswer: "SDDS" },
+    { Id: "Q003", Type: "SA", Level: "Vận dụng", Grade: "12", Subject: "Toán", Question: "Nghiệm âm của phương trình ... là?", CorrectAnswer: "-1" },
+    { Id: "Q005", Type: "Group", Grade: "12", Subject: "Toán", Question: "Cho hình chóp S.ABCD ... Trả lời các câu sau:", children: [
+      { Id: "Q005_1", Type: "GroupMC", Question: "Thể tích khối chóp là?", Options: { A: "1", B: "2", C: "3", D: "4" }, CorrectAnswer: "A" },
+      { Id: "Q005_2", Type: "GroupSA", Question: "Khoảng cách từ A đến (SBD)?", CorrectAnswer: "1" }] }
+  ], "mau-nhap-cau-hoi.xlsx");
+
+  window.IO = IO;
+})();

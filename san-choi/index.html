@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="vi" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sân Chơi Tri Thức — Game học tập</title>
+<meta name="description" content="Web game học tập: kéo co, đua xe, đua vịt, đua thuyền rồng, nhảy bao bố, tung xúc xắc, đấu trường trực tuyến… với câu hỏi trắc nghiệm do giáo viên cài đặt.">
+<meta name="theme-color" content="#f59e0b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23f59e0b'/%3E%3Cstop offset='1' stop-color='%23d97706'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle'%3E🎮%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="assets/css/games.css">
+<link rel="stylesheet" href="assets/css/qmath-bridge.css">
+<script>try{var t=JSON.parse(localStorage.getItem("gfe_theme")||'"light"');document.documentElement.setAttribute("data-theme",t==="dark"?"dark":"light")}catch(e){}</script>
+</head>
+<body>
+  <div id="splash"><div class="sp-logo">🎮</div><div class="dots3"><i></i><i></i><i></i></div></div>
+
+  <!-- HEADER MỎNG -->
+  <header class="topbar">
+    <button class="hb" id="hb" aria-label="Mở/đóng menu"><i></i></button>
+    <a class="brand" href="#/"><span class="brand-logo">🎮</span><span class="brand-tx">Sân Chơi Tri Thức · QMath</span></a>
+    <span class="crumb" id="crumb"></span>
+    <span class="tb-sp"></span>
+    <span class="tb-net hide" id="netBadge">⚡ Ngoại tuyến</span>
+    <a class="tb-btn" href="../dashboard.html" title="Quay lại Bảng điều khiển Giáo viên QMath LMS" style="text-decoration:none">🏫 <span class="hide-sm">Về LMS QMath</span></a>
+    <button class="tb-btn accent" id="tbJoin" title="Vào phòng bằng mã PIN">🔢 <span class="hide-sm">Vào phòng</span></button>
+    <button class="tb-btn hide-sm" id="tbFs" title="Toàn màn hình">⛶</button>
+    <button class="theme-sw" id="themeSw" title="Sáng / Tối" aria-label="Đổi giao diện sáng tối"><b class="ts-k"></b></button>
+    <button class="tb-user" id="tbUser" title="Tài khoản"></button>
+  </header>
+
+  <!-- MENU HAMBURGER -->
+  <aside class="drawer" id="drawer">
+    <div class="drawer-search">
+      <button class="ds-ic" id="navSearchIc" title="Tìm kiếm" aria-label="Tìm kiếm">🔎</button>
+      <input id="navSearch" type="search" placeholder="Tìm trò chơi, hoạt động…" autocomplete="off" aria-label="Tìm kiếm trong menu">
+      <button class="ds-clear" id="navSearchClear" title="Xoá" aria-label="Xoá tìm kiếm">✕</button>
+    </div>
+    <nav class="drawer-scroll" id="navList"></nav>
+    <div class="drawer-foot" id="drawerFoot"></div>
+  </aside>
+  <div class="backdrop" id="backdrop"></div>
+
+  <!-- NỘI DUNG -->
+  <main class="main" id="main"><div id="view"></div></main>
+  <div id="toasts"></div>
+
+  <!-- Thư viện ngoài (tự bỏ qua khi offline) -->
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+  <script defer src="https://unpkg.com/mammoth@1.12.1/mammoth.browser.min.js"></script>
+
+  <!-- Dữ liệu offline (giáo viên tải từ trang Quản trị, đặt vào thư mục data/) -->
+  <script defer src="data/questions-offline.js"></script>
+
+  <!-- Ứng dụng -->
+  <script defer src="assets/js/config.js"></script>
+  <script defer src="assets/js/core/utils.js"></script>
+  <script defer src="assets/js/core/art.js"></script>
+  <script defer src="assets/js/core/quiz.js"></script>
+  <script defer src="assets/js/core/demo-data.js"></script>
+  <script defer src="assets/js/core/firebase.js"></script>
+  <script defer src="assets/js/core/data.js"></script>
+  <script defer src="assets/js/core/importer.js"></script>
+  <script defer src="assets/js/core/qmath-bridge.js"></script>
+  <script defer src="assets/js/core/room.js"></script>
+  <script defer src="assets/js/games/kit.js"></script>
+  <script defer src="assets/js/games/keo-co.js"></script>
+  <script defer src="assets/js/games/race.js"></script>
+  <script defer src="assets/js/games/xuc-xac.js"></script>
+  <script defer src="assets/js/games/dau-truong.js"></script>
+  <script defer src="assets/js/games/rung-chuong.js"></script>
+  <script defer src="assets/js/games/nhanh-chop.js"></script>
+  <script defer src="assets/js/games/ghep-the.js"></script>
+  <script defer src="assets/js/games/trieu-phu.js"></script>
+  <script defer src="assets/js/games/lat-manh.js"></script>
+  <script defer src="assets/js/games/vong-quay.js"></script>
+  <script defer src="assets/js/games/shooter.js"></script>
+  <script defer src="assets/js/games/o-chu.js"></script>
+  <script defer src="assets/js/games/olympia.js"></script>
+  <script defer src="assets/js/activities/duck-race.js"></script>
+  <script defer src="assets/js/pages/home.js"></script>
+  <script defer src="assets/js/pages/player.js"></script>
+  <script defer src="assets/js/admin/admin.js"></script>
+  <script defer src="assets/js/app.js"></script>
+</body>
+</html>

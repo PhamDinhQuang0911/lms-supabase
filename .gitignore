@@ -1,0 +1,30 @@
+# Internal backups, clean sources & AI agent folders
+.agent/
+.github/agents/
+.github/hooks/
+.github/skills/
+.impeccable/
+backups/
+*.backup.js
+scratch/
+
+# Backend workers, Telegram Bot Token uploaders & n8n workflows (never expose publicly)
+tools/hls_uploader/
+cloudflare-worker-hls/
+Upload_Video_HLS.bat
+n8n/
+functions/
+
+# Raw data dumps, local dev scripts & LaTeX source archives
+output-book.json
+MapID_2026-02-20.txt
+file main latex chuyên đề/
+form vận chuyển/
+scripts/
+local-server.js
+server.py
+start-server.bat
+project_summary.md
+PROJECT_CONTEXT.md
+PRODUCT.md
+DESIGN.md

@@ -1,0 +1,431 @@
+/**
+ * QMath App Installer (PWA / Add to Home Screen)
+ * Hỗ trợ cài đặt ứng dụng 1 chạm tự động trên Android (Chrome, Samsung Internet, Edge...)
+ * và hướng dẫn theo chuẩn Apple WebKit trên iOS / iPadOS.
+ */
+(function() {
+    'use strict';
+
+    // 1. Kiểm tra môi trường thiết bị
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || 
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+        (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+    const isIPad = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || /iPad/.test(ua);
+    const isAndroid = /Android/i.test(ua);
+    const isInsideAppWebview = /Zalo|FBAN|FBAV|Instagram|TikTok|MicroMessenger/i.test(ua);
+    const isMobileOrTablet = isIOS || isAndroid || (window.innerWidth <= 1024 && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+
+    // Kiểm tra xem đã mở từ lối tắt / standalone hay chưa
+    const isStandalone = (window.navigator.standalone === true) || 
+        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+        (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches);
+
+    // Nếu đã ở trong App (Lối tắt) -> Tuyệt đối không hiển thị banner cài đặt
+    if (isStandalone) return;
+
+    // Không làm phiền khi đang trong phòng thi hoặc xem làm bài tập tính giờ
+    const currentPath = window.location.pathname.toLowerCase();
+    if (currentPath.includes('exam.html') || currentPath.includes('homework-player.html')) {
+        return;
+    }
+
+    let deferredInstallPrompt = window.deferredInstallPrompt || null;
+
+    function updateInstallButtonState() {
+        const btn = document.getElementById('qmathInstallActionBtn');
+        if (btn && deferredInstallPrompt) {
+            btn.innerHTML = '<i class="fa-solid fa-arrow-down-to-bracket"></i> Cài đặt ngay';
+            btn.title = "Cài đặt ứng dụng 1 chạm tự động vào màn hình chính";
+        }
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        window.deferredInstallPrompt = e;
+        updateInstallButtonState();
+    });
+
+    window.addEventListener('appinstalled', () => {
+        hideBanner(true);
+        try { localStorage.setItem('qmath_app_installed', 'true'); } catch(e) {}
+    });
+
+    // Ensure styles for banners and modals
+    function ensureInstallStyles() {
+        if (document.getElementById('qmathInstallStyles')) return;
+        const style = document.createElement('style');
+        style.id = 'qmathInstallStyles';
+        style.textContent = `
+            @keyframes qmathSlideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+            @keyframes qmathFadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes qmathBounceUp { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+            @keyframes qmathBounceDown { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
+            
+            #qmathInstallBanner {
+                position: fixed;
+                bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+                left: 12px;
+                right: 12px;
+                z-index: 99999;
+                max-width: 440px;
+                margin: 0 auto;
+                background: rgba(255, 255, 255, 0.96);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+                border: 1px solid rgba(254, 215, 170, 0.9);
+                box-shadow: 0 16px 36px -8px rgba(234, 88, 12, 0.22), 0 0 0 1px rgba(234, 88, 12, 0.08);
+                border-radius: 20px;
+                padding: 10px 14px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                font-family: Inter, system-ui, sans-serif;
+                animation: qmathSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                transition: all 0.3s ease;
+            }
+            html.dark #qmathInstallBanner {
+                background: rgba(17, 24, 39, 0.96);
+                border-color: rgba(249, 115, 22, 0.35);
+                box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(249, 115, 22, 0.2);
+            }
+            #qmathInstallBanner .qmath-app-icon-wrap {
+                width: 42px;
+                height: 42px;
+                border-radius: 12px;
+                background: #ffffff;
+                padding: 2px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                box-shadow: 0 4px 10px rgba(234, 88, 12, 0.25);
+                border: 1px solid #ffedd5;
+            }
+            html.dark #qmathInstallBanner .qmath-app-icon-wrap {
+                background: #1f2937;
+                border-color: #374151;
+            }
+            #qmathInstallBanner .qmath-app-title {
+                font-size: 13.5px;
+                font-weight: 800;
+                color: #0f172a;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            html.dark #qmathInstallBanner .qmath-app-title {
+                color: #f3f4f6;
+            }
+            #qmathInstallBanner .qmath-app-subtitle {
+                margin: 2px 0 0;
+                font-size: 11.5px;
+                color: #64748b;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            html.dark #qmathInstallBanner .qmath-app-subtitle {
+                color: #9ca3af;
+            }
+            #qmathInstallBanner .qmath-app-badge {
+                font-size: 9.5px;
+                font-weight: 700;
+                background: #ffedd5;
+                color: #c2410c;
+                padding: 1px 6px;
+                border-radius: 20px;
+                white-space: nowrap;
+            }
+            html.dark #qmathInstallBanner .qmath-app-badge {
+                background: rgba(234, 88, 12, 0.25);
+                color: #fb923c;
+            }
+            #qmathInstallBanner .qmath-close-btn {
+                background: none;
+                border: none;
+                color: #94a3b8;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 15px;
+                transition: all 0.2s;
+            }
+            html.dark #qmathInstallBanner .qmath-close-btn {
+                color: #64748b;
+            }
+            html.dark #qmathInstallBanner .qmath-close-btn:hover {
+                color: #e2e8f0;
+                background: rgba(255, 255, 255, 0.1);
+            }
+            
+            /* Guides Modal dark mode */
+            html.dark .qmath-guide-modal-content {
+                background: #111827 !important;
+                color: #f3f4f6 !important;
+                border: 1px solid #374151 !important;
+            }
+            html.dark .qmath-guide-modal-content h3 {
+                color: #f9fafb !important;
+            }
+            html.dark .qmath-guide-modal-content p,
+            html.dark .qmath-guide-modal-content div,
+            html.dark .qmath-guide-modal-content span {
+                color: inherit;
+            }
+            html.dark .qmath-guide-modal-content .qmath-guide-info {
+                background: rgba(234, 88, 12, 0.15) !important;
+                border-color: rgba(234, 88, 12, 0.3) !important;
+            }
+            html.dark .qmath-guide-modal-content .qmath-guide-info p {
+                color: #fdba74 !important;
+            }
+            html.dark .qmath-guide-modal-content .qmath-guide-close {
+                background: #1f2937 !important;
+                color: #9ca3af !important;
+            }
+            html.dark .qmath-guide-modal-content .qmath-guide-badge {
+                background: #1f2937 !important;
+                color: #cbd5e1 !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Modal hướng dẫn riêng cho iOS / iPad
+    function showIosGuideModal() {
+        ensureInstallStyles();
+        let modal = document.getElementById('qmathIosInstallModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'qmathIosInstallModal';
+            modal.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(15,23,42,0.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;animation:qmathFadeIn 0.25s ease-out;';
+            
+            const shareIconPos = isIPad ? 'ở góc trên bên phải màn hình Safari' : 'ở thanh công cụ đáy màn hình Safari';
+            const arrowIndicator = isIPad 
+                ? '<div style="text-align:right;padding-right:24px;margin-bottom:10px;font-size:15px;font-weight:700;color:#0284c7;animation:qmathBounceUp 1.2s infinite;"><i class="fa-solid fa-arrow-up"></i> Nút Chia sẻ ở góc trên này</div>'
+                : '<div style="text-align:center;margin-top:14px;font-size:15px;font-weight:700;color:#0284c7;animation:qmathBounceDown 1.2s infinite;"><i class="fa-solid fa-arrow-down"></i> Nút Chia sẻ ở thanh dưới cùng</div>';
+
+            modal.innerHTML = `
+                <div class="qmath-guide-modal-content" style="background:#fff;color:#1e293b;border-radius:24px;max-width:440px;width:100%;padding:22px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);font-family:Inter,system-ui,sans-serif;position:relative;animation:qmathSlideUp 0.3s cubic-bezier(0.16,1,0.3,1);">
+                    <button onclick="document.getElementById('qmathIosInstallModal').style.display='none'" class="qmath-guide-close" style="position:absolute;top:16px;right:16px;width:32px;height:32px;border:none;background:#f1f5f9;color:#64748b;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;">✕</button>
+                    
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                        <img src="/apple-touch-icon.png" onerror="this.src='/app-icon-192.png'" style="width:52px;height:52px;border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,0.12);object-fit:cover;border:1px solid #f1f5f9;">
+                        <div>
+                            <h3 style="margin:0;font-size:17px;font-weight:800;color:#0f172a;">Cài đặt Toán Thầy Choang</h3>
+                            <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Dành cho thiết bị ${isIPad ? 'iPad / iPadOS' : 'iPhone / iOS'}</p>
+                        </div>
+                    </div>
+
+                    <div class="qmath-guide-info" style="background:#fff7ed;border:1px solid #ffedd5;border-radius:14px;padding:12px 14px;margin-bottom:16px;">
+                        <p style="margin:0;font-size:12.5px;color:#9a3412;line-height:1.5;font-weight:600;">
+                            <i class="fa-solid fa-circle-info" style="margin-right:5px;"></i> Apple Safari yêu cầu thao tác qua menu hệ thống theo 3 bước sau:
+                        </p>
+                    </div>
+
+                    <div style="display:flex;flex-direction:column;gap:13px;font-size:13px;color:#334155;line-height:1.45;">
+                        <div style="display:flex;align-items:flex-start;gap:10px;">
+                            <span style="width:24px;height:24px;border-radius:50%;background:#ea580c;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</span>
+                            <div>
+                                Nhấn vào nút <strong>Chia sẻ</strong> <span class="qmath-guide-badge" style="display:inline-flex;align-items:center;background:#e0f2fe;color:#0284c7;padding:2px 8px;border-radius:8px;font-weight:700;"><i class="fa-solid fa-arrow-up-from-bracket" style="margin-right:4px;"></i> Share</span> (${shareIconPos}).
+                            </div>
+                        </div>
+
+                        <div style="display:flex;align-items:flex-start;gap:10px;">
+                            <span style="width:24px;height:24px;border-radius:50%;background:#ea580c;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</span>
+                            <div>
+                                Cuộn tìm và chọn mục <strong>"Thêm vào MH chính"</strong> <span class="qmath-guide-badge" style="display:inline-flex;align-items:center;background:#f1f5f9;color:#334155;padding:2px 8px;border-radius:8px;font-weight:700;"><i class="fa-regular fa-square-plus" style="margin-right:4px;"></i> Add to Home Screen</span>.
+                            </div>
+                        </div>
+
+                        <div style="display:flex;align-items:flex-start;gap:10px;">
+                            <span style="width:24px;height:24px;border-radius:50%;background:#ea580c;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</span>
+                            <div>
+                                Bấm <strong>"Thêm"</strong> (Add) ở góc trên bên phải để hoàn tất. Icon phần mềm với logo chuẩn sẽ xuất hiện ngay trên màn hình chính!
+                            </div>
+                        </div>
+                    </div>
+
+                    ${isIPad ? arrowIndicator : ''}
+
+                    <button onclick="document.getElementById('qmathIosInstallModal').style.display='none'" style="margin-top:18px;width:100%;padding:12px;background:linear-gradient(135deg,#ea580c,#f59e0b);color:#fff;border:none;border-radius:14px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(234,88,12,0.35);">
+                        Tôi đã hiểu
+                    </button>
+
+                    ${!isIPad ? arrowIndicator : ''}
+                </div>
+            `;
+            document.body.appendChild(modal);
+        } else {
+            modal.style.display = 'flex';
+        }
+    }
+
+    // Modal hướng dẫn Android khi chưa có event beforeinstallprompt hoặc đang mở trong app khác
+    function showAndroidGuideModal() {
+        ensureInstallStyles();
+        let modal = document.getElementById('qmathAndroidInstallModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'qmathAndroidInstallModal';
+            modal.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(15,23,42,0.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;animation:qmathFadeIn 0.25s ease-out;';
+            
+            const webviewWarning = isInsideAppWebview ? `
+                <div class="qmath-guide-info" style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:#991b1b;line-height:1.5;">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:5px;"></i> <b>Đang mở trong Zalo/Facebook:</b> Vui lòng bấm dấu <b>3 chấm (...)</b> ở góc trên cùng bên phải và chọn <b>"Mở bằng trình duyệt" (Chrome)</b> để cài đặt tự động 1 chạm!
+                </div>
+            ` : '';
+
+            modal.innerHTML = `
+                <div class="qmath-guide-modal-content" style="background:#fff;color:#1e293b;border-radius:24px;max-width:440px;width:100%;padding:22px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);font-family:Inter,system-ui,sans-serif;position:relative;animation:qmathSlideUp 0.3s cubic-bezier(0.16,1,0.3,1);">
+                    <button onclick="document.getElementById('qmathAndroidInstallModal').style.display='none'" class="qmath-guide-close" style="position:absolute;top:16px;right:16px;width:32px;height:32px;border:none;background:#f1f5f9;color:#64748b;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;">✕</button>
+                    
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                        <img src="/app-icon-192.png" onerror="this.src='/apple-touch-icon.png'" style="width:52px;height:52px;border-radius:14px;box-shadow:0 4px 12px rgba(234,88,12,0.3);object-fit:cover;">
+                        <div>
+                            <h3 style="margin:0;font-size:17px;font-weight:800;color:#0f172a;">Cài đặt Toán Thầy Choang</h3>
+                            <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Dành cho thiết bị Android</p>
+                        </div>
+                    </div>
+
+                    ${webviewWarning}
+
+                    <div style="display:flex;flex-direction:column;gap:13px;font-size:13px;color:#334155;line-height:1.45;margin-top:10px;">
+                        <div style="display:flex;align-items:flex-start;gap:10px;">
+                            <span style="width:24px;height:24px;border-radius:50%;background:#ea580c;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</span>
+                            <div>
+                                Nhấn vào biểu tượng <strong>Menu 3 chấm</strong> <span class="qmath-guide-badge" style="display:inline-flex;align-items:center;background:#f1f5f9;color:#0f172a;padding:2px 8px;border-radius:8px;font-weight:700;"><i class="fa-solid fa-ellipsis-vertical" style="margin-right:4px;"></i> Menu</span> ở góc trên bên phải trình duyệt Chrome.
+                            </div>
+                        </div>
+
+                        <div style="display:flex;align-items:flex-start;gap:10px;">
+                            <span style="width:24px;height:24px;border-radius:50%;background:#ea580c;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</span>
+                            <div>
+                                Chọn mục <strong>"Cài đặt ứng dụng"</strong> hoặc <strong>"Thêm vào màn hình chính"</strong>.
+                            </div>
+                        </div>
+
+                        <div style="display:flex;align-items:flex-start;gap:10px;">
+                            <span style="width:24px;height:24px;border-radius:50%;background:#ea580c;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</span>
+                            <div>
+                                Bấm <strong>"Cài đặt"</strong> để xác nhận. Ứng dụng sẽ tự động được ghim ra màn hình chính với đầy đủ logo và mở toàn màn hình!
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="document.getElementById('qmathAndroidInstallModal').style.display='none'" style="margin-top:18px;width:100%;padding:12px;background:linear-gradient(135deg,#ea580c,#f59e0b);color:#fff;border:none;border-radius:14px;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 16px rgba(234,88,12,0.35);">
+                        Tôi đã hiểu
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        } else {
+            modal.style.display = 'flex';
+        }
+    }
+
+    // Hàm gọi khi nhấn nút "Cài đặt"
+    window.triggerAppInstall = async function() {
+        const promptEvent = deferredInstallPrompt || window.deferredInstallPrompt;
+        if (promptEvent) {
+            try {
+                promptEvent.prompt();
+                const choice = await promptEvent.userChoice;
+                if (choice && choice.outcome === 'accepted') {
+                    hideBanner(true);
+                    if (window.showNotification) {
+                        window.showNotification("Đang cài đặt ứng dụng vào màn hình chính...", "success");
+                    }
+                }
+                deferredInstallPrompt = null;
+                window.deferredInstallPrompt = null;
+            } catch(e) {
+                console.warn("Prompt error:", e);
+                if (isIOS) showIosGuideModal();
+                else showAndroidGuideModal();
+            }
+        } else {
+            if (isIOS) {
+                showIosGuideModal();
+            } else {
+                showAndroidGuideModal();
+            }
+        }
+    };
+
+    function hideBanner(persist = true) {
+        const banner = document.getElementById('qmathInstallBanner');
+        if (banner) {
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateY(20px)';
+            setTimeout(() => banner.remove(), 300);
+        }
+        if (persist) {
+            try {
+                // Tạm ẩn trong 2 ngày nếu người dùng đóng
+                localStorage.setItem('qmath_install_dismissed_until', String(Date.now() + 2 * 24 * 60 * 60 * 1000));
+            } catch(e) {}
+        }
+    }
+    window.hideQmathInstallBanner = hideBanner;
+
+    // Khởi tạo hiển thị banner
+    function initInstallBanner() {
+        if (!isMobileOrTablet) return;
+
+        try {
+            const dismissedUntil = localStorage.getItem('qmath_install_dismissed_until');
+            if (dismissedUntil && Date.now() < parseInt(dismissedUntil, 10)) {
+                return;
+            }
+        } catch(e) {}
+
+        // Đợi 1.5 giây sau khi mở trang để người dùng bắt đầu lướt rồi mới hiện lời nhắc
+        setTimeout(() => {
+            if (document.getElementById('qmathInstallBanner')) return;
+
+            ensureInstallStyles();
+
+            const banner = document.createElement('div');
+            banner.id = 'qmathInstallBanner';
+
+            const btnText = (deferredInstallPrompt || window.deferredInstallPrompt) ? 'Cài đặt ngay' : 'Cài đặt';
+
+            banner.innerHTML = `
+                <div class="qmath-app-icon-wrap">
+                    <img src="/apple-touch-icon.png" onerror="this.src='/app-icon-192.png'" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" alt="Toán Thầy Choang">
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span class="qmath-app-title">Toán Thầy Choang</span>
+                        <span class="qmath-app-badge">Ứng dụng</span>
+                    </div>
+                    <p class="qmath-app-subtitle">Cài ứng dụng về máy để mở nhanh và mượt hơn</p>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                    <button id="qmathInstallActionBtn" onclick="window.triggerAppInstall()" style="background:linear-gradient(135deg,#ea580c,#f59e0b);color:#fff;border:none;padding:8px 13px;border-radius:12px;font-size:12.5px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:5px;box-shadow:0 4px 12px rgba(234,88,12,0.35);transition:transform 0.1s active;">
+                        <i class="fa-solid fa-download"></i> ${btnText}
+                    </button>
+                    <button class="qmath-close-btn" onclick="window.hideQmathInstallBanner()" title="Đóng">
+                        ✕
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(banner);
+            updateInstallButtonState();
+        }, 1500);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initInstallBanner);
+    } else {
+        initInstallBanner();
+    }
+})();

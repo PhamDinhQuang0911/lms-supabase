@@ -1,0 +1,2 @@
+/* Khung chụp đúng tỉ lệ khổ A4. Video phủ toàn màn hình; ảnh lưu chỉ là vùng này. */
+.camera-guide{width:min(96vw,63.64vh);aspect-ratio:210/297;border:3px solid #22c7b8;border-radius:4px}.camera-guide:before,.camera-guide:after,.camera-guide span:before,.camera-guide span:after{width:22px;height:22px;border-width:3px;background:#117e75aa}.camera-guide:before{left:3.2%;top:2.2%}.camera-guide:after{right:3.2%;top:2.2%}.camera-guide span:before{left:3.2%;bottom:2.2%}.camera-guide span:after{right:3.2%;bottom:2.2%}

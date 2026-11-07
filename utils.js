@@ -1,0 +1,1103 @@
+/**
+ * utils.js - Thư viện dùng chung (Đã tích hợp đầy đủ xử lý Ảnh & TikZ)
+ */
+
+/**
+ * utils.js - Phiên bản "Strict Timeout"
+ */
+const safeStorageGet = (key, defaultVal = null) => {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            const v = window.localStorage.getItem(key);
+            return v !== null ? v : defaultVal;
+        }
+    } catch (_) {}
+    return defaultVal;
+};
+
+const safeStorageSet = (key, val) => {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(key, val);
+        }
+    } catch (_) {}
+};
+
+export const getTikzApiUrl = () => {
+    // Tự động nâng cấp URL cũ trong máy người dùng lên tên miền HTTPS mới
+    if (safeStorageGet('tikzVpsUrl') === 'http://42.96.4.216:3000') {
+        safeStorageSet('tikzVpsUrl', 'https://api.qmath.io.vn');
+    }
+
+    const mode = safeStorageGet('tikzVpsMode', 'personal');
+    // Đổi mặc định sang tên miền HTTPS xịn vừa tạo qua Cloudflare Tunnel
+    const customUrl = safeStorageGet('tikzVpsUrl', 'https://api.qmath.io.vn');
+    
+    if (mode === 'personal' && customUrl) {
+        const baseUrl = customUrl.replace(/\/+$/, '');
+        
+        // Sửa lỗi Mixed Content trên Github Pages
+        if (typeof window !== 'undefined' && window.location && window.location.protocol === 'https:' && baseUrl.startsWith('http://')) {
+            console.warn("Trình duyệt chặn kết nối HTTP từ trang HTTPS (Mixed Content). Tạm thời chuyển sang server Free.");
+            if (window.showToast) window.showToast("Trình duyệt chặn HTTP từ trang HTTPS. Tạm thời chuyển sang server Free.", "error");
+            return "https://compile.qmath.io.vn/compile"; // Fallback
+        }
+
+        if (baseUrl.endsWith('/compile')) return baseUrl;
+        return `${baseUrl}/compile`;
+    }
+    return "https://compile.qmath.io.vn/compile"; // Free tier
+};
+
+export const prepareTikzForCompilation = (rawCode) => {
+    let cleanCode = String(rawCode || '')
+        .replace(/<\/?(?:div|script|span|p)[^>]*>/gi, '')
+        .replace(/AMP_PLACEHOLDER/g, '&')
+        .replace(/\\widecheck/g, '\\widehat');
+
+    const defaultLibs = "\\usetikzlibrary{calc,arrows.meta,angles,quotes,intersections,patterns,shapes,positioning,decorations.markings,backgrounds}\n";
+    const defaultStyles = "\\tikzset{\n" +
+        "  circle line/.style={draw},\n" +
+        "  construction/.style={draw},\n" +
+        "  marked point/.style={circle, fill, inner sep=1.2pt},\n" +
+        "  point label/.style={},\n" +
+        "  figure label/.style={},\n" +
+        "  line/.style={draw},\n" +
+        "  point/.style={circle, fill, inner sep=1pt},\n" +
+        "  dot/.style={circle, fill, inner sep=1pt}\n" +
+        "}\n";
+
+    if (!cleanCode.includes("\\usetikzlibrary")) {
+        cleanCode = defaultLibs + cleanCode;
+    }
+    if (!cleanCode.includes("circle line/.style")) {
+        cleanCode = defaultStyles + cleanCode;
+    }
+    return cleanCode;
+};
+
+export const compileTikZToImage = async (tikzCode) => {
+    // THỜI GIAN TỐI ĐA CHO PHÉP: 60 Giây
+    const TIMEOUT_MS = 60000;
+
+    const controller = new AbortController();
+    
+    let timeoutId = null;
+    // 1. Lệnh ngắt kết nối
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            controller.abort();
+            reject(new Error("TIMEOUT_FORCE"));
+        }, TIMEOUT_MS);
+    });
+
+    // 2. Lệnh gửi đi thực tế có tự động khắc phục lỗi pgfkeys
+    const requestPromise = async () => {
+        const apiUrl = getTikzApiUrl();
+        let currentCode = prepareTikzForCompilation(tikzCode);
+        let attempts = 0;
+
+        while (attempts < 3) {
+            attempts++;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: currentCode }),
+                    signal: controller.signal
+                });
+
+                if (response.ok) {
+                    const text = await response.text();
+                    if (!text || text.trim() === "") throw new Error("Empty Response");
+                    const data = JSON.parse(text);
+                    if (data.url && !data.url.includes("Image+Error")) {
+                        return data.url;
+                    }
+                }
+
+                // Nếu có lỗi, kiểm tra chi tiết lỗi từ server để tự khắc phục
+                const errText = await response.text();
+                let errJson = null;
+                try { errJson = JSON.parse(errText); } catch(e) {}
+                const details = errJson?.details || errText;
+
+                // Tự động phát hiện thiếu pgfkeys (ví dụ: circle line, marked point, ...)
+                const missingKeys = new Set();
+                const regex = /Package pgfkeys Error: I do not know the key '(?:(?:\/tikz\/|\/pgf\/))?([^']+)'/g;
+                let m;
+                while ((m = regex.exec(details)) !== null) {
+                    missingKeys.add(m[1].trim());
+                }
+
+                if (missingKeys.size > 0 && attempts < 3) {
+                    const defs = Array.from(missingKeys).map(k => {
+                        if (/line|construction|edge/i.test(k)) return `  ${k}/.style={draw},`;
+                        if (/point|dot/i.test(k)) return `  ${k}/.style={circle, fill, inner sep=1.2pt},`;
+                        return `  ${k}/.style={},`;
+                    }).join('\n');
+                    currentCode = `\\tikzset{\n${defs}\n}\n` + currentCode;
+                    continue;
+                }
+
+                throw new Error(errJson?.error ? `${errJson.error}: ${details.substring(0, 250)}` : `HTTP Error ${response.status}`);
+            } catch (err) {
+                if (attempts >= 3 || err.name === 'AbortError') throw err;
+            }
+        }
+        throw new Error("Không thể biên dịch TikZ sau nhiều lần thử");
+    };
+
+    // 3. Cuộc đua: Ai xong trước thì lấy kết quả người đó
+    try {
+        return await Promise.race([requestPromise(), timeoutPromise]);
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+};
+
+// --- HÀM MỚI: BIÊN DỊCH BATCH (Nhiều hình 1 lúc) ---
+export const compileTikZBatch = async (codesArray) => {
+    const TIMEOUT_MS = 120000; // Tăng lên 120 giây
+    const controller = new AbortController();
+    let batchTimeoutId = null;
+    
+    const timeoutPromise = new Promise((_, reject) => {
+        batchTimeoutId = setTimeout(() => {
+            controller.abort();
+            reject(new Error("TIMEOUT_FORCE"));
+        }, TIMEOUT_MS);
+    });
+
+    const requestPromise = async () => {
+        try {
+            const baseUrl = getTikzApiUrl().replace(/\/compile$/, '');
+            const apiUrl = `${baseUrl}/compile-batch`;
+            
+            const preprocessed = codesArray.map(c => prepareTikzForCompilation(c));
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codes: preprocessed }),
+                signal: controller.signal
+            });
+
+            if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+            
+            const text = await response.text();
+            if (!text || text.trim() === "") throw new Error("Empty Response");
+
+            return JSON.parse(text).urls;
+        } catch (err) {
+            throw err;
+        }
+    };
+
+    try {
+        return await Promise.race([requestPromise(), timeoutPromise]);
+    } finally {
+        if (batchTimeoutId) clearTimeout(batchTimeoutId);
+    }
+};
+
+// --- QUẢN LÝ CHẾ ĐỘ BIÊN DỊCH TIKZ (LỰA CHỌN 1: VPS - ỔN ĐỊNH | LỰA CHỌN 2: TIKZJAX - TRÌNH DUYỆT) ---
+
+/**
+ * Lấy chế độ biên dịch TikZ hiện tại ('vps' hoặc 'tikzjax'). Mặc định là 'vps' (đang ổn định).
+ */
+export const getTikzRenderMode = () => {
+    return safeStorageGet('tikzRenderMode', 'vps') || 'vps';
+};
+
+/**
+ * Đặt chế độ biên dịch TikZ ('vps' hoặc 'tikzjax') và lưu vào localStorage.
+ */
+export const setTikzRenderMode = (mode) => {
+    const valid = mode === 'tikzjax' ? 'tikzjax' : 'vps';
+    safeStorageSet('tikzRenderMode', valid);
+    return valid;
+};
+
+/**
+ * Kiểm tra xem mã TikZ có đủ điều kiện render bằng TikzJax không.
+ * TikzJax là TeX chạy qua WebAssembly và KHÔNG hỗ trợ các gói mở rộng: tkz-euclide, tkz-tab, pgfplots,...
+ * Nếu chứa các gói này -> Bắt buộc chuyển sang VPS.
+ */
+export function canRenderWithTikzJax(code) {
+    if (!code || typeof code !== 'string') return false;
+    const vpsKeywords = [
+        'tkz-euclide', 'tkz-tab', 'tkz-base', 'tkz-', 'tkzTab', 'tkzTabSetup', 'tkzTabLine',
+        'tkzDefPoint', 'tkzDraw', 'tkzMark', 'tkzLabel',
+        'pgfplots', 'pgf-', '\\begin{axis}', '\\end{axis}', 'addplot',
+        '\\usepackage{twemoji}', '\\usepackage{emoji}', '\\usepackage{tcolorbox}',
+        'bchart', 'forest', 'smartdiagram', 'datavisualization'
+    ];
+    return !vpsKeywords.some(kw => code.includes(kw));
+}
+
+// --- HÀM BIÊN DỊCH BẰNG TIKZJAX (SỬ DỤNG IFRAME CÁCH LY ĐỂ TRÁNH XUNG ĐỘT MATHJAX) ---
+let _tikzIframe = null;
+let _tikzReady = false;
+let _tikzIframeInitStarted = false;
+let _tikzTaskQueue = [];
+let _tikzCurrentTask = null;
+
+const initTikzIframe = () => {
+    if (_tikzIframeInitStarted) return;
+    if (typeof document === 'undefined') return;
+    _tikzIframeInitStarted = true;
+
+    _tikzIframe = document.createElement('iframe');
+    _tikzIframe.style.display = 'none';
+    _tikzIframe.title = 'TikzJax Isolation Sandbox';
+    const target = document.body || document.documentElement;
+    if (target) {
+        target.appendChild(_tikzIframe);
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            (document.body || document.documentElement).appendChild(_tikzIframe);
+        });
+    }
+
+    const doc = _tikzIframe.contentWindow ? _tikzIframe.contentWindow.document : (_tikzIframe.contentDocument || null);
+    if (!doc) return;
+    doc.open();
+    doc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
+            <script>
+                window.__tikzJaxLoaded = false;
+                window.addEventListener('message', async function(event) {
+                    if (!event.data || event.data.type !== 'render-tikz') return;
+                    const id = event.data.id;
+                    let code = event.data.code;
+                    
+                    if (!code.includes('\\\\begin{tikzpicture}') && !code.includes('\\\\tikz')) {
+                        code = '\\\\begin{tikzpicture}\\n' + code + '\\n\\\\end{tikzpicture}';
+                    }
+                    if (!code.includes('\\\\usetikzlibrary')) {
+                        code = '\\\\usetikzlibrary{calc,arrows.meta}\\n' + code;
+                    }
+
+                    const container = document.createElement('div');
+                    container.id = 'container-' + id;
+                    document.body.appendChild(container);
+
+                    let isHandled = false;
+                    let pollInterval = null;
+                    let observer = null;
+
+                    const cleanup = () => {
+                        if (isHandled) return;
+                        isHandled = true;
+                        if (observer) { try { observer.disconnect(); } catch(e) {} }
+                        if (pollInterval) { try { clearInterval(pollInterval); } catch(e) {} }
+                        try { container.remove(); } catch(e) {}
+                    };
+
+                    const handleSvgFound = (svg) => {
+                        if (isHandled) return;
+                        isHandled = true;
+                        if (observer) { try { observer.disconnect(); } catch(e) {} }
+                        if (pollInterval) { try { clearInterval(pollInterval); } catch(e) {} }
+                        try {
+                            const serializer = new XMLSerializer();
+                            let svgString = serializer.serializeToString(svg);
+                            if (!svgString.match(/^<svg[^>]+xmlns="http:\\/\\/www\\.w3\\.org\\/2000\\/svg"/)) {
+                                svgString = svgString.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+                            }
+                            window.parent.postMessage({ type: 'tikz-result', id: id, svg: svgString }, '*');
+                        } catch(err) {
+                            window.parent.postMessage({ type: 'tikz-error', id: id, error: err.message }, '*');
+                        } finally {
+                            try { container.remove(); } catch(e) {}
+                        }
+                    };
+
+                    try {
+                        observer = new MutationObserver(function() {
+                            const svg = container.querySelector('svg');
+                            if (svg) handleSvgFound(svg);
+                        });
+                        observer.observe(container, { childList: true, subtree: true });
+
+                        const script = document.createElement('script');
+                        script.type = 'text/tikz';
+                        script.textContent = code;
+                        container.appendChild(script);
+
+                        // Polling song song dự phòng MutationObserver
+                        let pollElapsed = 0;
+                        pollInterval = setInterval(function() {
+                            pollElapsed += 50;
+                            const svg = container.querySelector('svg');
+                            if (svg) {
+                                handleSvgFound(svg);
+                            } else if (pollElapsed >= 9000) {
+                                cleanup();
+                                window.parent.postMessage({ type: 'tikz-error', id: id, error: 'TikZJax timeout: Không nhận được SVG sau 9s' }, '*');
+                            }
+                        }, 50);
+
+                        // Kích hoạt TikzJax xử lý thẻ script
+                        if (typeof window.onload === 'function') {
+                            window.onload();
+                        }
+                    } catch(err) {
+                        cleanup();
+                        window.parent.postMessage({ type: 'tikz-error', id: id, error: err.message }, '*');
+                    }
+                });
+            </script>
+            <script src="https://tikzjax.com/v1/tikzjax.js" onload="window.__tikzJaxLoaded=true; window.parent.postMessage({ type: 'tikz-iframe-ready' }, '*');"></script>
+        </head>
+        <body></body>
+        </html>
+    `);
+    doc.close();
+
+    window.addEventListener('message', (event) => {
+        if (!event.data) return;
+        if (event.data.type === 'tikz-iframe-ready') {
+            _tikzReady = true;
+        } else if (event.data.type === 'tikz-result') {
+            if (_tikzCurrentTask && _tikzCurrentTask.id === event.data.id) {
+                clearTimeout(_tikzCurrentTask.timeoutHandle);
+                _tikzCurrentTask.resolve(event.data.svg);
+                _tikzCurrentTask = null;
+                processNextTikzTask();
+            }
+        } else if (event.data.type === 'tikz-error') {
+            if (_tikzCurrentTask && _tikzCurrentTask.id === event.data.id) {
+                clearTimeout(_tikzCurrentTask.timeoutHandle);
+                _tikzCurrentTask.reject(new Error(event.data.error || "TikZJax render failed"));
+                _tikzCurrentTask = null;
+                processNextTikzTask();
+            }
+        }
+    });
+};
+
+const processNextTikzTask = async () => {
+    if (_tikzCurrentTask || _tikzTaskQueue.length === 0) return;
+    _tikzCurrentTask = _tikzTaskQueue.shift();
+
+    let wait = 0;
+    while (!_tikzReady && wait < 40) {
+        await new Promise(r => setTimeout(r, 200));
+        wait++;
+    }
+
+    if (!_tikzReady) {
+        clearTimeout(_tikzCurrentTask.timeoutHandle);
+        const task = _tikzCurrentTask;
+        _tikzCurrentTask = null;
+        task.reject(new Error("TikzJax iframe CDN timeout"));
+        processNextTikzTask();
+        return;
+    }
+
+    _tikzIframe.contentWindow.postMessage({
+        type: 'render-tikz',
+        id: _tikzCurrentTask.id,
+        code: _tikzCurrentTask.code
+    }, '*');
+};
+
+export const compileTikzLocalViaTikzJax = async (code) => {
+    if (!canRenderWithTikzJax(code)) {
+        throw new Error("Mã TikZ chứa thư viện phức tạp (tkz-euclide/pgfplots), cần dùng VPS");
+    }
+
+    initTikzIframe();
+
+    return new Promise((resolve, reject) => {
+        const id = Date.now().toString() + Math.random().toString().slice(2);
+        const timeoutHandle = setTimeout(() => {
+            if (_tikzCurrentTask && _tikzCurrentTask.id === id) {
+                _tikzCurrentTask = null;
+                reject(new Error("TikzJax timeout sau 10s"));
+                processNextTikzTask();
+            } else {
+                const idx = _tikzTaskQueue.findIndex(t => t.id === id);
+                if (idx !== -1) {
+                    _tikzTaskQueue.splice(idx, 1);
+                    reject(new Error("TikzJax timeout sau 10s"));
+                }
+            }
+        }, 10000);
+
+        _tikzTaskQueue.push({
+            id,
+            code,
+            resolve: (svgString) => {
+                try {
+                    const svgBase64 = btoa(unescape(encodeURIComponent(svgString)));
+                    resolve(`data:image/svg+xml;base64,${svgBase64}`);
+                } catch(e) {
+                    const blob = new Blob([svgString], { type: 'image/svg+xml' });
+                    resolve(URL.createObjectURL(blob));
+                }
+            },
+            reject,
+            timeoutHandle
+        });
+
+        processNextTikzTask();
+    });
+};
+
+// --- CÁC HÀM EXPORT HỖ TRỢ ---
+
+export function cleanTikzCode(code) {
+    let cleaned = code;
+
+    // 1. Xóa \resizebox bọc ngoài
+    cleaned = cleaned.replace(/\\resizebox\{[^}]+\}\{[^}]+\}\{\s*(\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})\s*\}/g, "$1");
+
+    // 2. Xóa môi trường center bọc ngoài
+    cleaned = cleaned.replace(/\\begin\{center\}/g, "").replace(/\\end\{center\}/g, "");
+
+    // 3. Xóa các \usepackage{} không được cài trên VPS tiêu chuẩn
+    const unsupportedPackages = [
+        'twemoji',       // emoji Twitter - cần LuaLaTeX + font đặc biệt
+        'emoji',         // tương tự twemoji
+        'fontawesome5',  // icon font - không phải lúc nào cũng có
+        'fontawesome',
+        'marvosym',
+        'wasysym',
+        'pifont',        // thường có nhưng đôi khi thiếu
+        'awesomebox',
+        'tcolorbox',     // nặng, có thể không có
+        'mdframed',
+        'soul',
+        'ulem',
+        'luacode',
+        'luatexja',
+    ];
+    unsupportedPackages.forEach(pkg => {
+        // Xóa: \usepackage{pkg}, \usepackage[...]{pkg}
+        const re = new RegExp(`\\\\usepackage(?:\\[[^\\]]*\\])?\\{${pkg}\\}[^\\n]*\\n?`, 'g');
+        cleaned = cleaned.replace(re, '');
+    });
+
+    // 4. Thay lệnh \twemoji{...} bằng text đơn giản
+    // 4. Hàm chuyển chuỗi codepoint hex (kiểu "1f9cd-1f3ff-200d-2642-fe0f") → emoji Unicode thực
+    const codePointsToEmoji = (codeStr) => {
+        try {
+            return codeStr.split('-')
+                .map(cp => String.fromCodePoint(parseInt(cp, 16)))
+                .join('');
+        } catch(e) {
+            return ''; // nếu codepoint không hợp lệ thì trả về rỗng
+        }
+    };
+
+    // Thay \twemoji[scale=...]{codepoints} và \twemoji{codepoints}
+    // Tham số là chuỗi hex codepoint (VD: 1f3eb) hoặc tên (VD: check mark)
+    cleaned = cleaned.replace(/\\twemoji(?:\[[^\]]*\])?\{([^}]+)\}/g, (match, arg) => {
+        const trimmed = arg.trim();
+        // Nếu là chuỗi hex (chứa chữ số và dấu gạch ngang) → chuyển sang emoji
+        if (/^[0-9a-fA-F]+(-[0-9a-fA-F]+)*$/.test(trimmed)) {
+            return codePointsToEmoji(trimmed);
+        }
+        // Nếu là tên chữ thường → tra bảng
+        const emojiMap = {
+            'check mark': '✓', 'heavy check mark': '✔', 'cross mark': '✗',
+            'warning': '⚠', 'star': '★', 'heart': '♥', 'circle': '●',
+            'arrow right': '→', 'arrow left': '←', 'arrow up': '↑', 'arrow down': '↓',
+        };
+        return emojiMap[trimmed.toLowerCase()] || '';
+    });
+
+    // 5. Xóa các lệnh liên quan đến emoji khác (có hoặc không có tham số tùy chọn)
+    cleaned = cleaned.replace(/\\emoji(?:\[[^\]]*\])?\{[^}]*\}/g, '');
+    cleaned = cleaned.replace(/\\faIcon(?:\[[^\]]*\])?\{[^}]*\}/g, '');
+    cleaned = cleaned.replace(/\\textSFx(?:\[[^\]]*\])?\{[^}]*\}/g, '');
+
+    // 6. Xóa các thẻ HTML bao bọc nếu có và khôi phục ký tự
+    cleaned = cleaned.replace(/<\/?(?:div|script|span|p)[^>]*>/gi, '');
+    cleaned = cleaned.replace(/AMP_PLACEHOLDER/g, '&');
+    cleaned = cleaned.replace(/\\widecheck/g, '\\widehat');
+
+    return cleaned;
+}
+
+export function extractNextBrace(text) {
+    if (!text) return null;
+    const start = text.indexOf('{');
+    if (start === -1) return null;
+    let depth = 1, end = -1;
+    for (let i = start + 1; i < text.length; i++) {
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}') depth--;
+        if (depth === 0) { end = i; break; }
+    }
+    if (end === -1) return null;
+    return { content: text.substring(start + 1, end), remaining: text.substring(end + 1), fullMatch: text.substring(start, end + 1) };
+}
+
+// --- CÁC HÀM XỬ LÝ NỘI BỘ ---
+
+/**
+ * Thay thế lệnh custom VN như \heva{} và \hoac{} bằng LaTeX chuẩn
+ * Xử lý đúng cả khi có ngoặc {} lồng nhau
+ */
+function replaceCustomMathCmd(text, cmd, leftDelim, rightDelim) {
+    let result = '';
+    let remaining = String(text || '');
+    const search = '\\' + cmd;
+    while (true) {
+        const idx = remaining.indexOf(search);
+        if (idx === -1) { result += remaining; break; }
+        result += remaining.substring(0, idx);
+        remaining = remaining.substring(idx + search.length).replace(/^\s*/, '');
+        if (!remaining.startsWith('{')) { result += search; continue; }
+        let depth = 1, i = 1;
+        while (i < remaining.length && depth > 0) {
+            if (remaining[i] === '{') depth++;
+            else if (remaining[i] === '}') depth--;
+            i++;
+        }
+        const content = remaining.substring(1, i - 1);
+        remaining = remaining.substring(i);
+        result += `${leftDelim}\\begin{aligned}${content}\\end{aligned}${rightDelim}`;
+    }
+    return result;
+}
+
+function processNestedTikz(text) {
+    if (!text) return "";
+
+    // 1. Bảo vệ các <script type="text/tikz"> đã nhúng sẵn (tránh double-wrap)
+    const protectedBlocks = [];
+    let textToProcess = text.replace(/<script\s+type="text\/tikz"[^>]*>[\s\S]*?<\/script>/gi, (match) => {
+        const idx = protectedBlocks.length;
+        protectedBlocks.push(match);
+        return `%%TIKZ_PROTECTED_${idx}%%`;
+    });
+
+    // 2. Xử lý \begin{tikzpicture}...\end{tikzpicture} còn lại (chưa được nhúng)
+    let result = "", remaining = String(textToProcess);
+    while (true) {
+        const startIdx = remaining.indexOf("\\begin{tikzpicture}");
+        if (startIdx === -1) { result += remaining; break; }
+        
+        result += remaining.substring(0, startIdx);
+        remaining = remaining.substring(startIdx);
+        
+        const openTag = "\\begin{tikzpicture}"; 
+        const closeTag = "\\end{tikzpicture}";
+        let depth = 1, endIdx = -1, searchPos = openTag.length;
+
+        while (depth > 0) {
+            const nextOpen = remaining.indexOf(openTag, searchPos);
+            const nextClose = remaining.indexOf(closeTag, searchPos);
+            if (nextClose === -1) { endIdx = remaining.length; depth = 0; break; }
+            if (nextOpen !== -1 && nextOpen < nextClose) { depth++; searchPos = nextOpen + openTag.length; } 
+            else { depth--; searchPos = nextClose + closeTag.length; if (depth === 0) endIdx = searchPos; }
+        }
+        
+        let rawTikz = remaining.substring(0, endIdx);
+        let finalTikz = cleanTikzCode(rawTikz);
+        if (!finalTikz.includes("\\usetikzlibrary")) finalTikz = "\\usetikzlibrary{calc,arrows.meta}\n" + finalTikz;
+        result += `<div class="flex justify-center my-4 overflow-x-auto"><script type="text/tikz">${finalTikz}<\/script></div>`;
+        remaining = remaining.substring(endIdx);
+    }
+
+    // 3. Khôi phục các block đã bảo vệ
+    protectedBlocks.forEach((block, idx) => {
+        result = result.replace(`%%TIKZ_PROTECTED_${idx}%%`, block);
+    });
+
+    return result;
+}
+
+
+function processTabular(text) {
+    if (!text) return "";
+    let processed = text.replace(/\\begin\{table\}(?:\[.*?\])?[\s\S]*?\\end\{table\}/g, (match) => {
+        // Giữ nội dung tabular, bỏ caption, renewcommand, centering
+        return match
+            .replace(/\\begin\{table\}(?:\[.*?\])?/g, '')
+            .replace(/\\end\{table\}/g, '')
+            .replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '')
+            .replace(/\\renewcommand\s*\{?\s*\\arraystretch\s*\}?\s*\{[^}]+\}/g, '')
+            .replace(/\\centering/g, '');
+    });
+    // Cũng cleanup ngoài table environment
+    processed = processed.replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '');
+    processed = processed.replace(/\\renewcommand\s*\{?\s*\\arraystretch\s*\}?\s*\{[^}]+\}/g, '');
+    const regex = /(?:<br>\s*)*\\begin\{tabular\}\s*(\{|\[).*?(\}|\])([\s\S]*?)\\end\{tabular\}(?:\s*<br>)*/g;
+    return processed.replace(regex, (match, open, close, body) => {
+        const rows = body.split('\\\\').filter(r => r.trim().length > 0);
+        let html = '<div class="my-0 w-full js-scale-wrapper" style="position: relative; width: 100%; margin: 2px 0;">';
+        html += '<table class="js-scale-table border-collapse border border-gray-300 bg-white text-sm origin-top-left" style="min-width: max-content;">';
+        rows.forEach((row, rIdx) => {
+            let cleanRow = row.replace(/\\hline/g, '').trim();
+            if(cleanRow.length === 0) return;
+            const cols = cleanRow.split('&');
+            html += `<tr class="${rIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">`;
+            cols.forEach(col => { html += `<td class="border border-gray-300 px-3 py-2">${col.trim()}</td>`; });
+            html += '</tr>';
+        });
+        html += '</table></div>';
+        return html;
+    });
+}
+
+function processLatexLists(text) {
+    if (!text) return "";
+    let processed = text;
+    const parseItems = (bodyStr) => {
+        const rawItems = bodyStr.split(/\\item(?![a-zA-Z])/).filter(s => s.trim().length > 0);
+        return rawItems.map((item) => {
+            let content = item.trim();
+            let label = '';
+            if (content.startsWith('[')) {
+                const cb = content.indexOf(']');
+                if (cb > -1) {
+                    label = content.substring(1, cb).trim();
+                    content = content.substring(cb + 1).trim();
+                }
+            }
+            content = processTabular(content);
+            return { label, content };
+        });
+    };
+
+    processed = processed.replace(/\\begin\{itemchoice\}([\s\S]*?)\\end\{itemchoice\}/gi, (match, body) => {
+        const items = body.split(/\\itemch\b/g).filter(s => s.trim().length > 0);
+        const htmlItems = items.map((item, idx) => {
+            const letter = String.fromCharCode(97 + idx); // a, b, c, d
+            return `<li class="flex items-start gap-2.5 mb-2.5 p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/50"><span class="w-6 h-6 rounded-lg bg-amber-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">${letter}</span><div class="leading-relaxed flex-1 text-gray-800 dark:text-gray-200 text-sm font-medium">${item.trim()}</div></li>`;
+        }).join('');
+        return `<ul class="my-3 pl-0 list-none space-y-2">${htmlItems}</ul>`;
+    });
+
+    processed = processed.replace(/\\begin\{nx\}([\s\S]*?)\\end\{nx\}/gi, (match, body) => {
+        return `<div class="my-3 p-3.5 border-l-4 border-teal-500 bg-teal-50 dark:bg-teal-950/30 text-teal-900 dark:text-teal-200 rounded-r-xl shadow-2xs"><strong class="block mb-1 text-teal-800 dark:text-teal-300 flex items-center gap-1.5"><i class="fa-solid fa-lightbulb text-teal-600"></i>Nhận xét:</strong>${body}</div>`;
+    });
+
+    const regexCols = /\\begin\{\s*(?:listEX|enumEX)\s*\}([\s\S]*?)\\end\{\s*(?:listEX|enumEX)\s*\}/gi;
+    processed = processed.replace(regexCols, (match, bodyWithHeader) => {
+        let cols = 1;
+        const firstItemIdx = bodyWithHeader.indexOf('\\item');
+        const headerText = firstItemIdx !== -1 ? bodyWithHeader.substring(0, firstItemIdx) : bodyWithHeader;
+
+        // Trích xuất số cột từ header: tìm số trong {}, [], (), <> hoặc số đứng độc lập ở header
+        const numMatches = [...headerText.matchAll(/[\{\[\(<](\d+)[\}\]\)>]/g)];
+        if (numMatches.length > 0) {
+            cols = parseInt(numMatches[numMatches.length - 1][1]) || 1;
+        } else {
+            const standaloneMatch = headerText.match(/\b(\d+)\b/);
+            if (standaloneMatch) {
+                cols = parseInt(standaloneMatch[1]) || 1;
+            }
+        }
+
+        let body = bodyWithHeader;
+        if (firstItemIdx !== -1) {
+            body = body.substring(firstItemIdx);
+        }
+
+        const items = parseItems(body);
+        
+        let listStyle = "list-decimal";
+        if (headerText.includes("a") || headerText.includes("a)") || headerText.includes("a.")) listStyle = "list-[lower-alpha]";
+        else if (headerText.includes("A") || headerText.includes("A)") || headerText.includes("A.")) listStyle = "list-[upper-alpha]";
+        else if (headerText.includes("i") || headerText.includes("i)") || headerText.includes("i.")) listStyle = "list-[lower-roman]";
+        else if (headerText.includes("I") || headerText.includes("I)") || headerText.includes("I.")) listStyle = "list-[upper-roman]";
+        else if (/enumEX/i.test(match)) listStyle = "list-[lower-alpha]";
+
+        let colClass = "";
+        if (cols === 2) colClass = "columns-1 sm:columns-2 gap-8";
+        else if (cols === 3) colClass = "columns-1 sm:columns-3 gap-8";
+        else if (cols === 4) colClass = "columns-2 sm:columns-4 gap-8";
+        else if (cols > 4) colClass = `columns-1 sm:columns-${cols} gap-8`;
+
+        let html = `<ol class="${listStyle} pl-8 my-3 space-y-2 ${colClass}">`;
+        items.forEach((it) => {
+            html += `<li class="pl-1 ${colClass ? 'break-inside-avoid' : ''}">${it.label ? `<span class="font-bold mr-1">${it.label}</span>` : ''}${it.content}</li>`;
+        });
+        html += `</ol>`;
+        return html;
+    });
+
+    processed = processed.replace(/\\begin\{enumerate\}([\s\S]*?)\\end\{enumerate\}/gi, (match, body) => {
+        const items = parseItems(body);
+        let html = `<ol class="list-decimal pl-8 space-y-1 my-2">`;
+        items.forEach(it => { html += `<li class="pl-1">${it.content}</li>`; });
+        html += `</ol>`;
+        return html;
+    });
+
+    processed = processed.replace(/\\begin\{itemize\}([\s\S]*?)\\end\{itemize\}/gi, (match, body) => {
+        const items = parseItems(body);
+        let html = `<ul class="list-disc pl-8 space-y-1 my-2">`;
+        items.forEach(it => { html += `<li class="pl-1">${it.content}</li>`; });
+        html += `</ul>`;
+        return html;
+    });
+
+    // Xóa <br> thừa xung quanh block elements (bảng, danh sách)
+    processed = processed.replace(/(<br\s*\/?>)+\s*(<div class="(?:my-0|my-1|my-2|my-3)[^"]*js-scale-wrapper)/gi, '$2');
+    processed = processed.replace(/(<\/div>)\s*(<br\s*\/?>)+/gi, '$1');
+    processed = processed.replace(/(<br\s*\/?>)+\s*(<(?:ul|ol|table)[^>]*>)/gi, '<br>$2');
+    processed = processed.replace(/(<\/(?:ul|ol|table)>)\s*(<br\s*\/?>)+/gi, '$1');
+    
+    return processed;
+}
+
+// --- CÁC HÀM EXPORT CHO BÊN NGOÀI ---
+
+export const convertArrayToMatrix = (content) => {
+  if (!content) return "";
+  // DISABLED: MathJax natively supports \begin{array} with lines, converting to matrix destroys |c| borders.
+  // let processed = content.replace(/\\begin\{array\}\s*\{[^{}]*?\}/g, '\\begin{matrix}');
+  // processed = processed.replace(/\\begin\{array\}/g, '\\begin{matrix}');
+  // processed = processed.replace(/\\end\{array\}/g, '\\end{matrix}');
+  // return processed;
+  return content;
+};
+
+export const autoScaleTables = (root = document) => {
+    const scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll('.js-scale-wrapper').forEach(wrap => {
+        const table = wrap.querySelector('table');
+        if (!table) return;
+        table.style.transform = 'none'; 
+        table.style.width = 'auto'; 
+        wrap.style.height = 'auto';
+        wrap.style.overflowX = 'auto';
+        const wrapWidth = wrap.clientWidth || wrap.offsetWidth;
+        if (wrapWidth > 0 && table.scrollWidth > wrapWidth) {
+            const scale = Math.max(wrapWidth / table.scrollWidth, 0.7);
+            if (scale < 0.99) {
+                table.style.transformOrigin = 'top left';
+                table.style.transform = `scale(${scale})`;
+                wrap.style.height = `${Math.ceil(table.scrollHeight * scale)}px`;
+            }
+        }
+    });
+};
+
+/**
+ * HÀM FORMAT CONTENT (FIX: EQNARRAY, <x, PLACEHOLDERS, ENUMEX)
+ */
+export const formatContent = (text) => {
+    if (text === null || text === undefined) return "";
+    let processed = text;
+
+    // 0. Pre-process lệnh toán học custom của VN (phải làm TRƯỚC khi split)
+    processed = replaceCustomMathCmd(processed, 'heva', '\\left\\{', '\\right.');
+    processed = replaceCustomMathCmd(processed, 'hoac', '\\left[', '\\right.');
+    processed = replaceCustomMathCmd(processed, 'heva*', '\\left\\{', '\\right.');
+    processed = replaceCustomMathCmd(processed, 'hoac*', '\\left[', '\\right.');
+    // Sửa lỗi hệ phương trình bị phân rã từ MathType Word:
+    const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right(?:\\\.|\.|\{|\})?\s*([\s\S]*?)\s*(?:\\\{|\\\}|\\\.|(?=\$))/g;
+    processed = processed.replace(regexMangledSystem, (match, eq1, eq2) => {
+        const clean1 = (eq1 || '').trim().replace(/^\\left\s*/, '');
+        const clean2 = (eq2 || '').trim().replace(/^[.\\]+/, '').trim();
+        return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
+    });
+    processed = processed.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, '');
+    processed = processed.replace(/\\left([a-zA-Z0-9])/g, '$1');
+    processed = processed.replace(/\\right([a-zA-Z0-9])/g, '$1');
+
+    // Cleanup metadata LaTeX bảng (caption, arraystretch)
+    processed = processed.replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '');
+    processed = processed.replace(/\\renewcommand\s*\{?\s*\\arraystretch\s*\}?\s*\{[^}]+\}/g, '');
+    processed = processed.replace(/\\renewcommand\\arraystretch\s*\{[^}]+\}/g, '');
+
+    // 0.5 Strip question environments
+    processed = processed.replace(/\\begin\{(?:ex|bt|vd|cau|question)\}(?:\[.*?\])?/g, '');
+    processed = processed.replace(/\\end\{(?:ex|bt|vd|cau|question)\}/g, '');
+    processed = processed.replace(/\\immini(?:\[.*?\])?\s*\{/g, '{'); // Strip \immini but keep the group
+    processed = processed.replace(/\\loigiai\s*\{/gi, '');
+
+    // 1. Clean Text (Math-safe replacements)
+    processed = processed.replace(/\\arrow(?![a-zA-Z])/g, '\\rightarrow ');
+    processed = processed.replace(/\\Arrow(?![a-zA-Z])/g, '\\Rightarrow ');
+    processed = processed.replace(/\\centering/g, "");
+    processed = processed.replace(/\\allowdisplaybreaks(\[.*?\])?/g, "");
+    processed = processed.replace(/\\lq\\lq/g, '"').replace(/\\rq\\rq/g, '"').replace(/\\lq/g, '"').replace(/\\rq/g, '"');
+    processed = processed.replace(/\\(?:wideparen|widearc|overparen|cung)\s*\{([^}]+)\}/g, '\\overparen{$1}');
+    processed = processed.replace(/\\(?:wideparen|widearc|overparen|cung)(?:\s+|(?=[A-Za-z]))([A-Za-z0-9]{1,4})\b/g, '\\overparen{$1}');
+    processed = processed.replace(/(^|[^\\])sđ(?=\s*\\overparen)/g, '$1\\text{sđ}\\;');
+    processed = processed.replace(/\\text\{sđ\}(?=\s*\\overparen)/g, '\\text{sđ}\\;');
+    processed = processed.replace(/\\(h|v)space\*?\{[^}]+\}/g, '').replace(/\\(no)?indent/g, '');
+    processed = processed.replace(/\\begin\{center\}\s*\\includegraphics(?:\[.*?\])?\{(https?:\/\/[^}]+)\}\s*\\end\{center\}/g, '<div class="flex justify-center my-3"><img src="$1" class="max-h-[350px] object-contain rounded-lg shadow-sm" loading="lazy"></div>');
+    processed = processed.replace(/\\includegraphics(?:\[.*?\])?\{(https?:\/\/[^}]+)\}/g, '<div class="flex justify-center my-3"><img src="$1" class="max-h-[350px] object-contain rounded-lg shadow-sm" loading="lazy"></div>');
+
+    // 2. Structure
+    processed = convertArrayToMatrix(processed);
+    processed = processNestedTikz(processed); 
+    processed = processTabular(processed);    
+    processed = processLatexLists(processed); 
+
+    // 3. Placeholder & Clean Rác
+    processed = processed.replace(/Click đúp để tải file|hoặc Ctrl \+ V để dán ảnh|ẢNH TỪ IMMINI|VỊ TRÍ HÌNH TIKZ/gi, '');
+    processed = processed.replace(/^\s*\}\s*$/gm, '').replace(/Ảnh minh họa \(immini\)/g, '').replace(/Ảnh canh giữa/g, '');
+    
+    // Xóa cặp ngoặc nhọn {} nếu nó bao bọc toàn bộ chuỗi (thường gặp trong parse mệnh đề Đúng/Sai)
+    processed = processed.trim().replace(/^\{([\s\S]*)\}$/, '$1');
+
+    // 4. Regex Bảo Vệ MathJax & HTML (Loại trừ enumEX, listEX, enumerate, itemize khỏi MathJax block detection)
+    const tagWhitelist = "script|style|div|span|p|br|img|table|tbody|thead|tr|td|th|ul|ol|li|b|i|u|strong|em|mark|label|input|button|a|h1|h2|h3|h4";
+    const regex = new RegExp(`(\\\\begin\\{(?!(?:enumEX|listEX|enumerate|itemize|itemchoice)\\b)[a-zA-Z*]+\\}[\\s\\S]*?\\\\end\\{[a-zA-Z*]+\\}|\\$\\$[\\s\\S]*?\\$\\$|\\\\\\[[\\s\\S]*?\\\\\\]|\\\\\\([\\s\\S]*?\\\\\\)|(?:\\$[\\s\\S]*?\\$)|<\\/?(?:${tagWhitelist})[^>]*>)`, 'gi');
+    
+    const parts = processed.split(regex);
+    
+    return parts.map(part => {
+        const trimmed = part.trim();
+        const isMath = trimmed.startsWith('$') || trimmed.startsWith('\\(') || trimmed.startsWith('\\[') || (trimmed.startsWith('\\begin') && !trimmed.startsWith('\\begin{div') && !trimmed.startsWith('\\begin{grid'));
+        const isTag = part.startsWith('<') && part.endsWith('>');
+
+        if (isMath) {
+            let mathType = trimmed.substring(0, 2);
+            if (trimmed.startsWith('$') && !trimmed.startsWith('$$')) mathType = '$';
+            let cleanedMath = part;
+            if (mathType === '$' || mathType === '$$') {
+                cleanedMath = cleanedMath.replace(/<br\s*\/?>/gi, ` ${mathType} <br> ${mathType} `);
+            } else {
+                cleanedMath = cleanedMath.replace(/<br\s*\/?>/gi, ' \\\\ ');
+            }
+            return cleanedMath.replace(/</g, ' &lt; ');
+        } else if (isTag) {
+            return part; // Giữ nguyên tag HTML
+        } else {
+            let cleanPart = part.replace(/</g, '&lt;'); // Mã hóa text thường trước
+            cleanPart = cleanPart.replace(/\\%/g, '%'); // Chỉ unescape \% thành % khi ở ngoài công thức toán MathJax
+            cleanPart = cleanPart.replace(/\\textbf\{([^}]+)\}/g, '<b class="font-bold">$1</b>');
+            cleanPart = cleanPart.replace(/\\textit\{([^}]+)\}/g, '<i class="italic">$1</i>');
+            cleanPart = cleanPart.replace(/\\rightarrow/g, '→').replace(/\\Rightarrow/g, '⇒');
+            cleanPart = cleanPart.replace(/\\hfill/g, '<span style="display:inline-block; width: 2rem;"></span>');
+            return cleanPart.replace(/\\\\/g, '<br>').replace(/\n/g, '<br>');
+        }
+    }).join('');
+};
+
+export function stripBrAroundBlocks(html) {
+    // Xóa <br> thừa trước và sau các block elements
+    return html
+        .replace(/(<br\s*\/?>[\s]*){1,}<div class="[^"]*js-scale-wrapper/gi, '<div class="js-scale-wrapper')
+        .replace(/js-scale-wrapper([^>]*)>/gi, (m) => m) // keep
+        .replace(/<\/div>([\s]*<br\s*\/?>[\s]*){1,}(?=<div class="[^"]*js-scale-wrapper)/gi, '</div>')
+        .replace(/(<br\s*\/?>\s*){3,}/gi, '<br><br>'); // Max 2 br consecutive
+}
+
+// ============================================================================
+// 5. CÁC HÀM BỔ SUNG CHO EXAM (RENDER TIKZ, XỬ LÝ ẢNH, WATERMARK)
+// ============================================================================
+
+export const renderTikz = (root = document) => {
+    const scripts = root.querySelectorAll ? root.querySelectorAll('script[type="text/tikz"]') : document.querySelectorAll('script[type="text/tikz"]');
+    if (!scripts || scripts.length === 0) return;
+    
+    const mode = getTikzRenderMode(); // 'vps' (mặc định) hoặc 'tikzjax'
+
+    scripts.forEach(script => {
+        const code = script.textContent;
+        const container = script.parentElement;
+        
+        // Tạo placeholder
+        const placeholder = document.createElement('div');
+        placeholder.className = 'flex justify-center my-4 overflow-x-auto';
+        
+        if (mode === 'vps' || !canRenderWithTikzJax(code)) {
+            // Lựa chọn 1: Biên dịch bằng VPS (hoặc bắt buộc VPS do có gói tkz-euclide/pgfplots)
+            placeholder.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình TikZ bằng VPS...</span>';
+            script.parentNode.replaceChild(placeholder, script);
+            
+            compileTikZToImage(cleanTikzCode(code))
+                .then(url => {
+                    placeholder.innerHTML = `<img src="${url}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
+                })
+                .catch(err => {
+                    placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình VPS: ${err.message}</span>`;
+                });
+        } else {
+            // Lựa chọn 2: Dùng TikZJax (có cơ chế tự động fallback sang VPS nếu gặp lỗi)
+            placeholder.innerHTML = '<span class="text-sky-600 dark:text-sky-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình TikZJax...</span>';
+            script.parentNode.replaceChild(placeholder, script);
+            
+            compileTikzLocalViaTikzJax(cleanTikzCode(code))
+                .then(url => {
+                    placeholder.innerHTML = `<img src="${url}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
+                })
+                .catch(err => {
+                    console.warn(`[TikZJax] Lỗi render nội bộ: ${err.message}. Đang chuyển tiếp sang VPS...`);
+                    placeholder.innerHTML = '<span class="text-amber-600 dark:text-amber-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>TikZJax chuyển tiếp sang VPS...</span>';
+                    return compileTikZToImage(cleanTikzCode(code))
+                        .then(vpsUrl => {
+                            placeholder.innerHTML = `<img src="${vpsUrl}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
+                        })
+                        .catch(vpsErr => {
+                            placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình: ${vpsErr.message}</span>`;
+                        });
+                });
+        }
+    });
+};
+
+export const compressImage = (file, quality = 0.6, maxWidth = 600) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
+            };
+            img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
+    });
+};
+
+export const watermarkImage = (file, text) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+
+                // Vẽ ảnh gốc
+                ctx.drawImage(img, 0, 0);
+
+                // Cấu hình đóng dấu (Góc trên phải, màu đỏ nổi bật)
+                const fontSize = Math.max(20, Math.floor(img.width / 25));
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.textAlign = "right";
+                ctx.textBaseline = "top";
+                
+                const textWidth = ctx.measureText(text).width;
+                // Nền trắng mờ
+                ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+                ctx.fillRect(canvas.width - textWidth - 20, 10, textWidth + 10, fontSize + 10);
+
+                // Chữ đỏ
+                ctx.fillStyle = "red";
+                ctx.fillText(text, canvas.width - 15, 15);
+
+                canvas.toBlob((blob) => {
+                    const newFile = new File([blob], file.name, { type: 'image/jpeg' });
+                    resolve(newFile);
+                }, 'image/jpeg', 0.8);
+            };
+            img.onerror = (err) => reject(err);
+        };
+    });
+};
+
+/**
+ * TỰ ĐỘNG ĐẢO LỜI GIẢI CÂU ĐÚNG / SAI KHI TRỘN MỆNH ĐỀ
+ * @param {string} solution - Lời giải gốc (thường gồm lời dẫn + các ý a, b, c, d)
+ * @param {number[]} shuffleMap - Mảng ánh xạ chỉ số đảo, ví dụ [2, 0, 3, 1] nghĩa là ý 0 mới là ý 2 cũ
+ * @returns {string} Lời giải sau khi đã sắp xếp lại các ý theo đúng thứ tự hiển thị
+ */
+export const reorderTfSolution = (solution, shuffleMap) => {
+    if (!solution || typeof solution !== 'string' || !Array.isArray(shuffleMap) || shuffleMap.length < 2) {
+        return solution;
+    }
+
+    const n = shuffleMap.length;
+    const expectedLetters = ['a', 'b', 'c', 'd'].slice(0, n);
+
+    const markerPatterns = [
+        /(?:^|\n)\s*(?:[\+\-\*(?:\•)]\s*)?(?:(?:Ý|ý|Mệnh\s+đề|mệnh\s+đề)\s*)?\(?([a-dA-D])\)?(?:\s*[:.]|\s+)/g,
+        /(?:^|\n)\s*(?:[\+\-\*(?:\•)]\s*)?(?:(?:Ý|ý|Mệnh\s+đề|mệnh\s+đề)\s*)?([a-dA-D])[\.:](?:\s+|$)/g,
+        /(?:^|\n)\s*(?:[\+\-\*(?:\•)]\s*)?(?:Ý|ý|Mệnh\s+đề|mệnh\s+đề)\s+([a-dA-D])(?:\s*[:.]|\s+)/g
+    ];
+
+    for (const pattern of markerPatterns) {
+        pattern.lastIndex = 0;
+        const matches = [];
+        let match;
+        while ((match = pattern.exec(solution)) !== null) {
+            const letter = match[1].toLowerCase();
+            if (matches.length < n && letter === expectedLetters[matches.length]) {
+                matches.push({
+                    start: match.index,
+                    end: pattern.lastIndex,
+                    letter: letter
+                });
+            }
+        }
+
+        if (matches.length === n) {
+            const preamble = solution.substring(0, matches[0].start).trim();
+            const parts = [];
+            for (let i = 0; i < n; i++) {
+                const start = matches[i].start;
+                const end = (i < n - 1) ? matches[i + 1].start : solution.length;
+                let partText = solution.substring(start, end).trim();
+                
+                // Lược bỏ nhãn đầu dòng dạng a), Ý a:, + Mệnh đề a:
+                partText = partText.replace(/^(?:[\+\-\*(?:\•)]\s*)?(?:(?:Ý|ý|Mệnh\s+đề|mệnh\s+đề)\s*)?\(?[a-dA-D]\)?[\.:]?\s*/i, '').trim();
+                // Lược bỏ nhãn lặp dư thừa như: "Mệnh đề a đúng vì...", "Ý a là sai vì..."
+                partText = partText.replace(/^(?:Mệnh\s+đề|mệnh\s+đề|Ý|ý)\s+[a-dA-D](?:\s*là\s*(?:mệnh\s+đề\s*)?)?[\.:\s-]*/i, '').trim();
+                
+                if (partText.length > 0) {
+                    partText = partText.charAt(0).toUpperCase() + partText.slice(1);
+                }
+                parts.push(partText);
+            }
+
+            const reorderedParts = [];
+            for (let newPos = 0; newPos < n; newPos++) {
+                const oldIdx = shuffleMap[newPos];
+                const body = (oldIdx !== undefined && parts[oldIdx] !== undefined) ? parts[oldIdx] : (parts[newPos] || '');
+                reorderedParts.push(expectedLetters[newPos] + ') ' + body);
+            }
+
+            let res = '';
+            if (preamble) res = preamble + '\n\n';
+            res += reorderedParts.join('\n\n');
+            return res;
+        }
+    }
+
+    return solution;
+};
+
+if (typeof window !== 'undefined') {
+    window.getTikzApiUrl = getTikzApiUrl;
+    window.compileTikZToImage = compileTikZToImage;
+    window.compileTikZBatch = compileTikZBatch;
+    window.compileTikzLocalViaTikzJax = compileTikzLocalViaTikzJax;
+    window.canRenderWithTikzJax = canRenderWithTikzJax;
+    window.getTikzRenderMode = getTikzRenderMode;
+    window.setTikzRenderMode = setTikzRenderMode;
+    window.formatContent = formatContent;
+    window.convertArrayToMatrix = convertArrayToMatrix;
+    window.autoScaleTables = autoScaleTables;
+    window.cleanTikzCode = cleanTikzCode;
+    window.extractNextBrace = extractNextBrace;
+    window.renderTikz = renderTikz;
+    window.reorderTfSolution = reorderTfSolution;
+}
+
