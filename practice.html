@@ -1073,76 +1073,119 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                 <!-- KHUNG PHÒNG CHỜ NHÓM MOBA / NHẬP MÃ PIN -->
                 <div id="mobaGroupLobbySection" class="hidden pt-3 border-t border-gray-100 dark:border-slate-700 space-y-3">
                     <!-- TRẠNG THÁI 1: CHƯA VÀO PHÒNG (TẠO PHÒNG HOẶC NHẬP MÃ PIN) -->
-                    <div id="mobaEntryCard" class="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                    <div id="mobaEntryCard" class="grid grid-cols-1 md:grid-cols-2 gap-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; align-items: stretch;">
                         <!-- Cột Trái: Thông tin người chơi & Tạo phòng mới -->
-                        <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/80 via-purple-50/60 to-pink-50/60 dark:from-slate-900 dark:to-slate-800 border border-indigo-200/90 dark:border-slate-700 flex flex-col justify-between gap-3.5 shadow-xs">
-                            <div class="flex items-center justify-between gap-2">
-                                <div class="font-black text-xs sm:text-sm text-indigo-950 dark:text-white flex items-center gap-1.5">
-                                    <i class="fa-solid fa-crown text-amber-500"></i> Tạo Phòng Nhóm Mới (Chủ phòng)
+                        <div style="background: linear-gradient(135deg, rgba(238,242,255,0.95) 0%, rgba(245,243,255,0.9) 50%, rgba(253,242,248,0.9) 100%); border: 1.5px solid rgba(199,210,254,0.95); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; box-shadow: 0 4px 14px rgba(99,102,241,0.08);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                                <div style="font-weight: 900; font-size: 14px; color: #1e1b4b; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-crown" style="color: #f59e0b;"></i> Tạo Phòng Nhóm Mới (Chủ phòng)
                                 </div>
-                                <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 bg-white dark:bg-slate-900 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-slate-700 shrink-0">Tự do đổi đề trong phòng</span>
+                                <span style="font-size: 11px; font-weight: 800; color: #4f46e5; background: #ffffff; padding: 2px 10px; border-radius: 99px; border: 1px solid #c7d2fe;">Đổi đề & trò chơi trong phòng</span>
                             </div>
 
-                            <!-- Hàng 1: Tên hiển thị + Số người tối đa stepper -->
-                            <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-                                <div class="flex-1 min-w-0">
-                                    <label class="block text-[11px] font-black uppercase text-gray-600 dark:text-gray-400 mb-1">
-                                        <i class="fa-solid fa-user-tag text-indigo-500 mr-1"></i>Tên hiển thị của bạn
+                            <!-- Form cấu hình người chơi, icon, số người & số câu -->
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                                <!-- 1. Tên người chơi -->
+                                <div>
+                                    <label style="display: block; font-size: 11px; font-weight: 900; text-transform: uppercase; color: #475569; margin-bottom: 5px; letter-spacing: 0.5px;">
+                                        <i class="fa-solid fa-user-tag" style="color: #6366f1; margin-right: 4px;"></i>Tên hiển thị của bạn
                                     </label>
-                                    <input type="text" id="mobaPlayerNameInput" maxlength="25" placeholder="Nhập tên của bạn..." class="w-full px-3.5 py-2 text-xs font-bold bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-400 shadow-2xs">
+                                    <input type="text" id="mobaPlayerNameInput" maxlength="25" placeholder="Nhập tên hiển thị của bạn..." oninput="window.onMobaNameChange(this.value)" style="width: 100%; box-sizing: border-box; padding: 10px 14px; font-size: 13px; font-weight: 800; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; outline: none; color: #0f172a; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
                                 </div>
-                                <div class="w-full sm:w-36 shrink-0">
-                                    <label class="block text-[11px] font-black uppercase text-gray-600 dark:text-gray-400 mb-1">
-                                        <i class="fa-solid fa-users text-indigo-500 mr-1"></i>Số người tối đa
+
+                                <!-- 2. Linh vật đại diện (Icon) -->
+                                <div>
+                                    <label style="display: block; font-size: 11px; font-weight: 900; text-transform: uppercase; color: #475569; margin-bottom: 5px; letter-spacing: 0.5px;">
+                                        <i class="fa-solid fa-paw" style="color: #6366f1; margin-right: 4px;"></i>Linh vật đại diện (Icon)
                                     </label>
-                                    <div class="flex items-center bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-0.5 shadow-2xs">
-                                        <button type="button" onclick="window.stepCreateMaxPlayers(-1)" title="Giảm 1 người" class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-gray-700 dark:text-gray-200 font-black text-sm flex items-center justify-center transition-all cursor-pointer select-none">−</button>
-                                        <input type="number" id="mobaCreateMaxPlayers" value="10" min="2" max="50" class="flex-1 w-0 py-1 text-center text-xs font-black bg-transparent border-0 outline-none select-none">
-                                        <button type="button" onclick="window.stepCreateMaxPlayers(1)" title="Tăng 1 người" class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-gray-700 dark:text-gray-200 font-black text-sm flex items-center justify-center transition-all cursor-pointer select-none">+</button>
+                                    <div id="mobaAvatarPicker" style="display: flex; align-items: center; justify-content: space-between; gap: 6px; background: #ffffff; padding: 6px 8px; border-radius: 14px; border: 1.5px solid #cbd5e1; overflow-x: auto;">
+                                        <button type="button" onclick="window.selectMobaAvatar('🦊')" class="moba-av-btn" data-av="🦊" title="Cáo Tinh Nhanh" style="flex: 1; min-width: 38px; height: 38px; border-radius: 10px; font-size: 20px; display: flex; align-items: center; justify-content: center; border: 2px solid #6366f1; background: #e0e7ff; cursor: pointer; transition: all 0.2s; flex-shrink: 0;">🦊</button>
+                                        <button type="button" onclick="window.selectMobaAvatar('🐯')" class="moba-av-btn" data-av="🐯" title="Hổ Dũng Mãnh" style="flex: 1; min-width: 38px; height: 38px; border-radius: 10px; font-size: 20px; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; background: transparent; cursor: pointer; transition: all 0.2s; flex-shrink: 0;">🐯</button>
+                                        <button type="button" onclick="window.selectMobaAvatar('🐼')" class="moba-av-btn" data-av="🐼" title="Gấu Trúc Điềm Tĩnh" style="flex: 1; min-width: 38px; height: 38px; border-radius: 10px; font-size: 20px; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; background: transparent; cursor: pointer; transition: all 0.2s; flex-shrink: 0;">🐼</button>
+                                        <button type="button" onclick="window.selectMobaAvatar('🦁')" class="moba-av-btn" data-av="🦁" title="Sư Tử Uy Quyền" style="flex: 1; min-width: 38px; height: 38px; border-radius: 10px; font-size: 20px; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; background: transparent; cursor: pointer; transition: all 0.2s; flex-shrink: 0;">🦁</button>
+                                        <button type="button" onclick="window.selectMobaAvatar('🐲')" class="moba-av-btn" data-av="🐲" title="Rồng Thần Tốc" style="flex: 1; min-width: 38px; height: 38px; border-radius: 10px; font-size: 20px; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; background: transparent; cursor: pointer; transition: all 0.2s; flex-shrink: 0;">🐲</button>
+                                        <button type="button" onclick="window.selectMobaAvatar('🦄')" class="moba-av-btn" data-av="🦄" title="Kỳ Lân Phép Thuật" style="width: 38px; height: 38px; border-radius: 10px; font-size: 20px; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; background: transparent; cursor: pointer; transition: all 0.2s; shrink: 0;">🦄</button>
+                                    </div>
+                                </div>
+
+                                <!-- 3. Cài đặt Số người chơi & Số câu hỏi -->
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <!-- Số người chơi trong phòng -->
+                                    <div style="background: #ffffff; padding: 8px 10px; border-radius: 14px; border: 1.5px solid #cbd5e1;">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                                            <label style="font-size: 11px; font-weight: 900; text-transform: uppercase; color: #475569;">
+                                                <i class="fa-solid fa-users" style="color: #6366f1; margin-right: 3px;"></i>Số người chơi
+                                            </label>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 4px; justify-content: center;">
+                                            <button type="button" onclick="window.stepCreateMaxPlayers(-1)" style="width: 28px; height: 28px; border-radius: 8px; background: #f1f5f9; border: 1px solid #cbd5e1; font-weight: 900; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">−</button>
+                                            <input type="number" id="mobaCreateMaxPlayers" value="4" min="2" max="50" style="width: 44px; text-align: center; font-size: 14px; font-weight: 900; border: none; outline: none; background: transparent; color: #4338ca;">
+                                            <button type="button" onclick="window.stepCreateMaxPlayers(1)" style="width: 28px; height: 28px; border-radius: 8px; background: #f1f5f9; border: 1px solid #cbd5e1; font-weight: 900; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">+</button>
+                                            <span style="font-size: 11px; font-weight: 800; color: #64748b;">người</span>
+                                        </div>
+                                        <!-- Nút chọn nhanh số người: 2, 4, 6, 8, 10 -->
+                                        <div style="display: flex; gap: 3px; justify-content: center; margin-top: 6px;">
+                                            <button type="button" class="btn-quick-maxp" data-val="2" onclick="window.setCreateMaxPlayers(2)" style="font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; cursor: pointer;">2</button>
+                                            <button type="button" class="btn-quick-maxp" data-val="4" onclick="window.setCreateMaxPlayers(4)" style="font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; cursor: pointer;">4</button>
+                                            <button type="button" class="btn-quick-maxp" data-val="6" onclick="window.setCreateMaxPlayers(6)" style="font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; cursor: pointer;">6</button>
+                                            <button type="button" class="btn-quick-maxp" data-val="8" onclick="window.setCreateMaxPlayers(8)" style="font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; cursor: pointer;">8</button>
+                                            <button type="button" class="btn-quick-maxp" data-val="10" onclick="window.setCreateMaxPlayers(10)" style="font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; cursor: pointer;">10</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Số câu hỏi luyện tập -->
+                                    <div style="background: #ffffff; padding: 8px 10px; border-radius: 14px; border: 1.5px solid #cbd5e1;">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                                            <label style="font-size: 11px; font-weight: 900; text-transform: uppercase; color: #475569;">
+                                                <i class="fa-solid fa-list-ol" style="color: #ec4899; margin-right: 3px;"></i>Số câu hỏi
+                                            </label>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 4px; justify-content: center;">
+                                            <button type="button" onclick="window.stepCreateQCount(-5)" style="width: 28px; height: 28px; border-radius: 8px; background: #f1f5f9; border: 1px solid #cbd5e1; font-weight: 900; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">−</button>
+                                            <input type="number" id="mobaCreateQCount" value="10" min="1" max="100" oninput="window.syncMobaQCount(this.value)" style="width: 44px; text-align: center; font-size: 14px; font-weight: 900; border: none; outline: none; background: transparent; color: #be185d;">
+                                            <button type="button" onclick="window.stepCreateQCount(5)" style="width: 28px; height: 28px; border-radius: 8px; background: #f1f5f9; border: 1px solid #cbd5e1; font-weight: 900; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">+</button>
+                                            <span style="font-size: 11px; font-weight: 800; color: #64748b;">câu</span>
+                                        </div>
+                                        <!-- Nút chọn nhanh số câu: 5, 10, 15, 20, 30 -->
+                                        <div style="display: flex; gap: 3px; justify-content: center; margin-top: 6px;">
+                                            <button type="button" class="btn-quick-qcount" data-val="5" onclick="window.setCreateQCount(5)" style="font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; cursor: pointer;">5c</button>
+                                            <button type="button" class="btn-quick-qcount" data-val="10" onclick="window.setCreateQCount(10)" style="font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; cursor: pointer;">10c</button>
+                                            <button type="button" class="btn-quick-qcount" data-val="15" onclick="window.setCreateQCount(15)" style="font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; cursor: pointer;">15c</button>
+                                            <button type="button" class="btn-quick-qcount" data-val="20" onclick="window.setCreateQCount(20)" style="font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; cursor: pointer;">20c</button>
+                                            <button type="button" class="btn-quick-qcount" data-val="30" onclick="window.setCreateQCount(30)" style="font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; cursor: pointer;">30c</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Hàng 2: Linh vật đại diện -->
-                            <div>
-                                <label class="block text-[11px] font-black uppercase text-gray-600 dark:text-gray-400 mb-1">
-                                    <i class="fa-solid fa-paw text-indigo-500 mr-1"></i>Linh vật đại diện
-                                </label>
-                                <div class="flex items-center justify-between gap-1.5 sm:gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-2xs" id="mobaAvatarPicker">
-                                    <button type="button" onclick="window.selectMobaAvatar('🦊')" class="moba-av-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-base sm:text-lg flex items-center justify-center bg-indigo-100 dark:bg-indigo-950 ring-2 ring-indigo-500 shadow-xs shrink-0 cursor-pointer transition-all" data-av="🦊" title="Cáo Tinh Nhanh">🦊</button>
-                                    <button type="button" onclick="window.selectMobaAvatar('🐯')" class="moba-av-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-base sm:text-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0 cursor-pointer transition-all" data-av="🐯" title="Hổ Dũng Mãnh">🐯</button>
-                                    <button type="button" onclick="window.selectMobaAvatar('🐼')" class="moba-av-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-base sm:text-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0 cursor-pointer transition-all" data-av="🐼" title="Gấu Trúc Điềm Tĩnh">🐼</button>
-                                    <button type="button" onclick="window.selectMobaAvatar('🦁')" class="moba-av-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-base sm:text-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0 cursor-pointer transition-all" data-av="🦁" title="Sư Tử Uy Quyền">🦁</button>
-                                    <button type="button" onclick="window.selectMobaAvatar('🐲')" class="moba-av-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-base sm:text-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0 cursor-pointer transition-all" data-av="🐲" title="Rồng Thần Tốc">🐲</button>
-                                    <button type="button" onclick="window.selectMobaAvatar('🦄')" class="moba-av-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-base sm:text-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0 cursor-pointer transition-all" data-av="🦄" title="Kỳ Lân Phép Thuật">🦄</button>
-                                </div>
-                            </div>
-
-                            <!-- Hàng 3: Nút tạo phòng -->
-                            <button type="button" id="btnCreateMobaRoom" onclick="window.createMobaRoom()" class="w-full py-2.5 rounded-xl text-white font-black text-xs shadow-md hover:opacity-95 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer mt-1" style="background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%) !important;">
+                            <!-- Nút tạo phòng -->
+                            <button type="button" id="btnCreateMobaRoom" onclick="window.createMobaRoom()" style="width: 100%; padding: 12px; border-radius: 14px; border: none; color: #ffffff; font-weight: 900; font-size: 13px; background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%); cursor: pointer; box-shadow: 0 4px 12px rgba(79,70,229,0.3); display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.15s; margin-top: 4px;">
                                 <i class="fa-solid fa-plus-circle"></i> TẠO PHÒNG & LẤY MÃ PIN 6 SỐ
                             </button>
                         </div>
 
                         <!-- Cột Phải: Vào phòng bằng Mã PIN (Bạn bè hoặc Giáo viên) -->
-                        <div class="p-4 sm:p-5 rounded-2xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 flex flex-col justify-between gap-3.5 shadow-xs">
+                        <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.03);">
                             <div>
-                                <div class="font-black text-xs sm:text-sm text-gray-900 dark:text-white flex items-center gap-1.5 mb-1.5">
-                                    <i class="fa-solid fa-key text-pink-500"></i> Vào Phòng Bằng Mã PIN
+                                <div style="font-weight: 900; font-size: 14px; color: #0f172a; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                    <i class="fa-solid fa-key" style="color: #ec4899;"></i> Vào Phòng Bằng Mã PIN
                                 </div>
-                                <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin: 0;">
                                     Nhập <b>Mã PIN 6 số</b> do bạn bè gửi hoặc <b>Mã PIN phòng thi đấu của Giáo viên</b> để tham gia so tài ngay lập tức.
                                 </p>
+                                <div style="font-size: 11px; color: #4338ca; font-weight: 700; background: #e0e7ff; padding: 6px 10px; border-radius: 10px; border: 1px solid #c7d2fe; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                                    <i class="fa-solid fa-circle-user" style="color: #6366f1;"></i> Tham gia bằng Tên & Icon bạn đã chọn ở bên trái
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <input type="text" id="mobaJoinPinInput" maxlength="8" placeholder="Nhập mã PIN (VD: 682914)" class="flex-1 px-3.5 py-2.5 text-center font-mono font-black text-sm tracking-widest uppercase bg-white dark:bg-slate-800 border-2 border-purple-200 dark:border-purple-800 rounded-xl outline-none focus:border-purple-500 shadow-2xs" onkeydown="if(event.key==='Enter') window.joinMobaRoomByInput()">
-                                <button type="button" id="btnJoinMobaRoom" onclick="window.joinMobaRoomByInput()" class="px-4 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-black text-xs shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer transition-all">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="text" id="mobaJoinPinInput" maxlength="8" placeholder="Nhập mã PIN (VD: 682914)" style="flex: 1; padding: 10px 14px; text-align: center; font-family: monospace; font-size: 15px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; background: #ffffff; border: 2px solid #ddd6fe; border-radius: 12px; outline: none;" onkeydown="if(event.key==='Enter') window.joinMobaRoomByInput()">
+                                <button type="button" id="btnJoinMobaRoom" onclick="window.joinMobaRoomByInput()" style="padding: 10px 16px; border-radius: 12px; border: none; background: #db2777; color: #ffffff; font-weight: 900; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; box-shadow: 0 4px 10px rgba(219,39,119,0.3);">
                                     <i class="fa-solid fa-right-to-bracket"></i> Vào Phòng
                                 </button>
                             </div>
-                            <div class="text-[10px] text-gray-400 flex items-center justify-between pt-1 border-t border-gray-100 dark:border-slate-800">
-                                <span><i class="fa-solid fa-bolt text-amber-500 mr-1"></i>Tự động hủy phòng khi tất cả rời đi</span>
-                                <a href="san-choi/index.html#/join" class="text-purple-600 dark:text-purple-400 font-bold hover:underline">Mở Sảnh PIN đầy đủ →</a>
+                            <div style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; justify-content: space-between; padding-top: 6px; border-top: 1px solid #e2e8f0;">
+                                <span><i class="fa-solid fa-bolt" style="color: #f59e0b; margin-right: 4px;"></i>Tự động hủy phòng khi tất cả rời đi</span>
+                                <a href="san-choi/index.html#/join" style="color: #9333ea; font-weight: 800; text-decoration: none;">Mở Sảnh PIN đầy đủ →</a>
                             </div>
                         </div>
                     </div>
@@ -2954,19 +2997,77 @@ window.selectMobaAvatar = function(av) {
   window.selectedMobaAvatar = av;
   document.querySelectorAll('.moba-av-btn').forEach(b => {
     const active = b.dataset.av === av;
-    b.className = active
-      ? 'moba-av-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-base sm:text-lg flex items-center justify-center bg-indigo-100 dark:bg-indigo-950 ring-2 ring-indigo-500 shadow-xs shrink-0 cursor-pointer transition-all'
-      : 'moba-av-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-base sm:text-lg flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0 cursor-pointer transition-all';
+    if (active) {
+      b.style.border = '2px solid #6366f1';
+      b.style.background = '#e0e7ff';
+      b.style.transform = 'scale(1.1)';
+      b.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.25)';
+    } else {
+      b.style.border = '2px solid transparent';
+      b.style.background = 'transparent';
+      b.style.transform = 'scale(1)';
+      b.style.boxShadow = 'none';
+    }
   });
   window.getMobaIdentity();
+};
+
+window.onMobaNameChange = function(val) {
+  try {
+    let saved = JSON.parse(sessionStorage.getItem('qmath_moba_identity') || '{}');
+    saved.name = (val || '').trim();
+    sessionStorage.setItem('qmath_moba_identity', JSON.stringify(saved));
+  } catch(e) {}
 };
 
 window.stepCreateMaxPlayers = function(delta) {
   const inp = document.getElementById('mobaCreateMaxPlayers');
   if (!inp) return;
-  let val = parseInt(inp.value, 10) || 10;
+  let val = parseInt(inp.value, 10) || 4;
   val = Math.max(2, Math.min(50, val + delta));
-  inp.value = val;
+  window.setCreateMaxPlayers(val);
+};
+
+window.setCreateMaxPlayers = function(val) {
+  const num = Math.max(2, Math.min(50, parseInt(val, 10) || 4));
+  const inp = document.getElementById('mobaCreateMaxPlayers');
+  if (inp) inp.value = num;
+  document.querySelectorAll('.btn-quick-maxp').forEach(b => {
+    const isAct = parseInt(b.dataset.val, 10) === num;
+    b.style.background = isAct ? '#e0e7ff' : '#f8fafc';
+    b.style.color = isAct ? '#4338ca' : '#475569';
+    b.style.borderColor = isAct ? '#c7d2fe' : '#e2e8f0';
+  });
+};
+
+window.stepCreateQCount = function(delta) {
+  const inp = document.getElementById('mobaCreateQCount');
+  if (!inp) return;
+  let val = parseInt(inp.value, 10) || 10;
+  val = Math.max(1, Math.min(100, val + delta));
+  window.setCreateQCount(val);
+};
+
+window.setCreateQCount = function(val) {
+  const num = Math.max(1, Math.min(100, parseInt(val, 10) || 10));
+  const inp = document.getElementById('mobaCreateQCount');
+  if (inp) inp.value = num;
+  window.syncMobaQCount(num);
+  document.querySelectorAll('.btn-quick-qcount').forEach(b => {
+    const isAct = parseInt(b.dataset.val, 10) === num;
+    b.style.background = isAct ? '#fce7f3' : '#f8fafc';
+    b.style.color = isAct ? '#be185d' : '#475569';
+    b.style.borderColor = isAct ? '#fbcfe8' : '#e2e8f0';
+  });
+};
+
+window.syncMobaQCount = function(val) {
+  const num = Math.max(1, Math.min(100, parseInt(val, 10) || 10));
+  const mainQInp = document.getElementById('inputQCount');
+  if (mainQInp && parseInt(mainQInp.value, 10) !== num) {
+    mainQInp.value = num;
+    if (window.handleQCountChange) window.handleQCountChange();
+  }
 };
 
 window.setPracticePartyMode = function(mode) {
@@ -2979,10 +3080,13 @@ window.setPracticePartyMode = function(mode) {
   if (btnSolo) btnSolo.className = window.practicePartyMode === 'solo' ? activeCls : inactiveCls;
   if (btnGroup) btnGroup.className = window.practicePartyMode === 'group' ? activeCls : inactiveCls;
   if (lobbySec) lobbySec.classList.toggle('hidden', window.practicePartyMode !== 'group');
+  const id = window.getMobaIdentity();
   const nameInp = document.getElementById('mobaPlayerNameInput');
   if (nameInp && !nameInp.value) {
-    const id = window.getMobaIdentity();
     nameInp.value = id.name;
+  }
+  if (id.avatar) {
+    window.selectMobaAvatar(id.avatar);
   }
 };
 
@@ -3020,8 +3124,12 @@ window.createMobaRoom = async function() {
   try {
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ĐANG TẠO PHÒNG & MÃ PIN...'; }
     const id = window.getMobaIdentity();
-    const maxP = Math.max(2, Math.min(50, parseInt(document.getElementById('mobaCreateMaxPlayers')?.value) || 10));
+    const maxP = Math.max(2, Math.min(50, parseInt(document.getElementById('mobaCreateMaxPlayers')?.value) || 4));
+    const createQC = parseInt(document.getElementById('mobaCreateQCount')?.value) || 10;
+    const mainQInp = document.getElementById('inputQCount');
+    if (mainQInp) mainQInp.value = createQC;
     const snapCfg = window.getMobaPracticeConfigSnapshot();
+    snapCfg.qCount = createQC;
     const pin = await window.Room.create({
       kind: 'student_moba',
       hostUid: id.uid,
@@ -3274,17 +3382,32 @@ window.onMobaRoomSnapshot = function(roomDoc) {
     btnStart?.classList.remove('hidden');
     waitNotice?.classList.add('hidden');
     if (lblStart) {
-      lblStart.textContent = roomMatchMode === 'game'
-        ? `BẮT ĐẦU GAME CHO CẢ PHÒNG (${gInfo.icon} ${gInfo.name})`
-        : `BẮT ĐẦU LÀM ĐỀ CHO CẢ PHÒNG (${pList.length} người)`;
+      if (pList.length < maxP) {
+        lblStart.innerHTML = `<i class="fa-solid fa-users text-amber-300 mr-1.5"></i> CHỜ ĐỦ ${maxP} NGƯỜI (${pList.length}/${maxP})`;
+        btnStart.style.opacity = '0.85';
+        btnStart.style.cursor = 'pointer';
+        btnStart.title = `Phòng cần đủ ${maxP} người chơi. Hiện tại mới có ${pList.length}/${maxP} người.`;
+      } else {
+        lblStart.innerHTML = roomMatchMode === 'game'
+          ? `<i class="fa-solid fa-play mr-1.5"></i> BẮT ĐẦU GAME CHO ĐỦ ${maxP} NGƯỜI (${gInfo.icon} ${gInfo.name})`
+          : `<i class="fa-solid fa-play mr-1.5"></i> BẮT ĐẦU LÀM ĐỀ CHO ĐỦ ${maxP} NGƯỜI`;
+        btnStart.style.opacity = '1';
+        btnStart.style.cursor = 'pointer';
+        btnStart.title = 'Phòng đã đủ người! Bấm để bắt đầu trận đấu ngay';
+      }
     }
   } else if (isTeacherSelfPaced || meta.status === 'playing') {
     btnStart?.classList.remove('hidden');
     waitNotice?.classList.add('hidden');
-    if (lblStart) lblStart.textContent = '🚀 BẮT ĐẦU LÀM BÀI NGAY';
+    if (lblStart) lblStart.innerHTML = '🚀 BẮT ĐẦU LÀM BÀI NGAY';
+    if (btnStart) btnStart.style.opacity = '1';
   } else {
     btnStart?.classList.add('hidden');
     waitNotice?.classList.remove('hidden');
+    const guestWaitTxt = document.getElementById('mobaGuestWaitingNotice');
+    if (guestWaitTxt) {
+      guestWaitTxt.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-500 mr-1"></i> Đang chờ Chủ phòng và các bạn khác (${pList.length}/${maxP} người)...`;
+    }
   }
 
   // Cập nhật thanh tiến độ trực tiếp nếu đang ở trong #practiceStep
@@ -3396,45 +3519,26 @@ window.hostStartMobaMatch = async function() {
     return;
   }
 
-  // KIỂM TRA SỐ LƯỢNG NGƯỜI CHƠI TRONG PHÒNG
+  // KIỂM TRA SỐ LƯỢNG NGƯỜI CHƠI TRONG PHÒNG - BẮT BUỘC ĐỦ NGƯỜI MỚI CHO BẮT ĐẦU
   const playersMap = roomDoc.players || {};
   const currentCount = Object.keys(playersMap).length;
-  const maxPlayers = Number(meta.maxPlayers) || 10;
-
-  if (currentCount <= 1) {
-    await window.customAlert(
-      `Phòng hiện tại mới chỉ có 1 người (${playersMap[active.pid]?.name || 'bạn'}).\n\nChế độ thi đấu nhóm cần ít nhất 2 người chơi! Hãy copy Mã PIN #${active.pin} hoặc gửi Link mời cho bạn bè cùng vào sảnh để so tài nhé!`,
-      'warning',
-      'Chưa Đủ Người Chơi'
-    );
-    return;
-  }
+  const maxPlayers = Number(meta.maxPlayers) || 4;
 
   if (currentCount < maxPlayers) {
-    const choose = await window.customConfirm(
-      `Phòng hiện mới có ${currentCount}/${maxPlayers} người (chưa đủ số người tối đa đã cài đặt).\n\nBạn có muốn điều chỉnh số người tối đa về ${currentCount} người để BẮT ĐẦU NGAY không?\n\n(Hoặc chọn "Đợi thêm bạn" để tiếp tục chờ các bạn khác vào phòng).`,
-      'Chưa Đủ Số Người Trong Phòng',
-      {
-        confirmText: `Chỉnh về ${currentCount} người & Bắt đầu ngay`,
-        cancelText: 'Đợi thêm bạn vào',
-        danger: false
-      }
-    );
-    if (!choose) {
-      window.showToast(`Đang đợi thêm bạn vào phòng #${active.pin}...`, 'info', 3000);
-      return;
+    if (currentCount <= 1) {
+      await window.customAlert(
+        `Phòng chưa đủ người chơi!\n\nPhòng hiện tại mới chỉ có 1 người (${playersMap[active.pid]?.name || 'bạn'}).\n\nPhòng đã cài đặt cần có ĐỦ ${maxPlayers} người chơi để thi đấu nhóm.\n👉 Hãy copy Mã PIN #${active.pin} hoặc gửi Link mời cho các bạn khác cùng vào sảnh nhé!\n\n(Nếu muốn thi đấu ngay một mình, bạn hãy chuyển sang chế độ "Luyện Tập Cá Nhân").`,
+        'warning',
+        'Chưa Đủ Người Chơi'
+      );
+    } else {
+      await window.customAlert(
+        `Phòng chưa đủ người chơi!\n\nPhòng đã cài đặt cần có ĐỦ ${maxPlayers} người chơi để bắt đầu cuộc đấu. Hiện tại mới có ${currentCount}/${maxPlayers} bạn trong phòng.\n\n👉 Vui lòng đợi các bạn khác nhập Mã PIN #${active.pin} để vào đủ ${maxPlayers} người mới có thể bắt đầu!\n\n(Nếu muốn thi đấu ngay với ${currentCount} bạn hiện tại, Chủ phòng hãy chỉnh lại ô "Tối đa" ở phía trên danh sách thành viên thành ${currentCount} người rồi bấm bắt đầu).`,
+        'warning',
+        'Chưa Đủ Người Chơi'
+      );
     }
-    // Chủ phòng đồng ý chỉnh về currentCount để bắt đầu ngay
-    try {
-      await window.Room.setMaxPlayers(active.pin, currentCount);
-      const liveMaxInp = document.getElementById('mobaLiveMaxPlayers');
-      if (liveMaxInp) liveMaxInp.value = currentCount;
-      const cntBadge = document.getElementById('mobaPlayersCountBadge');
-      if (cntBadge) cntBadge.textContent = `${currentCount}/${currentCount} người`;
-      window.showToast(`Đã chỉnh số người tối đa về ${currentCount}! Đang khởi tạo trận đấu...`, 'success', 2000);
-    } catch(e) {
-      console.warn('Lỗi cập nhật maxPlayers:', e);
-    }
+    return;
   }
 
   const btn = document.getElementById('btnHostStartMobaMatch');
