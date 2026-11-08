@@ -74,13 +74,28 @@
     return arr;
   };
 
-  /* Hàng đợi vô hạn: hết câu thì trộn lại */
+  /* Hàng đợi câu hỏi: hết câu thì trộn lại; hỗ trợ bỏ qua câu hỏi để quay lại sau */
   Quiz.queue = (items, o) => {
     let q = Quiz.prepare(items, o), i = 0;
-    return {
-      next() { if (i >= q.length) { q = Quiz.prepare(items, o); i = 0; } return q[i++]; },
+    const qObj = {
+      next() {
+        if (i >= q.length) { q = Quiz.prepare(items, o); i = 0; }
+        const it = q[i++];
+        if (it && typeof it === "object") Object.defineProperty(it, "_queue", { value: qObj, configurable: true, enumerable: false });
+        return it;
+      },
+      skip(item) {
+        if (item) {
+          const clone = U.plain(item);
+          clone._wasSkipped = true;
+          q.push(clone);
+        }
+        return qObj.next();
+      },
+      get remaining() { return Math.max(0, q.length - i); },
       get size() { return items.length; }
     };
+    return qObj;
   };
 
   /* ---------- Kiểm tra đáp án ---------- */
@@ -482,14 +497,20 @@
 
   /* ---------- Gắn giao diện trả lời ----------
      o = { compact, keypad, num, total, meta, hotkeys, explain,
-           onAnswer(result, item), feedback (true), accent } */
+           onAnswer(result, item), onSkip(item), allowSkip, feedback (true), accent } */
   Quiz.mount = (el, item, o) => {
     o = Object.assign({ feedback: true, meta: true, explain: false }, o || {});
     if (item.options) item.options.forEach((op, i) => { if (!op.label) op.label = item.type === "MC" ? LET[i] : op.key; });
-    const metaHtml = o.meta ? `<div class="q-head">
-        <span class="q-badge qb-${item.type}">${Quiz.TYPES[item.type] || item.type}</span>
-        ${item.level ? `<span class="q-chip">${U.esc(item.level)}</span>` : ""}
-        ${o.num ? `<span class="q-num">Câu ${o.num}${o.total ? "/" + o.total : ""}</span>` : ""}
+    const canSkip = o.allowSkip !== false && (typeof o.onSkip === "function" || (item && item._queue && typeof item._queue.skip === "function"));
+    const skipBtnHtml = canSkip
+      ? `<button type="button" class="btn btn-sm btn-ghost q-skip-btn" style="margin-left:auto;padding:3px 10px;font-size:12px;border:1px dashed var(--line)" title="Bỏ qua câu này để quay lại làm sau">⏭️ Bỏ qua (Quay lại sau)</button>`
+      : "";
+    const metaHtml = (o.meta || canSkip) ? `<div class="q-head" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        ${o.meta ? `<span class="q-badge qb-${item.type}">${Quiz.TYPES[item.type] || item.type}</span>` : ""}
+        ${o.meta && item.level ? `<span class="q-chip">${U.esc(item.level)}</span>` : ""}
+        ${item._wasSkipped ? `<span class="q-chip" style="background:#fef3c7;color:#b45309">🔄 Câu quay lại</span>` : ""}
+        ${o.meta && o.num ? `<span class="q-num">Câu ${o.num}${o.total ? "/" + o.total : ""}</span>` : ""}
+        ${skipBtnHtml}
       </div>` : "";
     let body = "";
     if (item.type === "MC") {
@@ -627,6 +648,23 @@
         if (item.type === "MC" && idx >= 0 && item.options[idx]) finish(item.options[idx].key);
       };
       document.addEventListener("keydown", keyH);
+    }
+    const skipBtn = U.$(".q-skip-btn", card);
+    if (skipBtn) {
+      skipBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (locked) return;
+        U.Sound && U.Sound.click && U.Sound.click();
+        if (keyH) document.removeEventListener("keydown", keyH);
+        destroyed = true;
+        if (typeof o.onSkip === "function") {
+          o.onSkip(item);
+        } else if (item && item._queue && typeof item._queue.skip === "function") {
+          const nextIt = item._queue.skip(item);
+          if (U.toast) U.toast("⏭️ Đã bỏ qua — câu hỏi sẽ quay lại ở cuối lượt!", "info", 1800);
+          Quiz.mount(el, nextIt, o);
+        }
+      };
     }
     return {
       el: card, item,

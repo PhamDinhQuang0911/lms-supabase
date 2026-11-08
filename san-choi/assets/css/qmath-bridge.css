@@ -1045,3 +1045,14 @@
   overflow-y: auto;
   border: 1px solid #1e293b;
 }
+
+/* Chế độ Học sinh luyện tập qua Trò chơi: ẩn hoàn toàn sidebar & menu của giáo viên */
+body.is-student-practice #hb,
+body.is-student-practice #drawer,
+body.is-student-practice #tbJoin,
+body.is-student-practice #tbUser {
+  display: none !important;
+}
+body.is-student-practice #main {
+  margin-left: 0 !important;
+}

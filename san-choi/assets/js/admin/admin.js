@@ -477,7 +477,7 @@
     };
     $("#rmRef", view).onclick = load;
     $("#rmOld", view).onclick = async () => { const old = (view._rooms || []).filter((r) => r.meta.status === "ended" || Date.now() - (r.meta.createdAt || 0) > 6 * 3600e3); for (const r of old) await Room.remove(r.pin).catch(() => { }); U.toast(`Đã dọn ${old.length} phòng`, "ok"); load(); };
-    if (!FB.rtdb) $("#rmBox", view).innerHTML = `<div class="notice">Realtime Database chưa sẵn sàng.</div>`; else load();
+    load();
   };
 
   /* ======================= NGƯỜI DÙNG ======================= */

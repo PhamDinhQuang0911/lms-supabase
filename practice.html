@@ -230,13 +230,19 @@ if (mode === 'roadmap' || mode === 'topic') window.switchHubTab('roadmap');
 else window.switchHubTab('custom');
 };
 window.backToLanding = function() {
-window.switchHubTab('landing');
+if (window.activeMobaRoom) {
+  switchHubTab('custom');
+  window.setPracticePartyMode('group');
+} else {
+  switchHubTab('landing');
+}
 };
 </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
     <script src="https://tikzjax.com/v1/tikzjax.js"></script>
     <script src="bank-service.js"></script>
+    <script src="san-choi/assets/js/core/room.js?v=2"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
@@ -1038,6 +1044,204 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                 </div>
             </div>
 
+            <!-- CHẾ ĐỘ LUYỆN TẬP: 1 NGƯỜI (SOLO) vs LUYỆN TẬP NHÓM / PHÒNG MÃ PIN (MOBA) -->
+            <div class="bg-white dark:bg-slate-800/95 rounded-3xl p-3 sm:p-4 border border-indigo-100 dark:border-slate-700 shadow-sm space-y-3">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center text-sm shadow-sm shrink-0">
+                            <i class="fa-solid fa-users-rays"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-black text-gray-900 dark:text-white text-sm">Hình Thức Luyện Tập & Thi Đấu</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">MOBA Lobby · Phòng Mã PIN</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500 dark:text-gray-400">Chọn <b>Luyện tập 1 người</b> hoặc <b>Lập phòng nhóm MOBA / Nhập mã PIN của bạn bè & Giáo viên</b></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-gray-100 dark:bg-slate-900 p-1 rounded-2xl border border-gray-200 dark:border-slate-700 shrink-0">
+                        <button type="button" id="btnModeSolo" onclick="window.setPracticePartyMode('solo')" class="px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-xs cursor-pointer">
+                            <i class="fa-solid fa-user"></i> Luyện tập 1 người
+                        </button>
+                        <button type="button" id="btnModeGroup" onclick="window.setPracticePartyMode('group')" class="px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 text-gray-600 dark:text-gray-400 hover:text-indigo-600 cursor-pointer">
+                            <i class="fa-solid fa-users text-pink-500"></i> Luyện tập Nhóm / Mã PIN
+                            <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-pink-100 text-pink-700">MOBA</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KHUNG PHÒNG CHỜ NHÓM MOBA / NHẬP MÃ PIN -->
+                <div id="mobaGroupLobbySection" class="hidden pt-3 border-t border-gray-100 dark:border-slate-700 space-y-3">
+                    <!-- TRẠNG THÁI 1: CHƯA VÀO PHÒNG (TẠO PHÒNG HOẶC NHẬP MÃ PIN) -->
+                    <div id="mobaEntryCard" class="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+                        <!-- Thông tin người chơi & Tạo phòng mới -->
+                        <div class="lg:col-span-7 p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-purple-50/50 to-pink-50/50 dark:from-slate-900 dark:to-slate-800 border border-indigo-200/80 dark:border-slate-700 space-y-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="font-black text-xs sm:text-sm text-indigo-950 dark:text-white flex items-center gap-1.5">
+                                    <i class="fa-solid fa-crown text-amber-500"></i> Tạo Phòng Nhóm Mới (Chủ phòng)
+                                </div>
+                                <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 bg-white dark:bg-slate-900 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-slate-700">Đổi câu hỏi & trò chơi ngay trong phòng</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                                <div class="sm:col-span-5">
+                                    <label class="block text-[10px] font-black uppercase text-gray-500 mb-1">Tên hiển thị của bạn</label>
+                                    <input type="text" id="mobaPlayerNameInput" maxlength="25" placeholder="Nhập tên của bạn..." class="w-full px-3 py-2 text-xs font-bold bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-400">
+                                </div>
+                                <div class="sm:col-span-4">
+                                    <label class="block text-[10px] font-black uppercase text-gray-500 mb-1">Linh vật đại diện</label>
+                                    <div class="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-gray-200 dark:border-slate-700 overflow-x-auto" id="mobaAvatarPicker">
+                                        <button type="button" onclick="window.selectMobaAvatar('🦊')" class="moba-av-btn w-7 h-7 rounded-lg text-sm flex items-center justify-center bg-indigo-100 dark:bg-indigo-950 ring-2 ring-indigo-500 shrink-0" data-av="🦊">🦊</button>
+                                        <button type="button" onclick="window.selectMobaAvatar('🐯')" class="moba-av-btn w-7 h-7 rounded-lg text-sm flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0" data-av="🐯">🐯</button>
+                                        <button type="button" onclick="window.selectMobaAvatar('🐼')" class="moba-av-btn w-7 h-7 rounded-lg text-sm flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0" data-av="🐼">🐼</button>
+                                        <button type="button" onclick="window.selectMobaAvatar('🦁')" class="moba-av-btn w-7 h-7 rounded-lg text-sm flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0" data-av="🦁">🦁</button>
+                                        <button type="button" onclick="window.selectMobaAvatar('🐲')" class="moba-av-btn w-7 h-7 rounded-lg text-sm flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0" data-av="🐲">🐲</button>
+                                        <button type="button" onclick="window.selectMobaAvatar('🦄')" class="moba-av-btn w-7 h-7 rounded-lg text-sm flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0" data-av="🦄">🦄</button>
+                                    </div>
+                                </div>
+                                <div class="sm:col-span-3">
+                                    <label class="block text-[10px] font-black uppercase text-gray-500 mb-1">Số người tối đa</label>
+                                    <input type="number" id="mobaCreateMaxPlayers" value="10" min="2" max="50" class="w-full px-2.5 py-2 text-center text-xs font-black bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-indigo-400">
+                                </div>
+                            </div>
+
+                            <button type="button" id="btnCreateMobaRoom" onclick="window.createMobaRoom()" class="w-full py-2.5 rounded-xl text-white font-black text-xs shadow-md hover:opacity-95 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer" style="background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%) !important;">
+                                <i class="fa-solid fa-plus-circle"></i> TẠO PHÒNG & LẤY MÃ PIN 6 SỐ
+                            </button>
+                        </div>
+
+                        <!-- Vào phòng bằng Mã PIN (Bạn bè hoặc Giáo viên) -->
+                        <div class="lg:col-span-5 p-4 rounded-2xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 flex flex-col justify-between space-y-3">
+                            <div>
+                                <div class="font-black text-xs sm:text-sm text-gray-900 dark:text-white flex items-center gap-1.5 mb-1">
+                                    <i class="fa-solid fa-key text-pink-500"></i> Vào Phòng Bằng Mã PIN
+                                </div>
+                                <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                    Nhập <b>Mã PIN 6 số</b> do bạn bè gửi hoặc <b>Mã PIN phòng thi đấu của Giáo viên</b> để vào phòng ngay.
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="text" id="mobaJoinPinInput" maxlength="8" placeholder="Nhập mã PIN (VD: 682914)" class="flex-1 px-3.5 py-2.5 text-center font-mono font-black text-sm tracking-widest uppercase bg-white dark:bg-slate-800 border-2 border-purple-200 dark:border-purple-800 rounded-xl outline-none focus:border-purple-500" onkeydown="if(event.key==='Enter') window.joinMobaRoomByInput()">
+                                <button type="button" id="btnJoinMobaRoom" onclick="window.joinMobaRoomByInput()" class="px-4 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-black text-xs shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer transition-all">
+                                    <i class="fa-solid fa-right-to-bracket"></i> Vào Phòng
+                                </button>
+                            </div>
+                            <div class="text-[10px] text-gray-400 flex items-center justify-between">
+                                <span><i class="fa-solid fa-bolt text-amber-500 mr-1"></i>Tự động hủy mã phòng khi tất cả thoát ra</span>
+                                <a href="san-choi/index.html#/join" class="text-purple-600 dark:text-purple-400 font-bold hover:underline">Mở Sảnh PIN đầy đủ →</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TRẠNG THÁI 2: ĐANG Ở TRONG PHÒNG CHỜ MOBA -->
+                    <div id="mobaActiveRoomCard" class="hidden rounded-2xl border-2 border-indigo-400 dark:border-indigo-600 bg-gradient-to-br from-indigo-50/90 via-white to-purple-50/90 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 p-4 space-y-3.5 shadow-md">
+                        <!-- Thanh tiêu đề phòng -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-indigo-200/70 dark:border-slate-700">
+                            <div class="flex items-center gap-2.5 flex-wrap">
+                                <div class="px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-mono font-black text-sm sm:text-base tracking-widest flex items-center gap-2 shadow-sm">
+                                    <span class="text-[10px] uppercase font-bold opacity-80">MÃ PHÒNG:</span>
+                                    <span id="mobaRoomPinBadge">------</span>
+                                </div>
+                                <button type="button" onclick="window.copyMobaRoomPin()" class="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-indigo-50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-slate-700 font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer">
+                                    <i class="fa-regular fa-copy"></i> Copy PIN
+                                </button>
+                                <button type="button" onclick="window.copyMobaRoomLink()" class="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-purple-50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-slate-700 font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer">
+                                    <i class="fa-solid fa-link"></i> Copy Link mời bạn
+                                </button>
+                                <span id="mobaRoomStatusBadge" class="px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    🟢 Đang ở Sảnh chờ
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2 self-end sm:self-auto">
+                                <button type="button" onclick="window.leaveMobaRoom()" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 font-black text-xs flex items-center gap-1.5 cursor-pointer transition-all">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Thoát phòng
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Banner hẹn giờ mở đề (nếu là phòng Giáo viên hẹn giờ) -->
+                        <div id="mobaScheduledBanner" class="hidden p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                            <div class="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                                <i class="fa-solid fa-clock text-amber-600 text-base"></i>
+                                <div>
+                                    <div>Phòng luyện tập hẹn giờ của Giáo viên — Mở đề lúc: <b id="mobaScheduleOpenTimeText">--:--</b></div>
+                                    <div class="text-[11px] text-amber-700 dark:text-amber-300">Thời gian làm bài: <b id="mobaScheduleDurationText">15 phút</b></div>
+                                </div>
+                            </div>
+                            <div class="px-3 py-1.5 rounded-lg bg-amber-600 text-white font-mono font-black text-xs shrink-0" id="mobaScheduleCountdown">
+                                Đang kiểm tra...
+                            </div>
+                        </div>
+
+                        <!-- Nội dung phòng: Danh sách thành viên + Điều khiển trận đấu -->
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+                            <!-- Danh sách người chơi trong phòng -->
+                            <div class="lg:col-span-7 bg-white dark:bg-slate-800 rounded-2xl p-3.5 border border-gray-200 dark:border-slate-700 space-y-2.5">
+                                <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-gray-100 dark:border-slate-700">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-black text-xs text-gray-800 dark:text-white uppercase tracking-wider">
+                                            <i class="fa-solid fa-user-group text-indigo-500 mr-1"></i> Thành viên trong phòng
+                                        </span>
+                                        <span id="mobaPlayersCountBadge" class="px-2 py-0.5 rounded-full text-[11px] font-black bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                            1/10 người
+                                        </span>
+                                    </div>
+                                    <!-- Chủ phòng chỉnh số người tối đa trực tiếp -->
+                                    <div id="mobaHostMaxPlayerCtrl" class="hidden flex items-center gap-1.5 text-[11px] font-bold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-slate-900 px-2 py-1 rounded-lg border border-gray-200 dark:border-slate-700">
+                                        <span>Tối đa:</span>
+                                        <button type="button" onclick="window.adjustMobaMaxPlayers(-1)" class="w-5 h-5 rounded bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 flex items-center justify-center font-black hover:bg-gray-100 cursor-pointer">-</button>
+                                        <input type="number" id="mobaLiveMaxPlayers" value="10" min="2" max="50" onchange="window.updateMobaMaxPlayersInput(this.value)" class="w-10 text-center font-black text-xs bg-transparent outline-none">
+                                        <button type="button" onclick="window.adjustMobaMaxPlayers(1)" class="w-5 h-5 rounded bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 flex items-center justify-center font-black hover:bg-gray-100 cursor-pointer">+</button>
+                                        <span class="text-[10px] text-gray-400">người</span>
+                                    </div>
+                                </div>
+
+                                <div id="mobaPlayersGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto custom-scrollbar pr-1"></div>
+                            </div>
+
+                            <!-- Bảng điều khiển chế độ chơi & câu hỏi trong phòng -->
+                            <div class="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl p-3.5 border border-gray-200 dark:border-slate-700 space-y-3">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-black text-xs text-gray-800 dark:text-white uppercase tracking-wider">
+                                        <i class="fa-solid fa-gamepad text-purple-500 mr-1"></i> Chế độ & Đề thi của Phòng
+                                    </span>
+                                    <span id="mobaRoleIndicator" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">👑 Chủ phòng</span>
+                                </div>
+
+                                <!-- Chuyển chế độ Làm Đề vs Chơi Game ngay trong phòng -->
+                                <div class="grid grid-cols-2 gap-1.5 p-1 bg-gray-100 dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700">
+                                    <button type="button" id="btnMobaMatchPractice" onclick="window.setMobaMatchMode('practice')" class="py-1.5 px-2 rounded-lg text-[11px] font-black transition-all flex items-center justify-center gap-1 bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 shadow-2xs cursor-pointer">
+                                        <i class="fa-solid fa-file-pen"></i> Cùng làm Đề
+                                    </button>
+                                    <button type="button" id="btnMobaMatchGame" onclick="window.setMobaMatchMode('game')" class="py-1.5 px-2 rounded-lg text-[11px] font-black transition-all flex items-center justify-center gap-1 text-gray-600 dark:text-gray-400 cursor-pointer">
+                                        <i class="fa-solid fa-gamepad"></i> Cùng chơi Game
+                                    </button>
+                                </div>
+
+                                <!-- Tóm tắt cấu hình hiện tại của phòng -->
+                                <div id="mobaRoomConfigSummary" class="p-2.5 rounded-xl bg-indigo-50/70 dark:bg-slate-900 border border-indigo-100 dark:border-slate-700 text-xs space-y-1">
+                                    <div class="font-black text-indigo-900 dark:text-indigo-300" id="mobaSummaryModeTitle">📝 Chế độ: Đề luyện tập chung</div>
+                                    <div class="text-[11px] text-gray-600 dark:text-gray-400 font-semibold" id="mobaSummaryConfigDetail">Lớp 12 • Tất cả • 10 câu • TN, Đ/S, TLN</div>
+                                    <div class="text-[10px] text-indigo-600 dark:text-indigo-400 italic" id="mobaHostConfigHint">
+                                        💡 Chủ phòng có thể đổi Trò chơi, Khối, Loại câu hỏi (TN/ĐS/TLN), Số lượng câu & Chuyên đề ở ngay bên dưới mà không cần tạo lại phòng!
+                                    </div>
+                                </div>
+
+                                <!-- Nút Bắt đầu trận đấu (Chủ phòng) hoặc Làm bài ngay (Khách) -->
+                                <div class="space-y-1.5">
+                                    <button type="button" id="btnHostStartMobaMatch" onclick="window.hostStartMobaMatch()" class="w-full py-3 rounded-xl text-white font-black text-xs sm:text-sm shadow-lg hover:opacity-95 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer" style="background: linear-gradient(135deg, #ec4899 0%, #7c3aed 100%) !important;">
+                                        <i class="fa-solid fa-play"></i> <span id="btnHostStartMobaMatchLabel">BẮT ĐẦU CHO CẢ PHÒNG</span>
+                                    </button>
+                                    <div id="mobaGuestWaitingNotice" class="hidden text-center py-2 px-3 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-[11px] font-bold text-gray-600 dark:text-gray-300">
+                                        <i class="fa-solid fa-spinner fa-spin text-indigo-500 mr-1"></i> Đang chờ Chủ phòng bắt đầu ván đấu...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- KHUNG CHỌN TRÒ CHƠI HỌC TẬP (HIỂN THỊ KHI CHỌN CHẾ ĐỘ TRÒ CHƠI) -->
             <div id="gamePracticeSelectorBox" class="hidden bg-white dark:bg-slate-800/95 rounded-3xl p-4 sm:p-6 border-2 border-purple-200 dark:border-purple-800/80 shadow-md space-y-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-purple-100 dark:border-slate-700">
@@ -1051,13 +1255,16 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-orange-100 text-orange-700 border border-orange-200">HOT · Ngân hàng QMath</span>
                             </div>
                             <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
-                                Bước 1: Chọn 1 trò chơi bên dưới ➔ Bước 2: Chọn <b>Khối lớp, Phân môn, Mức độ & Chuyên đề</b> (như Phòng Luyện Tập) ➔ Bước 3: Bấm <b>Tạo Trò Chơi & Chơi Ngay</b>!
+                                Bước 1: Chọn 1 trò chơi bên dưới ➔ Bước 2: Chọn <b>Khối lớp, Phân môn, Loại câu hỏi & Chuyên đề</b> ➔ Bước 3: Bấm <b>Tạo Trò Chơi & Chơi Ngay</b> (hoặc chơi cùng nhóm MOBA)!
                             </p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <a href="san-choi/index.html#/join" class="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-black text-xs flex items-center gap-1.5 transition-all">
-                            <i class="fa-solid fa-key text-pink-500"></i> Vào phòng PIN của Giáo viên
+                    <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                        <button type="button" onclick="window.setPracticePartyMode('group'); document.getElementById('mobaJoinPinInput')?.focus();" class="px-3.5 py-2 rounded-xl bg-pink-50 hover:bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800 font-black text-xs flex items-center gap-1.5 transition-all cursor-pointer">
+                            <i class="fa-solid fa-users-rays text-pink-500"></i> Tạo Phòng Nhóm / Nhập Mã PIN
+                        </button>
+                        <a href="san-choi/index.html#/join" class="px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-black text-xs flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-key text-purple-500"></i> Sảnh PIN Giáo viên
                         </a>
                     </div>
                 </div>
@@ -1114,6 +1321,24 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
 
                     
                     <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-[11px] font-black text-gray-400 uppercase tracking-wider">Loại Câu Hỏi (Chọn nhiều)</label>
+                            <button type="button" onclick="window.toggleAllQuestionTypes()" class="text-[10px] font-bold theme-season-text hover:underline">Chọn tất cả</button>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1.5 mb-3" id="qTypePillsGroup">
+                            <button type="button" onclick="window.toggleQuestionTypePill('mc')" id="qtype-mc" class="level-pill active py-2 px-2.5 rounded-xl text-[11px] font-bold flex items-center justify-between transition-all cursor-pointer">
+                                <span><i class="fa-solid fa-list-check text-indigo-500 mr-1"></i> Trắc nghiệm</span>
+                                <i class="fa-solid fa-check check-ico opacity-100 text-[10px]"></i>
+                            </button>
+                            <button type="button" onclick="window.toggleQuestionTypePill('tf')" id="qtype-tf" class="level-pill active py-2 px-2.5 rounded-xl text-[11px] font-bold flex items-center justify-between transition-all cursor-pointer">
+                                <span><i class="fa-solid fa-scale-balanced text-teal-500 mr-1"></i> Đúng / Sai</span>
+                                <i class="fa-solid fa-check check-ico opacity-100 text-[10px]"></i>
+                            </button>
+                            <button type="button" onclick="window.toggleQuestionTypePill('short')" id="qtype-short" class="level-pill active py-2 px-2.5 rounded-xl text-[11px] font-bold flex items-center justify-between transition-all cursor-pointer">
+                                <span><i class="fa-solid fa-pen-to-square text-amber-500 mr-1"></i> Trả lời ngắn</span>
+                                <i class="fa-solid fa-check check-ico opacity-100 text-[10px]"></i>
+                            </button>
+                        </div>
                         <div class="flex items-center justify-between mb-1.5">
                             <label class="text-[11px] font-black text-gray-400 uppercase tracking-wider">Mức Độ (Chọn nhiều)</label>
                             <button type="button" onclick="toggleAllLevels()" class="text-[10px] font-bold theme-season-text hover:underline">Chọn tất cả</button>
@@ -1428,6 +1653,18 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
             </div>
 
             
+            <!-- THANH THEO DÕI TRỰC TIẾP ĐỒNG ĐỘI TRONG PHÒNG MOBA -->
+            <div id="mobaLiveMatchBar" class="hidden mb-2.5 bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900 text-white p-2.5 px-3.5 rounded-2xl shadow-md border border-indigo-700/60 shrink-0">
+                <div class="flex items-center justify-between gap-2 mb-1.5">
+                    <div class="flex items-center gap-2 text-xs font-black">
+                        <span class="px-2 py-0.5 rounded-lg bg-pink-600 text-white font-mono text-[11px]">PHÒNG #<span id="mobaLivePinText">------</span></span>
+                        <span class="text-indigo-200 text-[11px]"><i class="fa-solid fa-bolt text-amber-400 mr-1"></i>Đua tiến độ trực tiếp cùng đồng đội</span>
+                    </div>
+                    <span id="mobaLivePlayerCount" class="text-[10px] font-bold text-indigo-300">0 thành viên</span>
+                </div>
+                <div id="mobaLivePlayersStrip" class="flex items-center gap-2 overflow-x-auto pb-0.5 custom-scrollbar"></div>
+            </div>
+
             <div id="questionContainer" class="flex-1 overflow-y-auto p-1 scroll-smooth pb-24 pr-2 custom-scrollbar space-y-4"></div>
 
             
@@ -1438,6 +1675,10 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                             <i class="fa-solid fa-list-ol theme-season-text text-xs"></i> Danh sách câu hỏi (<span id="paletteCount">0</span> câu)
                         </span>
                         <span id="paletteAnsweredBadge" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">Đã làm: 0/0</span>
+                        <span id="paletteSkippedBadge" class="hidden text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800">Đã bỏ qua: 0</span>
+                        <button type="button" id="btnJumpSkipped" onclick="event.stopPropagation(); window.jumpToNextSkippedQuestion();" class="hidden text-[10px] font-black px-2.5 py-0.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition-all cursor-pointer">
+                            <i class="fa-solid fa-rotate-left mr-1"></i>Quay lại câu đã bỏ qua
+                        </button>
                     </div>
                     <button type="button" class="w-6 h-6 rounded-full bg-white dark:bg-slate-800 text-gray-500 hover:text-gray-700 flex items-center justify-center text-xs shadow-2xs">
                         <i id="paletteIcon" class="fa-solid fa-chevron-down transition-transform duration-300"></i>
@@ -1474,7 +1715,21 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                     </div>
                 </div>
 
-                <div class="p-6 bg-gray-50 dark:bg-slate-900/60 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <!-- BẢNG VINH DANH NGƯỜI CHIẾN THẮNG PHÒNG NHÓM MOBA -->
+                <div id="mobaWinnerPodiumBox" class="hidden p-5 bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-950 text-white border-t border-indigo-800 text-left space-y-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="font-black text-sm text-amber-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-trophy text-base"></i> BẢNG XẾP HẠNG CHIẾN THẮNG · PHÒNG #<span id="resMobaPin">------</span>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-800 text-indigo-200">Cập nhật trực tiếp</span>
+                    </div>
+                    <div id="mobaWinnerStandingsList" class="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar"></div>
+                </div>
+
+                <div class="p-6 bg-gray-50 dark:bg-slate-900/60 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
+                    <button type="button" id="btnReturnMobaLobby" onclick="window.returnToMobaLobbyFromResult()" class="hidden w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 hover:opacity-95 text-white font-black rounded-xl text-xs shadow-md cursor-pointer">
+                        <i class="fa-solid fa-users-rays mr-1.5"></i> Về Phòng Chờ Nhóm (Đổi Game / Câu hỏi chơi tiếp)
+                    </button>
                     <button onclick="switchHubTab('landing')" class="w-full sm:w-auto px-5 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 font-bold rounded-xl hover:bg-gray-100 text-xs shadow-2xs">
                         <i class="fa-solid fa-arrow-left mr-1.5"></i> Về trang chọn
                     </button>
@@ -2164,11 +2419,17 @@ window.allCustomTopics = [];
 window.practiceQuestions = [];
 window.userAnswers = {};
 window.instantAnswered = {};
+window.skippedQuestions = {};
+if (window.updateSkippedBadgesUI) window.updateSkippedBadgesUI();
+if (!window.activeMobaRoom) document.getElementById('mobaLiveMatchBar')?.classList.add('hidden');
 let timerInterval = null;
+window.supabase = supabase;
 let tempResultData = null;
+window.skippedQuestions = {};
 window.currentConfig = {
 grade: '12',
 subject: 'all',
+questionTypes: ['mc', 'tf', 'short'],
 levels: ['TH', 'VD'],
 theory: false,
 realworld: false,
@@ -2197,6 +2458,9 @@ loadMapTree(),
 loadRoadmaps()
 ]);
 loadUserPracticeStats(user.uid);
+window.currentMobaUser = user;
+const mobaNameEl = document.getElementById('mobaPlayerNameInput');
+if (mobaNameEl && !mobaNameEl.value) mobaNameEl.value = user.displayName || (user.email ? user.email.split('@')[0] : 'Học sinh');
 loadInlineHistory();
 handleUrlRouting();
 } else {
@@ -2247,6 +2511,10 @@ window.renderStudentGamesGrid = function() {
 window.selectStudentGame = function(gameId) {
   window.selectedStudentGameId = gameId;
   window.renderStudentGamesGrid();
+  if (window.activeMobaRoom && window.activeMobaRoom.isHost) {
+    window.setMobaMatchMode('game', true);
+    window.syncCurrentConfigToMobaRoom();
+  }
 };
 
 window.syncGamePracticeModeUI = function(isGame) {
@@ -2266,6 +2534,72 @@ window.syncGamePracticeModeUI = function(isGame) {
     if (mobIcon) mobIcon.className = 'fa-solid fa-rocket';
     if (mobTxt) mobTxt.innerText = 'Bắt đầu ngay';
   }
+  if (window.activeMobaRoom && window.activeMobaRoom.isHost) {
+    window.setMobaMatchMode(isGame ? 'game' : 'practice', true);
+  }
+};
+
+window.getNormalizedQuestionType = function(q) {
+  if (!q) return 'mc';
+  const raw = String(q.type || q.Type || q.qType || '').toLowerCase().trim();
+  if (raw === 'tf' || raw === 'ds' || raw === 'true_false' || raw === 'dung_sai' || (Array.isArray(q.statements) && q.statements.length > 0)) return 'tf';
+  if (raw === 'short' || raw === 'sa' || raw === 'tln' || raw === 'tra_loi_ngan' || ((q.answer !== undefined && q.answer !== null && String(q.answer).trim() !== '') && (!Array.isArray(q.options) || q.options.length === 0))) return 'short';
+  return 'mc';
+};
+
+window.matchesSelectedQuestionTypes = function(q, selectedTypes) {
+  const types = Array.isArray(selectedTypes) && selectedTypes.length > 0 ? selectedTypes : ['mc', 'tf', 'short'];
+  if (types.length >= 3) return true;
+  const hasTypeMeta = Boolean(q && (q.type || q.Type || q.qType || (Array.isArray(q.statements) && q.statements.length > 0) || (Array.isArray(q.options) && q.options.length > 0) || (q.answer !== undefined && q.answer !== null && String(q.answer).trim() !== '')));
+  if (!hasTypeMeta) return true; // Sẽ lọc chính xác sau khi tải chi tiết câu hỏi
+  return types.includes(window.getNormalizedQuestionType(q));
+};
+
+window.toggleQuestionTypePill = function(qType) {
+  if (!Array.isArray(window.currentConfig.questionTypes)) {
+    window.currentConfig.questionTypes = ['mc', 'tf', 'short'];
+  }
+  const idx = window.currentConfig.questionTypes.indexOf(qType);
+  if (idx >= 0) {
+    if (window.currentConfig.questionTypes.length <= 1) {
+      window.showToast('Cần chọn ít nhất 1 loại câu hỏi!', 'warning');
+      return;
+    }
+    window.currentConfig.questionTypes.splice(idx, 1);
+  } else {
+    window.currentConfig.questionTypes.push(qType);
+  }
+  ['mc', 'tf', 'short'].forEach(t => {
+    const pill = document.getElementById('qtype-' + t);
+    const active = window.currentConfig.questionTypes.includes(t);
+    if (pill) {
+      pill.classList.toggle('active', active);
+      pill.querySelector('.check-ico')?.classList.toggle('opacity-0', !active);
+      pill.querySelector('.check-ico')?.classList.toggle('opacity-100', active);
+    }
+  });
+  if (window.updateMobileSummary) window.updateMobileSummary();
+  if (window.syncCurrentConfigToMobaRoom) window.syncCurrentConfigToMobaRoom();
+};
+
+window.toggleAllQuestionTypes = function() {
+  const all = ['mc', 'tf', 'short'];
+  if (Array.isArray(window.currentConfig.questionTypes) && window.currentConfig.questionTypes.length === 3) {
+    window.currentConfig.questionTypes = ['mc'];
+  } else {
+    window.currentConfig.questionTypes = [...all];
+  }
+  all.forEach(t => {
+    const pill = document.getElementById('qtype-' + t);
+    const active = window.currentConfig.questionTypes.includes(t);
+    if (pill) {
+      pill.classList.toggle('active', active);
+      pill.querySelector('.check-ico')?.classList.toggle('opacity-0', !active);
+      pill.querySelector('.check-ico')?.classList.toggle('opacity-100', active);
+    }
+  });
+  if (window.updateMobileSummary) window.updateMobileSummary();
+  if (window.syncCurrentConfigToMobaRoom) window.syncCurrentConfigToMobaRoom();
 };
 
 function convertPracticeQuestionToSanChoi(rawQ, gradeLabel, subjectLabel) {
@@ -2331,115 +2665,170 @@ function convertPracticeQuestionToSanChoi(rawQ, gradeLabel, subjectLabel) {
   };
 }
 
+function convertSanChoiQuestionToPractice(sq) {
+  if (!sq) return null;
+  if (sq.content && (Array.isArray(sq.options) || Array.isArray(sq.statements) || sq.answer !== undefined)) return sq;
+  const qId = String(sq.Id || sq.id || sq.cccd || ('Q' + Math.random().toString(36).slice(2, 8)));
+  const stem = String(sq.Question || sq.content || '');
+  const explain = String(sq.Explain || sq.solution || '');
+  const t = String(sq.Type || sq.type || 'MC').toUpperCase();
+  if (t === 'TF') {
+    const opts = sq.Options || {};
+    const ans = String(sq.CorrectAnswer || 'ĐSĐS').toUpperCase();
+    const statements = ['a', 'b', 'c', 'd'].map((k, idx) => ({
+      text: opts[k] || opts[k.toUpperCase()] || '',
+      isTrue: ans[idx] === 'Đ' || ans[idx] === 'D' || ans[idx] === 'T'
+    })).filter(s => s.text);
+    return { id: qId, cccd: qId, type: 'tf', content: stem, statements, solution: explain, level: sq.Level || 'Thông hiểu' };
+  }
+  if (t === 'SA' || t === 'SHORT') {
+    return { id: qId, cccd: qId, type: 'short', content: stem, answer: String(sq.CorrectAnswer || sq.answer || ''), solution: explain, level: sq.Level || 'Thông hiểu' };
+  }
+  const opts = sq.Options || {};
+  const keys = ['A', 'B', 'C', 'D', 'E', 'F'].filter(k => opts[k] !== undefined && String(opts[k]).trim() !== '');
+  const options = keys.map(k => opts[k]);
+  const cKey = String(sq.CorrectAnswer || 'A').trim().toUpperCase();
+  const correct = Math.max(0, keys.indexOf(cKey));
+  return { id: qId, cccd: qId, type: 'mc', content: stem, options, correct, solution: explain, level: sq.Level || 'Thông hiểu' };
+}
+
+window.selectQuestionsFromCatalogByConfig = async function(allowRandomAll = true) {
+  const practiceId = (document.getElementById('inputPracticeId')?.value || '').trim();
+  const grade = window.currentConfig.grade;
+  const subject = window.currentConfig.subject;
+  let qCount = practiceId ? 1 : (parseInt(document.getElementById('inputQCount')?.value) || 10);
+  const sortDiff = document.getElementById('toggleSortDifficulty')?.checked ?? true;
+  const checkedLevels = window.currentConfig.levels || [];
+  const selectedQTypes = Array.isArray(window.currentConfig.questionTypes) && window.currentConfig.questionTypes.length > 0
+    ? window.currentConfig.questionTypes
+    : ['mc', 'tf', 'short'];
+  const reqTheory = document.getElementById('filterTheory')?.checked;
+  const reqRealWorld = document.getElementById('filterRealWorld')?.checked;
+  const checkedMapIds = Array.from(document.querySelectorAll('#treeContainer input[type="checkbox"]:checked'))
+    .map(cb => cb.value)
+    .filter(Boolean);
+
+  if (!practiceId && !allowRandomAll && checkedMapIds.length === 0) {
+    return { error: 'NO_TOPIC_SELECTED' };
+  }
+
+  const getBaseIdForMatch = (id) => {
+    let raw = String(id || '').split('_')[0];
+    const match = raw.match(/^(\d+[a-zA-Z])/i);
+    if (!match) return raw;
+    const prefix = match[1].toUpperCase();
+    let suffix = raw.substring(prefix.length);
+    const parts = suffix.match(/\d+/g) || [];
+    return prefix + (parts.length > 0 ? '|' + parts.join('|') : '');
+  };
+  const checkedCleanIds = checkedMapIds.map(getBaseIdForMatch);
+
+  if (!window.globalBankCatalog || window.globalBankCatalog.length === 0) {
+    await loadBankCatalogFast();
+  }
+
+  let pool = (window.globalBankCatalog || []).filter(q => {
+    if (practiceId) return String(q.id) === practiceId || String(q.cccd) === practiceId;
+    const actualMapId = String(q.mapId || q.id || '').trim();
+    if (!actualMapId) return false;
+if (!window.matchesSelectedQuestionTypes(q, window.currentConfig.questionTypes)) return false;
+    if (!window.matchesSelectedQuestionTypes(q, selectedQTypes)) return false;
+    let actualLevel = String(q.level || '').trim().toUpperCase();
+    if (!actualLevel && actualMapId) {
+      const lMatch = actualMapId.match(/^\d+[a-zA-Z]\d+([NHVC])/i);
+      if (lMatch) {
+        const c = lMatch[1].toUpperCase();
+        if (c === 'N') actualLevel = 'NHẬN BIẾT';
+        else if (c === 'H') actualLevel = 'THÔNG HIỂU';
+        else if (c === 'V') actualLevel = 'VẬN DỤNG';
+        else if (c === 'C') actualLevel = 'VẬN DỤNG CAO';
+      }
+    }
+    const qBaseId = getBaseIdForMatch(actualMapId);
+    const subjectMatch = actualMapId.match(/^\d+([a-zA-Z])/);
+    const subjectChar = subjectMatch ? subjectMatch[1].toUpperCase() : '';
+    if (!actualMapId.startsWith(grade)) return false;
+    if (subject === 'dai_so' && !['D', 'G', 'X'].includes(subjectChar)) return false;
+    if (subject === 'hinh_hoc' && subjectChar !== 'H') return false;
+    if (checkedLevels.length > 0) {
+      const isMatch = checkedLevels.some(code => {
+        if (code === 'NB' && (actualLevel.includes('NHẬN BIẾT') || actualLevel === 'NB' || /^\d+[a-zA-Z]\d+N/i.test(actualMapId))) return true;
+        if (code === 'TH' && (actualLevel.includes('THÔNG HIỂU') || actualLevel === 'TH' || /^\d+[a-zA-Z]\d+H/i.test(actualMapId))) return true;
+        if (code === 'VD' && (actualLevel === 'VẬN DỤNG' || actualLevel === 'VD' || /^\d+[a-zA-Z]\d+V/i.test(actualMapId))) return true;
+        if (code === 'VDC' && (actualLevel.includes('CAO') || actualLevel === 'VDC' || /^\d+[a-zA-Z]\d+C/i.test(actualMapId))) return true;
+        return false;
+      });
+      if (!isMatch) return false;
+    }
+    if (checkedCleanIds.length > 0) {
+      const isMatchTopic = checkedCleanIds.some(tId => {
+        if (qBaseId === tId || qBaseId.startsWith(tId + '|')) return true;
+        const rawId = String(actualMapId).split('_')[0];
+        if (rawId === tId || rawId.startsWith(tId + '|')) return true;
+        return false;
+      });
+      if (!isMatchTopic) return false;
+    }
+    if (reqTheory || reqRealWorld) {
+      const qTags = String(q.tags || '').toLowerCase();
+      let pass = false;
+      if (reqTheory && (qTags.includes('theory') || qTags.includes('ly-thuyet') || actualMapId.includes('LT'))) pass = true;
+      if (reqRealWorld && (qTags.includes('realworld') || qTags.includes('thuc-te') || actualMapId.includes('TT'))) pass = true;
+      if (!pass) return false;
+    }
+    return true;
+  });
+
+  if (pool.length === 0) return { error: 'EMPTY_POOL', pool: [], selected: [] };
+
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const fetchMultiplier = selectedQTypes.length < 3 ? 3 : 1;
+  let candidateSlice = pool.slice(0, Math.min(pool.length, Math.max(qCount * fetchMultiplier, 15)));
+  let detailed = await ensureQuestionDetails(candidateSlice);
+  if (selectedQTypes.length < 3) {
+    detailed = detailed.filter(q => selectedQTypes.includes(window.getNormalizedQuestionType(q)));
+  }
+  let selected = detailed.slice(0, qCount);
+  if (sortDiff) {
+    const getLvlNum = (id) => {
+      const s = String(id);
+      if (s.includes('NB') || s.includes('N')) return 1;
+      if (s.includes('TH') || s.includes('H')) return 2;
+      if (s.includes('VD') || s.includes('V')) return 3;
+      if (s.includes('VDC') || s.includes('C')) return 4;
+      return 2;
+    };
+    selected.sort((a, b) => getLvlNum(a.mapId || a.id) - getLvlNum(b.mapId || b.id));
+  }
+  return { pool, selected, grade, subject, qCount };
+};
+
 window.startGamePractice = async function() {
+  if (window.activeMobaRoom && window.activeMobaRoom.pin) {
+    if (window.activeMobaRoom.isHost) {
+      window.setMobaMatchMode('game', true);
+      return await window.hostStartMobaMatch();
+    } else {
+      window.showToast('Bạn đang ở trong phòng nhóm. Hãy chờ Chủ phòng bắt đầu hoặc bấm nút trong khung Phòng!', 'info');
+      return;
+    }
+  }
   const btn = document.getElementById('btnStartGamePracticeMain');
   const ogHtml = btn ? btn.innerHTML : '';
   try {
-    const practiceId = (document.getElementById('inputPracticeId')?.value || '').trim();
-    const grade = window.currentConfig.grade;
-    const subject = window.currentConfig.subject;
-    let qCount = practiceId ? 1 : (parseInt(document.getElementById('inputQCount')?.value) || 10);
-    const sortDiff = document.getElementById('toggleSortDifficulty')?.checked ?? true;
-    const checkedLevels = window.currentConfig.levels;
-    const reqTheory = document.getElementById('filterTheory')?.checked;
-    const reqRealWorld = document.getElementById('filterRealWorld')?.checked;
-    const checkedMapIds = Array.from(document.querySelectorAll('#treeContainer input[type="checkbox"]:checked'))
-      .map(cb => cb.value)
-      .filter(Boolean);
-
-    const getBaseIdForMatch = (id) => {
-      let raw = String(id || '').split('_')[0];
-      const match = raw.match(/^(\d+[a-zA-Z])/i);
-      if (!match) return raw;
-      const prefix = match[1].toUpperCase();
-      let suffix = raw.substring(prefix.length);
-      const parts = suffix.match(/\d+/g) || [];
-      return prefix + (parts.length > 0 ? '|' + parts.join('|') : '');
-    };
-    const checkedCleanIds = checkedMapIds.map(getBaseIdForMatch);
-
-    if (!window.globalBankCatalog || window.globalBankCatalog.length === 0) {
-      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối Ngân hàng câu hỏi...'; }
-      await loadBankCatalogFast();
-    }
-
-    let pool = (window.globalBankCatalog || []).filter(q => {
-      if (practiceId) return String(q.id) === practiceId || String(q.cccd) === practiceId;
-      const actualMapId = String(q.mapId || q.id || '').trim();
-      if (!actualMapId) return false;
-      let actualLevel = String(q.level || '').trim().toUpperCase();
-      if (!actualLevel && actualMapId) {
-        const lMatch = actualMapId.match(/^\d+[a-zA-Z]\d+([NHVC])/i);
-        if (lMatch) {
-          const c = lMatch[1].toUpperCase();
-          if (c === 'N') actualLevel = 'NHẬN BIẾT';
-          else if (c === 'H') actualLevel = 'THÔNG HIỂU';
-          else if (c === 'V') actualLevel = 'VẬN DỤNG';
-          else if (c === 'C') actualLevel = 'VẬN DỤNG CAO';
-        }
-      }
-      const qBaseId = getBaseIdForMatch(actualMapId);
-      const subjectMatch = actualMapId.match(/^\d+([a-zA-Z])/);
-      const subjectChar = subjectMatch ? subjectMatch[1].toUpperCase() : '';
-      if (!actualMapId.startsWith(grade)) return false;
-      if (subject === 'dai_so' && !['D', 'G', 'X'].includes(subjectChar)) return false;
-      if (subject === 'hinh_hoc' && subjectChar !== 'H') return false;
-      if (checkedLevels.length > 0) {
-        const isMatch = checkedLevels.some(code => {
-          if (code === 'NB' && (actualLevel.includes('NHẬN BIẾT') || actualLevel === 'NB' || /^\d+[a-zA-Z]\d+N/i.test(actualMapId))) return true;
-          if (code === 'TH' && (actualLevel.includes('THÔNG HIỂU') || actualLevel === 'TH' || /^\d+[a-zA-Z]\d+H/i.test(actualMapId))) return true;
-          if (code === 'VD' && (actualLevel === 'VẬN DỤNG' || actualLevel === 'VD' || /^\d+[a-zA-Z]\d+V/i.test(actualMapId))) return true;
-          if (code === 'VDC' && (actualLevel.includes('CAO') || actualLevel === 'VDC' || /^\d+[a-zA-Z]\d+C/i.test(actualMapId))) return true;
-          return false;
-        });
-        if (!isMatch) return false;
-      }
-      if (checkedCleanIds.length > 0) {
-        const isMatchTopic = checkedCleanIds.some(tId => {
-          if (qBaseId === tId || qBaseId.startsWith(tId + '|')) return true;
-          const rawId = String(actualMapId).split('_')[0];
-          if (rawId === tId || rawId.startsWith(tId + '|')) return true;
-          return false;
-        });
-        if (!isMatchTopic) return false;
-      }
-      if (reqTheory || reqRealWorld) {
-        const qTags = String(q.tags || '').toLowerCase();
-        let pass = false;
-        if (reqTheory && (qTags.includes('theory') || qTags.includes('ly-thuyet') || actualMapId.includes('LT'))) pass = true;
-        if (reqRealWorld && (qTags.includes('realworld') || qTags.includes('thuc-te') || actualMapId.includes('TT'))) pass = true;
-        if (!pass) return false;
-      }
-      return true;
-    });
-
-    if (pool.length === 0) {
-      await window.customAlert("Không tìm thấy câu hỏi phù hợp với tiêu chí đã chọn.\n\nHãy thử chọn thêm mức độ (NB, TH, VD, VDC) hoặc chọn bài học/phân môn khác nhé!", "info", "Không Tìm Thấy Câu Hỏi");
-      return;
-    }
-
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    let selected = pool.slice(0, Math.min(pool.length, Math.max(qCount, 15)));
-    if (sortDiff) {
-      const getLvlNum = (id) => {
-        const s = String(id);
-        if (s.includes('NB') || s.includes('N')) return 1;
-        if (s.includes('TH') || s.includes('H')) return 2;
-        if (s.includes('VD') || s.includes('V')) return 3;
-        if (s.includes('VDC') || s.includes('C')) return 4;
-        return 2;
-      };
-      selected.sort((a, b) => getLvlNum(a.mapId || a.id) - getLvlNum(b.mapId || b.id));
-    }
-
     if (btn) {
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ĐANG NẠP CÂU HỎI VÀO TRÒ CHƠI...';
     }
-    selected = await ensureQuestionDetails(selected);
+    const res = await window.selectQuestionsFromCatalogByConfig(true);
+    if (res.error === 'EMPTY_POOL' || !res.selected || res.selected.length === 0) {
+      await window.customAlert("Không tìm thấy câu hỏi phù hợp với tiêu chí đã chọn.\n\nHãy thử chọn thêm Loại câu hỏi (TN, Đ/S, TLN), mức độ (NB, TH, VD, VDC) hoặc chọn bài học/phân môn khác nhé!", "info", "Không Tìm Thấy Câu Hỏi");
+      return;
+    }
+    const { selected, grade, subject, qCount } = res;
     const subjLabel = subject === 'dai_so' ? 'Đại số' : subject === 'hinh_hoc' ? 'Hình học' : 'Toán';
     const gameQuestions = selected
       .map(q => convertPracticeQuestionToSanChoi(q, grade, subjLabel))
@@ -2447,7 +2836,7 @@ window.startGamePractice = async function() {
       .slice(0, qCount);
 
     if (gameQuestions.length === 0) {
-      await window.customAlert("Các câu hỏi trong mục này chưa có phương án trắc nghiệm để đưa vào trò chơi. Vui lòng thử chọn bài học khác!", "warning", "Chưa Có Câu Hỏi Tương Thích");
+      await window.customAlert("Các câu hỏi trong mục này chưa có phương án tương thích để đưa vào trò chơi. Vui lòng thử chọn bài học hoặc loại câu hỏi khác!", "warning", "Chưa Có Câu Hỏi Tương Thích");
       return;
     }
 
@@ -2484,6 +2873,684 @@ window.startGamePractice = async function() {
   }
 };
 
+/* =====================================================================
+   PHÒNG LUYỆN TẬP NHÓM MOBA & PHÒNG MÃ PIN HẸN GIỜ CỦA GIÁO VIÊN
+   ===================================================================== */
+window.practicePartyMode = 'solo';
+window.selectedMobaAvatar = '🦊';
+window.activeMobaRoom = null;
+window._lastLaunchedRoundId = null;
+window._navigatingToRoomGame = false;
+
+window.getMobaIdentity = function() {
+  let saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem('qmath_moba_identity') || 'null'); } catch(e) {}
+  const user = window.currentMobaUser || (typeof auth !== 'undefined' ? auth.currentUser : null);
+  const nameInput = (document.getElementById('mobaPlayerNameInput')?.value || '').trim();
+  const uid = (user && user.uid) || (saved && saved.uid) || ('U_' + Math.random().toString(36).slice(2, 10));
+  const pid = (saved && saved.pid) || ('P_' + uid.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12) + '_' + Math.random().toString(36).slice(2, 5));
+  const name = nameInput || (user && (user.displayName || (user.email ? user.email.split('@')[0] : ''))) || (saved && saved.name) || 'Chiến binh Toán';
+  const avatar = window.selectedMobaAvatar || (saved && saved.avatar) || '🦊';
+  const idObj = { uid, pid, name, avatar };
+  try { sessionStorage.setItem('qmath_moba_identity', JSON.stringify(idObj)); } catch(e) {}
+  return idObj;
+};
+
+window.selectMobaAvatar = function(av) {
+  window.selectedMobaAvatar = av;
+  document.querySelectorAll('.moba-av-btn').forEach(b => {
+    const active = b.dataset.av === av;
+    b.className = active
+      ? 'moba-av-btn w-7 h-7 rounded-lg text-sm flex items-center justify-center bg-indigo-100 dark:bg-indigo-950 ring-2 ring-indigo-500 shrink-0 cursor-pointer'
+      : 'moba-av-btn w-7 h-7 rounded-lg text-sm flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800 shrink-0 cursor-pointer';
+  });
+  window.getMobaIdentity();
+};
+
+window.setPracticePartyMode = function(mode) {
+  window.practicePartyMode = (mode === 'group') ? 'group' : 'solo';
+  const btnSolo = document.getElementById('btnModeSolo');
+  const btnGroup = document.getElementById('btnModeGroup');
+  const lobbySec = document.getElementById('mobaGroupLobbySection');
+  const activeCls = 'px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-xs cursor-pointer';
+  const inactiveCls = 'px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 text-gray-600 dark:text-gray-400 hover:text-indigo-600 cursor-pointer';
+  if (btnSolo) btnSolo.className = window.practicePartyMode === 'solo' ? activeCls : inactiveCls;
+  if (btnGroup) btnGroup.className = window.practicePartyMode === 'group' ? activeCls : inactiveCls;
+  if (lobbySec) lobbySec.classList.toggle('hidden', window.practicePartyMode !== 'group');
+  const nameInp = document.getElementById('mobaPlayerNameInput');
+  if (nameInp && !nameInp.value) {
+    const id = window.getMobaIdentity();
+    nameInp.value = id.name;
+  }
+};
+
+window.getMobaPracticeConfigSnapshot = function() {
+  const grade = window.currentConfig.grade || '12';
+  const subject = window.currentConfig.subject || 'all';
+  const qCount = parseInt(document.getElementById('inputQCount')?.value) || 10;
+  const durationMinutes = parseInt(document.getElementById('inputTime')?.value) || 15;
+  const questionTypes = Array.isArray(window.currentConfig.questionTypes) ? [...window.currentConfig.questionTypes] : ['mc', 'tf', 'short'];
+  const levels = Array.isArray(window.currentConfig.levels) ? [...window.currentConfig.levels] : ['TH', 'VD'];
+  const matchMode = (window.activeMobaRoom && window.activeMobaRoom.matchMode) || (window.isGamePracticeMode ? 'game' : 'practice');
+  const gameId = window.selectedStudentGameId || 'dua-vit';
+  const curGame = STUDENT_GAMES_CATALOG.find(x => x.id === gameId) || STUDENT_GAMES_CATALOG[0];
+  return {
+    matchMode,
+    gameId,
+    gameName: curGame ? curGame.name : 'Đua vịt sông xanh',
+    gameIcon: curGame ? curGame.icon : '🦆',
+    grade,
+    subject,
+    qCount,
+    durationMinutes,
+    questionTypes,
+    levels
+  };
+};
+
+window.createMobaRoom = async function() {
+  if (!window.Room) {
+    await window.customAlert('Hệ thống phòng nhóm đang khởi tạo, vui lòng thử lại sau 1 giây!', 'warning');
+    return;
+  }
+  const btn = document.getElementById('btnCreateMobaRoom');
+  const og = btn ? btn.innerHTML : '';
+  try {
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ĐANG TẠO PHÒNG & MÃ PIN...'; }
+    const id = window.getMobaIdentity();
+    const maxP = Math.max(2, Math.min(50, parseInt(document.getElementById('mobaCreateMaxPlayers')?.value) || 10));
+    const snapCfg = window.getMobaPracticeConfigSnapshot();
+    const pin = await window.Room.create({
+      kind: 'student_moba',
+      hostUid: id.uid,
+      hostName: id.name,
+      maxPlayers: maxP,
+      gameId: snapCfg.matchMode === 'game' ? snapCfg.gameId : 'practice-quiz',
+      title: `Phòng Nhóm MOBA của ${id.name}`,
+      durationMinutes: snapCfg.durationMinutes,
+      practiceConfig: snapCfg,
+      questions: []
+    });
+    const joinRes = await window.Room.join(pin, {
+      pid: id.pid,
+      uid: id.uid,
+      name: id.name,
+      avatar: id.avatar,
+      isHost: true
+    });
+    window.enterMobaRoomUI(pin, joinRes.pid || id.pid, true);
+    window.showToast(`🎉 Đã tạo phòng nhóm #${pin}! Hãy gửi mã PIN cho bạn bè cùng vào.`, 'success', 4000);
+  } catch (err) {
+    console.error('Lỗi tạo phòng MOBA:', err);
+    await window.customAlert('Không thể tạo phòng nhóm: ' + err.message, 'error', 'Lỗi Tạo Phòng');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = og; }
+  }
+};
+
+window.joinMobaRoomByInput = async function(forcedPin) {
+  if (!window.Room) {
+    await window.customAlert('Hệ thống phòng đang tải, vui lòng thử lại!', 'warning');
+    return;
+  }
+  const rawPin = String(forcedPin || document.getElementById('mobaJoinPinInput')?.value || '').trim().replace(/\D/g, '');
+  if (!rawPin || rawPin.length < 4) {
+    await window.customAlert('Vui lòng nhập Mã PIN phòng hợp lệ (6 chữ số)!', 'warning', 'Thiếu Mã PIN');
+    return;
+  }
+  const btn = document.getElementById('btnJoinMobaRoom');
+  const og = btn ? btn.innerHTML : '';
+  try {
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang vào...'; }
+    const id = window.getMobaIdentity();
+    const joinRes = await window.Room.join(rawPin, {
+      pid: id.pid,
+      uid: id.uid,
+      name: id.name,
+      avatar: id.avatar
+    });
+    const isHost = Boolean(joinRes.player?.isHost || (joinRes.room?.meta?.hostUid && joinRes.room.meta.hostUid === id.uid));
+    window.enterMobaRoomUI(rawPin, joinRes.pid || id.pid, isHost);
+    window.showToast(`🚀 Đã vào phòng #${rawPin} thành công!`, 'success');
+  } catch (err) {
+    await window.customAlert(err.message || 'Không thể vào phòng này.', 'warning', 'Không Vào Được Phòng');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = og; }
+  }
+};
+
+window.enterMobaRoomUI = function(pin, pid, isHost) {
+  if (window.activeMobaRoom && window.activeMobaRoom.unsub) {
+    try { window.activeMobaRoom.unsub(); } catch(e) {}
+  }
+  if (window.activeMobaRoom && window.activeMobaRoom.scheduleTimer) {
+    clearInterval(window.activeMobaRoom.scheduleTimer);
+  }
+  const id = window.getMobaIdentity();
+  window.activeMobaRoom = {
+    pin: String(pin),
+    pid: String(pid || id.pid),
+    uid: id.uid,
+    isHost: Boolean(isHost),
+    matchMode: window.isGamePracticeMode ? 'game' : 'practice',
+    unsub: null,
+    scheduleTimer: null,
+    lastDoc: null
+  };
+  try {
+    sessionStorage.setItem('qmath_active_moba_room', JSON.stringify({
+      pin: window.activeMobaRoom.pin,
+      pid: window.activeMobaRoom.pid,
+      uid: window.activeMobaRoom.uid
+    }));
+  } catch(e) {}
+  window.setPracticePartyMode('group');
+  document.getElementById('mobaEntryCard')?.classList.add('hidden');
+  document.getElementById('mobaActiveRoomCard')?.classList.remove('hidden');
+  const pinBadge = document.getElementById('mobaRoomPinBadge');
+  if (pinBadge) pinBadge.textContent = pin;
+  window.activeMobaRoom.unsub = window.Room.watch(pin, '', (roomDoc) => {
+    window.onMobaRoomSnapshot(roomDoc);
+  });
+};
+
+window.onMobaRoomSnapshot = function(roomDoc) {
+  const active = window.activeMobaRoom;
+  if (!active) return;
+  if (!roomDoc || !roomDoc.meta) {
+    // Phòng đã bị xóa khi tất cả thoát ra
+    window.cleanupMobaRoomLocalState();
+    window.showToast('Phòng luyện tập đã đóng.', 'info');
+    return;
+  }
+  active.lastDoc = roomDoc;
+  const meta = roomDoc.meta || {};
+  const playersMap = roomDoc.players || {};
+  const me = playersMap[active.pid];
+  const kicked = Array.isArray(meta.kickedUids) && (meta.kickedUids.includes(active.uid) || meta.kickedUids.includes(active.pid));
+  if (kicked || (!me && Object.keys(playersMap).length > 0 && active._hadJoinedOnce)) {
+    window.cleanupMobaRoomLocalState();
+    window.customAlert(`Bạn đã được Chủ phòng mời ra khỏi phòng #${active.pin}.`, 'warning', 'Rời Khỏi Phòng');
+    return;
+  }
+  if (me) active._hadJoinedOnce = true;
+
+  // Cập nhật quyền Chủ phòng (hỗ trợ tự động chuyển quyền chủ phòng khi chủ phòng cũ thoát)
+  const isNowHost = Boolean((me && me.isHost) || (meta.hostUid && meta.hostUid === active.uid));
+  active.isHost = isNowHost;
+
+  // Cập nhật trạng thái phòng
+  const statusEl = document.getElementById('mobaRoomStatusBadge');
+  if (statusEl) {
+    if (meta.status === 'playing') {
+      statusEl.className = 'px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-100 text-amber-800 border border-amber-300';
+      statusEl.innerHTML = '🔥 Đang diễn ra trận đấu';
+    } else {
+      statusEl.className = 'px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200';
+      statusEl.innerHTML = '🟢 Đang ở Sảnh chờ';
+    }
+  }
+
+  // Hiển thị danh sách thành viên + nút Kích (cho Chủ phòng)
+  const pList = Object.values(playersMap).sort((a, b) => (b.isHost ? 1 : 0) - (a.isHost ? 1 : 0) || (a.joinedAt || 0) - (b.joinedAt || 0));
+  const maxP = Number(meta.maxPlayers) || 10;
+  const cntBadge = document.getElementById('mobaPlayersCountBadge');
+  if (cntBadge) cntBadge.textContent = `${pList.length}/${maxP} người`;
+
+  const hostMaxCtrl = document.getElementById('mobaHostMaxPlayerCtrl');
+  if (hostMaxCtrl) hostMaxCtrl.classList.toggle('hidden', !isNowHost);
+  const liveMaxInp = document.getElementById('mobaLiveMaxPlayers');
+  if (liveMaxInp && document.activeElement !== liveMaxInp) liveMaxInp.value = maxP;
+
+  const pGrid = document.getElementById('mobaPlayersGrid');
+  if (pGrid) {
+    pGrid.innerHTML = pList.map(p => {
+      const isMe = p.pid === active.pid;
+      const pHost = Boolean(p.isHost || (meta.hostUid && p.uid === meta.hostUid));
+      const scoreBadge = (Number(p.score) > 0 || p.finishedAt)
+        ? `<span class="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-mono font-black text-[10px]">🏆 ${p.score || 0}đ</span>`
+        : `<span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">${p.progress ? `Đang làm ${p.progress}/${p.total || '?'}` : 'Sẵn sàng'}</span>`;
+      const kickBtn = (isNowHost && !isMe)
+        ? `<button type="button" onclick="window.kickMobaPlayer('${p.pid}', '${(p.name || '').replace(/'/g, "\\'")}')" class="ml-1 px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 text-[10px] font-black transition-all cursor-pointer shrink-0" title="Kích người chơi này khỏi phòng">✕ Kích</button>`
+        : '';
+      return `
+        <div class="flex items-center justify-between gap-2 p-2 rounded-xl border ${isMe ? 'border-indigo-400 bg-indigo-50/60 dark:bg-indigo-950/50' : 'border-gray-200 dark:border-slate-700 bg-gray-50/70 dark:bg-slate-900'}">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-lg leading-none shrink-0">${p.avatar || '🦊'}</span>
+            <div class="min-w-0">
+              <div class="text-xs font-black text-gray-900 dark:text-white truncate flex items-center gap-1">
+                <span>${p.name || 'Học sinh'}</span>
+                ${isMe ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-600 text-white font-bold">Bạn</span>' : ''}
+                ${pHost ? '<span class="text-[10px]" title="Chủ phòng">👑</span>' : ''}
+              </div>
+              <div>${scoreBadge}</div>
+            </div>
+          </div>
+          ${kickBtn}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Banner hẹn giờ mở đề của Giáo viên
+  const schedBanner = document.getElementById('mobaScheduledBanner');
+  if (schedBanner) {
+    const openTime = Number(meta.openTime) || 0;
+    if (openTime > 0) {
+      schedBanner.classList.remove('hidden');
+      const openTextEl = document.getElementById('mobaScheduleOpenTimeText');
+      const durTextEl = document.getElementById('mobaScheduleDurationText');
+      if (openTextEl) openTextEl.textContent = new Date(openTime).toLocaleString('vi-VN');
+      if (durTextEl) durTextEl.textContent = `${Number(meta.durationMinutes) || 15} phút`;
+      window.updateMobaScheduleCountdown(openTime);
+    } else {
+      schedBanner.classList.add('hidden');
+    }
+  }
+
+  // Cập nhật tóm tắt chế độ & đề thi của phòng
+  const pCfg = meta.practiceConfig || {};
+  const roomMatchMode = pCfg.matchMode || (meta.gameId && meta.gameId !== 'practice-quiz' ? 'game' : 'practice');
+  active.matchMode = roomMatchMode;
+
+  const btnModePrac = document.getElementById('btnMobaMatchPractice');
+  const btnModeGame = document.getElementById('btnMobaMatchGame');
+  const activeModeBtnCls = 'py-1.5 px-2 rounded-lg text-[11px] font-black transition-all flex items-center justify-center gap-1 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-2xs cursor-pointer';
+  const inactiveModeBtnCls = 'py-1.5 px-2 rounded-lg text-[11px] font-black transition-all flex items-center justify-center gap-1 text-gray-500 dark:text-gray-400 cursor-pointer';
+  if (btnModePrac) btnModePrac.className = roomMatchMode === 'practice' ? activeModeBtnCls : inactiveModeBtnCls;
+  if (btnModeGame) btnModeGame.className = roomMatchMode === 'game' ? activeModeBtnCls : inactiveModeBtnCls;
+
+  const roleInd = document.getElementById('mobaRoleIndicator');
+  if (roleInd) {
+    roleInd.className = isNowHost
+      ? 'text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-800'
+      : 'text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800';
+    roleInd.textContent = isNowHost ? '👑 Chủ phòng' : '👤 Thành viên';
+  }
+
+  const sumTitle = document.getElementById('mobaSummaryModeTitle');
+  const sumDetail = document.getElementById('mobaSummaryConfigDetail');
+  const gInfo = STUDENT_GAMES_CATALOG.find(x => x.id === (pCfg.gameId || meta.gameId)) || STUDENT_GAMES_CATALOG[0];
+  if (sumTitle) {
+    sumTitle.innerHTML = roomMatchMode === 'game'
+      ? `🎮 Chơi Game nhóm: <span class="text-purple-600 dark:text-purple-400">${gInfo.icon} ${gInfo.name}</span>`
+      : `📝 Làm Đề Luyện Tập Chung (Đua Bảng Xếp Hạng)`;
+  }
+  if (sumDetail) {
+    if (meta.kind === 'teacher_pin') {
+      sumDetail.textContent = `${meta.title || 'Đề của Giáo viên'} • Thời gian: ${meta.durationMinutes || 15} phút`;
+    } else {
+      const subMap = { all: 'Tất cả môn', dai_so: 'Đại số', hinh_hoc: 'Hình học' };
+      const qTypesMap = { mc: 'TN', tf: 'Đ/S', short: 'TLN' };
+      const qtStr = (pCfg.questionTypes || ['mc', 'tf', 'short']).map(k => qTypesMap[k] || k).join(', ');
+      sumDetail.textContent = `Lớp ${pCfg.grade || '12'} • ${subMap[pCfg.subject] || 'Toán'} • ${pCfg.qCount || 10} câu • Loại: ${qtStr}`;
+    }
+  }
+
+  // Nút bắt đầu trận đấu
+  const btnStart = document.getElementById('btnHostStartMobaMatch');
+  const lblStart = document.getElementById('btnHostStartMobaMatchLabel');
+  const waitNotice = document.getElementById('mobaGuestWaitingNotice');
+  const isTeacherSelfPaced = meta.kind === 'teacher_pin' && meta.settings?.selfPaced !== false;
+  if (isNowHost) {
+    btnStart?.classList.remove('hidden');
+    waitNotice?.classList.add('hidden');
+    if (lblStart) {
+      lblStart.textContent = roomMatchMode === 'game'
+        ? `BẮT ĐẦU GAME CHO CẢ PHÒNG (${gInfo.icon} ${gInfo.name})`
+        : `BẮT ĐẦU LÀM ĐỀ CHO CẢ PHÒNG (${pList.length} người)`;
+    }
+  } else if (isTeacherSelfPaced || meta.status === 'playing') {
+    btnStart?.classList.remove('hidden');
+    waitNotice?.classList.add('hidden');
+    if (lblStart) lblStart.textContent = '🚀 BẮT ĐẦU LÀM BÀI NGAY';
+  } else {
+    btnStart?.classList.add('hidden');
+    waitNotice?.classList.remove('hidden');
+  }
+
+  // Cập nhật thanh tiến độ trực tiếp nếu đang ở trong #practiceStep
+  window.renderMobaLiveMatchBar(roomDoc);
+  // Cập nhật Bảng Vinh Danh Người Chiến Thắng nếu đang ở #resultStep
+  window.renderMobaWinnerPodium(roomDoc);
+
+  // Tự động vào trận khi Chủ phòng bấm Bắt đầu (status === 'playing' & roundId mới)
+  const roundId = roomDoc.state?.roundId || (meta.status === 'playing' ? 'R_ACTIVE' : null);
+  if (meta.status === 'playing' && roundId && window._lastLaunchedRoundId !== roundId) {
+    const openTime = Number(meta.openTime) || 0;
+    if (!openTime || Date.now() >= openTime) {
+      window._lastLaunchedRoundId = roundId;
+      window.launchMobaRoomMatch(roomDoc);
+    }
+  }
+};
+
+window.updateMobaScheduleCountdown = function(openTime) {
+  const el = document.getElementById('mobaScheduleCountdown');
+  if (!el) return;
+  const tick = () => {
+    const diff = openTime - Date.now();
+    if (diff <= 0) {
+      el.textContent = '🟢 ĐÃ MỞ ĐỀ — CÓ THỂ LÀM BÀI!';
+      el.className = 'px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-mono font-black text-xs shrink-0';
+      return;
+    }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    el.textContent = `⏳ Mở sau: ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+  tick();
+  if (window.activeMobaRoom) {
+    if (window.activeMobaRoom.scheduleTimer) clearInterval(window.activeMobaRoom.scheduleTimer);
+    window.activeMobaRoom.scheduleTimer = setInterval(tick, 1000);
+  }
+};
+
+window.adjustMobaMaxPlayers = async function(delta) {
+  if (!window.activeMobaRoom || !window.activeMobaRoom.isHost) return;
+  const inp = document.getElementById('mobaLiveMaxPlayers');
+  const cur = parseInt(inp?.value) || 10;
+  const next = Math.max(2, Math.min(50, cur + delta));
+  if (inp) inp.value = next;
+  await window.Room.setMaxPlayers(window.activeMobaRoom.pin, next);
+  window.showToast(`Đã cập nhật tối đa ${next} người trong phòng!`, 'success', 2000);
+};
+
+window.updateMobaMaxPlayersInput = async function(val) {
+  if (!window.activeMobaRoom || !window.activeMobaRoom.isHost) return;
+  const next = Math.max(2, Math.min(50, parseInt(val) || 10));
+  await window.Room.setMaxPlayers(window.activeMobaRoom.pin, next);
+  window.showToast(`Đã cập nhật tối đa ${next} người trong phòng!`, 'success', 2000);
+};
+
+window.kickMobaPlayer = async function(targetPid, targetName) {
+  if (!window.activeMobaRoom || !window.activeMobaRoom.isHost) return;
+  const ok = await window.customConfirm(`Bạn muốn mời "${targetName}" ra khỏi phòng #${window.activeMobaRoom.pin}?`, 'Kích Người Chơi', { confirmText: 'Kích khỏi phòng', cancelText: 'Hủy', danger: true });
+  if (!ok) return;
+  await window.Room.kick(window.activeMobaRoom.pin, targetPid);
+  window.showToast(`Đã mời ${targetName} ra khỏi phòng.`, 'info');
+};
+
+window.setMobaMatchMode = function(mode, skipTabSwitch = false) {
+  if (window.activeMobaRoom && !window.activeMobaRoom.isHost) {
+    window.showToast('Chỉ Chủ phòng mới có thể đổi chế độ thi đấu của phòng!', 'warning');
+    return;
+  }
+  const m = mode === 'game' ? 'game' : 'practice';
+  if (window.activeMobaRoom) window.activeMobaRoom.matchMode = m;
+  if (!skipTabSwitch) {
+    const box = document.getElementById('gamePracticeSelectorBox');
+    if (box) box.classList.toggle('hidden', m !== 'game');
+    if (m === 'game') window.renderStudentGamesGrid();
+  }
+  window.syncCurrentConfigToMobaRoom();
+};
+
+window.syncCurrentConfigToMobaRoom = async function() {
+  if (!window.activeMobaRoom || !window.activeMobaRoom.isHost || !window.Room) return;
+  const snapCfg = window.getMobaPracticeConfigSnapshot();
+  try {
+    await window.Room.updateMeta(window.activeMobaRoom.pin, {
+      gameId: snapCfg.matchMode === 'game' ? snapCfg.gameId : 'practice-quiz',
+      durationMinutes: snapCfg.durationMinutes,
+      practiceConfig: snapCfg
+    });
+  } catch(e) {}
+};
+
+window.hostStartMobaMatch = async function() {
+  if (!window.activeMobaRoom || !window.Room) return;
+  const active = window.activeMobaRoom;
+  const roomDoc = active.lastDoc || await window.Room.getRoom(active.pin);
+  if (!roomDoc) return;
+  const meta = roomDoc.meta || {};
+
+  // Kiểm tra giờ mở đề nếu có hẹn giờ
+  if (meta.openTime && Date.now() < Number(meta.openTime)) {
+    await window.customAlert(`Chưa đến thời gian mở đề!\n\nĐề sẽ mở vào lúc: ${new Date(Number(meta.openTime)).toLocaleString('vi-VN')}.`, 'warning', 'Chưa Đến Giờ Mở Đề');
+    return;
+  }
+
+  // Nếu là thành viên trong phòng tự luyện của Giáo viên hoặc phòng đang chơi
+  if (!active.isHost) {
+    await window.launchMobaRoomMatch(roomDoc, true);
+    return;
+  }
+
+  const btn = document.getElementById('btnHostStartMobaMatch');
+  const og = btn ? btn.innerHTML : '';
+  try {
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ĐANG TẠO ĐỀ CHUNG CHO PHÒNG...'; }
+    const res = await window.selectQuestionsFromCatalogByConfig(true);
+    if (!res.selected || res.selected.length === 0) {
+      await window.customAlert('Không tìm thấy câu hỏi phù hợp với cấu hình hiện tại. Hãy chọn thêm Loại câu hỏi (TN, Đ/S, TLN) hoặc Mức độ!', 'warning', 'Chưa Có Câu Hỏi');
+      return;
+    }
+    const { selected, grade, subject } = res;
+    const subjLabel = subject === 'dai_so' ? 'Đại số' : subject === 'hinh_hoc' ? 'Hình học' : 'Toán';
+    const sanChoiQuestions = selected.map(q => convertPracticeQuestionToSanChoi(q, grade, subjLabel)).filter(Boolean);
+    const snapCfg = window.getMobaPracticeConfigSnapshot();
+    snapCfg.rawPracticeQuestions = selected;
+
+    await window.Room.setQuestions(active.pin, sanChoiQuestions);
+    await window.Room.resetForNextMatch(active.pin, {
+      gameId: snapCfg.matchMode === 'game' ? snapCfg.gameId : 'practice-quiz',
+      durationMinutes: snapCfg.durationMinutes,
+      practiceConfig: snapCfg
+    });
+    const roundId = 'R_' + Date.now();
+    window._lastLaunchedRoundId = roundId;
+    await window.Room.setState(active.pin, {
+      phase: 'playing',
+      qi: 0,
+      startAt: Date.now(),
+      roundId
+    });
+    await window.Room.setStatus(active.pin, 'playing');
+    const updatedDoc = await window.Room.getRoom(active.pin);
+    await window.launchMobaRoomMatch(updatedDoc || roomDoc, true);
+  } catch (err) {
+    console.error('Lỗi bắt đầu trận đấu MOBA:', err);
+    await window.customAlert('Không thể bắt đầu trận đấu: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = og; }
+  }
+};
+
+window.launchMobaRoomMatch = async function(roomDoc, forceManual = false) {
+  const active = window.activeMobaRoom;
+  if (!active || !roomDoc) return;
+  const meta = roomDoc.meta || {};
+  const pCfg = meta.practiceConfig || {};
+  const matchMode = pCfg.matchMode || (meta.gameId && meta.gameId !== 'practice-quiz' ? 'game' : 'practice');
+
+  if (matchMode === 'game') {
+    const gameId = pCfg.gameId || meta.gameId || window.selectedStudentGameId || 'dua-vit';
+    const curGame = STUDENT_GAMES_CATALOG.find(x => x.id === gameId) || STUDENT_GAMES_CATALOG[0];
+    let gameQuestions = await window.Room.getQuestions(active.pin);
+    if ((!gameQuestions || gameQuestions.length === 0) && Array.isArray(pCfg.rawPracticeQuestions)) {
+      gameQuestions = pCfg.rawPracticeQuestions.map(q => convertPracticeQuestionToSanChoi(q, pCfg.grade || '12', 'Toán')).filter(Boolean);
+    }
+    if (!gameQuestions || gameQuestions.length === 0) {
+      if (forceManual) await window.customAlert('Phòng hiện chưa có câu hỏi để vào trò chơi!', 'warning');
+      return;
+    }
+    localStorage.setItem('gfe_localFile', JSON.stringify({
+      questions: gameQuestions,
+      sets: [],
+      gameConfigs: {},
+      settings: {},
+      presets: []
+    }));
+    localStorage.setItem('gfe_student_practice_meta', JSON.stringify({
+      title: meta.title || `Phòng #${active.pin}`,
+      gameId,
+      gameName: curGame ? curGame.name : 'Trò chơi',
+      roomPin: active.pin,
+      pid: active.pid,
+      count: gameQuestions.length,
+      ts: Date.now()
+    }));
+    window._navigatingToRoomGame = true;
+    window.location.href = `san-choi/index.html?studentPractice=1&autoStart=1&room=${encodeURIComponent(active.pin)}&pid=${encodeURIComponent(active.pid)}#/game/${encodeURIComponent(gameId)}?studentPractice=1&autoStart=1&room=${encodeURIComponent(active.pin)}&pid=${encodeURIComponent(active.pid)}`;
+    return;
+  }
+
+  // Chế độ cùng làm Đề Luyện Tập trên practice.html
+  let questions = Array.isArray(pCfg.rawPracticeQuestions) && pCfg.rawPracticeQuestions.length > 0
+    ? pCfg.rawPracticeQuestions
+    : null;
+  if (!questions) {
+    const sqList = await window.Room.getQuestions(active.pin);
+    if (Array.isArray(sqList) && sqList.length > 0) {
+      questions = sqList.map(convertSanChoiQuestionToPractice).filter(Boolean);
+    }
+  }
+  if (!questions || questions.length === 0) {
+    if (forceManual) await window.customAlert('Phòng chưa có câu hỏi sẵn sàng!', 'warning');
+    return;
+  }
+  window.practiceQuestions = questions;
+  await window.Room.updatePlayer(active.pin, active.pid, {
+    score: 0,
+    correct: 0,
+    progress: 0,
+    total: questions.length,
+    finishedAt: null
+  });
+  const totalMin = Number(meta.durationMinutes) || Number(pCfg.durationMinutes) || window.calculateTimeForQuestions(questions.length);
+  ['viewLanding', 'viewRoadmap', 'viewCustom', 'viewHistory', 'resultStep'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  document.getElementById('customMobileBar')?.classList.add('hidden');
+  document.getElementById('practiceStep')?.classList.remove('hidden');
+  renderPracticeInterface();
+  window.renderMobaLiveMatchBar(roomDoc);
+  startTimer(totalMin * 60);
+};
+
+window.cleanupMobaRoomLocalState = function() {
+  if (window.activeMobaRoom && window.activeMobaRoom.unsub) {
+    try { window.activeMobaRoom.unsub(); } catch(e) {}
+  }
+  if (window.activeMobaRoom && window.activeMobaRoom.scheduleTimer) {
+    clearInterval(window.activeMobaRoom.scheduleTimer);
+  }
+  window.activeMobaRoom = null;
+  window._lastLaunchedRoundId = null;
+  try { sessionStorage.removeItem('qmath_active_moba_room'); } catch(e) {}
+  document.getElementById('mobaActiveRoomCard')?.classList.add('hidden');
+  document.getElementById('mobaEntryCard')?.classList.remove('hidden');
+  document.getElementById('mobaLiveMatchBar')?.classList.add('hidden');
+};
+
+window.leaveMobaRoom = async function() {
+  if (!window.activeMobaRoom) return;
+  const { pin, pid } = window.activeMobaRoom;
+  window.cleanupMobaRoomLocalState();
+  if (window.Room) {
+    await window.Room.leave(pin, pid);
+  }
+  window.showToast(`Đã rời khỏi phòng #${pin}. (Mã phòng tự hủy khi tất cả thành viên thoát ra)`, 'info', 3500);
+};
+
+window.addEventListener('beforeunload', () => {
+  if (window.activeMobaRoom && !window._navigatingToRoomGame && window.Room) {
+    try { window.Room.leave(window.activeMobaRoom.pin, window.activeMobaRoom.pid); } catch(e) {}
+  }
+});
+
+window.copyMobaRoomPin = function() {
+  const pin = window.activeMobaRoom?.pin;
+  if (!pin) return;
+  navigator.clipboard?.writeText(pin);
+  window.showToast(`Đã sao chép Mã PIN phòng: ${pin}`, 'success');
+};
+
+window.copyMobaRoomLink = function() {
+  const pin = window.activeMobaRoom?.pin;
+  if (!pin) return;
+  const link = `${window.location.origin}${window.location.pathname}?mode=custom&room=${pin}`;
+  navigator.clipboard?.writeText(`Mời bạn vào Phòng Luyện Tập Nhóm QMath!\n🔑 Mã PIN: ${pin}\n🔗 Link vào thẳng: ${link}`);
+  window.showToast(`Đã sao chép Link + Mã PIN #${pin} để gửi bạn bè!`, 'success');
+};
+
+window.renderMobaLiveMatchBar = function(roomDoc) {
+  const bar = document.getElementById('mobaLiveMatchBar');
+  if (!bar) return;
+  if (!window.activeMobaRoom || !roomDoc || !roomDoc.players) {
+    bar.classList.add('hidden');
+    return;
+  }
+  bar.classList.remove('hidden');
+  const pinTxt = document.getElementById('mobaLivePinText');
+  if (pinTxt) pinTxt.textContent = window.activeMobaRoom.pin;
+  const pList = Object.values(roomDoc.players).sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0) || (Number(b.progress) || 0) - (Number(a.progress) || 0));
+  const cntEl = document.getElementById('mobaLivePlayerCount');
+  if (cntEl) cntEl.textContent = `${pList.length} thành viên`;
+  const strip = document.getElementById('mobaLivePlayersStrip');
+  if (strip) {
+    strip.innerHTML = pList.map((p, idx) => {
+      const isMe = p.pid === window.activeMobaRoom.pid;
+      const total = p.total || (window.practiceQuestions ? window.practiceQuestions.length : 10);
+      const prog = p.progress || 0;
+      return `
+        <div class="px-2.5 py-1 rounded-xl border ${isMe ? 'bg-indigo-600/90 border-indigo-400' : 'bg-white/10 border-white/15'} flex items-center gap-2 shrink-0 text-xs">
+          <span class="font-black text-amber-300">#${idx + 1}</span>
+          <span>${p.avatar || '🦊'}</span>
+          <span class="font-bold truncate max-w-[100px]">${p.name || 'HS'}</span>
+          <span class="px-1.5 py-0.2 rounded bg-black/30 font-mono text-[10px] text-emerald-300">${prog}/${total} câu</span>
+          ${p.finishedAt ? `<span class="font-mono font-black text-amber-300">🏆 ${p.score}đ</span>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+};
+
+window.renderMobaWinnerPodium = function(roomDoc) {
+  const box = document.getElementById('mobaWinnerPodiumBox');
+  const btnReturn = document.getElementById('btnReturnMobaLobby');
+  if (!box) return;
+  if (!window.activeMobaRoom || !roomDoc || !roomDoc.players) {
+    box.classList.add('hidden');
+    btnReturn?.classList.add('hidden');
+    return;
+  }
+  box.classList.remove('hidden');
+  btnReturn?.classList.remove('hidden');
+  const pinEl = document.getElementById('resMobaPin');
+  if (pinEl) pinEl.textContent = window.activeMobaRoom.pin;
+  const pList = Object.values(roomDoc.players).sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0) || (Number(b.correct) || 0) - (Number(a.correct) || 0));
+  const listEl = document.getElementById('mobaWinnerStandingsList');
+  if (listEl) {
+    const medals = ['🥇 NGƯỜI CHIẾN THẮNG', '🥈 Á QUÂN', '🥉 HẠNG BA'];
+    listEl.innerHTML = pList.map((p, idx) => {
+      const isMe = p.pid === window.activeMobaRoom.pid;
+      const badge = medals[idx] || `Hạng #${idx + 1}`;
+      return `
+        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl border ${idx === 0 ? 'bg-amber-500/20 border-amber-400' : (isMe ? 'bg-indigo-600/30 border-indigo-400' : 'bg-white/5 border-white/10')}">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="px-2 py-0.5 rounded-lg text-[10px] font-black ${idx === 0 ? 'bg-amber-400 text-slate-950' : 'bg-white/10 text-indigo-200'} shrink-0">${badge}</span>
+            <span class="text-base">${p.avatar || '🦊'}</span>
+            <span class="font-black text-xs text-white truncate">${p.name || 'Học sinh'} ${isMe ? '(Bạn)' : ''}</span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0 text-xs">
+            <span class="text-[11px] text-emerald-300 font-bold">${p.correct || 0}/${p.total || '?'} câu</span>
+            <span class="px-2.5 py-0.5 rounded-lg bg-amber-400 text-slate-950 font-mono font-black">${p.score || 0} điểm</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+};
+
+window.returnToMobaLobbyFromResult = async function() {
+  if (window.activeMobaRoom && window.activeMobaRoom.isHost && window.Room) {
+    await window.Room.resetForNextMatch(window.activeMobaRoom.pin);
+  }
+  window.switchHubTab(window.activeMobaRoom?.matchMode === 'game' ? 'game' : 'custom');
+  window.setPracticePartyMode('group');
+};
+
 function handleUrlRouting() {
 const params = new URLSearchParams(window.location.search);
 const mode = params.get('mode');
@@ -2491,8 +3558,25 @@ if (mode === 'roadmap') window.switchHubTab('roadmap');
 else if (mode === 'custom') window.switchHubTab('custom');
 else if (mode === 'game') window.switchHubTab('game');
 else if (mode === 'history') window.switchHubTab('history');
-else window.switchHubTab('landing');
+else if (window.activeMobaRoom) {
+  switchHubTab('custom');
+  window.setPracticePartyMode('group');
+} else {
+  switchHubTab('landing');
+}
 const lookup = params.get('lookup') || params.get('id') || params.get('cccd');
+const roomParam = (params.get('room') || params.get('pin') || '').trim().replace(/\D/g, '');
+if (roomParam && roomParam.length >= 4) {
+  if (mode !== 'game' && mode !== 'custom') window.switchHubTab('custom');
+  window.setPracticePartyMode('group');
+  const joinInp = document.getElementById('mobaJoinPinInput');
+  if (joinInp) joinInp.value = roomParam;
+  setTimeout(() => {
+    if (!window.activeMobaRoom || window.activeMobaRoom.pin !== roomParam) {
+      window.joinMobaRoomByInput(roomParam);
+    }
+  }, 250);
+}
 if (lookup) {
 setTimeout(() => window.openQuestionLookupModal(lookup), 400);
 }
@@ -2863,6 +3947,7 @@ const summaryEl = document.getElementById('mobileSelectedSummary');
 const subEl = document.getElementById('mobileSelectionSub');
 if (summaryEl) summaryEl.innerText = `Lớp ${grade} • ${subMap[window.currentConfig.subject] || 'Toán'} • ${qCount} câu`;
 if (subEl) subEl.innerText = checkedTreeCount > 0 ? `Đã chọn ${checkedTreeCount} dạng bài cụ thể` : 'Chưa chọn dạng bài nào';
+if (window.syncCurrentConfigToMobaRoom) window.syncCurrentConfigToMobaRoom();
 };
 let currentRoadmapGradeFilter = '';
 window.loadRoadmaps = async () => {
@@ -3170,6 +4255,14 @@ if (!val) { await window.customAlert("Vui lòng nhập mã ID câu hỏi!", "war
 window.openQuestionLookupModal(val);
 };
 window.startPractice = async (isExportPdf = false, allowRandomAll = false) => {
+if (!isExportPdf && window.activeMobaRoom && window.activeMobaRoom.pin) {
+  if (window.activeMobaRoom.isHost) {
+    window.setMobaMatchMode('practice', true);
+    return await window.hostStartMobaMatch();
+  } else {
+    return await window.hostStartMobaMatch();
+  }
+}
 try {
 const practiceId = (document.getElementById('inputPracticeId')?.value || '').trim();
 const grade = window.currentConfig.grade;
@@ -3220,6 +4313,7 @@ else if (c === 'C') actualLevel = 'VẬN DỤNG CAO';
 }
 }
 if (!actualMapId) return false;
+if (!window.matchesSelectedQuestionTypes(q, window.currentConfig.questionTypes)) return false;
 const qBaseId = getBaseIdForMatch(actualMapId);
 const subjectMatch = actualMapId.match(/^\d+([a-zA-Z])/);
 const subjectChar = subjectMatch ? subjectMatch[1].toUpperCase() : "";
@@ -3279,7 +4373,18 @@ return 2;
 };
 selected.sort((a, b) => getLvlNum(a.mapId || a.id) - getLvlNum(b.mapId || b.id));
 }
-selected = await ensureQuestionDetails(selected);
+const qTypesSel = Array.isArray(window.currentConfig.questionTypes) && window.currentConfig.questionTypes.length > 0 ? window.currentConfig.questionTypes : ['mc', 'tf', 'short'];
+if (qTypesSel.length < 3) {
+  let candidates = pool.slice(0, Math.min(pool.length, Math.max(qCount * 3, 20)));
+  candidates = await ensureQuestionDetails(candidates);
+  selected = candidates.filter(q => qTypesSel.includes(window.getNormalizedQuestionType(q))).slice(0, qCount);
+} else {
+  selected = await ensureQuestionDetails(selected);
+}
+if (selected.length === 0) {
+  await window.customAlert("Không tìm thấy câu hỏi thuộc Loại câu hỏi (Trắc nghiệm / Đúng-Sai / Trả lời ngắn) đã chọn trong mục này.\n\nHãy tích chọn thêm loại câu hỏi hoặc chọn bài học khác nhé!", "info", "Không Có Loại Câu Hỏi Này");
+  return;
+}
 window.practiceQuestions = selected;
 let totalMin = customTime;
 if (!totalMin || totalMin <= 0) {
@@ -3317,6 +4422,9 @@ if (!container || !palette) return;
 container.innerHTML = ''; palette.innerHTML = '';
 window.userAnswers = {};
 window.instantAnswered = {};
+window.skippedQuestions = {};
+if (window.updateSkippedBadgesUI) window.updateSkippedBadgesUI();
+if (!window.activeMobaRoom) document.getElementById('mobaLiveMatchBar')?.classList.add('hidden');
 const total = window.practiceQuestions.length;
 document.getElementById('progressText').innerText = `0/${total}`;
 document.getElementById('progressBar').style.width = '0%';
@@ -3390,9 +4498,14 @@ Câu ${idx + 1}
 </span>
 ${q.id ? `<span class="text-[10px] text-gray-400 font-mono bg-gray-50 dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-gray-200 dark:border-slate-700" title="Mã ID câu hỏi"><i class="fa-solid fa-hashtag mr-1"></i>${q.cccd || q.id}</span>` : ''}
 </div>
+<div class="flex items-center gap-1.5">
+<button type="button" id="skipBtn-${idx}" onclick="window.skipQuestionForLater(${idx})" class="text-amber-700 dark:text-amber-300 hover:bg-amber-100 text-xs font-bold flex items-center gap-1 transition-colors bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800 cursor-pointer" title="Bỏ qua câu này để quay lại làm sau">
+<i class="fa-solid fa-forward-step"></i> Bỏ qua (Quay lại sau)
+</button>
 <button onclick="window.openReportModal('${q.id || ''}')" class="text-rose-500 hover:text-rose-700 text-xs flex items-center gap-1 transition-colors bg-rose-50 dark:bg-rose-950/40 px-2 py-1 rounded-lg border border-rose-100 dark:border-rose-900">
 <i class="fa-solid fa-triangle-exclamation"></i> Báo lỗi
 </button>
+</div>
 </div>
 <div class="text-gray-900 dark:text-slate-100 text-sm sm:text-base leading-relaxed math-content font-medium overflow-x-auto">
 ${window.formatContent(q.content)}
@@ -3444,6 +4557,9 @@ window.userAnswers[qIdx] = String(value).trim();
 if (!window.userAnswers[qIdx]) window.userAnswers[qIdx] = {};
 window.userAnswers[qIdx][value.sub] = value.val;
 }
+delete window.skippedQuestions[qIdx];
+const skipBtn = document.getElementById('skipBtn-' + qIdx);
+if (skipBtn) skipBtn.innerHTML = '<i class="fa-solid fa-check text-emerald-500"></i> Đã chọn';
 const btn = document.getElementById('p-btn-' + qIdx);
 if (btn) {
 btn.className = "w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500 text-white font-black text-xs flex items-center justify-center border border-emerald-600 shadow-xs ring-2 ring-emerald-200 dark:ring-emerald-900/60 transition-all cursor-pointer shrink-0 select-none";
@@ -3457,6 +4573,13 @@ if (pBar) pBar.style.width = pct + '%';
 if (pTxt) pTxt.innerText = `${done}/${total}`;
 const pBadge = document.getElementById('paletteAnsweredBadge');
 if (pBadge) pBadge.innerText = `Đã làm: ${done}/${total}`;
+if (window.updateSkippedBadgesUI) window.updateSkippedBadgesUI();
+if (window.activeMobaRoom && window.Room) {
+  window.Room.updatePlayer(window.activeMobaRoom.pin, window.activeMobaRoom.pid, {
+    progress: done,
+    total
+  });
+}
 if (window.currentConfig.instantFeedback && !window.instantAnswered[qIdx]) {
 checkAndShowInstantSolution(qIdx);
 }
@@ -3573,6 +4696,22 @@ earnedUnits += frac;
 const totalQ = window.practiceQuestions.length;
 const score = totalQ > 0 ? (earnedUnits / totalQ) * 10 : 0;
 const fixedScore = score.toFixed(1);
+if (window.activeMobaRoom && window.Room) {
+  window.Room.updatePlayer(window.activeMobaRoom.pin, window.activeMobaRoom.pid, {
+    score: parseFloat(fixedScore),
+    correct: correctCount,
+    progress: totalQ,
+    total: totalQ,
+    finishedAt: Date.now()
+  }).then(() => {
+    window.Room.getRoom(window.activeMobaRoom.pin).then(doc => {
+      if (doc) window.renderMobaWinnerPodium(doc);
+    });
+  });
+} else {
+  document.getElementById('mobaWinnerPodiumBox')?.classList.add('hidden');
+  document.getElementById('btnReturnMobaLobby')?.classList.add('hidden');
+}
 const currentUser = auth.currentUser;
 if (currentUser) {
 const checkedLvs = window.currentConfig.levels.map(l => {
@@ -3728,9 +4867,73 @@ const ok = await window.customConfirm(
 );
 if (ok) {
 if (timerInterval) clearInterval(timerInterval);
-switchHubTab('landing');
+if (window.activeMobaRoom) {
+  switchHubTab('custom');
+  window.setPracticePartyMode('group');
+} else {
+  switchHubTab('landing');
+}
 }
 };
+window.skipQuestionForLater = (idx) => {
+  if (!window.skippedQuestions) window.skippedQuestions = {};
+  if (window.userAnswers && window.userAnswers[idx] !== undefined && window.userAnswers[idx] !== '') {
+    window.showToast(`Câu ${idx + 1} đã được trả lời. Đang chuyển sang câu tiếp theo!`, 'info', 1800);
+  } else {
+    window.skippedQuestions[idx] = true;
+    const pBtn = document.getElementById('p-btn-' + idx);
+    if (pBtn) {
+      pBtn.className = "w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border border-amber-500 shadow-xs ring-2 ring-amber-200 transition-all cursor-pointer shrink-0 select-none";
+      pBtn.title = `Câu ${idx + 1} (Đã bỏ qua - Bấm để quay lại làm)`;
+    }
+    const skipBtn = document.getElementById('skipBtn-' + idx);
+    if (skipBtn) {
+      skipBtn.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i> Đã đánh dấu quay lại sau';
+    }
+    window.updateSkippedBadgesUI();
+    window.showToast(`⏭️ Đã tạm bỏ qua Câu ${idx + 1}. Bạn có thể bấm "Quay lại câu đã bỏ qua" ở thanh bên dưới!`, 'warning', 2200);
+  }
+  const total = (window.practiceQuestions || []).length;
+  for (let step = 1; step <= total; step++) {
+    const nextIdx = (idx + step) % total;
+    if (!window.userAnswers || window.userAnswers[nextIdx] === undefined || window.userAnswers[nextIdx] === '') {
+      document.getElementById('q-' + nextIdx)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  }
+};
+
+window.updateSkippedBadgesUI = () => {
+  const skippedIdxs = Object.keys(window.skippedQuestions || {}).filter(k => window.skippedQuestions[k] && (!window.userAnswers || window.userAnswers[k] === undefined || window.userAnswers[k] === ''));
+  const badge = document.getElementById('paletteSkippedBadge');
+  const jumpBtn = document.getElementById('btnJumpSkipped');
+  if (badge) {
+    badge.textContent = `Đã bỏ qua: ${skippedIdxs.length}`;
+    badge.classList.toggle('hidden', skippedIdxs.length === 0);
+  }
+  if (jumpBtn) {
+    jumpBtn.classList.toggle('hidden', skippedIdxs.length === 0);
+  }
+};
+
+window.jumpToNextSkippedQuestion = () => {
+  const skippedIdxs = Object.keys(window.skippedQuestions || {})
+    .map(Number)
+    .filter(k => window.skippedQuestions[k] && (!window.userAnswers || window.userAnswers[k] === undefined || window.userAnswers[k] === ''))
+    .sort((a, b) => a - b);
+  if (skippedIdxs.length === 0) {
+    window.showToast('Bạn không còn câu hỏi nào bị bỏ qua!', 'success');
+    return;
+  }
+  const targetIdx = skippedIdxs[0];
+  const qEl = document.getElementById('q-' + targetIdx);
+  if (qEl) {
+    qEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    qEl.classList.add('ring-2', 'ring-amber-400');
+    setTimeout(() => qEl.classList.remove('ring-2', 'ring-amber-400'), 2200);
+  }
+};
+
 window.togglePalette = () => {
 const el = document.getElementById('questionPalette');
 const icon = document.getElementById('paletteIcon');

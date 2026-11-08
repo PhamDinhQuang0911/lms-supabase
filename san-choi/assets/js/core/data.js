@@ -6,12 +6,23 @@
    ========================================================= */
 (function () {
   const DEFAULT_SETTINGS = {
-    siteName: (window.APP_CONFIG && APP_CONFIG.appName) || "Sân Chơi Tri Thức",
+    siteName: (window.APP_CONFIG && APP_CONFIG.appName) || "Sân Chơi Tri Thức · QMath",
     slogan: (window.APP_CONFIG && APP_CONFIG.slogan) || "Học mà chơi — Chơi mà học!",
     announcement: "", defaultFreeze: 3, defaultGoal: 10, showExplain: true, saveResults: true, allowHostAnyone: true
   };
+  function sanitizeSettings(s) {
+    const out = Object.assign({}, DEFAULT_SETTINGS, s || {});
+    const ann = String(out.announcement || "");
+    if (/sở hữu|mã nguồn|liên hệ|0398514851|tích hợp|riêng tư|zalo|sđt|điện thoại|\d{8,11}/i.test(ann)) {
+      out.announcement = "";
+    }
+    if (!out.siteName || /game for everyone/i.test(out.siteName)) {
+      out.siteName = DEFAULT_SETTINGS.siteName;
+    }
+    return out;
+  }
   const DB = {
-    source: "none", questions: [], sets: [], gameConfigs: {}, presets: [], settings: Object.assign({}, DEFAULT_SETTINGS),
+    source: "none", questions: [], sets: [], gameConfigs: {}, presets: [], settings: sanitizeSettings(DEFAULT_SETTINGS),
     loaded: false, _subs: [], usingDemo: false
   };
   const col = (n) => FB.fs.collection(n);
@@ -31,7 +42,7 @@
     const lf = U.store.get("localFile", null);
     if (lf && lf.questions && lf.questions.length) {
       DB.questions = lf.questions.slice().sort(natural); DB.sets = lf.sets || []; DB.gameConfigs = lf.gameConfigs || {}; DB.presets = lf.presets || [];
-      DB.settings = Object.assign({}, DEFAULT_SETTINGS, lf.settings || {}); DB.source = "local-file";
+      DB.settings = sanitizeSettings(lf.settings || {}); DB.source = "local-file";
       DB.usingDemo = false; DB.loaded = true; DB.emit(); return;
     }
     if (FB.available && navigator.onLine !== false && !U.store.get("forceOffline", false)) {
@@ -44,7 +55,7 @@
         DB.questions = qs.docs.map((d) => Object.assign({ _doc: d.id }, d.data())).sort(natural);
         DB.sets = ss.docs.map((d) => Object.assign({ id: d.id }, d.data()));
         DB.gameConfigs = {}; gc.docs.forEach((d) => (DB.gameConfigs[d.id] = d.data()));
-        DB.settings = Object.assign({}, DEFAULT_SETTINGS, st.exists ? st.data() : {});
+        DB.settings = sanitizeSettings(st.exists ? st.data() : {});
         DB.source = "cloud"; ok = true;
         U.store.set("cache", { questions: DB.questions, sets: DB.sets, gameConfigs: DB.gameConfigs, settings: DB.settings, presets: DB.presets, at: Date.now() });
       } catch (e) { console.warn("Firestore không khả dụng:", e.message); }
@@ -56,7 +67,7 @@
       const pickData = (off && off.questions && off.questions.length ? off : null) || (cache && cache.questions && cache.questions.length ? cache : null);
       if (pickData) {
         DB.questions = (pickData.questions || []).slice().sort(natural); DB.sets = pickData.sets || []; DB.gameConfigs = pickData.gameConfigs || {}; DB.presets = pickData.presets || [];
-        DB.settings = Object.assign({}, DEFAULT_SETTINGS, pickData.settings || {});
+        DB.settings = sanitizeSettings(pickData.settings || {});
         DB.source = local ? "local-file" : pickData === off ? "offline-file" : "cache";
       } else { DB.source = "demo"; DB.questions = []; }
     }

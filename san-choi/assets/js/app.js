@@ -20,6 +20,16 @@
   App.query = () => { const q = {}; const qs = location.hash.split("?")[1] || ""; qs.split("&").forEach((kv) => { if (!kv) return; const [k, v] = kv.split("="); q[decodeURIComponent(k)] = decodeURIComponent(v || "1"); }); return q; };
   App.render = async () => {
     const path = App.path();
+    if (window.GameKit && typeof GameKit.isStudentPractice === "function" && GameKit.isStudentPractice()) {
+      document.body.classList.add("is-student-practice");
+      document.body.classList.remove("drawer-open", "m-open");
+      if (path === "/") {
+        GameKit.returnToStudentPractice();
+        return;
+      }
+    } else {
+      document.body.classList.remove("is-student-practice");
+    }
     if (App.cleanup) { try { App.cleanup(); } catch (e) { console.error(e); } App.cleanup = null; }
     U.resetReveal();
     let r = null, params = {};

@@ -10,10 +10,6 @@
     const S = { offs: [], timers: U.timers(), ctrl: null };
     const cleanup = () => { S.offs.forEach((f) => { try { f(); } catch (e) { } }); S.offs = []; S.timers.clear(); S.ctrl && S.ctrl.destroy(); App.enterGame(false); };
     App.enterGame(true);
-    if (!FB.available || !FB.rtdb) {
-      view.innerHTML = `<div class="pl"><div class="pl-card"><div class="pl-big">📡</div><h2>Cần kết nối Internet</h2><p>Chế độ trực tuyến cần Internet để vào phòng chơi.</p><a class="btn btn-primary" href="#/">Về trang chủ</a></div></div>`;
-      return cleanup;
-    }
     pinParam ? askName(pinParam) : askPin();
 
     function askPin(err) {
@@ -101,18 +97,83 @@
     function updHeader() { const sc = $(".pl-score", view); if (sc) sc.textContent = "⭐ " + U.fmtNum(S.me.score || 0); const tm = $(".pl-team", view); if (tm) { tm.textContent = "Bạn thuộc " + U.TEAM_NAMES[S.me.team || 0]; tm.style.background = U.TEAM_COLORS[S.me.team || 0]; } }
 
     function lobby() {
-      shell(`<div class="pl-wait"><div class="pl-big bob">${S.avatar}</div><h2>Đã vào phòng!</h2>
-        ${S.meta.kind === "tug" ? `<div class="pl-team"></div>` : ""}
-        <p>Nhìn lên màn hình chiếu nhé — chờ giáo viên bắt đầu…</p><div class="dots3"><i></i><i></i><i></i></div></div>`);
-      updHeader();
+      const openTimeStr = S.meta.openTime || (S.meta.settings && S.meta.settings.openTime) || "";
+      const openTs = openTimeStr ? new Date(openTimeStr).getTime() : 0;
+      const durMin = Number(S.meta.durationMinutes || (S.meta.settings && S.meta.settings.durationMinutes) || 0);
+      const isSelfPaced = S.meta.selfPaced !== false && (!S.meta.settings || S.meta.settings.selfPaced !== false);
+      const renderLobbyInner = () => {
+        const now = Date.now();
+        const notOpenYet = openTs > now;
+        const leftSec = notOpenYet ? Math.max(0, Math.ceil((openTs - now) / 1000)) : 0;
+        shell(`<div class="pl-wait">
+          <div class="pl-big bob">${S.avatar}</div>
+          <h2>Đã vào phòng PIN #${esc(S.pin)}!</h2>
+          ${S.meta.kind === "tug" ? `<div class="pl-team"></div>` : ""}
+          <div style="background:rgba(255,255,255,0.12);border-radius:12px;padding:10px 14px;margin:8px auto;max-width:420px;font-size:13.5px;line-height:1.6">
+            <div>🎮 <b>${esc(S.meta.title || "Phòng luyện tập")}</b> · 📚 <b>${(S.qs || []).length}</b> câu hỏi</div>
+            ${durMin > 0 ? `<div>⏱ Thời gian luyện tập: <b>${durMin} phút</b></div>` : ""}
+            ${openTs ? `<div>📅 Giờ mở đề: <b>${esc(new Date(openTs).toLocaleString("vi-VN"))}</b></div>` : ""}
+          </div>
+          ${notOpenYet
+            ? `<div style="margin:12px 0;padding:12px 16px;border-radius:12px;background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.45)">
+                <div style="font-weight:800;font-size:15px">⏳ Chưa đến giờ mở đề</div>
+                <div style="font-size:22px;font-weight:900;margin-top:4px" id="openCountdown">${U.fmtTime(leftSec)}</div>
+                <small>Đề sẽ tự động mở khi hết thời gian đếm ngược</small>
+              </div>`
+            : isSelfPaced
+              ? `<div style="display:flex;flex-direction:column;gap:10px;max-width:380px;margin:14px auto 0;width:100%">
+                  <button class="btn btn-xl btn-fun btn-3d" id="btnStartSelfQuiz">📝 Bắt đầu Luyện tập ngay</button>
+                  ${Games.get(S.meta.gameId) ? `<button class="btn btn-lg btn-white" id="btnStartGameUI" style="color:#1e293b;font-weight:800">🎮 Chơi bằng giao diện Game (${esc(S.meta.title)})</button>` : ""}
+                </div>`
+              : `<p>Nhìn lên màn hình chiếu nhé — chờ giáo viên bắt đầu…</p><div class="dots3"><i></i><i></i><i></i></div>`
+          }
+        </div>`);
+        updHeader();
+        const btnQuiz = $("#btnStartSelfQuiz", view);
+        if (btnQuiz) {
+          btnQuiz.onclick = () => {
+            S.selfPacedStarted = true;
+            raceMode(true);
+          };
+        }
+        const btnGame = $("#btnStartGameUI", view);
+        if (btnGame) {
+          btnGame.onclick = () => {
+            try {
+              localStorage.setItem("gfe_student_practice_meta", JSON.stringify({
+                title: S.meta.title || "Phòng PIN #" + S.pin,
+                count: (S.qs || []).length,
+                roomPin: S.pin,
+                pid: S.pid,
+                playerName: S.name,
+                at: Date.now()
+              }));
+            } catch (e) {}
+            window.location.href = `index.html?studentPractice=1&autoStart=1&room=${encodeURIComponent(S.pin)}&pid=${encodeURIComponent(S.pid)}#/game/${encodeURIComponent(S.meta.gameId)}?studentPractice=1&autoStart=1&room=${encodeURIComponent(S.pin)}&pid=${encodeURIComponent(S.pid)}`;
+          };
+        }
+      };
+      renderLobbyInner();
+      if (openTs > Date.now()) {
+        const tid = S.timers.every(1000, () => {
+          const rem = Math.ceil((openTs - Date.now()) / 1000);
+          const cd = $("#openCountdown", view);
+          if (cd && rem > 0) cd.textContent = U.fmtTime(rem);
+          if (rem <= 0) {
+            S.timers.stop(tid);
+            renderLobbyInner();
+          }
+        });
+      }
     }
 
     function start() {
+      if (S.selfPacedStarted) return;
       S.started = true;
       if (S.meta.kind === "quiz") return quizMode();
       if (S.meta.kind === "mil") return milMode();
       if (S.meta.kind === "bell") return bellMode();
-      raceMode();
+      raceMode(false);
     }
 
     /* ---------- Chế độ Ai là triệu phú (host điều khiển, host tính tiền thưởng) ---------- */
@@ -151,8 +212,8 @@
           r && r.ok ? U.Sound.correct() : U.Sound.wrong();
           if (set.explain && S.qs[s.qi].explain) { body.insertAdjacentHTML("beforeend", `<details class="fb-ex" open><summary>💡 Lời giải</summary><div>${Quiz.rich(S.qs[s.qi].explain)}</div></details>`); Quiz.typeset(body); }
         } else if (s.phase === "board") {
-          FB.rtdb.ref(`rooms/${S.pin}/players`).get().then((snap) => {
-            const ps = Object.entries(snap.val() || {}).sort((a, b) => (b[1].score || 0) - (a[1].score || 0));
+          Room.getRoom(S.pin).then((rDoc) => {
+            const ps = Object.entries((rDoc && rDoc.players) || {}).sort((a, b) => (b[1].score || 0) - (a[1].score || 0));
             const rk = ps.findIndex(([pid]) => pid === S.pid) + 1;
             const out = S.me && S.me.out;
             body.innerHTML = `<div class="pl-wait"><div class="pl-rank">#${rk}</div><h2>${out ? "Đã dừng cuộc chơi" : rk === 1 ? "Đang dẫn đầu! 👑" : "Cố lên nhé! 💪"}</h2><p>💰 ${U.fmtNum(S.me.score || 0)} điểm${out ? "" : ` · còn trong cuộc chơi`}</p></div>`;
@@ -277,37 +338,75 @@
       }));
     }
 
-    /* ---------- Chế độ tự chơi (đua / kéo co) ---------- */
-    function raceMode() {
-      const set = S.meta.settings || {}, goal = set.goal || 10, freeze = set.freeze || 0;
+    /* ---------- Chế độ tự chơi (đua / kéo co / luyện tập PIN) ---------- */
+    function raceMode(immediate) {
+      const set = S.meta.settings || {}, goal = set.goal || Math.max(1, (S.qs || []).length) || 10, freeze = set.freeze || 0;
+      const durMin = Number(S.meta.durationMinutes || set.durationMinutes || 0);
       const queue = Quiz.queue(S.qs, { shuffleQ: true, shuffleA: false });
       let st = { progress: S.me.progress || 0, score: S.me.score || 0, correct: S.me.correct || 0, wrong: S.me.wrong || 0, streak: S.me.streak || 0 };
       let n = st.correct + st.wrong;
       const isTug = S.meta.kind === "tug";
-      shell(`<div class="pl-prog ${isTug ? "hide" : ""}"><div class="pp-bar"><i></i><span class="pp-fig">${S.avatar}</span></div><b class="pp-t"></b></div>
+      shell(`<div class="pl-prog ${isTug ? "hide" : ""}"><div class="pp-bar"><i></i><span class="pp-fig">${S.avatar}</span></div><b class="pp-t"></b>${durMin > 0 ? `<span class="chip amber" id="plDurTimer" style="margin-left:8px">⏱ ${durMin}:00</span>` : ""}</div>
         ${isTug ? `<div class="pl-team"></div>` : ""}
         <div class="pl-q"></div><div class="pl-freeze hide"><div>❄️</div><b>Đóng băng</b><span></span></div>`);
       updHeader();
-      const drawProg = () => { const k = Math.min(1, st.progress / goal); $(".pp-bar i", view).style.width = k * 100 + "%"; $(".pp-fig", view).style.left = `calc(${k * 100}% - ${k * 28}px)`; $(".pp-t", view).textContent = `${Math.round(st.progress * 10) / 10}/${goal}`; };
+      if (durMin > 0) {
+        let secLeft = durMin * 60;
+        const tId = S.timers.every(1000, () => {
+          secLeft--;
+          const el = $("#plDurTimer", view);
+          if (el) el.textContent = "⏱ " + U.fmtTime(Math.max(0, secLeft));
+          if (secLeft <= 0) {
+            S.timers.stop(tId);
+            showPlayerFinishedStandings();
+          }
+        });
+      }
+      const drawProg = () => { const k = Math.min(1, st.progress / goal); const b = $(".pp-bar i", view); if (b) b.style.width = k * 100 + "%"; const f = $(".pp-fig", view); if (f) f.style.left = `calc(${k * 100}% - ${k * 28}px)`; const t = $(".pp-t", view); if (t) t.textContent = `${Math.round(st.progress * 10) / 10}/${goal}`; };
       drawProg();
+      function showPlayerFinishedStandings() {
+        Room.updatePlayer(S.pin, S.pid, Object.assign({}, st, { finishedAt: Date.now() })).catch(() => {});
+        const qBox = $(".pl-q", view);
+        if (!qBox) return;
+        qBox.innerHTML = `<div class="pl-wait"><div class="pl-big">🏆</div><h2 id="plWinTitle">Bạn đã hoàn thành bài luyện tập!</h2><p id="plWinSub">Đang cập nhật bảng xếp hạng phòng #${esc(S.pin)}…</p><div id="plLiveStandings" style="max-width:460px;margin:12px auto 0;text-align:left"></div><div style="margin-top:14px"><a class="btn btn-primary" href="../practice.html?mode=game&room=${encodeURIComponent(S.pin)}">🔄 Quay lại Phòng / Đổi bài</a></div></div>`;
+        S.offs.push(Room.watchPlayers(S.pin, (ps) => {
+          const list = Object.values(ps || {}).sort((a, b) => (b.score || 0) - (a.score || 0) || (a.finishedAt || 9e15) - (b.finishedAt || 9e15));
+          if (!list.length) return;
+          const top = list[0];
+          const wt = $("#plWinTitle", qBox);
+          if (wt) wt.innerHTML = `🏆 Người chiến thắng: ${esc(top.name)} (${U.fmtNum(top.score || 0)} điểm)`;
+          const lb = $("#plLiveStandings", qBox);
+          if (lb) {
+            lb.innerHTML = `<div class="lb-list">${list.map((p, idx) => `<div class="lb-row ${p.pid === S.pid ? "me" : ""}"><span class="lb-rank">${idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}</span><span class="lb-name">${esc(p.avatar || "🦊")} ${esc(p.name)}</span><span class="lb-score">${U.fmtNum(p.score || 0)} đ (${p.correct || 0} đúng)</span></div>`).join("")}</div>`;
+          }
+        }));
+      }
       const next = () => {
         if (S.status === "ended") return;
-        if (!isTug && st.progress >= goal) { $(".pl-q", view).innerHTML = `<div class="pl-wait"><div class="pl-big">🏁</div><h2>Bạn đã về đích!</h2><p>Chờ các bạn khác và kết quả chung cuộc…</p></div>`; return; }
+        if (!isTug && (st.progress >= goal || (st.correct + st.wrong) >= (S.qs || []).length && (S.qs || []).length > 0)) {
+          showPlayerFinishedStandings();
+          return;
+        }
         S.ctrl && S.ctrl.destroy(); n++;
-        S.ctrl = Quiz.mount($(".pl-q", view), queue.next(), { num: n, explain: set.explain, onAnswer: onAns });
+        S.ctrl = Quiz.mount($(".pl-q", view), queue.next(), { num: n, explain: set.explain !== false, onAnswer: onAns });
         $(".pl-q", view).scrollTop = 0;
       };
       function onAns(res) {
         if (res.ok) { st.correct++; st.streak++; } else { st.wrong++; st.streak = 0; }
         st.progress = Math.round((st.progress + res.points) * 100) / 100;
         st.score += Math.round(100 * res.points) + (res.ok && st.streak >= 3 ? 20 : 0);
-        Room.updatePlayer(S.pin, S.pid, Object.assign({}, st, st.progress >= goal && !isTug ? { finishedAt: firebase.database.ServerValue.TIMESTAMP } : {}));
+        Room.updatePlayer(S.pin, S.pid, Object.assign({}, st, st.progress >= goal && !isTug ? { finishedAt: Date.now() } : {}));
         drawProg();
         if (res.ok) S.timers.after(set.explain ? 1800 : 900, next);
         else if (freeze > 0) {
           const fz = $(".pl-freeze", view); fz.classList.remove("hide"); let left = freeze; $("span", fz).textContent = left; U.Sound.freeze();
           const id = S.timers.every(1000, () => { left--; $("span", fz).textContent = left; if (left <= 0) { S.timers.stop(id); fz.classList.add("hide"); next(); } });
         } else S.timers.after(1800, next);
+      }
+      if (immediate || S.meta.selfPaced) {
+        S.raceGo = true;
+        next();
+        return;
       }
       // chờ hiệu lệnh xuất phát
       S.offs.push(Room.watch(S.pin, "state", (s) => {
@@ -361,8 +460,8 @@
           r && r.ok ? U.Sound.correct() : U.Sound.wrong();
           if (set.explain && S.qs[s.qi].explain) { body.insertAdjacentHTML("beforeend", `<details class="fb-ex" open><summary>💡 Lời giải</summary><div>${Quiz.rich(S.qs[s.qi].explain)}</div></details>`); Quiz.typeset(body); }
         } else if (s.phase === "board") {
-          FB.rtdb.ref(`rooms/${S.pin}/players`).get().then((snap) => {
-            const ps = Object.entries(snap.val() || {}).sort((a, b) => (b[1].score || 0) - (a[1].score || 0));
+          Room.getRoom(S.pin).then((rDoc) => {
+            const ps = Object.entries((rDoc && rDoc.players) || {}).sort((a, b) => (b[1].score || 0) - (a[1].score || 0));
             const rk = ps.findIndex(([pid]) => pid === S.pid) + 1;
             body.innerHTML = `<div class="pl-wait"><div class="pl-rank">#${rk}</div><h2>${rk === 1 ? "Bạn đang dẫn đầu! 👑" : rk <= 3 ? "Top 3 rồi! 🔥" : "Cố lên nhé! 💪"}</h2><p>⭐ ${U.fmtNum(S.me.score || 0)} điểm ${(S.me.streak || 0) >= 2 ? `· 🔥 chuỗi ${S.me.streak}` : ""}</p></div>`;
           });
@@ -373,16 +472,21 @@
     async function ended() {
       cleanupAll();
       sessionStorage.removeItem("gfe_play_" + S.pin);
-      const snap = await FB.rtdb.ref(`rooms/${S.pin}/results`).get().catch(() => null);
-      const R = (snap && snap.val()) || [];
+      const rDoc = await Room.getRoom(S.pin).catch(() => null);
+      let R = (rDoc && Array.isArray(rDoc.results) && rDoc.results.length) ? rDoc.results : [];
+      if (!R.length && rDoc && rDoc.players) {
+        R = Object.values(rDoc.players).sort((a, b) => (b.score || 0) - (a.score || 0)).map((p, i) => ({ pid: p.pid, name: p.name, score: p.score || 0, rank: i + 1 }));
+      }
+      const winner = R[0];
       const me = R.find((r) => r.pid === S.pid);
       const rk = me ? me.rank : null;
       view.innerHTML = `<div class="pl pl-end"><div class="pl-card stg">
         <div class="pl-big">${rk === 1 ? "🥇" : rk === 2 ? "🥈" : rk === 3 ? "🥉" : "🎉"}</div>
         <h1>${rk ? "Hạng " + rk : "Kết thúc!"}</h1>
+        ${winner ? `<div style="margin:6px 0 10px;font-weight:800;color:#fbbf24">🏆 Người chiến thắng: ${esc(winner.name)} (${U.fmtNum(winner.score)} điểm)</div>` : ""}
         <p class="muted">${me ? `${U.fmtNum(me.score)} điểm` : S.meta.kind === "tug" ? "Xem kết quả đội trên màn chiếu" : "Cảm ơn bạn đã tham gia"}</p>
-        <div class="lb-list" style="text-align:left">${R.slice(0, 5).map((r) => `<div class="lb-row ${r.pid === S.pid ? "me" : ""}"><span class="lb-rank">${r.rank}</span><span class="lb-name">${esc(r.name)}</span><span class="lb-score">${U.fmtNum(r.score)}</span></div>`).join("")}</div>
-        <a class="btn btn-lg btn-primary" href="#/join">Vào phòng khác</a></div></div>`;
+        <div class="lb-list" style="text-align:left">${R.slice(0, 8).map((r) => `<div class="lb-row ${r.pid === S.pid ? "me" : ""}"><span class="lb-rank">${r.rank}</span><span class="lb-name">${esc(r.name)}</span><span class="lb-score">${U.fmtNum(r.score)}</span></div>`).join("")}</div>
+        <a class="btn btn-lg btn-primary" href="../practice.html?mode=game">Quay lại Phòng luyện tập</a></div></div>`;
       if (rk && rk <= 3) { U.Sound.win(); U.confetti(); }
     }
     return cleanup;

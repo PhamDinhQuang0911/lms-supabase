@@ -38,9 +38,10 @@
     const games = Games.enabled();
     const acts = (window.Activities && Activities.list) || [];
     const st = DB.settings;
+    const cleanAnn = st.announcement && !/sở hữu|mã nguồn|liên hệ|0398514851|tích hợp|riêng tư|zalo|sđt|điện thoại|\d{8,11}/i.test(String(st.announcement)) ? st.announcement : "";
     const words = (st.slogan || "Học mà chơi — Chơi mà học!").split(" ");
     view.innerHTML = `<div class="page home">
-      ${st.announcement ? `<div class="notice" data-reveal>📣 ${esc(st.announcement)}</div>` : ""}
+      ${cleanAnn ? `<div class="notice" data-reveal>📣 ${esc(cleanAnn)}</div>` : ""}
       ${DB.source === "local-file" ? `<div class="notice" data-reveal>📂 Đang dùng câu hỏi từ file trên máy. <button class="btn btn-sm btn-ghost" id="dropLocal">Quay lại dữ liệu trực tuyến</button></div>` : ""}
       <section class="hero">
         <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="dots"></div>

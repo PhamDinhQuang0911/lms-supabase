@@ -10,7 +10,14 @@
   /* ---------------- Registry ---------------- */
   const Games = { list: [], soon: [] };
   Games.register = (def) => {
-    def = Object.assign({ modes: ["local"], types: ["MC", "TF", "SA"], fields: [], tags: [], colors: ["#6c4cf5", "#ff5c9d"], order: 50 }, def);
+    def = Object.assign({ modes: ["local", "online"], types: ["MC", "TF", "SA"], fields: [], tags: [], colors: ["#6c4cf5", "#ff5c9d"], order: 50 }, def);
+    if (Array.isArray(def.modes) && !def.modes.includes("online")) {
+      def.modes = def.modes.concat(["online"]);
+    }
+    if (!def.onlineKind) def.onlineKind = "race";
+    if (!def.host) {
+      def.host = (stage, ctx, players) => GK.defaultOnlineHost(stage, ctx, players);
+    }
     Games.list.push(def); Games.list.sort((a, b) => a.order - b.order);
   };
   Games.get = (id) => Games.list.find((g) => g.id === id);
@@ -21,9 +28,52 @@
   const GK = {};
   window.GameKit = GK;
 
+  GK.isStudentPractice = () => {
+    const q = (window.App && typeof App.query === "function") ? App.query() : {};
+    const urlParams = new URLSearchParams(window.location.search || "");
+    const inUrl = q.studentPractice === "1" || urlParams.get("studentPractice") === "1";
+    if (inUrl) {
+      try { sessionStorage.setItem("qmath_student_practice", "1"); } catch (e) {}
+      return true;
+    }
+    // Nếu URL hoàn toàn không có studentPractice=1 và không phải đang trong trang game studentPractice thì xoá cờ cũ
+    const hash = String(window.location.hash || "");
+    if (!hash.includes("studentPractice=1")) {
+      try { sessionStorage.removeItem("qmath_student_practice"); } catch (e) {}
+      return false;
+    }
+    return true;
+  };
+
+  GK.getStudentPracticeRoomInfo = () => {
+    const q = (window.App && typeof App.query === "function") ? App.query() : {};
+    const urlParams = new URLSearchParams(window.location.search || "");
+    const metaRaw = (function () { try { return JSON.parse(localStorage.getItem("gfe_student_practice_meta") || "null"); } catch (e) { return null; } })();
+    const pin = q.room || urlParams.get("room") || (metaRaw && metaRaw.roomPin) || "";
+    const pid = q.pid || urlParams.get("pid") || (metaRaw && metaRaw.pid) || "";
+    const playerName = (metaRaw && metaRaw.playerName) || "";
+    return { pin: String(pin || "").trim(), pid: String(pid || "").trim(), playerName, metaRaw };
+  };
+
+  GK.getStudentPracticeBackUrl = () => {
+    const info = GK.getStudentPracticeRoomInfo();
+    return "../practice.html?mode=game" + (info.pin ? "&room=" + encodeURIComponent(info.pin) : "");
+  };
+
+  GK.returnToStudentPractice = (S) => {
+    try {
+      if (S) teardown(S, false);
+    } catch (e) {}
+    window.location.href = GK.getStudentPracticeBackUrl();
+  };
+
   /* ---------------- Cấu hình mặc định ---------------- */
   function defaults(game) {
-    const c = { mode: game.modes[0], teamCount: 2, teamNames: U.TEAM_NAMES.slice(), shuffleQ: true, shuffleA: true, explain: false, types: game.types.slice(), limit: 0 };
+    const c = {
+      mode: game.modes[0], teamCount: 2, teamNames: U.TEAM_NAMES.slice(),
+      shuffleQ: true, shuffleA: true, explain: false, types: game.types.slice(), limit: 0,
+      onlineDurationMinutes: 15, onlineOpenTime: "", onlineMaxPlayers: 40, onlineSelfPaced: true
+    };
     game.fields.forEach((f) => {
       if (f.type === "teams") c.teamCount = f.def || f.min || 2;
       else c[f.key] = typeof f.def === "function" ? f.def() : f.def;
@@ -47,25 +97,94 @@
   GK.teamsOf = (cfg) => Array.from({ length: cfg.teamCount }, (_, i) => ({ name: (cfg.teamNames[i] || U.TEAM_NAMES[i]).trim() || U.TEAM_NAMES[i], color: U.TEAM_COLORS[i], i }));
 
   /* ---------------- Trang game ---------------- */
+  async function launchStudentPracticeDirect(S) {
+    const { game } = S;
+    document.body.classList.add("is-student-practice");
+    document.body.classList.remove("drawer-open", "m-open");
+    const roomInfo = GK.getStudentPracticeRoomInfo();
+    S.studentRoomPin = roomInfo.pin || "";
+    S.studentPid = roomInfo.pid || "";
+    S.studentPlayerName = roomInfo.playerName || (window.FB && typeof FB.name === "function" ? FB.name() : "Học sinh");
+
+    const backUrl = GK.getStudentPracticeBackUrl();
+    const tbBack = document.querySelector('.topbar a[href="../dashboard.html"], .topbar a[href*="practice.html"]');
+    if (tbBack) {
+      tbBack.href = backUrl;
+      tbBack.title = "Quay lại chọn câu hỏi / Phòng luyện tập";
+      tbBack.innerHTML = '⬅️ <span class="hide-sm">Quay lại chọn câu hỏi</span>';
+    }
+    const brandLink = document.querySelector(".topbar .brand");
+    if (brandLink) {
+      brandLink.href = backUrl;
+    }
+
+    // Nếu vào từ phòng nhóm MOBA hoặc phòng mã PIN mà chưa nạp câu hỏi vào DB localFile thì lấy từ Room
+    if (S.studentRoomPin) {
+      try {
+        const roomQs = await Room.getQuestions(S.studentRoomPin);
+        if (Array.isArray(roomQs) && roomQs.length > 0 && (!DB.questions || !DB.questions.length)) {
+          await DB.useLocalFile(roomQs);
+        }
+      } catch (e) {}
+    }
+
+    const cfg = loadCfg(game, null);
+    cfg.source = { kind: "all" };
+    cfg.mode = "local";
+    cfg.explain = true;
+    cfg.types = game.types.slice();
+
+    const tf = game.fields.find((f) => f.type === "teams");
+    if (tf) {
+      if ((tf.min || 1) <= 1) {
+        cfg.teamCount = 1;
+        cfg.teamNames = [S.studentPlayerName || "Bạn"];
+      } else {
+        cfg.teamCount = 2;
+        cfg.teamNames = [S.studentPlayerName || "Đội 1", "Đội 2"];
+      }
+    }
+
+    let items = [];
+    if (S.studentRoomPin) {
+      try {
+        const rqs = await Room.getQuestions(S.studentRoomPin);
+        if (Array.isArray(rqs) && rqs.length > 0) {
+          // rqs có thể đã ở dạng chuẩn hoá (stem, options, answer) hoặc thô (Question, Options, CorrectAnswer)
+          items = rqs[0] && rqs[0].stem ? rqs : Quiz.flatten(rqs, cfg.types);
+        }
+      } catch (e) {}
+    }
+    if (!items.length) {
+      items = Quiz.flatten(DB.questionsFor(cfg.source), cfg.types);
+    }
+    const qTotal = items.length;
+    if (game.fields.some((f) => f.key === "goal") && qTotal > 0) {
+      cfg.goal = Math.min(30, Math.max(3, qTotal));
+    }
+
+    const needQ = !game.needsQuestions || game.needsQuestions(cfg);
+    if (!items.length && needQ) {
+      U.toast("Chưa có câu hỏi luyện tập — đang quay lại trang chọn câu hỏi...", "warn", 2500);
+      setTimeout(() => GK.returnToStudentPractice(S), 900);
+      return;
+    }
+    startLocal(S, cfg, items);
+  }
+
   GK.page = (view, id) => {
     const game = Games.get(id);
     if (!game) { view.innerHTML = `<div class="page"><div class="empty"><span class="em-ic">🕵️</span><h2>Không tìm thấy trò chơi</h2><a class="btn btn-primary" href="#/">Về trang chủ</a></div></div>`; return; }
     const S = { game, view, ctrl: null, timers: null, room: null, cleanups: [] };
     const q = App.query();
     const urlParams = new URLSearchParams(window.location.search || "");
-    if (q.studentPractice === "1" || urlParams.get("studentPractice") === "1") {
-      try { sessionStorage.setItem("qmath_student_practice", "1"); } catch (e) {}
-    }
-    S.studentPractice = q.studentPractice === "1" || urlParams.get("studentPractice") === "1" || (function () { try { return sessionStorage.getItem("qmath_student_practice") === "1"; } catch (e) { return false; } })();
+    S.studentPractice = GK.isStudentPractice();
     S.autoStart = q.autoStart === "1" || urlParams.get("autoStart") === "1";
     if (S.studentPractice) {
-      const tbBack = document.querySelector('.topbar a[href="../dashboard.html"]');
-      if (tbBack) {
-        tbBack.href = "../practice.html?mode=game";
-        tbBack.title = "Quay lại Phòng Luyện Tập Trò Chơi";
-        tbBack.innerHTML = '🎮 <span class="hide-sm">Đổi bài / Đổi Game</span>';
-      }
+      launchStudentPracticeDirect(S);
+      return () => teardown(S, true);
     }
+    document.body.classList.remove("is-student-practice");
     if (q.preset) { S.preset = DB.findPreset(q.preset) || null; if (!S.preset) U.toast("Không tìm thấy cấu hình đã lưu này.", "warn"); }
     if (q.new) S.creating = true;
     renderSetup(S);
@@ -81,8 +200,12 @@
     App.enterGame(false);
   }
 
-  /* ---------------- MÀN CẤU HÌNH ---------------- */
+  /* ---------------- MÀN CẤU HÌNH (CHỈ DÀNH CHO GIÁO VIÊN) ---------------- */
   function renderSetup(S) {
+    if (S.studentPractice || GK.isStudentPractice()) {
+      GK.returnToStudentPractice(S);
+      return;
+    }
     const { game } = S;
     const cfg = loadCfg(game, S.preset ? S.preset.cfg : null);
     App.enterGame(false);
@@ -115,8 +238,31 @@
           <span class="lbl">Chế độ chơi</span>
           <div class="mode-pick">
             <button data-mode="local" class="${game.modes.includes("local") ? "" : "hide"}"><i>🖥️</i><b>Một màn hình</b><small>Chiếu lên bảng, các đội thi đấu trực tiếp</small></button>
-            <button data-mode="online" class="${game.modes.includes("online") ? "" : "hide"}"><i>📱</i><b>Trực tuyến</b><small>Học sinh vào bằng mã PIN trên điện thoại</small></button>
+            <button data-mode="online" class="${game.modes.includes("online") ? "" : "hide"}"><i>📱</i><b>Trực tuyến (Tạo phòng PIN)</b><small>Tạo mã PIN, cài giờ mở đề & thời gian làm bài để gửi cho học sinh</small></button>
           </div>
+        </div>
+        <div class="gs-sec hide" id="onlineScheduleSec" style="background:linear-gradient(135deg,rgba(37,99,235,0.06),rgba(14,165,233,0.08));border:1.5px solid rgba(37,99,235,0.22);border-radius:14px;padding:14px 16px">
+          <div style="font-weight:800;font-size:14px;color:var(--primary);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+            <span>📡 Cài đặt Phòng Trò Chơi Mã PIN (Gửi Link / PIN cho Học sinh)</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
+            <div class="field">
+              <label class="lbl">⏱ Thời gian luyện tập (phút, 0 = không giới hạn)</label>
+              <input class="input" type="number" id="onlDur" min="0" max="180" value="${Number(cfg.onlineDurationMinutes ?? 15)}">
+            </div>
+            <div class="field">
+              <label class="lbl">📅 Thời gian mở đề (Để trống = Mở ngay)</label>
+              <input class="input" type="datetime-local" id="onlOpen" value="${esc(cfg.onlineOpenTime || "")}">
+            </div>
+            <div class="field">
+              <label class="lbl">👥 Số học sinh tối đa trong phòng</label>
+              <input class="input" type="number" id="onlMaxP" min="2" max="200" value="${Number(cfg.onlineMaxPlayers || 50)}">
+            </div>
+          </div>
+          <label class="switch" style="margin-top:10px">
+            <input type="checkbox" id="onlSelfPaced" ${cfg.onlineSelfPaced !== false ? "checked" : ""}>
+            <span>Cho phép học sinh <b>tự làm bài / chơi trò chơi ngay khi đến giờ mở đề</b> (có thể bỏ qua câu hỏi để quay lại làm sau & vinh danh người chiến thắng)</span>
+          </label>
         </div>
         <div class="gs-sec" data-local-only id="teamSec"></div>
         <div class="gs-sec gs-fields" id="fieldSec"></div>
@@ -167,9 +313,11 @@
     const setMode = (m) => {
       cfg.mode = m;
       $$(".mode-pick button", v).forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+      const onlSec = $("#onlineScheduleSec", v);
+      if (onlSec) onlSec.classList.toggle("hide", m !== "online");
       refreshVis();
       renderFields();
-      $("#goBtn", v).innerHTML = m === "online" ? "📡 Tạo phòng trực tuyến" : "▶ Bắt đầu chơi";
+      $("#goBtn", v).innerHTML = m === "online" ? "📡 Tạo phòng PIN & Lấy Link gửi Học sinh" : "▶ Bắt đầu chơi";
     };
     $$(".mode-pick button", v).forEach((b) => (b.onclick = () => { U.Sound.click(); setMode(b.dataset.mode); }));
 
@@ -297,7 +445,17 @@
     $("#oShQ", v).checked = cfg.shuffleQ; $("#oShA", v).checked = cfg.shuffleA; $("#oExp", v).checked = cfg.explain;
     setMode(cfg.mode);
 
-    const collect = () => { cfg.shuffleQ = $("#oShQ", v).checked; cfg.shuffleA = $("#oShA", v).checked; cfg.explain = $("#oExp", v).checked; updSrc(); return cfg; };
+    const collect = () => {
+      cfg.shuffleQ = $("#oShQ", v).checked;
+      cfg.shuffleA = $("#oShA", v).checked;
+      cfg.explain = $("#oExp", v).checked;
+      if ($("#onlDur", v)) cfg.onlineDurationMinutes = Math.max(0, Number($("#onlDur", v).value || 0));
+      if ($("#onlOpen", v)) cfg.onlineOpenTime = ($("#onlOpen", v).value || "").trim();
+      if ($("#onlMaxP", v)) cfg.onlineMaxPlayers = Math.max(2, Number($("#onlMaxP", v).value || 50));
+      if ($("#onlSelfPaced", v)) cfg.onlineSelfPaced = $("#onlSelfPaced", v).checked;
+      updSrc();
+      return cfg;
+    };
     // Cấu hình soạn sẵn
     $("#presetSel", v).onchange = (e) => {
       const id = e.target.value;
@@ -382,17 +540,21 @@
 
   /* Màn hình tổng kết đơn giản (cho chế độ không chấm điểm) */
   GK.summary = (ctx, o) => {
+    const isStu = GK.isStudentPractice();
     const ov = h(`<div class="res-ov"><div class="res-card">
       <div class="res-head"><div class="sum-ic">${o.icon || "🎉"}</div><h2>${o.title}</h2><p>${o.sub || ""}</p></div>
       <div class="sum-body">${o.html || ""}</div>
       <div class="res-actions">
         <button class="btn btn-lg btn-fun btn-3d" data-a="again">↻ Chơi lại</button>
-        <button class="btn btn-lg btn-primary" data-a="setup">⚙️ Đổi cấu hình</button>
+        <button class="btn btn-lg btn-primary" data-a="setup">${isStu ? "📚 Quay lại chọn câu hỏi" : "⚙️ Đổi cấu hình"}</button>
         <button class="btn btn-lg btn-ghost" data-a="close">✕ Đóng</button>
       </div></div></div>`);
     ctx.stage.appendChild(ov);
     $("[data-a=again]", ov).onclick = () => { ov.remove(); ctx.replay(); };
-    $("[data-a=setup]", ov).onclick = () => ctx.exit(false);
+    $("[data-a=setup]", ov).onclick = () => {
+      if (isStu) return GK.returnToStudentPractice();
+      ctx.exit(false);
+    };
     $("[data-a=close]", ov).onclick = () => ov.remove();
     return ov;
   };
@@ -407,6 +569,9 @@
     S.timers = U.timers();
     const ctx = {
       game: S.game, cfg, items, stage, timers: S.timers, teams: GK.teamsOf(cfg), room: S.room,
+      studentPractice: S.studentPractice,
+      studentRoomPin: S.studentRoomPin || "",
+      studentPid: S.studentPid || "",
       finish: (res) => finish(S, ctx, res),
       exit: (ask) => exitStage(S, ask),
       replay: () => { teardownGame(S); startLocal(S, cfg, items); }
@@ -415,7 +580,13 @@
   }
   function teardownGame(S) { try { S.ctrl && S.ctrl.destroy && S.ctrl.destroy(); } catch (e) { } S.ctrl = null; S.timers && S.timers.clear(); }
   async function exitStage(S, ask) {
-    if (ask !== false && !(await U.confirm("Thoát khỏi trận đấu hiện tại?", { ok: "Thoát", danger: true }))) return;
+    const isStu = S.studentPractice || GK.isStudentPractice();
+    const msg = isStu ? "Quay lại trang cấu hình chọn câu hỏi / phòng luyện tập?" : "Thoát khỏi trận đấu hiện tại?";
+    if (ask !== false && !(await U.confirm(msg, { ok: isStu ? "Quay lại" : "Thoát", danger: !isStu }))) return;
+    if (isStu) {
+      GK.returnToStudentPractice(S);
+      return;
+    }
     teardown(S, true); renderSetup(S);
   }
 
@@ -428,10 +599,18 @@
   /* HUD mỏng phía trên sân chơi */
   GK.hud = (stage, ctx, o) => {
     o = o || {};
+    const isStu = (ctx && ctx.studentPractice) || GK.isStudentPractice();
+    const roomPin = (ctx && ctx.studentRoomPin) || (GK.getStudentPracticeRoomInfo().pin);
+    const roomBadge = (isStu && roomPin)
+      ? `<span class="chip green" style="font-weight:800;margin-right:6px" title="Đang chơi trong phòng nhóm PIN ${esc(roomPin)}">👥 Phòng #${esc(roomPin)}</span>`
+      : "";
+    const exitLabel = isStu
+      ? `<button class="hud-btn" data-a="exit" title="Quay lại chọn câu hỏi" style="width:auto;padding:0 12px;gap:6px;font-weight:700;font-size:13px">← <span class="hide-sm">Chọn câu hỏi</span></button>`
+      : `<button class="hud-btn" data-a="exit" title="Thoát">←</button>`;
     const el = h(`<div class="hud">
-      <button class="hud-btn" data-a="exit" title="Thoát">←</button>
+      ${exitLabel}
       <div class="hud-title"><span class="hud-ic">${ctx.game.icon}</span><b>${esc(o.title || ctx.game.name)}</b></div>
-      <div class="hud-mid">${o.mid || ""}</div>
+      <div class="hud-mid">${roomBadge}${o.mid || ""}</div>
       <div class="hud-right">${o.right || ""}
         <button class="hud-btn hud-music ${U.Music.on ? "on" : ""}" data-a="music" title="Nhạc nền (bật/tắt)">🎵</button>
         <button class="hud-btn" data-a="mute" title="Tuỳ chọn âm thanh">${U.Sound.muted ? "🔇" : "🔊"}</button>
@@ -570,6 +749,12 @@
   function finish(S, ctx, res) {
     if (ctx._finished) return; ctx._finished = true;
     try { S.ctrl && S.ctrl.stop && S.ctrl.stop(); } catch (e) { }
+    const isStu = S.studentPractice || GK.isStudentPractice();
+    const stuRoom = GK.getStudentPracticeRoomInfo();
+    const stuPin = S.studentRoomPin || stuRoom.pin || "";
+    const stuPid = S.studentPid || stuRoom.pid || "";
+    const backUrl = GK.getStudentPracticeBackUrl();
+
     const R = res.ranking || [];
     const unit = res.unit || "điểm";
     const winner = R[0];
@@ -579,24 +764,77 @@
     const ov = h(`<div class="res-ov"><div class="res-card">
       <div class="res-rays"></div>
       <div class="res-head"><div class="res-trophy">${Art.trophy()}</div>
-        <h2>${R.length === 1 ? `🎉 ${esc(winner.name)}: ${U.fmtNum(winner.score)} ${unit}` : tie ? "Hòa nhau! 🤝" : `${esc(winner ? winner.name : "")} chiến thắng!`}</h2>
-        <p>${res.sub || ""}</p></div>
-      <div class="podium">${podOrder.map((i) => `<div class="pod p${i + 1}" style="--tc:${R[i].color || "#6c4cf5"};--i:${i}">
+        <h2 id="resMainTitle">${R.length === 1 ? `🎉 ${esc(winner.name)}: ${U.fmtNum(winner.score)} ${unit}` : tie ? "Hòa nhau! 🤝" : `${esc(winner ? winner.name : "")} chiến thắng!`}</h2>
+        <p id="resSubText">${res.sub || ""}</p></div>
+      <div class="podium" id="resPodiumBox">${podOrder.map((i) => `<div class="pod p${i + 1}" style="--tc:${R[i].color || "#6c4cf5"};--i:${i}">
         <div class="pod-fig">${fig(R[i], i)}</div><b class="pod-name">${esc(R[i].name)}</b><span class="pod-score">${U.fmtNum(R[i].score)} ${unit}</span>
         <div class="pod-block"><span>${i + 1}</span></div></div>`).join("")}</div>
-      ${R.length > 3 || R.some((r) => r.correct != null) ? `<div class="res-table"><table class="tbl"><thead><tr><th>#</th><th>Tên</th><th>${unit}</th><th>Đúng</th><th>Sai</th></tr></thead><tbody>
+      <div id="resRoomLiveBox"></div>
+      ${R.length > 3 || R.some((r) => r.correct != null) ? `<div class="res-table" id="resLocalTable"><table class="tbl"><thead><tr><th>#</th><th>Tên</th><th>${unit}</th><th>Đúng</th><th>Sai</th></tr></thead><tbody>
         ${R.map((r, i) => `<tr><td><b>${i + 1}</b></td><td><span class="dot" style="background:${r.color || "#888"}"></span> ${r.avatar || ""} ${esc(r.name)}</td><td><b>${U.fmtNum(r.score)}</b></td><td>${r.correct != null ? r.correct : "—"}</td><td>${r.wrong != null ? r.wrong : "—"}</td></tr>`).join("")}
       </tbody></table></div>` : ""}
       <div class="res-actions">
         ${S.room ? "" : `<button class="btn btn-lg btn-fun btn-3d" data-a="again">↻ Chơi lại</button>`}
-        <button class="btn btn-lg btn-primary" data-a="setup">⚙️ Đổi cấu hình</button>
-        ${S.studentPractice ? `<a class="btn btn-lg btn-ghost" href="../practice.html?mode=game" style="text-decoration:none">📚 Đổi bài học / Đổi Game</a>` : `<button class="btn btn-lg btn-ghost" data-a="home">🏠 Trang chủ</button>`}
+        ${isStu
+          ? `<a class="btn btn-lg btn-primary" href="${esc(backUrl)}" style="text-decoration:none">${stuPin ? "🔄 Về Phòng nhóm (Đổi Game / Câu hỏi)" : "📚 Quay lại chọn câu hỏi / Đổi Game"}</a>`
+          : `<button class="btn btn-lg btn-primary" data-a="setup">⚙️ Đổi cấu hình</button><button class="btn btn-lg btn-ghost" data-a="home">🏠 Trang chủ</button>`}
       </div></div></div>`);
     ctx.stage.appendChild(ov);
     U.Sound.win(); U.confetti(); setTimeout(() => U.confetti({ burst: true, count: 120 }), 700);
     $("[data-a=again]", ov) && ($("[data-a=again]", ov).onclick = () => { ov.remove(); ctx.replay(); });
-    $("[data-a=setup]", ov).onclick = () => { teardown(S, true); renderSetup(S); };
-    $("[data-a=home]", ov).onclick = () => { App.go("/"); };
+    $("[data-a=setup]", ov) && ($("[data-a=setup]", ov).onclick = () => {
+      if (isStu) return GK.returnToStudentPractice(S);
+      teardown(S, true); renderSetup(S);
+    });
+    $("[data-a=home]", ov) && ($("[data-a=home]", ov).onclick = () => {
+      if (isStu) return GK.returnToStudentPractice(S);
+      App.go("/");
+    });
+
+    // Nếu học sinh đang chơi trong Phòng nhóm MOBA hoặc Phòng PIN -> Đồng bộ điểm & Hiển thị Bảng xếp hạng Người chiến thắng của cả phòng!
+    if (isStu && stuPin && window.Room) {
+      const myStat = R[0] || { score: 0, correct: 0, wrong: 0 };
+      if (stuPid) {
+        Room.updatePlayer(stuPin, stuPid, {
+          score: Number(myStat.score || 0),
+          correct: Number(myStat.correct || 0),
+          wrong: Number(myStat.wrong || 0),
+          progress: 100,
+          finishedAt: Date.now()
+        }).catch(() => {});
+      }
+      const offRoom = Room.watchPlayers(stuPin, (ps) => {
+        const list = Object.values(ps || {}).sort((a, b) => (b.score || 0) - (a.score || 0) || (a.finishedAt || 9e15) - (b.finishedAt || 9e15));
+        if (!list.length) return;
+        const top = list[0];
+        const allDone = list.length > 1 && list.every((p) => p.finishedAt);
+        const mainTitle = $("#resMainTitle", ov);
+        const subText = $("#resSubText", ov);
+        if (mainTitle && list.length >= 1) {
+          mainTitle.innerHTML = allDone
+            ? `🏆 Người chiến thắng: ${esc(top.name)} (${U.fmtNum(top.score || 0)} điểm)!`
+            : `👑 Đang dẫn đầu phòng #${esc(stuPin)}: ${esc(top.name)} (${U.fmtNum(top.score || 0)} điểm)`;
+        }
+        if (subText) {
+          const doneCount = list.filter((p) => p.finishedAt).length;
+          subText.innerHTML = `Phòng nhóm #${esc(stuPin)} · Đã hoàn thành: <b>${doneCount}/${list.length}</b> thành viên`;
+        }
+        const liveBox = $("#resRoomLiveBox", ov);
+        if (liveBox) {
+          liveBox.innerHTML = `<div class="res-table" style="margin-top:8px"><table class="tbl"><thead><tr><th>Hạng</th><th>Thành viên phòng #${esc(stuPin)}</th><th>Điểm</th><th>Đúng/Sai</th><th>Trạng thái</th></tr></thead><tbody>
+            ${list.map((p, idx) => `<tr style="${p.pid === stuPid ? "background:rgba(16,185,129,0.12);font-weight:700" : ""}">
+              <td><b>${idx === 0 ? "🥇 1" : idx === 1 ? "🥈 2" : idx === 2 ? "🥉 3" : idx + 1}</b></td>
+              <td>${esc(p.avatar || "🦊")} ${esc(p.name)} ${p.isHost ? '<span class="chip amber" style="font-size:10px">Chủ phòng</span>' : ""}</td>
+              <td><b>${U.fmtNum(p.score || 0)}</b></td>
+              <td>${p.correct || 0} / ${p.wrong || 0}</td>
+              <td>${p.finishedAt ? '<span class="chip green">✅ Hoàn thành</span>' : '<span class="chip amber">⏳ Đang chơi…</span>'}</td>
+            </tr>`).join("")}
+          </tbody></table></div>`;
+        }
+      });
+      S.cleanups.push(offRoom);
+    }
+
     // lưu kết quả
     DB.addResult({
       gameId: ctx.game.id, gameName: ctx.game.name, mode: ctx.cfg.mode, unit,
@@ -607,59 +845,105 @@
     if (S.room) Room.finish(S.room.pin, R.map((r, i) => ({ pid: r.pid || "", name: r.name, score: r.score || 0, rank: i + 1 }))).catch(() => { });
   }
 
-  /* ---------------- TRỰC TUYẾN: tạo phòng + phòng chờ ---------------- */
+  /* ---------------- TRỰC TUYẾN: tạo phòng PIN + hẹn giờ mở đề + phòng chờ ---------------- */
   async function startOnline(S, cfg, items) {
-    if (!FB.available || !FB.rtdb) return U.toast("Chế độ trực tuyến cần kết nối Internet & Firebase.", "err");
-    if (!FB.user) { U.toast("Hãy đăng nhập để tạo phòng trực tuyến.", "warn"); App.openAuth(); return; }
-    const btn = $("#goBtn", S.view); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Đang tạo phòng…';
+    const btn = $("#goBtn", S.view);
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Đang tạo phòng PIN…'; }
     let pin, qs;
     try {
       qs = Quiz.prepare(items, { shuffleQ: cfg.shuffleQ, shuffleA: cfg.shuffleA }).slice(0, 300);
-      pin = await Room.create({ gameId: S.game.id, title: S.game.name, kind: S.game.onlineKind || "race", questions: qs, settings: S.game.roomSettings ? S.game.roomSettings(cfg) : {} });
-    } catch (e) { btn.disabled = false; btn.innerHTML = "📡 Tạo phòng trực tuyến"; return U.toast("Không tạo được phòng: " + FB.errMsg(e), "err", 5000); }
+      const baseSettings = S.game.roomSettings ? S.game.roomSettings(cfg) : {};
+      const roomSettings = Object.assign({}, baseSettings, {
+        maxPlayers: Number(cfg.onlineMaxPlayers || 50),
+        openTime: cfg.onlineOpenTime || null,
+        durationMinutes: Number(cfg.onlineDurationMinutes ?? 15),
+        selfPaced: cfg.onlineSelfPaced !== false,
+        explain: cfg.explain !== false,
+        goal: Number(cfg.goal || Math.min(30, qs.length || 10))
+      });
+      pin = await Room.create({
+        gameId: S.game.id,
+        title: S.game.name,
+        kind: S.game.onlineKind || "race",
+        roomType: "teacher",
+        maxPlayers: roomSettings.maxPlayers,
+        openTime: roomSettings.openTime,
+        durationMinutes: roomSettings.durationMinutes,
+        selfPaced: roomSettings.selfPaced,
+        questions: qs,
+        settings: roomSettings
+      });
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.innerHTML = "📡 Tạo phòng PIN & Lấy Link gửi Học sinh"; }
+      return U.toast("Không tạo được phòng: " + (e.message || FB.errMsg(e)), "err", 5000);
+    }
     S.room = { pin };
     const stage = makeStage(S, "st-" + S.game.id + " st-online");
     const ctx = makeCtx(S, cfg, items, stage); ctx.room = S.room; ctx.roomQs = qs;
-    ctx.exit = async () => { if (await U.confirm("Đóng phòng và thoát?", { ok: "Đóng phòng", danger: true })) { teardown(S, true); renderSetup(S); } };
+    ctx.exit = async () => { if (await U.confirm("Đóng phòng và thoát? (Nếu giữ mã PIN cho học sinh tự làm bài theo giờ mở đề, hãy chọn Huỷ và chỉ cần giữ link)", { ok: "Đóng & Xoá phòng", danger: true })) { teardown(S, true); renderSetup(S); } };
     const players = await GK.lobby(stage, ctx, S);
     if (!players) return;
     stage.innerHTML = "";
     await Room.setStatus(pin, "playing");
+    await Room.setState(pin, { phase: "playing", startAt: Date.now() + 3000, dur: Number(cfg.onlineDurationMinutes || 0) * 60 });
     S.ctrl = S.game.host(stage, ctx, players) || null;
   }
 
   GK.lobby = (stage, ctx, S) => new Promise((resolve) => {
     const pin = ctx.room.pin, game = ctx.game, teamMode = game.onlineKind === "tug";
-    const url = location.href.split("#")[0] + "#/join/" + pin;
-    GK.hud(stage, ctx, { title: game.name + " · Phòng chờ" });
+    const baseOrigin = location.href.split("/san-choi/")[0];
+    const practiceRoomUrl = baseOrigin + "/practice.html?mode=game&room=" + pin;
+    const directJoinUrl = location.href.split("#")[0] + "#/join/" + pin;
+    const durMin = Number(ctx.cfg.onlineDurationMinutes || 0);
+    const openTimeStr = ctx.cfg.onlineOpenTime ? new Date(ctx.cfg.onlineOpenTime).toLocaleString("vi-VN") : "Mở ngay lập tức";
+    GK.hud(stage, ctx, { title: game.name + " · Phòng PIN #" + pin });
     const body = h(`<div class="lobby">
       <div class="lb-left">
         <div class="lb-card">
-          <div class="lb-step">① Mở trên điện thoại / máy tính</div>
-          <div class="lb-url">${esc(url.replace(/^https?:\/\//, "").replace(/\/join\/\d+$/, "/join"))}</div>
-          <div class="lb-step">② Nhập mã PIN</div>
+          <div class="lb-step">① Mã PIN Phòng Trò Chơi</div>
           <div class="lb-pin">${pin.split("").map((d, i) => `<span style="--i:${i}">${d}</span>`).join("")}</div>
+          <div style="font-size:12.5px;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:10px;padding:8px 10px;margin:8px 0;text-align:left;line-height:1.5">
+            <div>📅 <b>Giờ mở đề:</b> ${esc(openTimeStr)}</div>
+            <div>⏱ <b>Thời gian luyện tập:</b> ${durMin > 0 ? durMin + " phút" : "Không giới hạn"}</div>
+            <div>📚 <b>Số câu hỏi:</b> ${(ctx.roomQs || []).length} câu</div>
+          </div>
           <div class="lb-qr" id="qr"></div>
-          <button class="btn btn-sm btn-ghost" id="cpy">📋 Sao chép đường link</button>
-          ${location.protocol === "file:" ? `<p class="lb-warn">⚠️ Bạn đang mở web từ file trên máy. Học sinh chỉ vào được khi web được đưa lên hosting (Firebase Hosting / GitHub Pages…).</p>` : ""}
+          <div style="display:flex;flex-direction:column;gap:6px;width:100%;margin-top:6px">
+            <button class="btn btn-sm btn-primary" id="cpyFull">📋 Sao chép Link Phòng + Mã PIN gửi Học sinh</button>
+            <button class="btn btn-sm btn-ghost" id="cpy">🔗 Chỉ sao chép Link trực tiếp</button>
+          </div>
         </div>
       </div>
       <div class="lb-right">
-        <div class="lb-top"><h2><span id="pc">0</span> người chơi</h2><span class="muted">Bấm vào tên để ${teamMode ? "đổi đội / " : ""}mời ra</span>
-          <button class="btn btn-xl btn-fun btn-3d" id="startBtn" disabled>▶ Bắt đầu</button></div>
+        <div class="lb-top"><h2><span id="pc">0</span> học sinh trong phòng</h2><span class="muted">Bấm vào tên để ${teamMode ? "đổi đội / " : ""}mời ra khỏi phòng</span>
+          <button class="btn btn-xl btn-fun btn-3d" id="startBtn">▶ Bắt đầu / Mở bảng theo dõi</button></div>
         <div class="lb-players ${teamMode ? "teams" : ""}" id="plist">${teamMode ? `<div class="lb-team" style="--tc:${U.TEAM_COLORS[0]}"><h3>🔴 ${U.TEAM_NAMES[0]} <small id="tc0">0</small></h3><div class="lt-b" id="t0"></div></div><div class="lb-team" style="--tc:${U.TEAM_COLORS[1]}"><h3>🔵 ${U.TEAM_NAMES[1]} <small id="tc1">0</small></h3><div class="lt-b" id="t1"></div></div>` : ""}</div>
-        <div class="lb-wait" id="wait"><div class="dots3"><i></i><i></i><i></i></div>Đang chờ người chơi tham gia…</div>
+        <div class="lb-wait" id="wait"><div class="dots3"><i></i><i></i><i></i></div>Đang chờ học sinh nhập mã PIN <b>${pin}</b> hoặc bấm vào Link phòng…</div>
       </div></div>`);
     stage.appendChild(body);
-    U.loadScript(U.QR_URL).then(() => { try { new QRCode($("#qr", body), { text: url, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M }); } catch (e) { } }).catch(() => ($("#qr", body).innerHTML = ""));
-    $("#cpy", body).onclick = () => { navigator.clipboard && navigator.clipboard.writeText(url); U.toast("Đã sao chép link tham gia", "ok"); };
+    U.loadScript(U.QR_URL).then(() => { try { new QRCode($("#qr", body), { text: practiceRoomUrl, width: 170, height: 170, correctLevel: QRCode.CorrectLevel.M }); } catch (e) { } }).catch(() => ($("#qr", body).innerHTML = ""));
+    $("#cpy", body).onclick = () => {
+      navigator.clipboard && navigator.clipboard.writeText(practiceRoomUrl);
+      U.toast("✅ Đã sao chép Link phòng cho học sinh!", "ok");
+    };
+    $("#cpyFull", body).onclick = () => {
+      const msg = [
+        `🎮 PHÒNG TRÒ CHƠI LUYỆN TẬP: ${game.name.toUpperCase()}`,
+        `🔢 Mã PIN vào phòng: ${pin}`,
+        `📅 Thời gian mở đề: ${openTimeStr}`,
+        `⏱ Thời gian làm bài: ${durMin > 0 ? durMin + " phút" : "Tự do"}`,
+        `👉 Link vào phòng trực tiếp: ${practiceRoomUrl}`,
+        `(Hoặc vào Sân chơi nhập PIN: ${directJoinUrl})`
+      ].join("\n");
+      navigator.clipboard && navigator.clipboard.writeText(msg);
+      U.toast("📋 Đã sao chép trọn bộ Link phòng + Mã PIN + Lịch mở đề!", "ok", 3000);
+    };
     let players = {};
     const seen = new Set();
     const off = Room.watchPlayers(pin, (ps) => {
       players = ps || {};
       const arr = Object.entries(players).map(([pid, p]) => Object.assign({ pid }, p));
       $("#pc", body).textContent = arr.length;
-      $("#startBtn", body).disabled = !arr.length;
       $("#wait", body).classList.toggle("hide", !!arr.length);
       const chip = (p) => `<button class="pchip ${seen.has(p.pid) ? "" : "new"} ${p.online === false ? "off" : ""}" data-pid="${p.pid}"><span class="pc-ava">${p.avatar || "🙂"}</span>${esc(p.name)}</button>`;
       if (teamMode) {
@@ -679,6 +963,68 @@
     S.cleanups.push(off);
     $("#startBtn", body).onclick = () => { off(); S.cleanups = S.cleanups.filter((f) => f !== off); resolve(Object.entries(players).map(([pid, p]) => Object.assign({ pid }, p))); };
   });
+
+  /* Bảng điều khiển trực tuyến mặc định cho giáo viên theo dõi học sinh làm bài / thi đấu */
+  GK.defaultOnlineHost = (stage, ctx) => {
+    const pin = ctx.room.pin;
+    const durMin = Number(ctx.cfg.onlineDurationMinutes || 0);
+    const hud = GK.hud(stage, ctx, {
+      title: `${ctx.game.name} · PIN ${pin}`,
+      mid: `<span class="clock" id="hostClock"></span>`,
+      right: `<button class="hud-btn" data-a="end" title="Kết thúc & Vinh danh">🏁 Kết thúc</button>`
+    });
+    const board = h(`<div class="page" style="max-width:980px;margin:58px auto 20px;padding:16px">
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+          <div>
+            <h2 style="margin:0">📊 Bảng Theo Dõi Trực Tiếp · Phòng PIN <span style="color:var(--primary)">${esc(pin)}</span></h2>
+            <p class="muted" style="margin:4px 0 0">Học sinh đang làm bài & thi đấu (${(ctx.roomQs || []).length} câu hỏi). Bấm Kết thúc bất kỳ lúc nào để vinh danh người chiến thắng.</p>
+          </div>
+        </div>
+        <div id="hostLiveList"></div>
+      </div>
+    </div>`);
+    stage.appendChild(board);
+    let latestPlayers = {};
+    let over = false;
+    const endMatch = () => {
+      if (over) return;
+      over = true;
+      const ranked = Object.entries(latestPlayers).map(([pid, p]) => Object.assign({ pid, color: U.TEAM_COLORS[(p.team || 0) % U.TEAM_COLORS.length] }, p))
+        .sort((a, b) => (b.score || 0) - (a.score || 0) || (b.correct || 0) - (a.correct || 0));
+      ctx.finish({ unit: "điểm", sub: `Phòng trực tuyến PIN ${pin}`, ranking: ranked });
+    };
+    if (durMin > 0) {
+      GK.clock(ctx, $("#hostClock", hud), durMin * 60, endMatch);
+    }
+    $("[data-a=end]", hud).onclick = async () => {
+      if (await U.confirm("Kết thúc phòng luyện tập và hiển thị người chiến thắng?", { ok: "Kết thúc" })) endMatch();
+    };
+    const off = Room.watchPlayers(pin, (ps) => {
+      latestPlayers = ps || {};
+      const list = Object.entries(latestPlayers).map(([pid, p]) => Object.assign({ pid }, p))
+        .sort((a, b) => (b.score || 0) - (a.score || 0) || (b.correct || 0) - (a.correct || 0));
+      const box = $("#hostLiveList", board);
+      if (!box) return;
+      if (!list.length) {
+        box.innerHTML = `<div class="empty"><span class="em-ic">⏳</span>Chưa có học sinh nào trong phòng (Mã PIN: <b>${esc(pin)}</b>).</div>`;
+        return;
+      }
+      box.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Hạng</th><th>Học sinh</th><th>Điểm số</th><th>Đúng / Sai</th><th>Tiến độ</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+        ${list.map((p, i) => `<tr>
+          <td><b>${i === 0 ? "🥇 1" : i === 1 ? "🥈 2" : i === 2 ? "🥉 3" : i + 1}</b></td>
+          <td>${esc(p.avatar || "🦊")} <b>${esc(p.name)}</b></td>
+          <td><b style="color:var(--primary)">${U.fmtNum(p.score || 0)}</b></td>
+          <td><span style="color:#16a34a;font-weight:700">${p.correct || 0}</span> / <span style="color:#dc2626">${p.wrong || 0}</span></td>
+          <td>${Math.round(p.progress || 0)}/${(ctx.roomQs || []).length || 10}</td>
+          <td>${p.finishedAt ? '<span class="chip green">✅ Đã xong</span>' : '<span class="chip amber">✍️ Đang làm</span>'}</td>
+          <td><button class="btn btn-sm btn-ghost" data-kick="${esc(p.pid)}">✕ Kích</button></td>
+        </tr>`).join("")}
+      </tbody></table></div>`;
+      $$("[data-kick]", box).forEach((b) => (b.onclick = () => Room.kick(pin, b.dataset.kick)));
+    });
+    return { destroy() { over = true; off && off(); }, stop() { over = true; off && off(); } };
+  };
 
   /* Đội/nhân vật mặc định cho game cần figure */
   GK.ranking = (arr, key) => arr.slice().sort((a, b) => (b[key || "score"] - a[key || "score"]));
