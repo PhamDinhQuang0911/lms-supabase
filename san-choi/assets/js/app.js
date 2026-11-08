@@ -51,30 +51,38 @@
 
   /* ---------------- Menu hamburger ---------------- */
   App.buildDrawer = () => {
+    if (window.FB && typeof FB.readLmsUser === "function" && !FB.user) {
+      const lmsU = FB.readLmsUser();
+      if (lmsU) {
+        FB.user = lmsU;
+        FB.isAdmin = FB.checkAdmin(lmsU);
+      }
+    }
     let i = 0; const n = () => i++;
-    const item = (href, ic, tx, o) => `<a class="nav-item" href="#${href}" data-href="${href}" ${o && o.exact ? 'data-exact="1"' : ""} title="${esc(tx)}" style="--i:${n()}"><span class="ni-ic" ${o && o.g ? `style="--g:${o.g}"` : ""}>${ic}</span><span class="ni-tx">${esc(tx)}</span>${o && o.badge ? `<span class="ni-badge">${o.badge}</span>` : ""}</a>`;
+    const item = (href, ic, tx, o) => `<a class="nav-item" href="#${href}" data-href="${href}" ${o && o.exact ? 'data-exact="1"' : ""} title="${esc(tx)}" style="--i:${n()}"><span class="ni-ic">${ic}</span><span class="ni-tx">${esc(tx)}</span>${o && o.badge ? `<span class="ni-badge">${o.badge}</span>` : ""}</a>`;
     const sec = (t) => `<div class="nav-sec" style="--i:${n()}">${t}</div>`;
-    let html = sec("Khám phá") + item("/", "🏠", "Trang chủ", { exact: true, g: "linear-gradient(135deg,#ede9fe,#c4b5fd)" }) + item("/join", "🔢", "Vào phòng bằng PIN", { g: "linear-gradient(135deg,#dcfce7,#86efac)" }) + item("/bang-vang", "🏆", "Bảng vàng", { g: "linear-gradient(135deg,#fef9c3,#fde047)" });
+    let html = sec("Khám phá") + item("/", "🏠", "Trang chủ", { exact: true }) + item("/join", "🔢", "Vào phòng bằng PIN") + item("/bang-vang", "🏆", "Bảng vàng");
     html += sec("Trò chơi");
-    Games.enabled().forEach((g) => (html += item("/game/" + g.id, g.icon, g.name, { g: `linear-gradient(135deg,${U.shade(g.colors[0], 0.7)},${U.shade(g.colors[1], 0.55)})`, badge: g.modes.includes("online") ? "Online" : "" })));
+    Games.enabled().forEach((g) => (html += item("/game/" + g.id, g.icon, g.name, { badge: g.modes.includes("online") ? "Online" : "" })));
     Games.soon.forEach((s) => (html += `<div class="nav-item disabled" title="${esc(s.name)} — sắp ra mắt" style="--i:${n()}"><span class="ni-ic">${s.icon}</span><span class="ni-tx">${esc(s.name)}</span><span class="ni-badge soon">Sắp có</span></div>`));
     if (window.Activities && Activities.list.length) {
       html += sec("Hoạt động");
-      Activities.list.forEach((a) => (html += item("/hoat-dong/" + a.id, a.icon, a.name, { g: `linear-gradient(135deg,${U.shade(a.colors[0], 0.7)},${U.shade(a.colors[1], 0.55)})`, badge: "Vui" })));
+      Activities.list.forEach((a) => (html += item("/hoat-dong/" + a.id, a.icon, a.name, { badge: "Vui" })));
     }
     if (FB.isAdmin) {
       html += sec("Quản trị");
       [["/admin", "📊", "Tổng quan"], ["/admin/questions", "📚", "Ngân hàng câu hỏi"], ["/admin/sets", "🧩", "Bộ đề & phân bổ game"], ["/admin/presets", "💾", "Cấu hình soạn sẵn"], ["/admin/scores", "🏅", "Điểm số người chơi"], ["/admin/rooms", "📡", "Phòng trực tuyến"], ["/admin/users", "👥", "Người dùng"], ["/admin/settings", "⚙️", "Cài đặt"]]
-        .forEach(([hr, ic, tx]) => (html += item(hr, ic, tx, { exact: hr === "/admin", g: "linear-gradient(135deg,#e0e7ff,#a5b4fc)" })));
+        .forEach(([hr, ic, tx]) => (html += item(hr, ic, tx, { exact: hr === "/admin" })));
     }
     $("#navList").innerHTML = html;
     const u = FB.user;
+    const roleLabel = u ? (u.role === "super_admin" ? "👑 Super Admin QMath" : FB.isAdmin ? "🏫 Giáo viên QMath" : esc(u.email || "Học sinh QMath")) : "";
     $("#drawerFoot").innerHTML = u
-      ? `<div class="user-card">${avatar(u, 34)}<div class="uc-tx"><b>${esc(FB.name())}</b><small>${FB.isAdmin ? "👑 Quản trị viên" : esc(u.email || "")}</small></div><button class="btn btn-sm btn-icon btn-ghost uc-out" id="dOut" title="Đăng xuất">⎋</button></div>`
-      : `<button class="nav-item" id="dLogin" title="Đăng nhập" style="--i:${n()}"><span class="ni-ic" style="--g:linear-gradient(135deg,#6c4cf5,#ff5c9d)">🔐</span><span class="ni-tx">Đăng nhập</span></button>`;
-    const lo = $("#dOut"); if (lo) lo.onclick = async () => { await FB.signOut(); U.toast("Đã đăng xuất", "info"); };
-    const li = $("#dLogin"); if (li) li.onclick = () => App.openAuth();
-    $("#tbUser").innerHTML = u ? avatar(u, 30) : `<span class="tb-btn">🔐 <span class="hide-sm">Đăng nhập</span></span>`;
+      ? `<div class="user-card">${avatar(u, 34)}<div class="uc-tx"><b>${esc(FB.name())}</b><small>${roleLabel}</small></div><a class="btn btn-sm btn-icon btn-ghost uc-out" href="../dashboard.html" title="Về Bảng điều khiển QMath LMS">🏫</a></div>`
+      : `<a class="nav-item" href="../index.html" title="Đăng nhập trên QMath LMS" style="--i:${n()}"><span class="ni-ic">🏫</span><span class="ni-tx">Đăng nhập LMS</span></a>`;
+    $("#tbUser").innerHTML = u
+      ? `<span class="tb-btn" style="padding-left:5px;gap:7px">${avatar(u, 22)} <span class="hide-sm">${esc(FB.name())}</span></span>`
+      : `<span class="tb-btn">🏫 <span class="hide-sm">Tài khoản LMS</span></span>`;
     markNav(App.path());
     if (App.refreshSearch) App.refreshSearch();
   };
@@ -161,43 +169,44 @@
   }
   App.refreshSearch = () => { const inp = $("#navSearch"); if (inp && inp.value) inp.dispatchEvent(new Event("input")); };
 
-  /* ---------------- Đăng nhập / Đăng ký ---------------- */
+  /* ---------------- Đăng nhập / Tài khoản QMath LMS ---------------- */
   App.openAuth = () => {
-    if (!FB.available) return U.toast("Không kết nối được Firebase — kiểm tra Internet.", "err");
+    if (window.FB && typeof FB.readLmsUser === "function" && !FB.user) {
+      const lmsU = FB.readLmsUser();
+      if (lmsU) {
+        FB.user = lmsU;
+        FB.isAdmin = FB.checkAdmin(lmsU);
+      }
+    }
     if (FB.user) {
       const u = FB.user;
-      return U.modal({ title: "Tài khoản", size: "sm", body: `<div style="text-align:center">${avatar(u, 72).replace('class="ava"', 'class="ava" style="width:72px;height:72px;margin:0 auto 10px;font-size:28px"')}<h3>${esc(FB.name())}</h3><p class="muted">${esc(u.email || "")}<br>${FB.isAdmin ? "👑 Quản trị viên" : "Người dùng"}${!u.emailVerified && !(u.providerData || []).some((p) => p.providerId === "google.com") ? "<br>⚠️ Email chưa xác minh" : ""}</p></div>`,
-        actions: [{ label: "Đóng", cls: "btn-ghost" }, { label: "⎋ Đăng xuất", cls: "btn-danger", onClick: async () => { await FB.signOut(); U.toast("Đã đăng xuất"); } }] });
+      const st = window.QMathBridge && typeof QMathBridge.getQuotaStatus === "function" ? QMathBridge.getQuotaStatus() : null;
+      const tierBadge = st
+        ? st.isSuper
+          ? "👑 Root Super Admin (Tạo Game không giới hạn)"
+          : st.isVip
+            ? "👑 Giáo viên VIP (Tạo Game không giới hạn)"
+            : `🎁 Giáo viên Free (Đã dùng ${st.used}/${st.max} lượt tạo game trong tháng)`
+        : (FB.isAdmin ? "🏫 Giáo viên QMath" : "Học sinh QMath");
+      return U.modal({
+        title: "🏫 Tài khoản QMath LMS",
+        size: "sm",
+        body: `<div style="text-align:center">${avatar(u, 68).replace('class="ava"', 'class="ava" style="width:68px;height:68px;margin:0 auto 10px;font-size:26px"')}<h3>${esc(FB.name())}</h3><p class="muted" style="line-height:1.6">${esc(u.email || "")}<br><b>${tierBadge}</b></p></div>`,
+        actions: [
+          { label: "Đóng", cls: "btn-ghost" },
+          {
+            label: "🏫 Về Bảng điều khiển QMath LMS",
+            cls: "btn-primary",
+            onClick: () => {
+              window.location.href = "../dashboard.html";
+              return true;
+            }
+          }
+        ]
+      });
     }
-    let mode = "in";
-    const body = h(`<div>
-      <div class="auth-hero"><div class="ah-ic">🎮</div><p>Đăng nhập để tạo phòng trực tuyến, lưu điểm và quản trị.</p></div>
-      <div class="seg auth-tabs"><button data-m="in" class="on">Đăng nhập</button><button data-m="up">Tạo tài khoản</button></div>
-      <button class="gbtn" id="gIn"><svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Tiếp tục với Google</button>
-      <div class="or">hoặc dùng email</div>
-      <div class="stack">
-        <div class="field up-only hide"><label>Tên hiển thị</label><input class="input" id="aName" placeholder="VD: Cô Dung"></div>
-        <div class="field"><label>Email</label><input class="input" id="aEmail" type="email" autocomplete="email" placeholder="ban@email.com"></div>
-        <div class="field"><label>Mật khẩu</label><input class="input" id="aPw" type="password" autocomplete="current-password" placeholder="••••••"></div>
-        <button class="btn btn-lg btn-primary" id="aGo">Đăng nhập</button>
-        <a href="#" id="aForgot" class="muted" style="text-align:center;font-size:13px">Quên mật khẩu?</a>
-      </div></div>`);
-    const m = U.modal({ title: "🔐 Đăng nhập", size: "sm", body, autofocus: false });
-    const setMode = (md) => { mode = md; $$(".auth-tabs button", body).forEach((b) => b.classList.toggle("on", b.dataset.m === md)); $$(".up-only", body).forEach((e) => e.classList.toggle("hide", md !== "up")); $("#aGo", body).textContent = md === "up" ? "Tạo tài khoản" : "Đăng nhập"; $("#aForgot", body).classList.toggle("hide", md === "up"); };
-    $$(".auth-tabs button", body).forEach((b) => (b.onclick = () => setMode(b.dataset.m)));
-    $("#gIn", body).onclick = async () => { try { await FB.signInGoogle(); m.close(); U.toast("Đăng nhập thành công 🎉", "ok"); } catch (e) { U.toast(FB.errMsg(e), "err", 5000); } };
-    const go = async () => {
-      const em = $("#aEmail", body).value, pw = $("#aPw", body).value, b = $("#aGo", body);
-      if (!em || !pw) return U.toast("Nhập email và mật khẩu", "warn");
-      b.disabled = true;
-      try {
-        if (mode === "up") { await FB.register(em, pw, $("#aName", body).value.trim()); U.toast("Đã tạo tài khoản! Kiểm tra email để xác minh.", "ok", 5000); }
-        else { await FB.signInEmail(em, pw); U.toast("Đăng nhập thành công 🎉", "ok"); }
-        m.close();
-      } catch (e) { U.toast(FB.errMsg(e), "err", 5000); b.disabled = false; }
-    };
-    $("#aGo", body).onclick = go; $("#aPw", body).addEventListener("keydown", (e) => e.key === "Enter" && go());
-    $("#aForgot", body).onclick = async (e) => { e.preventDefault(); const em = $("#aEmail", body).value; if (!em) return U.toast("Nhập email trước", "warn"); try { await FB.resetPassword(em); U.toast("Đã gửi email đặt lại mật khẩu", "ok"); } catch (er) { U.toast(FB.errMsg(er), "err"); } };
+    // Nếu chưa đăng nhập trên web LMS thì chuyển thẳng sang trang đăng nhập QMath LMS
+    window.location.href = "../index.html";
   };
 
   /* ---------------- Theme ---------------- */

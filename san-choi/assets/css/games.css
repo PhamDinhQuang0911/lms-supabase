@@ -5,8 +5,8 @@
    ========================================================= */
 #splash { position: fixed; inset: 0; z-index: 999; display: grid; place-content: center; justify-items: center; gap: 18px; background: var(--bg); transition: opacity .5s }
 #splash.out { opacity: 0; pointer-events: none }
-.sp-logo { width: 84px; height: 84px; border-radius: 26px; display: grid; place-items: center; font-size: 44px; background: linear-gradient(135deg, var(--violet), var(--pink), var(--orange)); box-shadow: 0 20px 40px -12px rgba(108, 76, 245, .6); animation: bob 1.6s ease-in-out infinite }
-.dots3 { display: flex; gap: 8px; justify-content: center } .dots3 i { width: 12px; height: 12px; border-radius: 50%; background: var(--violet); animation: jump .9s ease-in-out infinite } .dots3 i:nth-child(2) { background: var(--pink); animation-delay: .12s } .dots3 i:nth-child(3) { background: var(--orange); animation-delay: .24s }
+.sp-logo { width: 80px; height: 80px; border-radius: 22px; display: grid; place-items: center; font-size: 40px; background: var(--primary); color: #fff; box-shadow: 0 12px 30px -8px rgba(37, 99, 235, .45); animation: bob 1.6s ease-in-out infinite }
+.dots3 { display: flex; gap: 8px; justify-content: center } .dots3 i { width: 12px; height: 12px; border-radius: 50%; background: var(--primary); animation: jump .9s ease-in-out infinite } .dots3 i:nth-child(2) { background: var(--primary-2); animation-delay: .12s } .dots3 i:nth-child(3) { background: var(--primary-light); animation-delay: .24s }
 .theme-sw b::before { content: "☀️" } [data-theme="dark"] .theme-sw b::before { content: "🌙" }
 html:fullscreen .topbar, html:fullscreen .drawer { display: none } html:fullscreen .main { top: 0 !important; left: 0 !important }
 .foot { text-align: center; color: var(--muted); font-size: 13px; padding: 34px 0 10px }
@@ -49,7 +49,7 @@ html:fullscreen .topbar, html:fullscreen .drawer { display: none } html:fullscre
 .src-info { font-size: 14px } .src-info b { font-family: var(--font-fun); font-size: 22px; color: var(--green) } .src-info b.warn { color: var(--red) }
 .gs-opts { gap: 18px }
 .gs-go { width: 100%; animation: pulseGlow 2.4s ease-in-out infinite }
-@keyframes pulseGlow { 0%, 100% { box-shadow: 0 5px 0 rgba(0, 0, 0, .2), 0 10px 26px -8px rgba(255, 92, 157, .7) } 50% { box-shadow: 0 5px 0 rgba(0, 0, 0, .2), 0 14px 40px -6px rgba(255, 92, 157, 1) } }
+@keyframes pulseGlow { 0%, 100% { box-shadow: 0 4px 0 rgba(0, 0, 0, .2), 0 8px 20px -6px rgba(37, 99, 235, .5) } 50% { box-shadow: 0 4px 0 rgba(0, 0, 0, .2), 0 12px 32px -4px rgba(37, 99, 235, .75) } }
 @media (max-width: 1000px) { .gsetup { grid-template-columns: 1fr } .gs-show { position: relative } }
 @media (max-width: 520px) { .mode-pick { grid-template-columns: 1fr } }
 
@@ -85,8 +85,8 @@ html:fullscreen .topbar, html:fullscreen .drawer { display: none } html:fullscre
 .qcard { display: flex; flex-direction: column; gap: 12px; animation: qIn .55s var(--out) }
 @keyframes qIn { from { opacity: 0; transform: translateY(18px) scale(.98) } }
 .q-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
-.q-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 99px; font-size: 11.5px; font-weight: 800; color: #fff; background: #6c4cf5; white-space: nowrap }
-.qb-MC { background: linear-gradient(135deg, #6c4cf5, #8b5cf6) } .qb-TF { background: linear-gradient(135deg, #0ea5e9, #22c55e) } .qb-SA { background: linear-gradient(135deg, #f59e0b, #f97316) } .qb-LA { background: #64748b } .qb-Group { background: linear-gradient(135deg, #ec4899, #a855f7) }
+.q-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 99px; font-size: 11.5px; font-weight: 800; color: #fff; background: #2563eb; white-space: nowrap }
+.qb-MC { background: #2563eb } .qb-TF { background: #0d9488 } .qb-SA { background: #d97706 } .qb-LA { background: #64748b } .qb-Group { background: #1d4ed8 }
 .q-chip { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 99px; background: var(--surface-3); color: var(--muted) }
 .q-num { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--muted) }
 .q-ctx { font-size: .92em; padding: 10px 12px; border-radius: 12px; background: var(--surface-3); border-left: 4px solid var(--violet); color: var(--ink-2) }

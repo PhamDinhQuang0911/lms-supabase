@@ -60,9 +60,9 @@
         </div>
         <div class="hero-visual">
           ${Art.hero()}
-          <div class="float-chip fc1"><i style="background:#dcfce7">✅</i>Chính xác! +1</div>
-          <div class="float-chip fc2"><i style="background:#fef3c7">🔥</i>Chuỗi đúng ×5</div>
-          <div class="float-chip fc3"><i style="background:#ede9fe">🏆</i>Đội Xanh dẫn đầu</div>
+          <div class="float-chip fc1"><i style="background:#eff6ff;color:#2563eb">✅</i>Chính xác! +1</div>
+          <div class="float-chip fc2"><i style="background:#eff6ff;color:#2563eb">🔥</i>Chuỗi đúng ×5</div>
+          <div class="float-chip fc3"><i style="background:#eff6ff;color:#2563eb">🏆</i>Đội Xanh dẫn đầu</div>
         </div>
       </section>
 
@@ -74,37 +74,37 @@
 
       ${DB.allPresets().length ? `<section class="sec">
         <div class="sec-h"><div class="grow"><span class="eyebrow">Chơi nhanh</span><h2>⚡ Cấu hình soạn sẵn</h2><p>Giáo viên đã chuẩn bị sẵn — bấm là vào trận!</p></div>${FB.isAdmin ? `<a class="btn btn-ghost" href="#/admin/presets">Quản lý</a>` : ""}</div>
-        <div class="quick-grid">${DB.allPresets().filter((p) => Games.get(p.gameId)).slice(0, 12).map((p) => { const g = Games.get(p.gameId); return `<a class="quick-card" data-reveal href="#/game/${g.id}?preset=${encodeURIComponent(p.id)}" style="--c1:${g.colors[0]};--c2:${g.colors[1]}">
+        <div class="quick-grid">${DB.allPresets().filter((p) => Games.get(p.gameId)).slice(0, 12).map((p) => { const g = Games.get(p.gameId); return `<a class="quick-card" data-reveal href="#/game/${g.id}?preset=${encodeURIComponent(p.id)}" style="--c1:#1d4ed8;--c2:#2563eb">
           <span class="qc-ic">${g.icon}</span><span class="qc-tx"><b>${esc(p.name)}</b><small>${esc(g.name)}${p.note ? " · " + esc(p.note) : ""}</small></span><span class="qc-go">▶</span></a>`; }).join("")}</div>
       </section>` : ""}
 
       <section class="sec">
         <div class="sec-h"><div><span class="eyebrow">Cách chơi</span><h2>3 bước là vào trận!</h2></div></div>
         <div class="steps3">
-          <div class="step" data-reveal><span class="num">1</span><div class="s-ic" style="--g:linear-gradient(135deg,#c4b5fd,#818cf8)">📚</div><h3>Chọn bộ câu hỏi</h3><p>Giáo viên nhập câu hỏi từ Excel/JSON, gom thành bộ đề và phân bổ cho từng trò chơi.</p></div>
-          <div class="step" data-reveal><span class="num">2</span><div class="s-ic" style="--g:linear-gradient(135deg,#fbcfe8,#f472b6)">🎮</div><h3>Chọn trò chơi & chế độ</h3><p>Chiếu một màn hình cho cả lớp thi đấu theo đội, hoặc tạo phòng trực tuyến với mã PIN.</p></div>
-          <div class="step" data-reveal><span class="num">3</span><div class="s-ic" style="--g:linear-gradient(135deg,#fde68a,#fb923c)">🏆</div><h3>Thi đấu & vinh danh</h3><p>Trả lời đúng để tiến lên, xem lời giải ngay, điểm số được lưu vào bảng vàng.</p></div>
+          <div class="step" data-reveal><span class="num">1</span><div class="s-ic">📚</div><h3>Chọn bộ câu hỏi</h3><p>Giáo viên chọn câu hỏi từ Ngân hàng QMath hoặc tải trực tiếp từ file Word (.docx) có công thức Toán & hình ảnh.</p></div>
+          <div class="step" data-reveal><span class="num">2</span><div class="s-ic">🎮</div><h3>Chọn trò chơi & chế độ</h3><p>Chiếu một màn hình cho cả lớp thi đấu theo đội, hoặc tạo phòng trực tuyến với mã PIN.</p></div>
+          <div class="step" data-reveal><span class="num">3</span><div class="s-ic">🏆</div><h3>Thi đấu & vinh danh</h3><p>Trả lời đúng để tiến lên, xem lời giải ngay, điểm số được lưu vào bảng vàng.</p></div>
         </div>
       </section>
 
       <section class="sec home-bottom">
         <div class="card" data-reveal><div class="card-h"><h3>🏆 Bảng vàng gần đây</h3><span class="grow"></span><a class="btn btn-sm btn-ghost" href="#/bang-vang">Xem tất cả</a></div><div id="hLb"><div class="muted">Đang tải…</div></div></div>
-        <div class="card" data-reveal><div class="card-h"><h3>📚 Đưa câu hỏi lên Game (Word .docx & Ngân hàng QMath)</h3></div>
-          <p class="muted" style="font-size:14px;margin:0 0 8px">Giáo viên có thể đưa câu hỏi vào trò chơi theo <b>2 cách cực nhanh</b> ngay trên máy tính:</p>
+        <div class="card" data-reveal><div class="card-h"><h3>📚 Đưa câu hỏi lên Game (Ngân hàng QMath & Word .docx)</h3></div>
+          <p class="muted" style="font-size:14px;margin:0 0 8px">Giáo viên có thể đưa câu hỏi vào trò chơi theo <b>2 cách cực nhanh</b>:</p>
           <div style="display:flex;flex-direction:column">
             <div style="display:flex;gap:13px;padding:14px 0;border-bottom:1px dashed var(--line)">
-              <span style="flex:0 0 32px;height:32px;border-radius:50%;background:var(--primary-soft);color:var(--primary);font-weight:800;display:grid;place-items:center;font-size:16px">🌳</span>
+              <span style="flex:0 0 32px;height:32px;border-radius:50%;background:var(--primary-soft);color:var(--primary);font-weight:800;display:grid;place-items:center;font-size:16px">📚</span>
               <div style="flex:1;min-width:0">
-                <div style="font-weight:700;margin-bottom:3px">Cách 1: Chọn từ Kho Ngân hàng câu hỏi QMath (Theo Cây ID)</div>
-                <p class="muted" style="font-size:13.5px;margin:0 0 9px;line-height:1.55">Duyệt trực quan theo <b>Lớp → Phân môn → Chương → Bài → Dạng bài</b>, xem trước đầy đủ đề bài & lời giải rồi đưa vào game.</p>
-                <button class="btn btn-sm btn-primary" id="homeOpenBankPicker">🌳 Chọn câu hỏi từ Ngân hàng QMath</button>
+                <div style="font-weight:700;margin-bottom:3px">Cách 1: Chọn từng bước từ Ngân hàng câu hỏi QMath</div>
+                <p class="muted" style="font-size:13.5px;margin:0 0 9px;line-height:1.55">Chọn lần lượt <b>Lớp ➔ Phân môn ➔ Chương / Bài học ➔ Dạng bài</b>, bấm chọn câu hỏi và xem trước trực quan ngay bên cạnh.</p>
+                <button class="btn btn-sm btn-primary" id="homeOpenBankPicker">📚 Chọn câu hỏi từ Ngân hàng QMath</button>
               </div>
             </div>
             <div style="display:flex;gap:13px;padding:14px 0;border-bottom:1px dashed var(--line)">
               <span style="flex:0 0 32px;height:32px;border-radius:50%;background:var(--primary-soft);color:var(--primary);font-weight:800;display:grid;place-items:center;font-size:16px">📄</span>
               <div style="flex:1;min-width:0">
                 <div style="font-weight:700;margin-bottom:3px">Cách 2: Tải trực tiếp file Word (.docx) từ máy tính</div>
-                <p class="muted" style="font-size:13.5px;margin:0 0 9px;line-height:1.55">Hỗ trợ tự động bóc tách <b>Trắc nghiệm (A, B, C, D)</b>, <b>Đúng/Sai [ĐS]</b> và <b>Trả lời ngắn</b> từ file Word <b>.docx</b> (nhận diện gạch chân đáp án đúng, công thức Toán và hình ảnh).</p>
+                <p class="muted" style="font-size:13.5px;margin:0 0 9px;line-height:1.55">Nhận diện tự động công thức <b>MathType / LaTeX</b>, hình ảnh <b>EMF/WMF/PNG</b>, bảng biểu và gạch chân đáp án đúng giống hệt trình Tạo đề Word QMath.</p>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <button class="btn btn-sm btn-primary" id="openLocal">📄 Tải file Word (.docx) / Excel / JSON</button>
                   <button class="btn btn-sm btn-ghost" id="homeWordGuide">📘 Hướng dẫn chuẩn bị file Word & Tải mẫu</button>
@@ -113,7 +113,7 @@
             </div>
           </div></div>
       </section>
-      <footer class="foot">© ${new Date().getFullYear()} ${esc(st.siteName)} · Học vui mỗi ngày 💜</footer>
+      <footer class="foot">© ${new Date().getFullYear()} ${esc(st.siteName)} · QMath LMS</footer>
     </div>`;
     U.reveal(view);
     $$("[data-count]", view).forEach((b) => U.countUp(b, +b.dataset.count, 1400));

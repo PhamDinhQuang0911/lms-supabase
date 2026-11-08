@@ -75,7 +75,7 @@
     const presets = DB.allPresets(game.id);
     const facets = DB.facets();
     const v = S.view;
-    v.innerHTML = `<div class="page gsetup" style="--c1:${game.colors[0]};--c2:${game.colors[1]}">
+    v.innerHTML = `<div class="page gsetup" style="--c1:#1e3a8a;--c2:#2563eb">
       <section class="gs-show" data-reveal>
         <div class="gs-art">${Art.thumb(game.id)}</div>
         <div class="gs-info">
@@ -110,17 +110,17 @@
           <span class="lbl">Nguồn câu hỏi cho trò chơi</span>
           <div class="qm-src-toolbar">
             <button type="button" class="qm-src-card bank-card" id="qmPickBankBtn">
-              <div class="qm-src-ic">🌳</div>
+              <div class="qm-src-ic">📚</div>
               <div class="qm-src-txt">
-                <b>Chọn từ Ngân hàng QMath (Cây ID)</b>
-                <small>Chọn đúng Lớp, Phân môn, Bài, Dạng bài & Xem trước câu hỏi</small>
+                <b>Chọn từng bước từ Ngân hàng QMath</b>
+                <small>Chọn Lớp ➔ Phân môn ➔ Bài ➔ Dạng bài & Xem trước câu hỏi</small>
               </div>
             </button>
             <button type="button" class="qm-src-card word-card" id="qmPickWordBtn">
               <div class="qm-src-ic">📄</div>
               <div class="qm-src-txt">
                 <b>Đưa câu hỏi từ File Word (.docx)</b>
-                <small>Tải trực tiếp đề Word (.docx) từ máy tính lên chơi ngay</small>
+                <small>Nhận diện tự động công thức Toán, hình ảnh & đáp án</small>
               </div>
             </button>
           </div>

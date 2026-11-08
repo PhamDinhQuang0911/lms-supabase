@@ -1,8 +1,8 @@
 /* =========================================================
-   qmath-bridge.css — Giao diện Tích hợp QMath LMS:
+   qmath-bridge.css — Giao diện Tích hợp QMath LMS (Đồng bộ 1 màu chủ đạo #2563eb):
    1. Thanh hạn mức Giáo viên Free (4 lượt/tháng) & Modal mở khóa VIP
-   2. Cửa sổ 3 cột chọn câu hỏi trực quan theo Cây ID + Xem trước (Live Preview)
-   3. Cửa sổ Hướng dẫn chuẩn bị file Word (.docx)
+   2. Cửa sổ Chọn câu hỏi Ngân hàng QMath từng bước (Lớp ➔ Phân môn ➔ Bài ➔ Dạng ➔ Xem trước)
+   3. Chuẩn hiển thị câu hỏi Toán học (LaTeX, itemchoice, immini, bảng, TikZ) từ exam-editor
    ========================================================= */
 
 /* ---------- 1. Hạn mức Game & Nút công cụ nhanh trong màn Setup ---------- */
@@ -12,25 +12,28 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-radius: 16px;
+  border-radius: 14px;
   margin-bottom: 14px;
   font-size: 13.5px;
-  line-height: 1.4;
-  border: 1.5px solid rgba(108, 76, 245, 0.22);
-  background: linear-gradient(135deg, rgba(108, 76, 245, 0.08), rgba(255, 92, 157, 0.08));
+  line-height: 1.45;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
   flex-wrap: wrap;
 }
 .qm-setup-banner.is-free {
-  border-color: rgba(245, 158, 11, 0.4);
-  background: linear-gradient(135deg, rgba(254, 243, 199, 0.65), rgba(255, 237, 213, 0.65));
+  border-color: #bfdbfe;
+  background: #eff6ff;
 }
 .qm-setup-banner.is-exhausted {
-  border-color: rgba(239, 68, 68, 0.45);
-  background: linear-gradient(135deg, rgba(254, 226, 226, 0.75), rgba(254, 243, 199, 0.75));
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
 }
 .qm-setup-banner.is-vip {
-  border-color: rgba(16, 185, 129, 0.35);
-  background: linear-gradient(135deg, rgba(209, 250, 229, 0.6), rgba(224, 231, 255, 0.6));
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #065f46;
 }
 .qm-quota-left {
   display: flex;
@@ -46,15 +49,17 @@
   border-radius: 999px;
   font-weight: 800;
   font-size: 12px;
-  background: #fff;
-  color: #b45309;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  background: #ffffff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 .qm-setup-banner.is-vip .qm-quota-pill {
   color: #047857;
+  border-color: #a7f3d0;
 }
 .qm-setup-banner.is-exhausted .qm-quota-pill {
   color: #dc2626;
+  border-color: #fecaca;
 }
 .qm-quota-dots {
   display: inline-flex;
@@ -65,11 +70,11 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: rgba(180, 83, 9, 0.2);
-  border: 1.5px solid #d97706;
+  background: #dbeafe;
+  border: 1.5px solid #2563eb;
 }
 .qm-quota-dot.used {
-  background: #f59e0b;
+  background: #2563eb;
 }
 .qm-setup-banner.is-exhausted .qm-quota-dot.used {
   background: #ef4444;
@@ -80,19 +85,19 @@
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  border-radius: 11px;
-  font-weight: 800;
+  border-radius: 10px;
+  font-weight: 700;
   font-size: 12.5px;
-  border: none;
+  border: 1px solid #1d4ed8;
   cursor: pointer;
-  color: #fff;
-  background: linear-gradient(135deg, #f59e0b, #ea580c);
-  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  color: #ffffff;
+  background: #2563eb;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 .qm-vip-btn:hover {
+  background: #1d4ed8;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(234, 88, 12, 0.42);
 }
 
 /* Hộp công cụ chọn câu hỏi nhanh trong màn cấu hình Game */
@@ -106,39 +111,45 @@
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 11px 14px;
-  border-radius: 14px;
-  border: 1.5px solid var(--line, #e2e8f0);
-  background: var(--card, #fff);
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
   cursor: pointer;
   text-align: left;
-  transition: all 0.18s ease;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: all 0.16s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 .qm-src-card:hover {
-  transform: translateY(-2px);
-  border-color: #6c4cf5;
-  box-shadow: 0 8px 20px rgba(108, 76, 245, 0.14);
+  transform: translateY(-1px);
+  border-color: #2563eb;
+  background: #f8fafc;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.1);
 }
 .qm-src-card.bank-card {
-  border-color: rgba(108, 76, 245, 0.35);
-  background: linear-gradient(135deg, rgba(108, 76, 245, 0.06), rgba(59, 130, 246, 0.06));
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+.qm-src-card.bank-card:hover {
+  border-color: #2563eb;
+  background: #dbeafe;
 }
 .qm-src-card.word-card {
-  border-color: rgba(37, 99, 235, 0.35);
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(16, 185, 129, 0.06));
+  border-color: #cbd5e1;
+  background: #ffffff;
 }
 .qm-src-ic {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
   flex-shrink: 0;
-  background: #fff;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.07);
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  color: #2563eb;
 }
 .qm-src-txt {
   display: flex;
@@ -148,12 +159,12 @@
 }
 .qm-src-txt b {
   font-size: 13.5px;
-  color: var(--fg, #0f172a);
+  color: #0f172a;
 }
 .qm-src-txt small {
   font-size: 11.5px;
-  color: var(--muted, #64748b);
-  line-height: 1.3;
+  color: #64748b;
+  line-height: 1.35;
 }
 .qm-word-help-row {
   display: flex;
@@ -164,9 +175,10 @@
   margin-bottom: 10px;
   padding: 8px 12px;
   border-radius: 10px;
-  background: rgba(37, 99, 235, 0.06);
-  border: 1px dashed rgba(37, 99, 235, 0.3);
+  background: #eff6ff;
+  border: 1px dashed #93c5fd;
   font-size: 12.5px;
+  color: #1e3a8a;
 }
 .qm-link-btn {
   border: none;
@@ -183,22 +195,25 @@
   background: rgba(37, 99, 235, 0.1);
 }
 
-/* ---------- 2. CỬA SỔ 3 CỘT NGÂN HÀNG CÂU HỎI QMATH (DESKTOP STUDIO) ---------- */
+/* ---------- 2. MODAL CHỌN CÂU HỎI TỪNG BƯỚC (PROGRESSIVE WIZARD + SPLIT PREVIEW) ---------- */
 .modal.qm-bank-modal {
-  width: min(1420px, 96vw) !important;
-  max-width: 1420px !important;
-  height: min(880px, 92vh) !important;
-  max-height: 92vh !important;
+  width: min(1440px, 96vw) !important;
+  max-width: 1440px !important;
+  height: min(900px, 93vh) !important;
+  max-height: 93vh !important;
   display: flex;
   flex-direction: column;
   padding: 0 !important;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 18px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
 }
 .modal.qm-bank-modal .modal-h {
   padding: 14px 20px;
   border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(90deg, #f8fafc, #eff6ff);
+  background: #ffffff;
+  color: #0f172a;
   margin: 0;
 }
 .modal.qm-bank-modal .modal-b {
@@ -207,11 +222,12 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  background: #f8fafc;
 }
 .modal.qm-bank-modal .modal-f {
   padding: 12px 20px;
   border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
+  background: #ffffff;
   margin: 0;
   display: flex;
   align-items: center;
@@ -220,166 +236,410 @@
   flex-wrap: wrap;
 }
 
-/* Khung 3 cột chính */
-.qmb-studio {
+.qmb-progressive-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Thanh Stepper từng bước trên cùng */
+.qmb-step-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+}
+.qmb-steps-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.qmb-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.qmb-step-pill:hover:not(.disabled) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.qmb-step-pill.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+.qmb-step-pill.done {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+.qmb-step-pill.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.qmb-step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.qmb-step-pill.active .qmb-step-num {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+.qmb-step-pill.done .qmb-step-num {
+  background: #2563eb;
+  color: #ffffff;
+}
+.qmb-step-arr {
+  color: #94a3b8;
+  font-weight: 700;
+  font-size: 14px;
+  user-select: none;
+}
+
+.qmb-source-tabs {
+  display: inline-flex;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+.qmb-src-tab {
+  border: none;
+  background: transparent;
+  padding: 5px 11px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.qmb-src-tab.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+/* Màn hình chọn từng bước (Bước 1: Lớp, Bước 2: Phân môn, Bước 3: Bài học) */
+.qmb-wizard-stage {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  background: #f8fafc;
+}
+.qmb-wizard-box {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.qmb-wizard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.qmb-wizard-header h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 4px 0;
+}
+.qmb-wizard-header p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #64748b;
+}
+.qmb-wiz-step-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.qmb-card-grid {
   display: grid;
-  grid-template-columns: 320px 440px 1fr;
+  gap: 14px;
+}
+.qmb-card-grid.cols-4 {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+.qmb-card-grid.cols-3 {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.qmb-choice-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 18px;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.16s ease;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+}
+.qmb-choice-card:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.1);
+}
+.qmb-cc-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.qmb-choice-card:hover .qmb-cc-icon {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+.qmb-cc-info {
+  flex: 1;
+  min-width: 0;
+}
+.qmb-cc-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 3px;
+}
+.qmb-cc-sub {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+.qmb-cc-arrow {
+  font-size: 18px;
+  font-weight: 800;
+  color: #2563eb;
+  opacity: 0.7;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.qmb-choice-card:hover .qmb-cc-arrow {
+  transform: translateX(4px);
+  opacity: 1;
+}
+
+/* Bước 3: Danh sách Chương & Bài học */
+.qmb-chapters-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.qmb-chapter-block {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
+}
+.qmb-chapter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+}
+.qmb-chapter-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: #0f172a;
+}
+.qmb-chapter-Icon {
+  font-size: 17px;
+}
+.qmb-lesson-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  padding: 14px 16px;
+}
+.qmb-lesson-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+.qmb-lesson-card:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+.qmb-lc-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.qmb-lc-title {
+  font-size: 13.8px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.4;
+}
+.qmb-lc-count {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.qmb-lc-foot {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Bước 4: Thanh Dạng bài + Cửa sổ 2 cột (Danh sách câu hỏi & Xem trước) */
+.qmb-work-stage {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.qmb-dang-strip {
+  padding: 10px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qmb-dang-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.qmb-dang-label {
+  font-size: 12.5px;
+  color: #334155;
+}
+.qmb-dang-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.qmb-dang-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.14s ease;
+}
+.qmb-dang-pill:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.qmb-dang-pill.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+.qmb-dang-cnt {
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+}
+.qmb-dang-pill.active .qmb-dang-cnt {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.qmb-split-2col {
+  display: grid;
+  grid-template-columns: 460px 1fr;
   flex: 1;
   min-height: 0;
   overflow: hidden;
   background: #f8fafc;
 }
-@media (max-width: 1120px) {
-  .qmb-studio {
-    grid-template-columns: 260px 350px 1fr;
+@media (max-width: 1024px) {
+  .qmb-split-2col {
+    grid-template-columns: 380px 1fr;
   }
 }
-@media (max-width: 860px) {
-  .qmb-studio {
+@media (max-width: 780px) {
+  .qmb-split-2col {
     grid-template-columns: 1fr;
     overflow-y: auto;
   }
 }
 
-/* Cột 1: Cây MapID */
-.qmb-col-tree {
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid #e2e8f0;
-  background: #ffffff;
-  min-height: 0;
-}
-.qmb-pane-head {
-  padding: 12px 14px;
-  border-bottom: 1px solid #f1f5f9;
-  background: #f8fafc;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.qmb-pane-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 800;
-  font-size: 13px;
-  color: #1e293b;
-}
-.qmb-tree-tools {
-  display: flex;
-  gap: 6px;
-}
-.qmb-mini-btn {
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #475569;
-  border-radius: 7px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.qmb-mini-btn:hover {
-  border-color: #6c4cf5;
-  color: #6c4cf5;
-}
-.qmb-tree-search {
-  width: 100%;
-  padding: 7px 10px;
-  border-radius: 9px;
-  border: 1px solid #cbd5e1;
-  font-size: 12.5px;
-  outline: none;
-}
-.qmb-tree-search:focus {
-  border-color: #6c4cf5;
-  box-shadow: 0 0 0 2px rgba(108, 76, 245, 0.15);
-}
-.qmb-tree-scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 10px 18px;
-}
-.qmb-tree-node {
-  user-select: none;
-}
-.qmb-tree-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 9px;
-  cursor: pointer;
-  font-size: 12.5px;
-  color: #334155;
-  transition: background 0.12s ease, color 0.12s ease;
-  margin-bottom: 2px;
-}
-.qmb-tree-row:hover {
-  background: #f1f5f9;
-}
-.qmb-tree-row.active {
-  background: #ede9fe;
-  color: #5b21b6;
-  font-weight: 800;
-}
-.qmb-tree-caret {
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: #64748b;
-  border-radius: 5px;
-  flex-shrink: 0;
-}
-.qmb-tree-caret:hover {
-  background: rgba(0, 0, 0, 0.06);
-}
-.qmb-tree-id {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 10.5px;
-  font-weight: 800;
-  padding: 1px 5px;
-  border-radius: 5px;
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-  flex-shrink: 0;
-}
-.qmb-tree-row.active .qmb-tree-id {
-  background: #6c4cf5;
-  color: #fff;
-  border-color: #6c4cf5;
-}
-.qmb-tree-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.qmb-tree-cnt {
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: #f1f5f9;
-  color: #64748b;
-  flex-shrink: 0;
-}
-.qmb-tree-cnt.has-q {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-.qmb-tree-children {
-  padding-left: 15px;
-  border-left: 1.5px dashed #e2e8f0;
-  margin-left: 9px;
-}
-
-/* Cột 2: Danh sách câu hỏi & Bộ lọc */
 .qmb-col-list {
   display: flex;
   flex-direction: column;
@@ -387,41 +647,34 @@
   background: #f8fafc;
   min-height: 0;
 }
-.qmb-source-tabs {
+.qmb-list-toolbar {
+  padding: 10px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
-  gap: 4px;
-  background: #e2e8f0;
-  padding: 3px;
-  border-radius: 10px;
+  flex-direction: column;
+  gap: 8px;
 }
-.qmb-source-tab {
-  flex: 1;
-  border: none;
-  background: transparent;
-  padding: 5px 8px;
-  border-radius: 7px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.15s;
+.qmb-search-input {
+  width: 100%;
+  padding: 7px 11px;
+  border-radius: 9px;
+  border: 1px solid #cbd5e1;
+  font-size: 12.5px;
+  outline: none;
+  background: #f8fafc;
 }
-.qmb-source-tab.active {
-  background: #fff;
-  color: #6c4cf5;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+.qmb-search-input:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
-.qmb-breadcrumb {
-  font-size: 11.5px;
-  color: #475569;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  padding: 5px 9px;
-  border-radius: 8px;
+.qmb-filter-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
+  flex-wrap: wrap;
 }
 .qmb-filter-pills {
   display: flex;
@@ -430,7 +683,7 @@
 }
 .qmb-pill {
   border: 1px solid #cbd5e1;
-  background: #fff;
+  background: #ffffff;
   color: #475569;
   font-size: 11px;
   font-weight: 700;
@@ -438,22 +691,52 @@
   border-radius: 999px;
   cursor: pointer;
 }
-.qmb-pill.active {
-  background: #6c4cf5;
-  color: #fff;
-  border-color: #6c4cf5;
+.qmb-pill:hover {
+  border-color: #93c5fd;
+  color: #2563eb;
 }
-.qmb-batch-bar {
+.qmb-pill.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+.qmb-list-subbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   padding: 7px 12px;
-  background: #fff;
+  background: #f1f5f9;
   border-bottom: 1px solid #e2e8f0;
   font-size: 12px;
+  color: #334155;
 }
-.qmb-list-scroll {
+.qmb-mini-btn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 7px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+.qmb-mini-btn:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: #eff6ff;
+}
+.qmb-mini-btn.primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+.qmb-mini-btn.primary:hover {
+  background: #1d4ed8;
+}
+
+.qmb-qlist-scroll {
   flex: 1;
   overflow-y: auto;
   padding: 10px;
@@ -461,42 +744,43 @@
   flex-direction: column;
   gap: 8px;
 }
-.qmb-qitem {
+.qmb-qcard {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-radius: 12px;
-  background: #fff;
+  background: #ffffff;
   border: 1.5px solid #e2e8f0;
   cursor: pointer;
   transition: all 0.14s ease;
 }
-.qmb-qitem:hover {
-  border-color: #94a3b8;
+.qmb-qcard:hover {
+  border-color: #93c5fd;
 }
-.qmb-qitem.previewing {
-  border-color: #6c4cf5;
-  box-shadow: 0 0 0 3px rgba(108, 76, 245, 0.14);
-  background: #faf5ff;
+.qmb-qcard.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
 }
-.qmb-qitem.selected {
+.qmb-qcard.checked {
+  border-color: #10b981;
   background: #f0fdf4;
-  border-color: #22c55e;
 }
-.qmb-qitem.selected.previewing {
-  border-color: #6c4cf5;
-  box-shadow: 0 0 0 3px rgba(108, 76, 245, 0.2);
+.qmb-qcard.checked.active {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+}
+.qmb-qcheck-wrap {
+  padding-top: 2px;
 }
 .qmb-qcheck {
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
-  accent-color: #16a34a;
+  width: 17px;
+  height: 17px;
+  accent-color: #2563eb;
   cursor: pointer;
-  flex-shrink: 0;
 }
-.qmb-qmain {
+.qmb-qbody {
   flex: 1;
   min-width: 0;
 }
@@ -505,93 +789,114 @@
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
+}
+.qmb-qidx {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #0f172a;
 }
 .qmb-badge {
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 10.5px;
+  font-weight: 700;
   padding: 1.5px 6px;
   border-radius: 5px;
   display: inline-flex;
   align-items: center;
 }
-.qmb-badge.mapid {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
-}
-.qmb-badge.type-MC { background: #ede9fe; color: #6d28d9; }
-.qmb-badge.type-TF { background: #fce7f3; color: #be185d; }
-.qmb-badge.type-SA { background: #dcfce7; color: #15803d; }
-.qmb-badge.lv-nb { background: #ecfdf5; color: #047857; }
+.qmb-badge.type-MC { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.qmb-badge.type-TF { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.qmb-badge.type-SA { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+.qmb-badge.lv-nb { background: #f1f5f9; color: #334155; }
 .qmb-badge.lv-th { background: #eff6ff; color: #1d4ed8; }
 .qmb-badge.lv-vd { background: #fff7ed; color: #c2410c; }
 .qmb-badge.lv-vdc { background: #fef2f2; color: #b91c1c; }
+.qmb-badge.topic { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
 
-.qmb-qsnippet {
-  font-size: 12.8px;
+.qmb-qstem-snip {
+  font-size: 13px;
   color: #1e293b;
-  line-height: 1.45;
+  line-height: 1.5;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.qmb-qstem-snip p {
+  margin: 0;
+}
 
-/* Cột 3: Xem trước câu hỏi trực quan (Live Preview) */
+/* Cột phải: Xem trước chi tiết câu hỏi (Live Preview chuẩn exam-editor) */
 .qmb-col-preview {
   display: flex;
   flex-direction: column;
   background: #ffffff;
   min-height: 0;
 }
+.qmb-preview-head {
+  padding: 10px 18px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: #0f172a;
+}
 .qmb-preview-scroll {
   flex: 1;
   overflow-y: auto;
   padding: 20px 24px;
 }
-.qmb-preview-card {
+.qmb-prev-card {
   background: #ffffff;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 18px 20px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
-.qmb-preview-stem {
-  font-size: 15px;
-  line-height: 1.65;
-  color: #0f172a;
-  margin: 12px 0 16px;
+.qmb-prev-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   padding-bottom: 12px;
-  border-bottom: 1px dashed #e2e8f0;
+  border-bottom: 1px solid #f1f5f9;
 }
-.qmb-preview-opts {
+.qmb-prev-stem {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: #0f172a;
+  margin: 14px 0 18px;
+}
+.qmb-prev-opts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 10px;
   margin-bottom: 16px;
 }
-.qmb-preview-opt {
-  padding: 10px 14px;
-  border-radius: 12px;
+.qmb-prev-opt {
+  padding: 11px 14px;
+  border-radius: 11px;
   border: 1.5px solid #e2e8f0;
   background: #f8fafc;
-  font-size: 13.5px;
-  color: #334155;
+  font-size: 14px;
+  color: #1e293b;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
+  line-height: 1.5;
 }
-.qmb-preview-opt.is-correct {
-  background: #ecfdf5;
+.qmb-prev-opt.correct {
+  background: #f0fdf4;
   border-color: #10b981;
   color: #065f46;
-  font-weight: 700;
+  font-weight: 600;
 }
-.qmb-preview-opt-key {
-  width: 24px;
-  height: 24px;
+.qmb-opt-letter {
+  width: 25px;
+  height: 25px;
   border-radius: 7px;
   background: #e2e8f0;
   color: #334155;
@@ -602,22 +907,107 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.qmb-preview-opt.is-correct .qmb-preview-opt-key {
+.qmb-prev-opt.correct .qmb-opt-letter {
   background: #10b981;
-  color: #fff;
+  color: #ffffff;
 }
-.qmb-preview-solution {
-  background: #f8fafc;
-  border-left: 4px solid #6c4cf5;
+.qmb-opt-txt {
+  flex: 1;
+  min-width: 0;
+}
+.qmb-prev-sa {
   padding: 12px 16px;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #065f46;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.qmb-prev-sol {
+  background: #f8fafc;
+  border-left: 4px solid #2563eb;
+  padding: 14px 16px;
   border-radius: 0 12px 12px 0;
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: #334155;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #1e293b;
   margin-top: 14px;
 }
+.qmb-prev-sol-title {
+  font-weight: 800;
+  color: #1d4ed8;
+  margin-bottom: 6px;
+  font-size: 13.5px;
+}
 
-/* ---------- 3. Cửa sổ Hướng dẫn chuẩn bị File Word (.docx) ---------- */
+/* ---------- 3. CHUẨN HIỂN THỊ TOÁN HỌC QMATH (TỪ UTILS.JS & EXAM-EDITOR.HTML) ---------- */
+.qm-ic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+.qm-ic-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid #e2e8f0;
+}
+.qm-ic-badge {
+  font-weight: 800;
+  color: #2563eb;
+  min-width: 22px;
+}
+.qm-ic-body {
+  flex: 1;
+  min-width: 0;
+}
+.qm-nx-box {
+  margin: 10px 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #eff6ff;
+  border-left: 3.5px solid #2563eb;
+  font-size: 0.95em;
+}
+.qm-tbl-wrap {
+  overflow-x: auto;
+  margin: 10px 0;
+}
+.qm-latex-tbl {
+  border-collapse: collapse;
+  margin: 0 auto;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.95em;
+}
+.qm-latex-tbl td,
+.qm-latex-tbl th {
+  border: 1px solid #94a3b8;
+  padding: 6px 12px;
+}
+.qm-ol-list,
+.qm-ul-list {
+  margin: 6px 0 6px 20px;
+  padding: 0;
+}
+.qm-img-wrap {
+  text-align: center;
+  margin: 8px 0;
+}
+.qm-img-wrap img,
+.tikz-container img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+/* ---------- 4. Cửa sổ Hướng dẫn chuẩn bị File Word (.docx) ---------- */
 .qm-word-guide-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -633,7 +1023,7 @@
 .qm-wg-step b {
   display: block;
   font-size: 12.5px;
-  color: #1e293b;
+  color: #0f172a;
   margin-bottom: 4px;
 }
 .qm-wg-step p {

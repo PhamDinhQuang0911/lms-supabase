@@ -1,8 +1,12 @@
 /* =========================================================
-   qmath-bridge.js — Cầu nối tích hợp Sân Chơi Trí Thức vào QMath LMS
-   1. Đồng bộ tài khoản Giáo viên QMath & Quản lý hạn mức 4 lượt tạo Game/tháng cho GV Free + Mở khóa GV VIP
-   2. Cửa sổ 3 cột Chọn câu hỏi trực quan từ Ngân hàng QMath theo Cây MapID + Xem trước câu hỏi (Live Preview)
-   3. Nhập câu hỏi từ file Word (.docx) + Hướng dẫn chuẩn bị file Word (.docx) & Tải file mẫu
+   qmath-bridge.js — Cầu nối tích hợp Sân Chơi Tri Thức vào QMath LMS
+   1. Tự động đồng bộ tài khoản Giáo viên QMath (SSO không cần đăng nhập lại)
+      & Quản lý hạn mức 4 lượt tạo Game/tháng cho GV Free + Mở khóa GV VIP
+   2. Cửa sổ Chọn câu hỏi từ Kho Ngân hàng QMath theo từng bước trực quan:
+      Bước 1: Chọn Lớp ➔ Bước 2: Chọn Phân môn ➔ Bước 3: Chọn Chương / Bài học
+      ➔ Bước 4: Chọn Dạng bài ➔ Chọn từng câu hỏi kèm Khung Xem Trước (Live Preview)
+      chuẩn hiển thị như trang Sửa đề thi (exam-editor.html)
+   3. Nhập câu hỏi từ file Word (.docx) nhận diện công thức Toán MathType & Hình ảnh EMF/PNG
    ========================================================= */
 (function () {
   const SUPABASE_URL = "https://cuniqanbumcrqcdlcvad.supabase.co";
@@ -24,7 +28,7 @@
           id: "D", name: "Giải tích 12", level: 1, children: [
             { id: "1", name: "Chương 1. Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số", level: 2, children: [
               { id: "1", name: "Bài 1. Tính đơn điệu và cực trị của hàm số", level: 3, children: [
-                { id: "1", name: "Dạng 1. Xét tính đồng biến, nghịch biến từ bảng biến thiên / đồ thị", level: 4 },
+                { id: "1", name: "Dạng 1. Xét tính đồng biến, nghịch biến của hàm số", level: 4 },
                 { id: "2", name: "Dạng 2. Tìm cực trị của hàm số", level: 4 },
                 { id: "3", name: "Dạng 3. Tìm tham số m để hàm số đơn điệu / có cực trị", level: 4 }
               ]},
@@ -36,7 +40,7 @@
             { id: "2", name: "Chương 2. Nguyên hàm, Tích phân và Ứng dụng", level: 2, children: [
               { id: "1", name: "Bài 1. Nguyên hàm", level: 3 },
               { id: "2", name: "Bài 2. Tích phân", level: 3 },
-              { id: "3", name: "Bài 3. Ứng dụng hình học của tích phân (Diện tích, Thể tích)", level: 3 }
+              { id: "3", name: "Bài 3. Ứng dụng hình học của tích phân", level: 3 }
             ]}
           ]
         },
@@ -181,7 +185,7 @@
     }
   ];
 
-  /* ---------- Helper gọi Supabase REST API ---------- */
+  /* ---------- Helper gọi Supabase REST API (Sử dụng select=* để tương thích 100% bảng) ---------- */
   async function sbFetch(path, options) {
     options = options || {};
     const headers = Object.assign({
@@ -255,32 +259,30 @@
             QB.user = {
               uid: parsed.uid || parsed.id,
               email: (parsed.email || "").toLowerCase().trim(),
-              displayName: parsed.displayName || parsed.display_name || parsed.name || (parsed.email || "").split("@")[0] || "Giáo viên",
+              displayName: parsed.displayName || parsed.display_name || parsed.name || (parsed.email || "").split("@")[0] || "Giáo viên QMath",
               photoURL: parsed.photoURL || parsed.photo_url || "",
               role: parsed.role || "teacher",
-              teacherTier: parsed.teacherTier || "free"
+              teacherTier: parsed.teacherTier || (parsed.raw_data && parsed.raw_data.teacherTier) || "free"
             };
           }
         }
       } catch (e) {}
 
-      // Kiểm tra Super Admin theo email gốc
       if (QB.user && ROOT_ADMIN_EMAILS.includes(QB.user.email)) {
         QB.tier = "super_admin";
         QB.role = "super_admin";
       } else if (QB.user) {
-        // Đồng bộ vai trò và hạn mức từ bảng configurations/admin_roles & users trên Supabase
         try {
           const [cfgRows, userRows] = await Promise.all([
-            sbFetch("configurations?id=eq.admin_roles&select=id,data,raw_data").catch(() => []),
-            QB.user.uid ? sbFetch(`users?id=eq.${encodeURIComponent(QB.user.uid)}&select=id,email,role,raw_data`).catch(() => []) : Promise.resolve([])
+            sbFetch("configurations?id=eq.admin_roles&select=*").catch(() => []),
+            QB.user.uid ? sbFetch(`users?id=eq.${encodeURIComponent(QB.user.uid)}&select=*`).catch(() => []) : Promise.resolve([])
           ]);
 
           let resolvedTier = QB.user.teacherTier || "free";
           let resolvedRole = QB.user.role || "teacher";
 
           if (Array.isArray(cfgRows) && cfgRows.length > 0) {
-            const cfgData = cfgRows[0].data || cfgRows[0].raw_data || {};
+            const cfgData = cfgRows[0].raw_data || cfgRows[0].data || {};
             const accounts = Array.isArray(cfgData.accounts) ? cfgData.accounts : [];
             const found = accounts.find((a) => (a.email || "").toLowerCase().trim() === QB.user.email);
             if (found) {
@@ -307,7 +309,6 @@
               if (resolvedTier !== "vip" && resolvedTier !== "super_admin") resolvedTier = "free";
             }
 
-            // Đồng bộ số lượt đã tạo game trong tháng từ Supabase về localStorage
             const mKey = getMonthKey();
             const remoteQuota = (rData.gameMonthlyQuota && Number(rData.gameMonthlyQuota[mKey])) || 0;
             const localQuota = getLocalQuotaCount(mKey);
@@ -323,22 +324,12 @@
         }
       }
 
-      // Cầu nối sang FB của Sân Chơi Trí Thức để Giáo viên QMath không cần đăng nhập lần 2
       if (QB.user && window.FB) {
-        const isTeacherOrAdmin = ["super_admin", "sub_admin", "teacher", "teacher_free", "admin"].includes(QB.role) || ROOT_ADMIN_EMAILS.includes(QB.user.email);
-        if (!FB.user) {
-          FB.user = {
-            uid: QB.user.uid,
-            email: QB.user.email,
-            displayName: QB.user.displayName,
-            photoURL: QB.user.photoURL
-          };
+        if (typeof FB.syncLmsAuth === "function") {
+          FB.syncLmsAuth();
         }
-        if (isTeacherOrAdmin) {
-          FB.isAdmin = true;
-          if (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.adminEmails) && QB.user.email && !window.APP_CONFIG.adminEmails.includes(QB.user.email)) {
-            window.APP_CONFIG.adminEmails.push(QB.user.email);
-          }
+        if (window.App && typeof App.buildDrawer === "function") {
+          try { App.buildDrawer(); } catch (e) {}
         }
       }
 
@@ -347,7 +338,7 @@
     return QB.readyPromise;
   };
 
-  /* ---------- 2. Kiểm tra & Trừ lượt Tạo Game hàng tháng (Yêu cầu 3) ---------- */
+  /* ---------- 2. Kiểm tra & Trừ lượt Tạo Game hàng tháng ---------- */
   QB.getQuotaStatus = () => {
     const monthKey = getMonthKey();
     const isSuper = QB.tier === "super_admin" || (QB.user && ROOT_ADMIN_EMAILS.includes(QB.user.email));
@@ -383,7 +374,6 @@
     const nextUsed = st.used + 1;
     setLocalQuotaCount(st.monthKey, nextUsed);
 
-    // Đồng bộ lên Supabase users.raw_data.gameMonthlyQuota
     if (QB.user && QB.user.uid) {
       (async () => {
         try {
@@ -414,23 +404,23 @@
     const st = QB.getQuotaStatus();
     const [year, month] = st.monthKey.split("-");
     const body = U.h(`<div>
-      <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #f59e0b;border-radius:16px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
-        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#f59e0b,#ea580c);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;box-shadow:0 6px 14px rgba(234,88,12,0.3)">👑</div>
+      <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:14px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px">
+        <div style="width:48px;height:48px;border-radius:12px;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">👑</div>
         <div>
-          <div style="font-weight:900;font-size:15.5px;color:#92400e">Đã hết ${st.max}/${st.max} lượt tạo Game miễn phí trong tháng ${month}/${year}</div>
-          <div style="font-size:13px;color:#b45309;margin-top:3px">Tài khoản <b>Giáo viên Miễn phí (Free)</b> được tạo tối đa <b>${st.max} lần chơi Game / tháng</b>${gameName ? ` (Trò chơi: <b>${U.esc(gameName)}</b>)` : ""}.</div>
+          <div style="font-weight:800;font-size:15.5px;color:#1e3a8a">Đã hết ${st.max}/${st.max} lượt tạo Game miễn phí trong tháng ${month}/${year}</div>
+          <div style="font-size:13px;color:#1e40af;margin-top:3px">Tài khoản <b>Giáo viên Miễn phí (Free)</b> được tạo tối đa <b>${st.max} lần chơi Game / tháng</b>${gameName ? ` (Trò chơi: <b>${U.esc(gameName)}</b>)` : ""}.</div>
         </div>
       </div>
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-bottom:12px">
-        <div style="font-weight:800;font-size:13.5px;color:#0f172a;margin-bottom:8px">✨ Quyền lợi đặc biệt khi nâng cấp Giáo viên VIP QMath:</div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:12px">
+        <div style="font-weight:800;font-size:13.5px;color:#0f172a;margin-bottom:8px">Quyền lợi khi nâng cấp Giáo viên VIP QMath:</div>
         <ul style="margin:0;padding-left:20px;font-size:13px;color:#334155;line-height:1.7">
-          <li>🎮 <b>Tạo & tổ chức KHÔNG GIỚI HẠN</b> toàn bộ 14+ trò chơi học tập trực tuyến & tại lớp.</li>
-          <li>🌳 <b>Khai thác kho Ngân hàng câu hỏi QMath</b> theo Cây ID (Lớp 6–12, Phân môn, Chương, Bài, Dạng bài).</li>
-          <li>📄 <b>Nhập đề từ file Word (.docx)</b>, Trộn đề trắc nghiệm Word & Chấm phiếu OMR bằng Camera.</li>
-          <li>🏫 <b>Quản lý Lớp học, Học sinh & Giao bài tập về nhà</b> tự động chấm điểm chi tiết.</li>
+          <li><b>Tạo & tổ chức KHÔNG GIỚI HẠN</b> toàn bộ 14+ trò chơi học tập trực tuyến & tại lớp.</li>
+          <li><b>Khai thác kho Ngân hàng câu hỏi QMath</b> đầy đủ Lớp 6–12 theo Phân môn, Bài học, Dạng bài.</li>
+          <li><b>Nhập đề từ file Word (.docx)</b>, Trộn đề trắc nghiệm Word & Chấm phiếu OMR bằng Camera.</li>
+          <li><b>Quản lý Lớp học, Học sinh & Giao bài tập về nhà</b> tự động chấm điểm chi tiết.</li>
         </ul>
       </div>
-      <p style="margin:0;font-size:12.5px;color:#64748b;text-align:center">Nâng cấp chỉ trong 30 giây qua mã VietQR tự động kích hoạt 24/7 trên Bảng điều khiển Giáo viên.</p>
+      <p style="margin:0;font-size:12.5px;color:#64748b;text-align:center">Nâng cấp tự động trong 30 giây qua mã VietQR trên Bảng điều khiển Giáo viên.</p>
     </div>`);
 
     return U.modal({
@@ -471,7 +461,7 @@
       if (st.isVip || st.isSuper) {
         hostEl.innerHTML = `<div class="qm-setup-banner is-vip">
           <div class="qm-quota-left">
-            <span class="qm-quota-pill">👑 ${st.isSuper ? "Root Super Admin" : "Giáo viên VIP"}</span>
+            <span class="qm-quota-pill">👑 ${st.isSuper ? "Super Admin" : "Giáo viên VIP"}</span>
             <span>Tài khoản của Thầy/Cô được <b>tạo Game học tập không giới hạn</b> trong mọi tháng.</span>
           </div>
           <a href="../dashboard.html" class="btn btn-sm btn-ghost">← Về Bảng điều khiển LMS</a>
@@ -496,22 +486,24 @@
     QB.init().then(render);
   };
 
-  /* ---------- 3. Đọc API MathType từ cấu hình QMath LMS ---------- */
+  /* ---------- 3. Đọc API MathType từ cấu hình QMath LMS (Sử dụng select=* để đọc đúng cột raw_data) ---------- */
   QB.getMathTypeApiUrl = async () => {
     if (QB.mathTypeApiUrl !== null) return QB.mathTypeApiUrl;
     try {
-      const rows = await sbFetch("configurations?id=eq.mathtype_api&select=id,data,raw_data");
+      const rows = await sbFetch("configurations?id=eq.mathtype_api&select=*");
       if (Array.isArray(rows) && rows.length > 0) {
-        const d = rows[0].data || rows[0].raw_data || {};
+        const d = rows[0].raw_data || rows[0].data || {};
         QB.mathTypeApiUrl = String(d.url || "").trim();
         return QB.mathTypeApiUrl;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("[QMathBridge] Không đọc được cấu hình mathtype_api:", e);
+    }
     QB.mathTypeApiUrl = "";
     return "";
   };
 
-  /* ---------- 4. Cửa sổ Hướng dẫn chuẩn bị File Word (.docx) & Tải file mẫu (Yêu cầu 1) ---------- */
+  /* ---------- 4. Cửa sổ Hướng dẫn chuẩn bị File Word (.docx) & Tải file mẫu ---------- */
   const SAMPLE_WORD_TEXT = `ĐỀ THI MẪU CHUẨN ĐỊNH DẠNG ĐƯA LÊN TRÒ CHƠI (.DOCX)
 
 Câu 1. [NB] Cho tam giác ABC vuông tại A có AB = 6 cm, AC = 8 cm. Bán kính R của đường tròn ngoại tiếp tam giác ABC bằng:
@@ -553,28 +545,28 @@ Quãng đường vật đi được là $S = \\int_0^5 4t\\,dt = 2 \\cdot 5^2 = 
           <p><u>Gạch chân</u> chữ cái đúng (<b><u>A.</u></b>, <b><u>a)</u></b>), hoặc đặt dấu sao <b>*A.</b>, hoặc ghi <code>Chọn A</code> / <code>Đáp án: 50</code> ở lời giải.</p>
         </div>
         <div class="qm-wg-step">
-          <b>📐 4. Công thức Toán & Ảnh</b>
-          <p>Hỗ trợ công thức LaTeX <code>$...$</code>, MathType và hình ảnh chèn trực tiếp trong văn bản Word.</p>
+          <b>📐 4. Công thức Toán & Hình ảnh</b>
+          <p>Hỗ trợ tự động nhận diện công thức <b>MathType</b>, <b>LaTeX <code>$...$</code></b> và mọi <b>hình vẽ / bảng biểu</b> trong Word (giống hệt phần Tạo đề thi bằng file Word).</p>
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-bottom:14px">
-        <div style="padding:11px 13px;border-radius:12px;border:1px solid #dbeafe;background:#eff6ff">
-          <div style="font-weight:800;font-size:12.5px;color:#1e40af;margin-bottom:4px">🎯 Dạng 1: Trắc nghiệm 4 lựa chọn (MC)</div>
+        <div style="padding:11px 13px;border-radius:10px;border:1px solid #dbeafe;background:#eff6ff">
+          <div style="font-weight:800;font-size:12.5px;color:#1e40af;margin-bottom:4px">1. Trắc nghiệm 4 lựa chọn (MC)</div>
           <div style="font-size:12px;color:#334155;line-height:1.5">
-            • 4 phương án viết <b>A.</b> <b>B.</b> <b>C.</b> <b>D.</b> (cùng dòng hoặc xuống dòng).<br>
-            • Đáp án đúng: <u>Gạch chân</u> chữ cái (VD: <b><u>A.</u></b>), hoặc ghi <b>*A.</b>, hoặc ghi <code>Chọn A</code> trong Lời giải, hoặc đặt Bảng đáp án <code>1.A 2.B</code> ở cuối đề sau chữ <code>HẾT</code>.
+            • 4 phương án viết <b>A.</b> <b>B.</b> <b>C.</b> <b>D.</b> (cùng dòng, xuống dòng hoặc trong bảng).<br>
+            • Đáp án đúng: <u>Gạch chân</u> chữ cái (VD: <b><u>A.</u></b>), hoặc ghi <b>*A.</b>, hoặc ghi <code>Chọn A</code> trong Lời giải, hoặc đặt Bảng đáp án cuối đề.
           </div>
         </div>
-        <div style="padding:11px 13px;border-radius:12px;border:1px solid #fce7f3;background:#fdf2f8">
-          <div style="font-weight:800;font-size:12.5px;color:#9d174d;margin-bottom:4px">⚖️ Dạng 2: Đúng / Sai 4 ý (TF)</div>
+        <div style="padding:11px 13px;border-radius:10px;border:1px solid #dbeafe;background:#f8fafc">
+          <div style="font-weight:800;font-size:12.5px;color:#1e40af;margin-bottom:4px">2. Đúng / Sai 4 ý (TF)</div>
           <div style="font-size:12px;color:#334155;line-height:1.5">
             • Ghi nhãn <b>[ĐS]</b> ở đầu câu, theo sau là 4 ý <b>a)</b>, <b>b)</b>, <b>c)</b>, <b>d)</b>.<br>
             • Cuối mỗi ý ghi <b>[Đúng]</b> hoặc <b>[Sai]</b>, HOẶC <u>gạch chân</u> chữ cái của các ý Đúng (VD: <b><u>a)</u></b>), HOẶC ghi <code>Đáp án: ĐSĐS</code>.
           </div>
         </div>
-        <div style="padding:11px 13px;border-radius:12px;border:1px solid #dcfce7;background:#f0fdf4">
-          <div style="font-weight:800;font-size:12.5px;color:#166534;margin-bottom:4px">⌨️ Dạng 3: Trả lời ngắn / Điền đáp số (SA)</div>
+        <div style="padding:11px 13px;border-radius:10px;border:1px solid #dbeafe;background:#f8fafc">
+          <div style="font-weight:800;font-size:12.5px;color:#1e40af;margin-bottom:4px">3. Trả lời ngắn / Điền số (SA)</div>
           <div style="font-size:12px;color:#334155;line-height:1.5">
             • Câu hỏi không có A, B, C, D.<br>
             • Cuối đề bài hoặc trong mục <b>Lời giải:</b> ghi rõ:<br>
@@ -584,7 +576,7 @@ Quãng đường vật đi được là $S = \\int_0^5 4t\\,dt = 2 \\cdot 5^2 = 
       </div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-        <b style="font-size:12.5px;color:#1e293b">📋 Mẫu văn bản chuẩn (có thể sao chép dán vào Word):</b>
+        <b style="font-size:12.5px;color:#1e293b">Mẫu văn bản chuẩn (có thể sao chép dán vào Word):</b>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button type="button" class="btn btn-sm btn-ghost" id="wgCopyBtn">📋 Sao chép văn bản mẫu</button>
           <a href="../mau_de_tron_chuan.docx" download="De_Mau_Game_QMath.docx" class="btn btn-sm btn-primary" style="text-decoration:none">⬇️ Tải file Word (.docx) mẫu</a>
@@ -602,132 +594,26 @@ Quãng đường vật đi được là $S = \\int_0^5 4t\\,dt = 2 \\cdot 5^2 = 
     const actions = [{ label: "Đóng", cls: "btn-ghost" }];
     if (typeof onUploadClick === "function") {
       actions.push({
-        label: "📄 Chọn file Word (.docx) tải lên ngay",
+        label: "📄 Chọn file Word (.docx) từ máy tính ngay",
         cls: "btn-primary",
         onClick: () => {
-          setTimeout(() => onUploadClick(), 120);
+          onUploadClick();
           return true;
         }
       });
     }
+
     return U.modal({
-      title: "📘 Hướng Dẫn Chuẩn Bị File Word (.docx) Đưa Lên Trò Chơi",
+      title: "📘 Hướng Dẫn Đưa Câu Hỏi File Word (.docx) Lên Game",
       size: "lg",
       body,
       actions
     });
   };
 
-  /* ---------- Nạp nhanh file Word (.docx) ngay trong màn hình Cấu hình Game ---------- */
-  QB.quickImportWordForGame = async (game, onSetCreated) => {
-    const file = await U.pickFile(".docx");
-    if (!file) return;
-    U.toast("⏳ Đang đọc và bóc tách câu hỏi từ file Word (.docx)...", "info", 2400);
-    try {
-      const list = await IO.parseFile(file);
-      const st = IO.stats(list);
-      const cleanName = file.name.replace(/\.docx$/i, "").trim() || "Đề Word";
-      const setName = `📄 Word: ${cleanName}`;
-
-      // Hiển thị hộp thoại xác nhận trước khi nạp vào Game
-      const body = U.h(`<div>
-        <div class="notice ok" style="margin-bottom:12px">
-          ✅ Đã bóc tách thành công <b>${st.total}</b> câu hỏi từ tệp <b>${U.esc(file.name)}</b>:
-          <span class="chip">MC: ${st.MC}</span>
-          <span class="chip">Đúng/Sai: ${st.TF}</span>
-          <span class="chip">Trả lời ngắn: ${st.SA}</span>
-        </div>
-        <div class="field" style="margin-bottom:12px">
-          <label class="lbl">Tên bộ câu hỏi lưu cho Game</label>
-          <input class="input" id="qmWordSetName" value="${U.esc(setName)}" maxlength="80">
-        </div>
-        <div style="max-height:280px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:12px;padding:10px;background:#f8fafc">
-          ${list.slice(0, 30).map((q, idx) => `<div style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12.5px">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-              <span class="qmb-badge type-${q.Type}">Câu ${idx + 1} · ${q.Type}</span>
-              <span class="qmb-badge lv-nb">Đáp án: ${U.esc(q.CorrectAnswer || "?")}</span>
-              ${q.Level ? `<span class="muted">${U.esc(q.Level)}</span>` : ""}
-            </div>
-            <div class="q-preview-row">${Quiz.rich(q.Question)}</div>
-          </div>`).join("")}
-        </div>
-      </div>`);
-      setTimeout(() => Quiz.typeset(body), 60);
-
-      await U.modal({
-        title: `📄 Xem trước câu hỏi từ file Word (${list.length} câu)`,
-        size: "lg",
-        body,
-        actions: [
-          { label: "📘 Xem hướng dẫn Word", cls: "btn-ghost", onClick: () => { QB.openWordGuideModal(); return false; } },
-          { label: "Hủy", cls: "btn-ghost" },
-          {
-            label: `✅ Đưa ${list.length} câu hỏi này vào Game`,
-            cls: "btn-primary",
-            onClick: async (btn, wrap) => {
-              btn.disabled = true;
-              const finalName = (wrap.querySelector("#qmWordSetName").value || "").trim() || setName;
-              const savedSet = await QB.saveQuestionsAsGameSet(list, finalName, game ? game.id : "");
-              U.toast(`🎉 Đã nạp bộ câu hỏi "${U.esc(finalName)}" (${list.length} câu) vào trò chơi!`, "ok", 3200);
-              if (typeof onSetCreated === "function") onSetCreated(savedSet, list);
-              return true;
-            }
-          }
-        ]
-      }).result;
-    } catch (err) {
-      U.toast("⛔ " + (err.message || err), "err", 5500);
-      QB.openWordGuideModal(() => QB.quickImportWordForGame(game, onSetCreated));
-    }
-  };
-
-  /* ---------- Lưu mảng câu hỏi thành một Bộ đề (Set) trong DB của Game ---------- */
-  QB.saveQuestionsAsGameSet = async (questions, setName, gameId) => {
-    const cleanList = questions.map((q, i) => {
-      const copy = U.plain(q);
-      if (!copy.Id) copy.Id = "QM_" + Date.now().toString(36).toUpperCase() + "_" + (i + 1);
-      return IO.clean(copy);
-    });
-
-    // Hợp nhất vào DB.questions (ưu tiên local hoặc cloud tùy quyền)
-    const existMap = new Map(DB.questions.map((q) => [q.Id, q]));
-    cleanList.forEach((q) => existMap.set(q.Id, q));
-    DB.questions = Array.from(existMap.values());
-    DB.usingDemo = false;
-    U.store.set("questions", DB.questions);
-
-    // Tạo bộ đề mới
-    const newSet = {
-      id: "set_" + U.uid(6),
-      name: setName || ("Bộ đề QMath (" + cleanList.length + " câu)"),
-      description: `Tạo từ QMath LMS (${cleanList.length} câu)`,
-      questionIds: cleanList.map((q) => q.Id),
-      updatedAt: Date.now()
-    };
-    const idx = DB.sets.findIndex((s) => s.name === newSet.name);
-    if (idx >= 0) {
-      newSet.id = DB.sets[idx].id;
-      DB.sets[idx] = newSet;
-    } else {
-      DB.sets.unshift(newSet);
-    }
-    U.store.set("sets", DB.sets);
-    if (gameId) {
-      const gcfg = DB.gameCfg(gameId);
-      gcfg.setId = newSet.id;
-      U.store.set("games", DB.games);
-    }
-    return newSet;
-  };
-
-  /* =========================================================
-     5. KHO NGÂN HÀNG CÂU HỎI QMATH THEO CÂY MAPID + XEM TRƯỚC (YÊU CẦU 2)
-     ========================================================= */
-
-  /* Nạp Cây MapID từ Cache / Supabase / Fallback */
-  QB.loadMapIdTree = async () => {
-    if (Array.isArray(QB.mapIdTree) && QB.mapIdTree.length > 0) return QB.mapIdTree;
-
+  /* ---------- 5. Tải dữ liệu Cây Kiến Thức & Kho Ngân Hàng Câu Hỏi QMath ---------- */
+  async function loadMapIdTree() {
+    if (QB.mapIdTree && QB.mapIdTree.length > 0) return QB.mapIdTree;
     try {
       const cached = localStorage.getItem("lms_cached_mapid_tree");
       if (cached) {
@@ -739,818 +625,1514 @@ Quãng đường vật đi được là $S = \\int_0^5 4t\\,dt = 2 \\cdot 5^2 = 
     } catch (e) {}
 
     try {
-      const rows = await sbFetch("configurations?id=eq.map_id_tree&select=id,data,raw_data");
+      const rows = await sbFetch("configurations?id=eq.map_id_tree&select=*");
       if (Array.isArray(rows) && rows.length > 0) {
-        const d = rows[0].data || rows[0].raw_data || {};
+        const d = rows[0].raw_data || rows[0].data || {};
         if (Array.isArray(d.tree) && d.tree.length > 0) {
           QB.mapIdTree = d.tree;
           try { localStorage.setItem("lms_cached_mapid_tree", JSON.stringify(d.tree)); } catch (e) {}
           return QB.mapIdTree;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("[QMathBridge] Dùng cây MapID mặc định:", e);
+    }
 
     if (!QB.mapIdTree || !QB.mapIdTree.length) {
       QB.mapIdTree = DEFAULT_MAP_ID_TREE;
     }
     return QB.mapIdTree;
-  };
-
-  /* Chuẩn hóa câu hỏi từ Ngân hàng QMath R2 / Đề thi Supabase sang chuẩn Game */
-  function convertQMathQuestionToGame(raw) {
-    if (!raw || raw.isDuplicate) return null;
-    const id = String(raw.cccd || raw.id || raw.Id || "").trim();
-    const mapId = String(raw.mapId || "").trim().toUpperCase();
-    const rawType = String(raw.type || raw.Type || "mc").toLowerCase().trim();
-
-    let level = raw.level || raw.Level || "";
-    if (level === "NB") level = "Nhận biết";
-    else if (level === "TH") level = "Thông hiểu";
-    else if (level === "VD") level = "Vận dụng";
-    else if (level === "VDC") level = "Vận dụng cao";
-
-    let grade = String(raw.grade || raw.Grade || "").trim();
-    let subject = String(raw.subject || raw.Subject || "Toán").trim();
-
-    // Phân tích tự động từ mã MapID (VD: 9D1H2-4 hoặc 0D1N1-2 hoặc 12D1V1-3)
-    const m = mapId.match(/^(\d+)([A-Z]+)(\d+)([NHVCYBKGC])(\d*)(?:-([A-Za-z0-9]+))?$/i);
-    if (m) {
-      const gCode = m[1];
-      if (!grade) grade = gCode === "0" ? "10" : gCode === "1" ? "11" : gCode === "2" ? "12" : gCode;
-      const sCode = m[2].toUpperCase();
-      if (sCode === "D" || sCode === "DS") subject = "Đại số";
-      else if (sCode === "H" || sCode === "HH") subject = "Hình học";
-      else if (sCode === "X" || sCode === "XS") subject = "Xác suất";
-      else if (sCode === "G") subject = "Giải tích";
-      const lvCode = m[4].toUpperCase();
-      if (!level) {
-        if (lvCode === "N" || lvCode === "Y") level = "Nhận biết";
-        else if (lvCode === "H" || lvCode === "B") level = "Thông hiểu";
-        else if (lvCode === "V" || lvCode === "K") level = "Vận dụng";
-        else if (lvCode === "C" || lvCode === "G") level = "Vận dụng cao";
-      }
-    }
-
-    const stem = String(raw.content != null ? raw.content : raw.Question || "").trim();
-    if (!stem) return null;
-    const explain = String(raw.solution != null ? raw.solution : raw.Explain || "").trim();
-
-    // 1. Trắc nghiệm 4 lựa chọn (MC)
-    if (rawType === "mc" || rawType === "tn") {
-      const opts = {};
-      const keys = ["A", "B", "C", "D"];
-      if (Array.isArray(raw.options)) {
-        raw.options.slice(0, 4).forEach((op, idx) => {
-          const txt = typeof op === "object" && op !== null ? (op.text || op.content || "") : String(op == null ? "" : op);
-          opts[keys[idx]] = txt.replace(/^[ABCD]\s*[\.\)]\s*/i, "").trim();
-        });
-      } else if (raw.Options && typeof raw.Options === "object") {
-        keys.forEach((k) => {
-          if (raw.Options[k] != null) opts[k] = String(raw.Options[k]);
-        });
-      }
-      if (Object.keys(opts).length < 2) return null;
-
-      let correctAns = "A";
-      if (typeof raw.correct === "number" && raw.correct >= 0 && raw.correct < 4) {
-        correctAns = keys[raw.correct];
-      } else if (typeof raw.correct === "string" && /^[A-D]$/i.test(raw.correct.trim())) {
-        correctAns = raw.correct.trim().toUpperCase();
-      } else if (typeof raw.correctAnswer === "string" && /^[A-D]$/i.test(raw.correctAnswer.trim())) {
-        correctAns = raw.correctAnswer.trim().toUpperCase();
-      } else if (typeof raw.CorrectAnswer === "string" && /^[A-D]$/i.test(raw.CorrectAnswer.trim())) {
-        correctAns = raw.CorrectAnswer.trim().toUpperCase();
-      } else if (typeof raw.correct === "string" && /^[0-3]$/.test(raw.correct.trim())) {
-        correctAns = keys[parseInt(raw.correct.trim(), 10)];
-      }
-
-      return {
-        Id: id || ("QM_" + U.uid(6)),
-        cccd: String(raw.cccd || id || ""),
-        mapId,
-        Type: "MC",
-        Level: level || "Nhận biết",
-        Grade: grade,
-        Subject: subject,
-        Chapter: raw.Chapter || "",
-        Topic: raw.Topic || raw.source || "",
-        Question: stem,
-        Options: opts,
-        CorrectAnswer: correctAns,
-        Explain: explain
-      };
-    }
-
-    // 2. Đúng / Sai 4 ý (TF)
-    if (rawType === "tf" || rawType === "ds") {
-      const opts = {};
-      const tfKeys = ["a", "b", "c", "d"];
-      let ansStr = "";
-      if (Array.isArray(raw.statements) && raw.statements.length > 0) {
-        raw.statements.slice(0, 4).forEach((st, idx) => {
-          const txt = typeof st === "object" && st !== null ? (st.text || st.content || "") : String(st || "");
-          opts[tfKeys[idx]] = txt.replace(/^[a-d]\s*[\.\)]\s*/i, "").trim();
-          const isTrue = typeof st === "object" && st !== null ? Boolean(st.isTrue ?? st.correct) : false;
-          ansStr += isTrue ? "Đ" : "S";
-        });
-      } else if (raw.Options && typeof raw.Options === "object") {
-        tfKeys.forEach((k) => {
-          const v = raw.Options[k] ?? raw.Options[k.toUpperCase()];
-          if (v != null) opts[k] = String(v);
-        });
-        ansStr = String(raw.CorrectAnswer || raw.correctAnswer || "ĐSĐS").toUpperCase().replace(/D/g, "Đ");
-      }
-      if (!Object.keys(opts).length) return null;
-      return {
-        Id: id || ("QM_" + U.uid(6)),
-        cccd: String(raw.cccd || id || ""),
-        mapId,
-        Type: "TF",
-        Level: level || "Thông hiểu",
-        Grade: grade,
-        Subject: subject,
-        Chapter: raw.Chapter || "",
-        Topic: raw.Topic || raw.source || "",
-        Question: stem,
-        Options: opts,
-        CorrectAnswer: ansStr || "ĐSĐS",
-        Explain: explain
-      };
-    }
-
-    // 3. Trả lời ngắn (SA)
-    if (rawType === "short" || rawType === "sa" || rawType === "tln") {
-      const ans = String(raw.answer != null ? raw.answer : (raw.CorrectAnswer != null ? raw.CorrectAnswer : "")).trim();
-      if (!ans) return null;
-      return {
-        Id: id || ("QM_" + U.uid(6)),
-        cccd: String(raw.cccd || id || ""),
-        mapId,
-        Type: "SA",
-        Level: level || "Vận dụng",
-        Grade: grade,
-        Subject: subject,
-        Chapter: raw.Chapter || "",
-        Topic: raw.Topic || raw.source || "",
-        Question: stem,
-        CorrectAnswer: ans,
-        Explain: explain
-      };
-    }
-
-    return null;
   }
 
-  /* Nạp danh sách câu hỏi từ Ngân hàng R2 QMath */
-  QB.loadR2BankQuestions = async (forceReload) => {
-    if (!forceReload && Array.isArray(QB.r2BankList) && QB.r2BankList.length > 0) {
-      return QB.r2BankList;
+  async function loadQMathBankCatalog() {
+    if (QB.r2BankList && QB.r2BankList.length > 0) return QB.r2BankList;
+
+    try {
+      const cached = localStorage.getItem("lms_cached_bank");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          QB.r2BankList = parsed.filter((q) => !q.isDuplicate);
+        }
+      }
+    } catch (e) {}
+
+    try {
+      const res = await fetch(R2_CATALOG_URL + "?t=" + Date.now());
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          QB.r2BankList = data.filter((q) => !q.isDuplicate);
+          try { localStorage.setItem("lms_cached_bank", JSON.stringify(data)); } catch (e) {}
+        }
+      }
+    } catch (e) {
+      try {
+        const res2 = await fetch(WORKER_BANK_URL);
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (Array.isArray(data2)) {
+            QB.r2BankList = data2.filter((q) => !q.isDuplicate);
+          }
+        }
+      } catch (e2) {}
     }
 
-    let rawList = [];
-    if (!forceReload) {
+    if (QB.user && QB.user.uid && QB.myExamQuestions.length === 0) {
       try {
-        const cached = localStorage.getItem("lms_cached_bank");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) rawList = parsed;
+        const examRows = await sbFetch(`exams?author_id=eq.${encodeURIComponent(QB.user.uid)}&select=*&order=created_at.desc&limit=30`);
+        if (Array.isArray(examRows)) {
+          const extracted = [];
+          examRows.forEach((ex) => {
+            const raw = ex.raw_data || {};
+            const qs = Array.isArray(ex.questions) ? ex.questions : Array.isArray(raw.questions) ? raw.questions : [];
+            const title = ex.title || raw.title || "Đề thi của tôi";
+            qs.forEach((q, idx) => {
+              if (!q || (!q.content && !q.Question)) return;
+              extracted.push(Object.assign({}, q, {
+                id: q.id || q.cccd || `${ex.id}_Q${idx + 1}`,
+                cccd: q.cccd || q.id || `${ex.id}_Q${idx + 1}`,
+                mapId: q.mapId || "",
+                source: title,
+                _fromMyExam: true,
+                _examTitle: title
+              }));
+            });
+          });
+          QB.myExamQuestions = extracted;
         }
       } catch (e) {}
     }
 
-    if (!rawList.length || forceReload) {
-      try {
-        const res = await fetch(R2_CATALOG_URL + "?t=" + Date.now());
-        if (res.ok) {
-          rawList = await res.json();
-          try { localStorage.setItem("lms_cached_bank", JSON.stringify(rawList)); } catch (e) {}
-        }
-      } catch (e) {
-        try {
-          const res2 = await fetch(WORKER_BANK_URL);
-          if (res2.ok) {
-            rawList = await res2.json();
-            try { localStorage.setItem("lms_cached_bank", JSON.stringify(rawList)); } catch (e) {}
-          }
-        } catch (e2) {}
-      }
-    }
-
-    QB.r2BankList = (Array.isArray(rawList) ? rawList : [])
-      .map(convertQMathQuestionToGame)
-      .filter(Boolean);
     return QB.r2BankList;
-  };
-
-  /* Nạp câu hỏi từ các Đề thi trên QMath LMS (bảng exams) */
-  QB.loadExamQuestions = async () => {
-    if (Array.isArray(QB.myExamQuestions) && QB.myExamQuestions.length > 0) return QB.myExamQuestions;
-    try {
-      const rows = await sbFetch("exams?select=id,title,subject,questions,raw_data&order=created_at.desc&limit=40");
-      const out = [];
-      const seen = new Set();
-      (Array.isArray(rows) ? rows : []).forEach((ex) => {
-        const qArr = Array.isArray(ex.questions) ? ex.questions : (ex.raw_data && Array.isArray(ex.raw_data.questions) ? ex.raw_data.questions : []);
-        const exTitle = ex.title || (ex.raw_data && ex.raw_data.title) || "Đề thi QMath";
-        qArr.forEach((rq, i) => {
-          const conv = convertQMathQuestionToGame(Object.assign({}, rq, { source: exTitle }));
-          if (!conv) return;
-          const uKey = conv.cccd || (conv.Question.slice(0, 60) + "_" + conv.CorrectAnswer);
-          if (seen.has(uKey)) return;
-          seen.add(uKey);
-          if (!conv.Id) conv.Id = `${ex.id}_Q${i + 1}`;
-          out.push(conv);
-        });
-      });
-      QB.myExamQuestions = out;
-    } catch (e) {
-      QB.myExamQuestions = [];
-    }
-    return QB.myExamQuestions;
-  };
-
-  /* ---------- Đối sánh thông minh giữa mã MapID của câu hỏi và nhánh trên Cây MapID ---------- */
-  function matchQuestionToTreePath(q, pathNodes) {
-    if (!pathNodes || !pathNodes.length) return true;
-    const rawMapId = String(q.mapId || "").trim().toUpperCase();
-
-    // Tách cấu trúc chuẩn: [Grade][Subject][Chapter][LevelChar][Lesson]-[Form]
-    const m = rawMapId.match(/^(\d+)([A-Z]+)(\d+)(?:([NHVCYBKGC])(\d*))?(?:-([A-Za-z0-9]+))?$/i);
-
-    // Cấp 0: Khối lớp (6, 7, 8, 9, 0/10, 1/11, 2/12)
-    const gNodeId = String(pathNodes[0].id).toUpperCase();
-    const gAliases = gNodeId === "0" || gNodeId === "10" ? ["0", "10"] : gNodeId === "1" || gNodeId === "11" ? ["1", "11"] : gNodeId === "2" || gNodeId === "12" ? ["2", "12"] : [gNodeId];
-
-    if (m) {
-      if (!gAliases.includes(m[1])) return false;
-
-      // Cấp 1: Phân môn (D/DS, H/HH, X/XS, G)
-      if (pathNodes.length >= 2) {
-        const sNodeId = String(pathNodes[1].id).toUpperCase();
-        const qSub = m[2].toUpperCase();
-        const sMatch =
-          sNodeId === qSub ||
-          (sNodeId === "D" && qSub === "DS") || (sNodeId === "DS" && qSub === "D") ||
-          (sNodeId === "H" && qSub === "HH") || (sNodeId === "HH" && qSub === "H") ||
-          (sNodeId === "X" && qSub === "XS") || (sNodeId === "XS" && qSub === "X");
-        if (!sMatch) return false;
-      }
-
-      // Cấp 2: Chương
-      if (pathNodes.length >= 3) {
-        const cNodeId = String(pathNodes[2].id).toUpperCase();
-        if (String(m[3]).toUpperCase() !== cNodeId) return false;
-      }
-
-      // Cấp 3: Bài học
-      if (pathNodes.length >= 4) {
-        const lNodeId = String(pathNodes[3].id).toUpperCase();
-        const qLesson = String(m[5] || "").toUpperCase();
-        if (qLesson !== lNodeId) return false;
-      }
-
-      // Cấp 4: Dạng toán (sau dấu gạch ngang -)
-      if (pathNodes.length >= 5) {
-        const fNodeId = String(pathNodes[4].id).toUpperCase();
-        const qForm = String(m[6] || "").toUpperCase();
-        if (qForm !== fNodeId) return false;
-      }
-
-      return true;
-    }
-
-    // Fallback nếu câu hỏi không có mã MapID chuẩn mà chỉ có tiền tố hoặc thuộc tính Grade/Subject
-    if (rawMapId) {
-      const combinedPrefix = pathNodes.map((n) => String(n.id).toUpperCase()).join("");
-      if (rawMapId.startsWith(combinedPrefix)) return true;
-      return false;
-    }
-
-    // Nếu câu hỏi trong game chỉ có Grade ("10", "11", "12") và chưa gắn MapID
-    if (pathNodes.length === 1 && q.Grade) {
-      return gAliases.includes(String(q.Grade).trim());
-    }
-    return false;
   }
 
-  /* ---------- Mở Cửa sổ 3 Cột Chọn Câu Hỏi Trực Quan Theo Cây ID (Yêu cầu 2) ---------- */
-  QB.openBankPickerModal = async (opts) => {
-    opts = opts || {};
-    const game = opts.game || null;
-    const onConfirm = opts.onConfirm || null;
+  /* ---------- Phân tích mã MapID thành { grade, subjectCode, chapter, levelCode, lesson, dang } ---------- */
+  function parseMapIdParts(mapId) {
+    if (!mapId) return null;
+    const clean = String(mapId).trim().toUpperCase().replace(/^\[|\]$/g, "");
+    const m = clean.match(/^(\d+)([A-Z]+)(\d+)([NHVCYBKGC])(\d*)(?:-([A-Za-z0-9]+))?$/i);
+    if (!m) return null;
+    const gRaw = m[1];
+    const grade = gRaw === "10" ? "0" : gRaw === "11" ? "1" : gRaw === "12" ? "2" : gRaw;
+    const gLabel = grade === "0" ? "10" : grade === "1" ? "11" : grade === "2" ? "12" : grade;
+    const sRaw = m[2].toUpperCase();
+    const subjectCode = sRaw === "DS" ? "D" : sRaw === "HH" ? "H" : sRaw === "XS" ? "X" : sRaw;
+    const chapter = m[3];
+    const lRaw = m[4].toUpperCase();
+    let levelName = "Thông hiểu";
+    if (lRaw === "N" || lRaw === "Y") levelName = "Nhận biết";
+    else if (lRaw === "H" || lRaw === "B") levelName = "Thông hiểu";
+    else if (lRaw === "V" || lRaw === "K") levelName = "Vận dụng";
+    else if (lRaw === "C" || lRaw === "G") levelName = "Vận dụng cao";
+    const lesson = m[5] || "";
+    const dang = m[6] || "";
+    return {
+      raw: clean,
+      grade,
+      gradeLabel: gLabel,
+      subjectCode,
+      chapter,
+      levelCode: lRaw,
+      levelName,
+      lesson,
+      dang
+    };
+  }
+
+  /* ---------- Làm giàu Cây Kiến Thức từ dữ liệu câu hỏi thực tế (đảm bảo mọi Bài & Dạng có câu hỏi đều xuất hiện) ---------- */
+  function buildEnrichedKnowledgeTree(rawTree, questions) {
+    const tree = JSON.parse(JSON.stringify(Array.isArray(rawTree) && rawTree.length ? rawTree : DEFAULT_MAP_ID_TREE));
+    const gradeNames = { "6": "Lớp 6", "7": "Lớp 7", "8": "Lớp 8", "9": "Lớp 9", "0": "Lớp 10", "1": "Lớp 11", "2": "Lớp 12" };
+    const subjNames = { "D": "Đại số & Giải tích", "H": "Hình học", "X": "Thống kê & Xác suất", "C": "Chuyên đề học tập", "T": "Hoạt động thực hành" };
+
+    (questions || []).forEach((q) => {
+      const p = parseMapIdParts(q.mapId || q.id);
+      if (!p || !p.grade) return;
+
+      let gNode = tree.find((g) => String(g.id) === String(p.grade) || (p.grade === "0" && String(g.id) === "10") || (p.grade === "1" && String(g.id) === "11") || (p.grade === "2" && String(g.id) === "12"));
+      if (!gNode) {
+        gNode = { id: p.grade, name: gradeNames[p.grade] || ("Lớp " + p.gradeLabel), level: 0, children: [] };
+        tree.push(gNode);
+      }
+      if (!Array.isArray(gNode.children)) gNode.children = [];
+
+      if (!p.subjectCode) return;
+      let sNode = gNode.children.find((s) => String(s.id).toUpperCase() === p.subjectCode);
+      if (!sNode) {
+        sNode = { id: p.subjectCode, name: (subjNames[p.subjectCode] || ("Phân môn " + p.subjectCode)) + " " + p.gradeLabel, level: 1, children: [] };
+        gNode.children.push(sNode);
+      }
+      if (!Array.isArray(sNode.children)) sNode.children = [];
+
+      if (!p.chapter) return;
+      let cNode = sNode.children.find((c) => String(c.id) === String(p.chapter));
+      if (!cNode) {
+        cNode = { id: String(p.chapter), name: "Chương " + p.chapter, level: 2, children: [] };
+        sNode.children.push(cNode);
+      }
+      if (!Array.isArray(cNode.children)) cNode.children = [];
+
+      if (!p.lesson) return;
+      let lNode = cNode.children.find((l) => String(l.id) === String(p.lesson));
+      if (!lNode) {
+        lNode = { id: String(p.lesson), name: "Bài " + p.lesson, level: 3, children: [] };
+        cNode.children.push(lNode);
+      }
+      if (!Array.isArray(lNode.children)) lNode.children = [];
+
+      if (!p.dang) return;
+      let dNode = lNode.children.find((d) => String(d.id) === String(p.dang));
+      if (!dNode) {
+        dNode = { id: String(p.dang), name: "Dạng " + p.dang, level: 4, children: [] };
+        lNode.children.push(dNode);
+      }
+    });
+
+    // Sắp xếp các Lớp theo thứ tự Lớp 6 -> Lớp 12 (hoặc Lớp 12 -> Lớp 6)
+    const gradeOrder = ["6", "7", "8", "9", "0", "10", "1", "11", "2", "12"];
+    tree.sort((a, b) => {
+      const ia = gradeOrder.indexOf(String(a.id));
+      const ib = gradeOrder.indexOf(String(b.id));
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      return String(a.name).localeCompare(String(b.name), "vi");
+    });
+
+    return tree;
+  }
+
+  function matchQuestionToSelection(q, sel) {
+    if (!sel || !sel.grade) return true;
+    const p = parseMapIdParts(q.mapId || q.id);
+    if (!p) return false;
+    const normSelGrade = sel.grade === "10" ? "0" : sel.grade === "11" ? "1" : sel.grade === "12" ? "2" : String(sel.grade);
+    if (p.grade !== normSelGrade) return false;
+    if (sel.subject && p.subjectCode !== String(sel.subject).toUpperCase()) return false;
+    if (sel.chapter && String(p.chapter) !== String(sel.chapter)) return false;
+    if (sel.lesson && String(p.lesson) !== String(sel.lesson)) return false;
+    if (sel.dang && String(p.dang) !== String(sel.dang)) return false;
+    return true;
+  }
+
+  /* ---------- Tải chi tiết câu hỏi từ Cloudflare Worker ---------- */
+  const fullQuestionCache = new Map();
+
+  async function fetchFullQuestionDetail(qMeta) {
+    if (!qMeta) return null;
+    const qId = String(qMeta.id || qMeta.cccd || "");
+    if (qMeta.content && ((Array.isArray(qMeta.options) && qMeta.options.length > 0) || (Array.isArray(qMeta.statements) && qMeta.statements.length > 0) || qMeta.answer != null)) {
+      fullQuestionCache.set(qId, qMeta);
+      return qMeta;
+    }
+    if (qMeta.Question && (qMeta.Options || qMeta.CorrectAnswer != null)) {
+      fullQuestionCache.set(qId, qMeta);
+      return qMeta;
+    }
+    if (fullQuestionCache.has(qId)) return fullQuestionCache.get(qId);
+
+    try {
+      const res = await fetch(`${WORKER_BANK_URL}?id=${encodeURIComponent(qId)}`);
+      if (res.ok) {
+        const full = await res.json();
+        if (full && (full.content || full.Question)) {
+          const merged = Object.assign({}, qMeta, full);
+          fullQuestionCache.set(qId, merged);
+          return merged;
+        }
+      }
+    } catch (e) {}
+    return qMeta;
+  }
+
+  /* ---------- Chuyển đổi Câu hỏi từ chuẩn QMath LMS sang chuẩn Game (MC / TF / SA) ---------- */
+  function convertQMathQuestionToGameFormat(rawQ) {
+    if (!rawQ) return null;
+    if (rawQ.Question && (rawQ.Options || rawQ.CorrectAnswer != null) && ["MC", "TF", "SA"].includes(Quiz.baseType(rawQ.Type))) {
+      return IO.clean(rawQ);
+    }
+
+    const qId = String(rawQ.cccd || rawQ.id || U.uid()).trim();
+    const mapId = String(rawQ.mapId || "").trim();
+    const parsed = parseMapIdParts(mapId);
+
+    const grade = rawQ.Grade || (parsed ? parsed.gradeLabel : "");
+    let subject = rawQ.subject || rawQ.Subject || "Toán";
+    if ((!subject || subject === "Khác" || subject === "Chưa phân loại") && parsed) {
+      if (parsed.subjectCode === "D") subject = "Đại số";
+      else if (parsed.subjectCode === "H") subject = "Hình học";
+      else if (parsed.subjectCode === "X") subject = "Xác suất";
+    }
+    const level = rawQ.level || rawQ.Level || (parsed ? parsed.levelName : "Thông hiểu");
+    const chapter = rawQ.Chapter || (parsed && parsed.chapter ? "Chương " + parsed.chapter : "");
+    const topic = rawQ.Topic || (parsed && parsed.lesson ? "Bài " + parsed.lesson + (parsed.dang ? " - Dạng " + parsed.dang : "") : (mapId || ""));
+
+    const rawType = String(rawQ.type || rawQ.Type || "").toLowerCase().trim();
+    let gType = "MC";
+    if (rawType === "tf" || rawType === "dung_sai" || rawType === "dungsai" || (Array.isArray(rawQ.statements) && rawQ.statements.length > 0)) {
+      gType = "TF";
+    } else if (rawType === "short" || rawType === "sa" || rawType === "tra_loi_ngan" || rawType === "dien_khuyet" || ((rawQ.answer !== undefined && rawQ.answer !== null && String(rawQ.answer).trim() !== "") && (!rawQ.options || !rawQ.options.length))) {
+      gType = "SA";
+    } else if (rawType === "essay" || rawType === "tu_luan" || rawType === "la") {
+      return null;
+    }
+
+    const stem = String(rawQ.content || rawQ.Question || "").trim();
+    const explain = String(rawQ.solution || rawQ.Explain || "").trim();
+    if (!stem) return null;
+
+    if (gType === "MC") {
+      const optsArr = Array.isArray(rawQ.options) ? rawQ.options : [];
+      const Options = {};
+      const keys = ["A", "B", "C", "D", "E", "F"];
+      if (optsArr.length > 0) {
+        optsArr.slice(0, 6).forEach((txt, idx) => {
+          if (txt != null && String(txt).trim() !== "") {
+            Options[keys[idx]] = String(txt).trim();
+          }
+        });
+      } else if (rawQ.Options && typeof rawQ.Options === "object") {
+        keys.forEach((k) => {
+          if (rawQ.Options[k] != null) Options[k] = String(rawQ.Options[k]).trim();
+        });
+      }
+      if (Object.keys(Options).length < 2) return null;
+
+      let correctKey = "A";
+      if (typeof rawQ.correct === "number" && rawQ.correct >= 0 && rawQ.correct < 6) {
+        correctKey = keys[rawQ.correct];
+      } else if (typeof rawQ.correctAnswer === "string" && /^[A-F]$/i.test(rawQ.correctAnswer.trim())) {
+        correctKey = rawQ.correctAnswer.trim().toUpperCase();
+      } else if (typeof rawQ.CorrectAnswer === "string" && /^[A-F]$/i.test(rawQ.CorrectAnswer.trim())) {
+        correctKey = rawQ.CorrectAnswer.trim().toUpperCase();
+      } else if (typeof rawQ.correct === "string" && /^[A-F]$/i.test(rawQ.correct.trim())) {
+        correctKey = rawQ.correct.trim().toUpperCase();
+      }
+
+      return IO.clean({
+        Id: qId,
+        cccd: qId,
+        mapId: mapId,
+        Type: "MC",
+        Level: level,
+        Grade: grade,
+        Subject: subject,
+        Chapter: chapter,
+        Topic: topic,
+        Question: stem,
+        Options,
+        CorrectAnswer: correctKey,
+        Explain: explain
+      });
+    }
+
+    if (gType === "TF") {
+      const tfKeys = ["a", "b", "c", "d"];
+      const Options = {};
+      let ansStr = "";
+
+      if (Array.isArray(rawQ.statements) && rawQ.statements.length > 0) {
+        rawQ.statements.slice(0, 4).forEach((st, idx) => {
+          const txt = typeof st === "string" ? st : (st.text || st.content || "");
+          Options[tfKeys[idx]] = String(txt).trim();
+          const isT = st && (st.isTrue === true || st.correct === true || st.isCorrect === true || st.isTrue === "true" || st.isTrue === "D" || st.isTrue === "Đ");
+          ansStr += isT ? "Đ" : "S";
+        });
+      } else if (Array.isArray(rawQ.options) && rawQ.options.length > 0) {
+        const rawAnsParts = String(rawQ.correctAnswer || rawQ.CorrectAnswer || "Đ,S,Đ,S").toUpperCase().split(/[\s,;]+/);
+        rawQ.options.slice(0, 4).forEach((txt, idx) => {
+          Options[tfKeys[idx]] = String(txt || "").trim();
+          const tok = rawAnsParts[idx] || "S";
+          ansStr += (tok === "D" || tok === "Đ" || tok === "TRUE" || tok === "1") ? "Đ" : "S";
+        });
+      }
+
+      if (!Object.keys(Options).length) return null;
+      return IO.clean({
+        Id: qId,
+        cccd: qId,
+        mapId: mapId,
+        Type: "TF",
+        Level: level,
+        Grade: grade,
+        Subject: subject,
+        Chapter: chapter,
+        Topic: topic,
+        Question: stem,
+        Options,
+        CorrectAnswer: ansStr || "ĐSĐS",
+        Explain: explain
+      });
+    }
+
+    if (gType === "SA") {
+      const ans = String(rawQ.answer != null && rawQ.answer !== "" ? rawQ.answer : (rawQ.correctAnswer || rawQ.CorrectAnswer || "")).trim()
+        .replace(/^\$+|\$+$/g, "")
+        .replace(/\{([.,])\}/g, "$1");
+      if (!ans) return null;
+      return IO.clean({
+        Id: qId,
+        cccd: qId,
+        mapId: mapId,
+        Type: "SA",
+        Level: level,
+        Grade: grade,
+        Subject: subject,
+        Chapter: chapter,
+        Topic: topic,
+        Question: stem,
+        CorrectAnswer: ans,
+        Explain: explain
+      });
+    }
+
+    return null;
+  }
+  QB.convertQMathQuestionToGameFormat = convertQMathQuestionToGameFormat;
+
+  function detectRawQType(q) {
+    if (!q) return "MC";
+    if (q.Type && ["MC", "TF", "SA"].includes(Quiz.baseType(q.Type))) return Quiz.baseType(q.Type);
+    const t = String(q.type || "").toLowerCase().trim();
+    if (t === "tf" || t === "dung_sai" || t === "dungsai" || (Array.isArray(q.statements) && q.statements.length > 0)) return "TF";
+    if (t === "short" || t === "sa" || t === "tra_loi_ngan" || ((q.answer !== undefined && q.answer !== null && String(q.answer).trim() !== "") && (!q.options || !q.options.length))) return "SA";
+    if (t === "essay" || t === "tu_luan" || t === "la") return "LA";
+    return "MC";
+  }
+
+  /* =========================================================
+     6. CỬA SỔ CHỌN CÂU HỎI TỪ KHO NGÂN HÀNG QMATH THEO TỪNG BƯỚC
+        Bước 1: Chọn Lớp ➔ Bước 2: Chọn Phân môn ➔ Bước 3: Chọn Bài học
+        ➔ Bước 4: Chọn Dạng bài ➔ Danh sách câu hỏi & Xem trước (Live Preview)
+     ========================================================= */
+  QB.openBankPickerModal = async (options) => {
+    options = options || {};
+    const onConfirm = options.onConfirm || null;
+    const targetName = options.targetName || "Trò chơi";
 
     const state = {
-      sourceTab: "r2", // "r2" | "exams" | "game"
-      selectedPath: [], // mảng node từ gốc tới nhánh đang chọn
-      expandedPaths: new Set(["2", "1", "0", "9"]),
-      treeSearch: "",
-      qSearch: "",
-      levelFilter: "all",
-      typeFilter: "all",
-      previewQuestion: null,
-      selectedMap: new Map(), // Id -> question object
-      loading: true
+      sourceTab: "qmath_bank", // "qmath_bank" | "my_exams" | "game_bank"
+      stepMode: "grade",       // "grade" | "subject" | "lesson" | "questions"
+      sel: {
+        grade: "",
+        gradeName: "",
+        subject: "",
+        subjectName: "",
+        chapter: "",
+        chapterName: "",
+        lesson: "",
+        lessonName: "",
+        dang: "",
+        dangName: ""
+      },
+      searchQuery: "",
+      typeFilter: "",
+      levelFilter: "",
+      selectedIds: new Set(),
+      selectedMap: new Map(),
+      activePreviewId: null,
+      filteredQuestions: [],
+      pageLimit: 50,
+      enrichedTree: []
     };
 
-    const body = U.h(`<div class="qmb-studio">
-      <!-- CỘT 1: CÂY MAPID -->
-      <aside class="qmb-col-tree">
-        <div class="qmb-pane-head">
-          <div class="qmb-pane-title">
-            <span>🌳 Cây Ma Trận ID Kiến Thức</span>
-            <div class="qmb-tree-tools">
-              <button type="button" class="qmb-mini-btn" id="qmbExpandAll" title="Mở rộng toàn bộ cây">Mở hết</button>
-              <button type="button" class="qmb-mini-btn" id="qmbCollapseAll" title="Thu gọn cây">Thu gọn</button>
-            </div>
-          </div>
-          <input type="text" class="qmb-tree-search" id="qmbTreeSearch" placeholder="🔍 Tìm Lớp, Chương, Bài, Dạng hoặc mã ID...">
+    const body = U.h(`<div class="qmb-progressive-wrap">
+      <!-- Thanh điều hướng các bước (Step Breadcrumb Bar) -->
+      <div class="qmb-step-bar">
+        <div class="qmb-steps-nav" id="qmbStepsNav"></div>
+        <div class="qmb-source-tabs">
+          <button type="button" class="qmb-src-tab on" data-src="qmath_bank">🏦 Ngân hàng QMath</button>
+          <button type="button" class="qmb-src-tab" data-src="my_exams">📝 Đề thi của tôi</button>
+          <button type="button" class="qmb-src-tab" data-src="game_bank">🎮 Kho trong Game</button>
         </div>
-        <div class="qmb-tree-scroll" id="qmbTreeContainer">
-          <div style="padding:24px;text-align:center;color:#64748b;font-size:13px">⏳ Đang tải Cây ID...</div>
-        </div>
-      </aside>
+      </div>
 
-      <!-- CỘT 2: DANH SÁCH CÂU HỎI -->
-      <section class="qmb-col-list">
-        <div class="qmb-pane-head">
-          <div class="qmb-source-tabs" id="qmbSourceTabs">
-            <button type="button" class="qmb-source-tab active" data-src="r2">☁️ Kho Ngân Hàng QMath</button>
-            <button type="button" class="qmb-source-tab" data-src="exams">📝 Đề Thi Của Tôi</button>
-            <button type="button" class="qmb-source-tab" data-src="game">🎮 Kho Sẵn Trong Game</button>
-          </div>
-          <div class="qmb-breadcrumb" id="qmbBreadcrumb">
-            <span>📂 Đang xem: <b>Toàn bộ các khối lớp</b></span>
-          </div>
-          <input type="text" class="qmb-tree-search" id="qmbQSearch" placeholder="🔎 Tìm theo nội dung câu hỏi, mã ID (VD: 9D1H1), mã CCCD...">
-          <div style="display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap">
-            <div class="qmb-filter-pills" id="qmbLevelPills">
-              <button type="button" class="qmb-pill active" data-lv="all">Mọi mức độ</button>
-              <button type="button" class="qmb-pill" data-lv="Nhận biết">NB</button>
-              <button type="button" class="qmb-pill" data-lv="Thông hiểu">TH</button>
-              <button type="button" class="qmb-pill" data-lv="Vận dụng">VD</button>
-              <button type="button" class="qmb-pill" data-lv="Vận dụng cao">VDC</button>
-            </div>
-            <div class="qmb-filter-pills" id="qmbTypePills">
-              <button type="button" class="qmb-pill active" data-tp="all">Mọi dạng</button>
-              <button type="button" class="qmb-pill" data-tp="MC">TN (MC)</button>
-              <button type="button" class="qmb-pill" data-tp="TF">Đ/S (TF)</button>
-              <button type="button" class="qmb-pill" data-tp="SA">TLN (SA)</button>
-            </div>
-          </div>
-        </div>
-        <div class="qmb-batch-bar">
-          <span id="qmbListStat" style="font-weight:700;color:#334155">0 câu hỏi phù hợp</span>
-          <div style="display:flex;gap:5px;align-items:center">
-            <button type="button" class="qmb-mini-btn" id="qmbSelectAllBtn">☑️ Chọn cả trang</button>
-            <button type="button" class="qmb-mini-btn" id="qmbRandom10Btn">🎲 Ngẫu nhiên 10 câu</button>
-            <button type="button" class="qmb-mini-btn" id="qmbClearSelBtn">🗑️ Bỏ chọn</button>
-          </div>
-        </div>
-        <div class="qmb-list-scroll" id="qmbListContainer">
-          <div style="padding:36px 20px;text-align:center;color:#64748b">⏳ Đang kết nối Kho Ngân hàng câu hỏi QMath...</div>
-        </div>
-      </section>
+      <!-- Khung chọn Bước 1 (Lớp), Bước 2 (Phân môn), Bước 3 (Chương / Bài học) -->
+      <div class="qmb-wizard-stage" id="qmbWizardStage"></div>
 
-      <!-- CỘT 3: XEM TRƯỚC CÂU HỎI TRỰC QUAN (LIVE PREVIEW) -->
-      <section class="qmb-col-preview">
-        <div class="qmb-pane-head" style="flex-direction:row;align-items:center;justify-content:space-between">
-          <div class="qmb-pane-title">👁️ Xem Trước Chi Tiết Câu Hỏi (Live Preview)</div>
-          <div id="qmbPreviewHeaderActions"></div>
-        </div>
-        <div class="qmb-preview-scroll" id="qmbPreviewContainer">
-          <div style="padding:60px 24px;text-align:center;color:#64748b">
-            <div style="font-size:44px;margin-bottom:10px">👈</div>
-            <b style="font-size:15px;color:#1e293b">Chọn một câu hỏi ở cột giữa để xem trước toàn bộ nội dung</b>
-            <p style="font-size:13px;max-width:380px;margin:6px auto 0;line-height:1.5">Hiển thị đầy đủ công thức Toán học, hình minh họa, các phương án A, B, C, D, đáp án đúng và lời giải chi tiết.</p>
+      <!-- Khung Bước 4 (Dạng bài) + 2 cột Danh sách câu hỏi & Xem trước (Live Preview) -->
+      <div class="qmb-work-stage hide" id="qmbWorkStage">
+        <!-- Thanh chọn nhanh các Dạng bài của Bài học đang chọn -->
+        <div class="qmb-dang-strip" id="qmbDangStrip"></div>
+
+        <!-- 2 Cột: Cột trái = Danh sách câu hỏi để chọn lần lượt | Cột phải = Xem trước chi tiết -->
+        <div class="qmb-split-2col">
+          <div class="qmb-col-list">
+            <div class="qmb-list-toolbar">
+              <div class="qmb-filter-row">
+                <input type="search" class="qmb-search-inp" id="qmbSearchInp" placeholder="🔎 Tìm nội dung câu hỏi, mã câu hỏi...">
+                <select class="qmb-filter-sel" id="qmbTypeSel">
+                  <option value="">Tất cả loại câu</option>
+                  <option value="MC">Trắc nghiệm (4 lựa chọn)</option>
+                  <option value="TF">Đúng / Sai (4 ý)</option>
+                  <option value="SA">Trả lời ngắn</option>
+                </select>
+                <select class="qmb-filter-sel" id="qmbLevelSel">
+                  <option value="">Tất cả mức độ</option>
+                  <option value="Nhận biết">Nhận biết</option>
+                  <option value="Thông hiểu">Thông hiểu</option>
+                  <option value="Vận dụng">Vận dụng</option>
+                  <option value="Vận dụng cao">Vận dụng cao</option>
+                </select>
+              </div>
+              <div class="qmb-list-subbar">
+                <span id="qmbMatchCount" style="font-weight:700;color:#334155">Đang tải...</span>
+                <div style="display:flex;gap:6px">
+                  <button type="button" class="qmb-mini-btn" id="qmbSelectPageBtn">☑️ Chọn tất cả dạng này</button>
+                  <button type="button" class="qmb-mini-btn" id="qmbClearSelBtn">Bỏ chọn hết</button>
+                </div>
+              </div>
+            </div>
+            <div class="qmb-qlist-scroll" id="qmbQListScroll"></div>
+          </div>
+
+          <div class="qmb-col-preview">
+            <div class="qmb-pane-head" style="flex-direction:row;align-items:center;justify-content:space-between">
+              <div class="qmb-pane-title">👁️ Xem trước câu hỏi (Hiển thị chuẩn đề thi)</div>
+              <div id="qmbPrevActionWrap"></div>
+            </div>
+            <div class="qmb-preview-scroll" id="qmbPreviewScroll">
+              <div class="qmb-preview-empty">
+                <div style="font-size:40px">👈</div>
+                <b>Bấm vào một câu hỏi ở danh sách bên trái để xem trước</b>
+                <span style="font-size:12.5px">Hiển thị đầy đủ công thức Toán học, hình vẽ, 4 phương án A/B/C/D, mệnh đề Đúng/Sai và Lời giải chi tiết.</span>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
     </div>`);
 
-    const dlg = U.modal({
-      title: `🏦 Chọn Câu Hỏi Từ Ngân Hàng QMath Theo Cây ID ${game ? "— " + U.esc(game.name) : ""}`,
-      size: "qm-bank-modal",
+    const m = U.modal({
+      title: `📚 Chọn Câu Hỏi Từ Ngân Hàng Đề Thi QMath → ${targetName}`,
+      size: "xl",
       body,
+      autofocus: false,
       actions: [
-        { label: "Hủy", cls: "btn-ghost" },
+        { label: "Đóng", cls: "btn-ghost" },
         {
-          label: "✅ Đưa 0 câu hỏi đã chọn vào Game",
+          label: "✅ Đưa các câu đã chọn vào Game (0 câu)",
           cls: "btn-primary",
-          onClick: async (btn) => {
-            const chosen = Array.from(state.selectedMap.values());
-            if (!chosen.length) {
-              U.toast("⚠️ Hãy tích chọn ít nhất 1 câu hỏi để đưa vào Game!", "warn");
+          onClick: async () => {
+            if (state.selectedIds.size === 0) {
+              U.toast("Vui lòng tích chọn ít nhất 1 câu hỏi!", "warn");
               return false;
             }
-            btn.disabled = true;
-            const pathTitle = state.selectedPath.length
-              ? state.selectedPath[state.selectedPath.length - 1].name
-              : "Ngân hàng QMath";
-            const setName = `🏦 ${pathTitle} (${chosen.length} câu)`;
-            const savedSet = await QB.saveQuestionsAsGameSet(chosen, setName, game ? game.id : "");
-            U.toast(`🎉 Đã đưa ${chosen.length} câu hỏi vào bộ đề "${U.esc(setName)}"!`, "ok", 3200);
-            if (typeof onConfirm === "function") onConfirm(savedSet, chosen);
-            return true;
+            await confirmSelection(m);
+            return false;
           }
         }
       ]
     });
 
-    // Chèn ô đặt tên bộ đề & thống kê vào thanh footer của modal
-    const modalFoot = body.closest(".modal").querySelector(".modal-f");
-    const confirmBtn = modalFoot.querySelector(".btn-primary");
-    const footLeft = U.h(`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span id="qmbSelectedSummary" style="font-size:13px;font-weight:800;color:#0f172a;background:#dcfce7;color:#166534;padding:6px 12px;border-radius:10px;border:1px solid #86efac">
-        🛒 Đã chọn: <b>0</b> câu hỏi
-      </span>
-      <span style="font-size:12px;color:#64748b">💡 Mẹo: Bấm vào dòng câu hỏi để xem trước lời giải bên phải; tích ô vuông để chọn nhiều câu.</span>
-    </div>`);
-    modalFoot.prepend(footLeft);
+    const modalEl = document.querySelector(".modal-wrap:last-of-type .modal");
+    if (modalEl) modalEl.classList.add("qm-bank-modal");
 
-    function updateFooterSummary() {
-      const arr = Array.from(state.selectedMap.values());
-      const by = { MC: 0, TF: 0, SA: 0 };
-      arr.forEach((q) => { by[q.Type] = (by[q.Type] || 0) + 1; });
-      const sumEl = modalFoot.querySelector("#qmbSelectedSummary");
-      if (sumEl) {
-        sumEl.innerHTML = `🛒 Đã chọn: <b>${arr.length}</b> câu <span style="font-weight:500;font-size:11.5px">(MC: ${by.MC} · Đ/S: ${by.TF} · TLN: ${by.SA})</span>`;
-      }
-      if (confirmBtn) {
-        confirmBtn.innerHTML = `✅ Đưa ${arr.length} câu hỏi đã chọn vào Game`;
-      }
+    const modalFoot = modalEl ? modalEl.querySelector(".modal-f") : null;
+    let footCounterEl = null;
+    let confirmBtnEl = null;
+    if (modalFoot) {
+      confirmBtnEl = modalFoot.querySelector(".btn-primary");
+      const leftInfo = U.h(`<div class="qmb-foot-summary">
+        <span class="qmb-sel-count" id="qmbFootBadge">Đã chọn: 0 câu</span>
+        <span style="font-size:12.5px;color:#475569">Chọn theo từng bước: <b>Lớp ➔ Phân môn ➔ Bài học ➔ Dạng bài</b> rồi tích chọn câu hỏi</span>
+      </div>`);
+      modalFoot.insertBefore(leftInfo, modalFoot.firstChild);
+      footCounterEl = leftInfo.querySelector("#qmbFootBadge");
+    }
+
+    function updateFooterCount() {
+      const n = state.selectedIds.size;
+      if (footCounterEl) footCounterEl.textContent = `Đã chọn: ${n} câu`;
+      if (confirmBtnEl) confirmBtnEl.innerHTML = `✅ Đưa vào Game (<b>${n}</b> câu hỏi đã chọn)`;
     }
 
     function getActiveSourceList() {
-      if (state.sourceTab === "r2") return QB.r2BankList || [];
-      if (state.sourceTab === "exams") return QB.myExamQuestions || [];
-      return Quiz.flatten(DB.questions).length ? DB.questions : [];
+      if (state.sourceTab === "my_exams") return QB.myExamQuestions || [];
+      if (state.sourceTab === "game_bank") return DB.bank() || [];
+      return QB.r2BankList || [];
     }
 
-    function getFilteredQuestions() {
-      const srcList = getActiveSourceList();
-      const kw = state.qSearch.trim().toLowerCase();
-      return srcList.filter((q) => {
-        if (!q || !q.Question) return false;
-        if (state.selectedPath.length > 0 && !matchQuestionToTreePath(q, state.selectedPath)) return false;
-        if (state.levelFilter !== "all" && q.Level !== state.levelFilter) return false;
-        if (state.typeFilter !== "all" && Quiz.baseType(q.Type) !== state.typeFilter) return false;
-        if (kw) {
-          const mId = String(q.mapId || "").toLowerCase();
-          const cccd = String(q.cccd || q.Id || "").toLowerCase();
-          const stem = String(q.Question || "").toLowerCase();
-          const top = String(q.Topic || q.Chapter || "").toLowerCase();
-          if (!mId.includes(kw) && !cccd.includes(kw) && !stem.includes(kw) && !top.includes(kw)) return false;
+    /* ---------- Render Thanh Điều Hướng Bước (Step Bar) ---------- */
+    const stepsNavEl = body.querySelector("#qmbStepsNav");
+    const wizardStageEl = body.querySelector("#qmbWizardStage");
+    const workStageEl = body.querySelector("#qmbWorkStage");
+    const dangStripEl = body.querySelector("#qmbDangStrip");
+    const qListEl = body.querySelector("#qmbQListScroll");
+    const previewEl = body.querySelector("#qmbPreviewScroll");
+    const prevActionWrap = body.querySelector("#qmbPrevActionWrap");
+    const matchCountEl = body.querySelector("#qmbMatchCount");
+
+    function renderStepBar() {
+      if (state.sourceTab !== "qmath_bank") {
+        stepsNavEl.innerHTML = `<span class="qmb-step-pill active">📂 Nguồn: ${state.sourceTab === "my_exams" ? "Đề thi đã tạo của tôi" : "Kho câu hỏi có sẵn trong Game"}</span>`;
+        return;
+      }
+
+      const s = state.sel;
+      const step1Cls = state.stepMode === "grade" ? "active" : s.grade ? "done" : "";
+      const step2Cls = state.stepMode === "subject" ? "active" : s.subject ? "done" : !s.grade ? "disabled" : "";
+      const step3Cls = state.stepMode === "lesson" ? "active" : (s.chapter || s.lesson) ? "done" : !s.subject ? "disabled" : "";
+      const step4Cls = state.stepMode === "questions" ? "active" : !s.grade ? "disabled" : "";
+
+      stepsNavEl.innerHTML = `
+        <button type="button" class="qmb-step-pill ${step1Cls}" data-goto="grade">
+          <span class="qmb-step-num">1</span>
+          <span>${s.gradeName ? U.esc(s.gradeName) : "Chọn Lớp"}</span>
+        </button>
+        <span class="qmb-step-arr">›</span>
+        <button type="button" class="qmb-step-pill ${step2Cls}" data-goto="subject" ${!s.grade ? "disabled" : ""}>
+          <span class="qmb-step-num">2</span>
+          <span>${s.subjectName ? U.esc(s.subjectName) : "Chọn Phân môn"}</span>
+        </button>
+        <span class="qmb-step-arr">›</span>
+        <button type="button" class="qmb-step-pill ${step3Cls}" data-goto="lesson" ${!s.subject ? "disabled" : ""}>
+          <span class="qmb-step-num">3</span>
+          <span>${s.lessonName ? U.esc(s.lessonName) : s.chapterName ? U.esc(s.chapterName) : "Chọn Chương / Bài"}</span>
+        </button>
+        <span class="qmb-step-arr">›</span>
+        <button type="button" class="qmb-step-pill ${step4Cls}" data-goto="questions" ${!s.grade ? "disabled" : ""}>
+          <span class="qmb-step-num">4</span>
+          <span>${s.dangName ? U.esc(s.dangName) : "Chọn Dạng & Câu hỏi"}</span>
+        </button>
+      `;
+
+      stepsNavEl.querySelectorAll(".qmb-step-pill[data-goto]").forEach((btn) => {
+        btn.onclick = () => {
+          const target = btn.getAttribute("data-goto");
+          if (target === "grade") {
+            state.stepMode = "grade";
+            renderStage();
+          } else if (target === "subject" && state.sel.grade) {
+            state.stepMode = "subject";
+            renderStage();
+          } else if (target === "lesson" && state.sel.subject) {
+            state.stepMode = "lesson";
+            renderStage();
+          } else if (target === "questions" && state.sel.grade) {
+            state.stepMode = "questions";
+            renderStage();
+          }
+        };
+      });
+    }
+
+    function countQuestionsMatching(partialSel) {
+      const list = getActiveSourceList();
+      let c = 0;
+      for (let i = 0; i < list.length; i++) {
+        if (matchQuestionToSelection(list[i], partialSel)) c++;
+      }
+      return c;
+    }
+
+    function getSelectedGradeNode() {
+      const g = state.sel.grade;
+      if (!g) return null;
+      return state.enrichedTree.find((n) => String(n.id) === String(g) || (g === "0" && String(n.id) === "10") || (g === "1" && String(n.id) === "11") || (g === "2" && String(n.id) === "12"));
+    }
+
+    function getSelectedSubjectNode() {
+      const gNode = getSelectedGradeNode();
+      if (!gNode || !Array.isArray(gNode.children) || !state.sel.subject) return null;
+      return gNode.children.find((s) => String(s.id).toUpperCase() === String(state.sel.subject).toUpperCase());
+    }
+
+    function getSelectedLessonNode() {
+      const sNode = getSelectedSubjectNode();
+      if (!sNode || !Array.isArray(sNode.children) || !state.sel.chapter || !state.sel.lesson) return null;
+      const cNode = sNode.children.find((c) => String(c.id) === String(state.sel.chapter));
+      if (!cNode || !Array.isArray(cNode.children)) return null;
+      return cNode.children.find((l) => String(l.id) === String(state.sel.lesson));
+    }
+
+    /* ---------- Render Màn hình Chính theo Bước đang chọn ---------- */
+    function renderStage() {
+      renderStepBar();
+
+      if (state.sourceTab !== "qmath_bank") {
+        wizardStageEl.classList.add("hide");
+        workStageEl.classList.remove("hide");
+        dangStripEl.innerHTML = "";
+        dangStripEl.classList.add("hide");
+        applyFiltersAndRenderList();
+        return;
+      }
+
+      if (state.stepMode === "grade") {
+        wizardStageEl.classList.remove("hide");
+        workStageEl.classList.add("hide");
+        renderStep1Grades();
+      } else if (state.stepMode === "subject") {
+        wizardStageEl.classList.remove("hide");
+        workStageEl.classList.add("hide");
+        renderStep2Subjects();
+      } else if (state.stepMode === "lesson") {
+        wizardStageEl.classList.remove("hide");
+        workStageEl.classList.add("hide");
+        renderStep3ChaptersAndLessons();
+      } else {
+        wizardStageEl.classList.add("hide");
+        workStageEl.classList.remove("hide");
+        renderStep4DangAndQuestions();
+      }
+    }
+
+    /* ---------- BƯỚC 1: CHỌN KHỐI LỚP ---------- */
+    function renderStep1Grades() {
+      const grades = state.enrichedTree || [];
+      let cardsHtml = "";
+      grades.forEach((gNode) => {
+        const gId = String(gNode.id);
+        const normG = gId === "10" ? "0" : gId === "11" ? "1" : gId === "12" ? "2" : gId;
+        const count = countQuestionsMatching({ grade: normG });
+        const subjCount = Array.isArray(gNode.children) ? gNode.children.length : 0;
+        const isCur = state.sel.grade === normG;
+        cardsHtml += `
+          <button type="button" class="qmb-choice-card ${isCur ? "active" : ""}" data-grade="${U.esc(normG)}" data-name="${U.esc(gNode.name)}">
+            <div class="qmb-cc-icon">🎓</div>
+            <div class="qmb-cc-info">
+              <div class="qmb-cc-title">${U.esc(gNode.name)}</div>
+              <div class="qmb-cc-sub">${subjCount} phân môn · <b>${count}</b> câu hỏi</div>
+            </div>
+            <span class="qmb-cc-arrow">→</span>
+          </button>
+        `;
+      });
+
+      wizardStageEl.innerHTML = `
+        <div class="qmb-wizard-box">
+          <div class="qmb-wizard-header">
+            <div>
+              <span class="qmb-wiz-step-badge">Bước 1 / 4</span>
+              <h3>Chọn Khối Lớp</h3>
+              <p>Hãy chọn Khối Lớp để hiển thị các Phân môn tương ứng.</p>
+            </div>
+          </div>
+          <div class="qmb-card-grid cols-4">${cardsHtml}</div>
+        </div>
+      `;
+
+      wizardStageEl.querySelectorAll(".qmb-choice-card[data-grade]").forEach((btn) => {
+        btn.onclick = () => {
+          const g = btn.getAttribute("data-grade");
+          const gName = btn.getAttribute("data-name");
+          state.sel = {
+            grade: g,
+            gradeName: gName,
+            subject: "",
+            subjectName: "",
+            chapter: "",
+            chapterName: "",
+            lesson: "",
+            lessonName: "",
+            dang: "",
+            dangName: ""
+          };
+          state.stepMode = "subject";
+          renderStage();
+        };
+      });
+    }
+
+    /* ---------- BƯỚC 2: CHỌN PHÂN MÔN ---------- */
+    function renderStep2Subjects() {
+      const gNode = getSelectedGradeNode();
+      const subjects = (gNode && Array.isArray(gNode.children)) ? gNode.children : [];
+      const totalGradeCount = countQuestionsMatching({ grade: state.sel.grade });
+
+      let cardsHtml = "";
+      subjects.forEach((sNode) => {
+        const sId = String(sNode.id).toUpperCase();
+        const count = countQuestionsMatching({ grade: state.sel.grade, subject: sId });
+        const chapCount = Array.isArray(sNode.children) ? sNode.children.length : 0;
+        const icon = sId === "H" ? "📐" : sId === "X" ? "🎲" : "📘";
+        const isCur = state.sel.subject === sId;
+        cardsHtml += `
+          <button type="button" class="qmb-choice-card ${isCur ? "active" : ""}" data-subj="${U.esc(sId)}" data-name="${U.esc(sNode.name)}">
+            <div class="qmb-cc-icon">${icon}</div>
+            <div class="qmb-cc-info">
+              <div class="qmb-cc-title">${U.esc(sNode.name)}</div>
+              <div class="qmb-cc-sub">${chapCount} chương · <b>${count}</b> câu hỏi</div>
+            </div>
+            <span class="qmb-cc-arrow">→</span>
+          </button>
+        `;
+      });
+
+      wizardStageEl.innerHTML = `
+        <div class="qmb-wizard-box">
+          <div class="qmb-wizard-header">
+            <div>
+              <span class="qmb-wiz-step-badge">Bước 2 / 4 · ${U.esc(state.sel.gradeName)}</span>
+              <h3>Chọn Phân Môn (${U.esc(state.sel.gradeName)})</h3>
+              <p>Chọn Phân môn để hiển thị danh sách các Chương và Bài học.</p>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button type="button" class="btn btn-sm btn-ghost" id="qmbBackToGrade">← Đổi Lớp khác</button>
+              <button type="button" class="btn btn-sm btn-primary" id="qmbViewAllGrade">Xem tất cả ${totalGradeCount} câu của ${U.esc(state.sel.gradeName)} →</button>
+            </div>
+          </div>
+          <div class="qmb-card-grid cols-3">${cardsHtml}</div>
+        </div>
+      `;
+
+      wizardStageEl.querySelector("#qmbBackToGrade").onclick = () => {
+        state.stepMode = "grade";
+        renderStage();
+      };
+      wizardStageEl.querySelector("#qmbViewAllGrade").onclick = () => {
+        state.sel.subject = "";
+        state.sel.subjectName = "Tất cả phân môn";
+        state.sel.chapter = "";
+        state.sel.chapterName = "";
+        state.sel.lesson = "";
+        state.sel.lessonName = "";
+        state.sel.dang = "";
+        state.sel.dangName = "";
+        state.stepMode = "questions";
+        renderStage();
+      };
+
+      wizardStageEl.querySelectorAll(".qmb-choice-card[data-subj]").forEach((btn) => {
+        btn.onclick = () => {
+          state.sel.subject = btn.getAttribute("data-subj");
+          state.sel.subjectName = btn.getAttribute("data-name");
+          state.sel.chapter = "";
+          state.sel.chapterName = "";
+          state.sel.lesson = "";
+          state.sel.lessonName = "";
+          state.sel.dang = "";
+          state.sel.dangName = "";
+          state.stepMode = "lesson";
+          renderStage();
+        };
+      });
+    }
+
+    /* ---------- BƯỚC 3: CHỌN CHƯƠNG & BÀI HỌC ---------- */
+    function renderStep3ChaptersAndLessons() {
+      const sNode = getSelectedSubjectNode();
+      const chapters = (sNode && Array.isArray(sNode.children)) ? sNode.children : [];
+      const totalSubjCount = countQuestionsMatching({ grade: state.sel.grade, subject: state.sel.subject });
+
+      let chaptersHtml = "";
+      chapters.forEach((cNode) => {
+        const cId = String(cNode.id);
+        const chapCount = countQuestionsMatching({ grade: state.sel.grade, subject: state.sel.subject, chapter: cId });
+        const lessons = Array.isArray(cNode.children) ? cNode.children : [];
+
+        let lessonsHtml = "";
+        if (lessons.length > 0) {
+          lessonsHtml = `<div class="qmb-lesson-grid">` + lessons.map((lNode) => {
+            const lId = String(lNode.id);
+            const lCount = countQuestionsMatching({ grade: state.sel.grade, subject: state.sel.subject, chapter: cId, lesson: lId });
+            const dangCount = Array.isArray(lNode.children) ? lNode.children.length : 0;
+            const isCur = state.sel.chapter === cId && state.sel.lesson === lId;
+            return `
+              <button type="button" class="qmb-lesson-card ${isCur ? "active" : ""}" data-chap="${U.esc(cId)}" data-chapname="${U.esc(cNode.name)}" data-lesson="${U.esc(lId)}" data-lessonname="${U.esc(lNode.name)}">
+                <div class="qmb-lc-top">
+                  <span class="qmb-lc-title">${U.esc(lNode.name)}</span>
+                  <span class="qmb-lc-count">${lCount} câu</span>
+                </div>
+                <div class="qmb-lc-foot">
+                  <span>${dangCount > 0 ? `${dangCount} dạng toán` : "Xem câu hỏi trong bài"}</span>
+                  <span>Chọn bài này →</span>
+                </div>
+              </button>
+            `;
+          }).join("") + `</div>`;
+        } else {
+          lessonsHtml = `
+            <div style="padding:10px 0">
+              <button type="button" class="btn btn-sm btn-primary qmb-pick-chap-btn" data-chap="${U.esc(cId)}" data-chapname="${U.esc(cNode.name)}">
+                Mở danh sách ${chapCount} câu hỏi của ${U.esc(cNode.name)} →
+              </button>
+            </div>
+          `;
         }
+
+        chaptersHtml += `
+          <div class="qmb-chapter-block">
+            <div class="qmb-chapter-head">
+              <div class="qmb-chapter-title">📂 ${U.esc(cNode.name)}</div>
+              <button type="button" class="qmb-mini-btn qmb-pick-chap-btn" data-chap="${U.esc(cId)}" data-chapname="${U.esc(cNode.name)}">
+                Xem cả chương (${chapCount} câu) →
+              </button>
+            </div>
+            ${lessonsHtml}
+          </div>
+        `;
+      });
+
+      wizardStageEl.innerHTML = `
+        <div class="qmb-wizard-box">
+          <div class="qmb-wizard-header">
+            <div>
+              <span class="qmb-wiz-step-badge">Bước 3 / 4 · ${U.esc(state.sel.gradeName)} › ${U.esc(state.sel.subjectName)}</span>
+              <h3>Chọn Chương & Bài Học</h3>
+              <p>Bấm vào một <b>Bài học</b> bên dưới để hiển thị các <b>Dạng bài</b> và danh sách câu hỏi.</p>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button type="button" class="btn btn-sm btn-ghost" id="qmbBackToSubj">← Đổi Phân môn</button>
+              <button type="button" class="btn btn-sm btn-primary" id="qmbViewAllSubj">Xem tất cả ${totalSubjCount} câu của ${U.esc(state.sel.subjectName)} →</button>
+            </div>
+          </div>
+          <div class="qmb-chapters-list">${chaptersHtml || `<div class="empty">Chưa có danh mục chương cho phân môn này.</div>`}</div>
+        </div>
+      `;
+
+      wizardStageEl.querySelector("#qmbBackToSubj").onclick = () => {
+        state.stepMode = "subject";
+        renderStage();
+      };
+      wizardStageEl.querySelector("#qmbViewAllSubj").onclick = () => {
+        state.sel.chapter = "";
+        state.sel.chapterName = "";
+        state.sel.lesson = "";
+        state.sel.lessonName = "Tất cả bài học";
+        state.sel.dang = "";
+        state.sel.dangName = "";
+        state.stepMode = "questions";
+        renderStage();
+      };
+
+      wizardStageEl.querySelectorAll(".qmb-pick-chap-btn").forEach((btn) => {
+        btn.onclick = () => {
+          state.sel.chapter = btn.getAttribute("data-chap");
+          state.sel.chapterName = btn.getAttribute("data-chapname");
+          state.sel.lesson = "";
+          state.sel.lessonName = "";
+          state.sel.dang = "";
+          state.sel.dangName = "Tất cả câu trong chương";
+          state.stepMode = "questions";
+          renderStage();
+        };
+      });
+
+      wizardStageEl.querySelectorAll(".qmb-lesson-card").forEach((btn) => {
+        btn.onclick = () => {
+          state.sel.chapter = btn.getAttribute("data-chap");
+          state.sel.chapterName = btn.getAttribute("data-chapname");
+          state.sel.lesson = btn.getAttribute("data-lesson");
+          state.sel.lessonName = btn.getAttribute("data-lessonname");
+          state.sel.dang = "";
+          state.sel.dangName = "Tất cả các dạng trong bài";
+          state.stepMode = "questions";
+          renderStage();
+        };
+      });
+    }
+
+    /* ---------- BƯỚC 4: CHỌN DẠNG BÀI & CHỌN CÂU HỎI KÈM LIVE PREVIEW ---------- */
+    function renderStep4DangAndQuestions() {
+      const lNode = getSelectedLessonNode();
+      const dangs = (lNode && Array.isArray(lNode.children)) ? lNode.children : [];
+
+      if (dangs.length > 0) {
+        dangStripEl.classList.remove("hide");
+        const allLessonCount = countQuestionsMatching({
+          grade: state.sel.grade,
+          subject: state.sel.subject,
+          chapter: state.sel.chapter,
+          lesson: state.sel.lesson
+        });
+
+        let pillsHtml = `
+          <button type="button" class="qmb-dang-pill ${!state.sel.dang ? "active" : ""}" data-dang="" data-name="Tất cả các dạng trong bài">
+            <span>Tất cả các dạng</span>
+            <b class="qmb-dang-cnt">${allLessonCount}</b>
+          </button>
+        `;
+        dangs.forEach((dNode) => {
+          const dId = String(dNode.id);
+          const dCount = countQuestionsMatching({
+            grade: state.sel.grade,
+            subject: state.sel.subject,
+            chapter: state.sel.chapter,
+            lesson: state.sel.lesson,
+            dang: dId
+          });
+          const isCur = String(state.sel.dang) === dId;
+          pillsHtml += `
+            <button type="button" class="qmb-dang-pill ${isCur ? "active" : ""}" data-dang="${U.esc(dId)}" data-name="${U.esc(dNode.name)}">
+              <span>${U.esc(dNode.name)}</span>
+              <b class="qmb-dang-cnt">${dCount}</b>
+            </button>
+          `;
+        });
+
+        dangStripEl.innerHTML = `
+          <div class="qmb-dang-head">
+            <span class="qmb-dang-label">🎯 Bước 4 — Chọn Dạng toán (${U.esc(state.sel.lessonName || state.sel.chapterName)}):</span>
+            <button type="button" class="qmb-mini-btn" id="qmbChangeLessonBtn">← Đổi Bài học khác</button>
+          </div>
+          <div class="qmb-dang-pills">${pillsHtml}</div>
+        `;
+
+        dangStripEl.querySelector("#qmbChangeLessonBtn").onclick = () => {
+          state.stepMode = state.sel.subject ? "lesson" : "grade";
+          renderStage();
+        };
+
+        dangStripEl.querySelectorAll(".qmb-dang-pill").forEach((btn) => {
+          btn.onclick = () => {
+            state.sel.dang = btn.getAttribute("data-dang") || "";
+            state.sel.dangName = btn.getAttribute("data-name") || "";
+            state.pageLimit = 50;
+            renderStepBar();
+            dangStripEl.querySelectorAll(".qmb-dang-pill").forEach((x) => x.classList.toggle("active", x === btn));
+            applyFiltersAndRenderList();
+          };
+        });
+      } else {
+        dangStripEl.classList.remove("hide");
+        dangStripEl.innerHTML = `
+          <div class="qmb-dang-head" style="margin-bottom:0">
+            <span class="qmb-dang-label">📂 Đang xem: <b>${U.esc(state.sel.lessonName || state.sel.chapterName || state.sel.subjectName || state.sel.gradeName)}</b></span>
+            <button type="button" class="qmb-mini-btn" id="qmbChangeLessonBtn">← Quay lại chọn Bài học / Phân môn</button>
+          </div>
+        `;
+        dangStripEl.querySelector("#qmbChangeLessonBtn").onclick = () => {
+          state.stepMode = state.sel.subject ? "lesson" : state.sel.grade ? "subject" : "grade";
+          renderStage();
+        };
+      }
+
+      applyFiltersAndRenderList();
+    }
+
+    /* ---------- Lọc & Hiển thị Danh sách câu hỏi (Cột trái) ---------- */
+    function applyFiltersAndRenderList() {
+      const rawList = getActiveSourceList();
+      const qLower = state.searchQuery.toLowerCase().trim();
+
+      state.filteredQuestions = rawList.filter((q) => {
+        const qType = detectRawQType(q);
+        if (qType === "LA") return false;
+        if (state.sourceTab === "qmath_bank" && !matchQuestionToSelection(q, state.sel)) return false;
+        if (state.typeFilter && qType !== state.typeFilter) return false;
+
+        if (state.levelFilter) {
+          const parsed = parseMapIdParts(q.mapId || q.id);
+          const lv = q.level || q.Level || (parsed ? parsed.levelName : "");
+          if (lv !== state.levelFilter) return false;
+        }
+
+        if (qLower) {
+          const idStr = String(q.id || q.cccd || q.Id || "").toLowerCase();
+          const mapStr = String(q.mapId || "").toLowerCase();
+          const cachedFull = fullQuestionCache.get(String(q.id || q.cccd || q.Id || "")) || q;
+          const contentStr = String(cachedFull.content || cachedFull.Question || "").toLowerCase();
+          if (!idStr.includes(qLower) && !mapStr.includes(qLower) && !contentStr.includes(qLower)) return false;
+        }
+
         return true;
       });
+
+      matchCountEl.textContent = `Có ${state.filteredQuestions.length} câu hỏi`;
+      renderQuestionList();
+
+      // Tự động mở xem trước câu hỏi đầu tiên trong danh sách và tải ngầm 12 câu đầu
+      if (state.filteredQuestions.length > 0) {
+        const firstQ = state.filteredQuestions[0];
+        const firstId = String(firstQ.id || firstQ.cccd || firstQ.Id || "");
+        if (!state.activePreviewId || !state.filteredQuestions.some((x) => String(x.id || x.cccd || x.Id || "") === state.activePreviewId)) {
+          openPreview(firstQ);
+        }
+        prefetchTopQuestions(state.filteredQuestions.slice(0, 12));
+      } else {
+        previewEl.innerHTML = `<div class="qmb-preview-empty"><b>Không có câu hỏi nào trong mục này</b></div>`;
+        prevActionWrap.innerHTML = "";
+      }
     }
 
-    /* ---------- Render Cột 1: Cây MapID ---------- */
-    function renderTree() {
-      const container = body.querySelector("#qmbTreeContainer");
-      const tree = QB.mapIdTree || [];
-      const srcList = getActiveSourceList();
-      const qKw = state.treeSearch.trim().toLowerCase();
+    let prefetchTimer = null;
+    function prefetchTopQuestions(list) {
+      if (prefetchTimer) clearTimeout(prefetchTimer);
+      prefetchTimer = setTimeout(async () => {
+        for (const item of list) {
+          const qId = String(item.id || item.cccd || item.Id || "");
+          if (!qId || fullQuestionCache.has(qId) || item.content || item.Question) continue;
+          const full = await fetchFullQuestionDetail(item);
+          if (full && (full.content || full.Question)) {
+            const snippetEl = qListEl.querySelector(`.qmb-qcard[data-qid="${CSS.escape(qId)}"] .qmb-qsnippet`);
+            if (snippetEl) {
+              snippetEl.innerHTML = Quiz.rich(full.content || full.Question || "");
+              Quiz.typeset(snippetEl);
+            }
+          }
+        }
+      }, 80);
+    }
 
-      function nodeMatchesSearch(node) {
-        if (!qKw) return true;
-        if (String(node.name || "").toLowerCase().includes(qKw) || String(node.id || "").toLowerCase().includes(qKw)) return true;
-        return (node.children || []).some(nodeMatchesSearch);
+    function renderQuestionList() {
+      const list = state.filteredQuestions;
+      if (!list.length) {
+        qListEl.innerHTML = `<div class="qmb-preview-empty" style="height:240px">
+          <div style="font-size:32px">📭</div>
+          <b>Không tìm thấy câu hỏi phù hợp</b>
+          <span style="font-size:12px">Hãy chọn Dạng bài / Bài học khác hoặc xóa bộ lọc tìm kiếm.</span>
+        </div>`;
+        return;
       }
 
-      const selectedKey = state.selectedPath.map((n) => n.id).join("_");
+      const slice = list.slice(0, state.pageLimit);
+      let html = "";
+      slice.forEach((q, idx) => {
+        const qId = String(q.id || q.cccd || q.Id || "");
+        const cached = fullQuestionCache.get(qId) || q;
+        const qType = detectRawQType(cached);
+        const parsed = parseMapIdParts(cached.mapId || qId);
+        const lv = cached.level || cached.Level || (parsed ? parsed.levelName : "");
+        const isChecked = state.selectedIds.has(qId);
+        const isPreview = state.activePreviewId === qId;
+        const rawStem = String(cached.content || cached.Question || "").trim();
 
-      let html = `<div class="qmb-tree-node">
-        <div class="qmb-tree-row ${state.selectedPath.length === 0 ? "active" : ""}" data-path="">
-          <span class="qmb-tree-caret">🌐</span>
-          <span class="qmb-tree-id">ALL</span>
-          <span class="qmb-tree-name">Toàn bộ các khối lớp</span>
-          <span class="qmb-tree-cnt has-q">${srcList.length}</span>
-        </div>
-      </div>`;
+        const typeLabel = qType === "MC" ? "Trắc nghiệm" : qType === "TF" ? "Đúng/Sai" : "Trả lời ngắn";
 
-      function buildNodeHtml(node, ancestorNodes) {
-        if (!nodeMatchesSearch(node)) return "";
-        const curPath = [...ancestorNodes, node];
-        const pathKey = curPath.map((n) => n.id).join("_");
-        const hasChildren = Array.isArray(node.children) && node.children.length > 0;
-        const isExpanded = qKw ? true : state.expandedPaths.has(pathKey);
-        const isActive = selectedKey === pathKey;
-        const count = srcList.filter((q) => matchQuestionToTreePath(q, curPath)).length;
+        html += `<div class="qmb-qcard ${isChecked ? "selected" : ""} ${isPreview ? "active-preview" : ""}" data-qid="${U.esc(qId)}">
+          <input type="checkbox" class="qmb-qcheck" data-checkid="${U.esc(qId)}" ${isChecked ? "checked" : ""} title="Tích chọn câu hỏi này">
+          <div class="qmb-qbody">
+            <div class="qmb-qmeta">
+              <span class="qmb-qnum">Câu ${idx + 1}</span>
+              <span class="qmb-qbadge type-${qType}">${typeLabel}</span>
+              ${lv ? `<span class="qmb-qbadge lv">${U.esc(lv)}</span>` : ""}
+              <span style="font-size:11px;color:#94a3b8;margin-left:auto">#${U.esc(qId)}</span>
+            </div>
+            <div class="qmb-qsnippet">
+              ${rawStem ? Quiz.rich(rawStem) : `<span style="color:#64748b;font-style:italic">Đang tải nội dung câu hỏi...</span>`}
+            </div>
+          </div>
+        </div>`;
+      });
 
-        const icons = ["🎓", "📘", "📂", "📄", "🔹"];
-        const lvIcon = icons[Math.min(curPath.length - 1, icons.length - 1)];
+      if (list.length > state.pageLimit) {
+        html += `<div style="text-align:center;padding:10px">
+          <button type="button" class="btn btn-sm btn-ghost" id="qmbLoadMoreBtn">Xem thêm câu hỏi (${state.pageLimit}/${list.length}) ↓</button>
+        </div>`;
+      }
 
-        let childrenHtml = "";
-        if (hasChildren && isExpanded) {
-          childrenHtml = `<div class="qmb-tree-children">${node.children.map((c) => buildNodeHtml(c, curPath)).join("")}</div>`;
+      qListEl.innerHTML = html;
+      Quiz.typeset(qListEl);
+
+      qListEl.querySelectorAll(".qmb-qcard").forEach((card) => {
+        const qId = card.getAttribute("data-qid");
+        const qObj = slice.find((x) => String(x.id || x.cccd || x.Id || "") === qId);
+        const cb = card.querySelector(".qmb-qcheck");
+
+        if (cb) {
+          cb.onclick = (e) => {
+            e.stopPropagation();
+            toggleSelectQuestion(qId, qObj, cb.checked);
+            card.classList.toggle("selected", cb.checked);
+            if (state.activePreviewId === qId) renderPreviewActionBtn(qId, qObj);
+          };
         }
 
-        return `<div class="qmb-tree-node">
-          <div class="qmb-tree-row ${isActive ? "active" : ""}" data-path="${U.esc(pathKey)}">
-            <span class="qmb-tree-caret" data-toggle="${U.esc(pathKey)}">${hasChildren ? (isExpanded ? "▾" : "▸") : "•"}</span>
-            <span class="qmb-tree-id">[${U.esc(node.id)}]</span>
-            <span class="qmb-tree-name" title="${U.esc(node.name)}">${lvIcon} ${U.esc(node.name)}</span>
-            <span class="qmb-tree-cnt ${count > 0 ? "has-q" : ""}">${count}</span>
-          </div>
-          ${childrenHtml}
-        </div>`;
-      }
-
-      html += tree.map((rootNode) => buildNodeHtml(rootNode, [])).join("");
-      container.innerHTML = html;
-
-      // Map pathKey -> mảng node
-      const pathLookup = new Map();
-      pathLookup.set("", []);
-      (function indexTree(nodes, anc) {
-        (nodes || []).forEach((n) => {
-          const p = [...anc, n];
-          pathLookup.set(p.map((x) => x.id).join("_"), p);
-          if (n.children && n.children.length) indexTree(n.children, p);
-        });
-      })(tree, []);
-
-      container.querySelectorAll("[data-toggle]").forEach((caret) => {
-        caret.onclick = (e) => {
-          e.stopPropagation();
-          const pk = caret.dataset.toggle;
-          if (!pk) return;
-          if (state.expandedPaths.has(pk)) state.expandedPaths.delete(pk);
-          else state.expandedPaths.add(pk);
-          renderTree();
+        card.onclick = () => {
+          openPreview(qObj);
         };
       });
 
-      container.querySelectorAll(".qmb-tree-row").forEach((row) => {
-        row.onclick = () => {
-          const pk = row.dataset.path || "";
-          const pNodes = pathLookup.get(pk) || [];
-          state.selectedPath = pNodes;
-          if (pk) state.expandedPaths.add(pk);
-          renderTree();
-          renderBreadcrumb();
-          renderList();
+      const moreBtn = qListEl.querySelector("#qmbLoadMoreBtn");
+      if (moreBtn) {
+        moreBtn.onclick = () => {
+          state.pageLimit += 50;
+          renderQuestionList();
         };
-      });
+      }
     }
 
-    function renderBreadcrumb() {
-      const bc = body.querySelector("#qmbBreadcrumb");
-      if (!state.selectedPath.length) {
-        bc.innerHTML = `<span>📂 Đang chọn: <b>Toàn bộ các khối lớp</b></span>`;
-        return;
+    function toggleSelectQuestion(qId, qObj, forceState) {
+      const willSelect = forceState !== undefined ? forceState : !state.selectedIds.has(qId);
+      if (willSelect) {
+        state.selectedIds.add(qId);
+        state.selectedMap.set(qId, fullQuestionCache.get(qId) || qObj);
+      } else {
+        state.selectedIds.delete(qId);
+        state.selectedMap.delete(qId);
       }
-      const code = state.selectedPath.map((n) => n.id).join("");
-      const trail = state.selectedPath.map((n) => U.esc(n.name)).join(" › ");
-      bc.innerHTML = `<div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${trail}">
-        <span class="qmb-badge mapid" style="margin-right:5px">ID: ${U.esc(code)}</span>
-        <b>${trail}</b>
-      </div>
-      <button type="button" class="qmb-mini-btn" id="qmbResetPath">✕ Xem tất cả</button>`;
-      const rBtn = bc.querySelector("#qmbResetPath");
-      if (rBtn) rBtn.onclick = () => { state.selectedPath = []; renderTree(); renderBreadcrumb(); renderList(); };
+      updateFooterCount();
     }
 
-    /* ---------- Render Cột 2: Danh sách câu hỏi ---------- */
-    let currentFiltered = [];
-    function renderList() {
-      const listEl = body.querySelector("#qmbListContainer");
-      const statEl = body.querySelector("#qmbListStat");
-      if (state.loading) {
-        listEl.innerHTML = `<div style="padding:40px 20px;text-align:center;color:#64748b">⏳ Đang tải dữ liệu câu hỏi...</div>`;
-        return;
-      }
-      currentFiltered = getFilteredQuestions();
-      statEl.textContent = `${currentFiltered.length} câu hỏi phù hợp`;
-
-      if (!currentFiltered.length) {
-        listEl.innerHTML = `<div style="padding:36px 20px;text-align:center;color:#64748b">
-          <div style="font-size:32px;margin-bottom:8px">📭</div>
-          <b>Không có câu hỏi nào khớp với bộ lọc hiện tại</b>
-          <p style="font-size:12px;margin-top:4px">Hãy chọn nhánh khác trên Cây ID hoặc bấm sang tab <b>🎮 Kho Sẵn Trong Game</b> / <b>📝 Đề Thi Của Tôi</b>.</p>
-        </div>`;
-        return;
-      }
-
-      // Hiển thị tối đa 120 câu đầu để cuộn mượt
-      const visible = currentFiltered.slice(0, 120);
-      if (!state.previewQuestion || !visible.some((q) => q.Id === state.previewQuestion.Id)) {
-        state.previewQuestion = visible[0];
-        renderPreview();
-      }
-
-      listEl.innerHTML = visible.map((q, idx) => {
-        const isSel = state.selectedMap.has(q.Id);
-        const isPrev = state.previewQuestion && state.previewQuestion.Id === q.Id;
-        const lvCls = q.Level === "Nhận biết" ? "lv-nb" : q.Level === "Thông hiểu" ? "lv-th" : q.Level === "Vận dụng" ? "lv-vd" : q.Level === "Vận dụng cao" ? "lv-vdc" : "lv-nb";
-        return `<div class="qmb-qitem ${isSel ? "selected" : ""} ${isPrev ? "previewing" : ""}" data-qid="${U.esc(q.Id)}">
-          <input type="checkbox" class="qmb-qcheck" data-chk="${U.esc(q.Id)}" ${isSel ? "checked" : ""}>
-          <div class="qmb-qmain">
-            <div class="qmb-qmeta">
-              <span style="font-weight:800;font-size:11px;color:#475569">#${idx + 1}</span>
-              ${q.mapId ? `<span class="qmb-badge mapid">${U.esc(q.mapId)}</span>` : ""}
-              <span class="qmb-badge type-${q.Type}">${q.Type === "MC" ? "Trắc nghiệm" : q.Type === "TF" ? "Đúng/Sai" : "Trả lời ngắn"}</span>
-              ${q.Level ? `<span class="qmb-badge ${lvCls}">${U.esc(q.Level)}</span>` : ""}
-              ${q.cccd ? `<span style="font-size:10px;color:#64748b;font-family:monospace">CCCD #${U.esc(q.cccd)}</span>` : ""}
-            </div>
-            <div class="qmb-qsnippet">${Quiz.rich(q.Question)}</div>
-          </div>
-        </div>`;
-      }).join("");
-
-      Quiz.typeset(listEl);
-
-      listEl.querySelectorAll(".qmb-qitem").forEach((itemEl) => {
-        itemEl.onclick = (e) => {
-          const qId = itemEl.dataset.qid;
-          const qObj = currentFiltered.find((x) => x.Id === qId);
-          if (!qObj) return;
-          if (e.target.classList.contains("qmb-qcheck")) {
-            if (e.target.checked) state.selectedMap.set(qObj.Id, qObj);
-            else state.selectedMap.delete(qObj.Id);
-            itemEl.classList.toggle("selected", e.target.checked);
-            updateFooterSummary();
-            if (state.previewQuestion && state.previewQuestion.Id === qObj.Id) renderPreview();
-            return;
-          }
-          state.previewQuestion = qObj;
-          listEl.querySelectorAll(".qmb-qitem").forEach((el) => el.classList.toggle("previewing", el === itemEl));
-          renderPreview();
-        };
-      });
-    }
-
-    /* ---------- Render Cột 3: Xem trước câu hỏi chi tiết (Live Preview) ---------- */
-    function renderPreview() {
-      const prevEl = body.querySelector("#qmbPreviewContainer");
-      const actEl = body.querySelector("#qmbPreviewHeaderActions");
-      const q = state.previewQuestion;
-      if (!q) {
-        actEl.innerHTML = "";
-        return;
-      }
-      const isSel = state.selectedMap.has(q.Id);
-      actEl.innerHTML = `<button type="button" class="btn btn-sm ${isSel ? "btn-ghost" : "btn-primary"}" id="qmbToggleCurBtn">
-        ${isSel ? "✓ Đã chọn vào Game (Bấm để bỏ)" : "➕ Chọn câu hỏi này vào Game"}
+    function renderPreviewActionBtn(qId, qObj) {
+      if (!prevActionWrap) return;
+      const isSel = state.selectedIds.has(qId);
+      prevActionWrap.innerHTML = `<button type="button" class="btn btn-sm ${isSel ? "btn-ghost" : "btn-primary"}" id="qmbTogglePreviewSelBtn">
+        ${isSel ? "✓ Đã chọn câu này (Bấm để bỏ)" : "+ Chọn câu hỏi này"}
       </button>`;
-      actEl.querySelector("#qmbToggleCurBtn").onclick = () => {
-        if (state.selectedMap.has(q.Id)) state.selectedMap.delete(q.Id);
-        else state.selectedMap.set(q.Id, q);
-        updateFooterSummary();
-        renderList();
-        renderPreview();
-      };
+      const btn = prevActionWrap.querySelector("#qmbTogglePreviewSelBtn");
+      if (btn) {
+        btn.onclick = () => {
+          toggleSelectQuestion(qId, qObj);
+          renderPreviewActionBtn(qId, qObj);
+          const card = qListEl.querySelector(`.qmb-qcard[data-qid="${CSS.escape(qId)}"]`);
+          if (card) {
+            card.classList.toggle("selected", state.selectedIds.has(qId));
+            const cb = card.querySelector(".qmb-qcheck");
+            if (cb) cb.checked = state.selectedIds.has(qId);
+          }
+        };
+      }
+    }
+
+    /* ---------- Hiển thị Xem trước chi tiết câu hỏi (Chuẩn trang Edit đề thi exam-editor.html) ---------- */
+    async function openPreview(qObj) {
+      if (!qObj) return;
+      const qId = String(qObj.id || qObj.cccd || qObj.Id || "");
+      state.activePreviewId = qId;
+
+      qListEl.querySelectorAll(".qmb-qcard").forEach((c) => {
+        c.classList.toggle("active-preview", c.getAttribute("data-qid") === qId);
+      });
+
+      renderPreviewActionBtn(qId, qObj);
+      previewEl.innerHTML = `<div class="qmb-preview-empty"><div class="spin"></div><b>Đang tải nội dung câu hỏi #${U.esc(qId)}...</b></div>`;
+
+      const full = await fetchFullQuestionDetail(qObj);
+      if (state.selectedIds.has(qId)) {
+        state.selectedMap.set(qId, full);
+      }
+
+      const snippetEl = qListEl.querySelector(`.qmb-qcard[data-qid="${CSS.escape(qId)}"] .qmb-qsnippet`);
+      if (snippetEl && (full.content || full.Question)) {
+        snippetEl.innerHTML = Quiz.rich(full.content || full.Question || "");
+        Quiz.typeset(snippetEl);
+      }
+
+      const converted = convertQMathQuestionToGameFormat(full);
+      const stem = String(full.content || full.Question || "").trim();
+      const explain = String(full.solution || full.Explain || "").trim();
+      const qType = converted ? Quiz.baseType(converted.Type) : detectRawQType(full);
+      const parsed = parseMapIdParts(full.mapId || qId);
+      const lv = full.level || full.Level || (parsed ? parsed.levelName : "Thông hiểu");
 
       let optionsHtml = "";
-      if (q.Type === "MC") {
-        const keys = ["A", "B", "C", "D"];
-        optionsHtml = `<div class="qmb-preview-opts">` + keys.filter((k) => q.Options && q.Options[k] != null).map((k) => {
-          const isRight = String(q.CorrectAnswer || "").toUpperCase() === k;
-          return `<div class="qmb-preview-opt ${isRight ? "is-correct" : ""}">
-            <span class="qmb-preview-opt-key">${k}</span>
-            <div style="flex:1">${Quiz.rich(q.Options[k])} ${isRight ? `<span style="margin-left:6px;color:#059669;font-weight:800">✓ Đáp án đúng</span>` : ""}</div>
+      if (qType === "MC") {
+        const opts = (converted && converted.Options) || {};
+        const ans = (converted && converted.CorrectAnswer) || "A";
+        optionsHtml = `<div class="qmb-prev-opts">` + ["A", "B", "C", "D", "E", "F"].filter((k) => opts[k] != null).map((k) => {
+          const isRight = k === ans;
+          return `<div class="qmb-prev-opt ${isRight ? "correct" : ""}">
+            <span class="qmb-opt-key">${k}</span>
+            <div class="qmb-opt-tx">${Quiz.rich(opts[k])}</div>
+            ${isRight ? `<span style="margin-left:auto;color:#15803d;font-weight:800;font-size:12px;flex-shrink:0">✓ Đáp án đúng</span>` : ""}
           </div>`;
         }).join("") + `</div>`;
-      } else if (q.Type === "TF") {
-        const tfKeys = ["a", "b", "c", "d"];
-        const ansRaw = String(q.CorrectAnswer || "ĐSĐS").toUpperCase().replace(/D/g, "Đ");
-        optionsHtml = `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">` + tfKeys.filter((k) => q.Options && q.Options[k] != null).map((k, i) => {
-          const isTrue = ansRaw[i] === "Đ" || ansRaw[i] === "T" || ansRaw[i] === "1";
-          return `<div class="qmb-preview-opt ${isTrue ? "is-correct" : ""}">
-            <span class="qmb-preview-opt-key">${k})</span>
-            <div style="flex:1">${Quiz.rich(q.Options[k])}</div>
-            <span class="qmb-badge ${isTrue ? "lv-nb" : "lv-vdc"}">${isTrue ? "✓ ĐÚNG" : "✗ SAI"}</span>
+      } else if (qType === "TF") {
+        const opts = (converted && converted.Options) || {};
+        const ans = String((converted && converted.CorrectAnswer) || "ĐSĐS");
+        optionsHtml = `<div class="qmb-prev-opts">` + ["a", "b", "c", "d"].filter((k) => opts[k] != null).map((k, idx) => {
+          const isTrue = ans[idx] === "Đ" || ans[idx] === "D";
+          return `<div class="qmb-prev-opt ${isTrue ? "correct" : ""}">
+            <span class="qmb-opt-key">${k})</span>
+            <div class="qmb-opt-tx" style="flex:1">${Quiz.rich(opts[k])}</div>
+            <span class="qmb-qbadge" style="background:${isTrue ? "#dcfce7" : "#fee2e2"};color:${isTrue ? "#15803d" : "#b91c1c"};margin-left:auto;flex-shrink:0">${isTrue ? "ĐÚNG" : "SAI"}</span>
           </div>`;
         }).join("") + `</div>`;
-      } else if (q.Type === "SA") {
-        optionsHtml = `<div style="padding:12px 16px;border-radius:12px;background:#ecfdf5;border:1.5px solid #10b981;color:#065f46;font-weight:800;margin-bottom:16px">
-          🔑 Đáp án đúng (Trả lời ngắn): <span style="font-size:15px">${Quiz.rich(q.CorrectAnswer)}</span>
+      } else if (qType === "SA") {
+        const ans = (converted && converted.CorrectAnswer) || full.answer || full.correctAnswer || "";
+        optionsHtml = `<div style="padding:12px 14px;border-radius:10px;background:#eff6ff;border:1.5px solid #93c5fd;color:#1e3a8a;font-weight:800;margin-bottom:14px">
+          🔑 Đáp án điền số / trả lời ngắn: <span style="font-size:16px;text-decoration:underline">${U.esc(String(ans))}</span>
         </div>`;
       }
 
-      prevEl.innerHTML = `<div class="qmb-preview-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            ${q.mapId ? `<span class="qmb-badge mapid" style="font-size:11.5px;padding:3px 8px">Mã ID: ${U.esc(q.mapId)}</span>` : ""}
-            <span class="qmb-badge type-${q.Type}" style="font-size:11.5px;padding:3px 8px">${q.Type === "MC" ? "Trắc nghiệm 4 lựa chọn" : q.Type === "TF" ? "Đúng / Sai (4 ý)" : "Trả lời ngắn"}</span>
-            ${q.Level ? `<span class="qmb-badge lv-th" style="font-size:11.5px;padding:3px 8px">Mức độ: ${U.esc(q.Level)}</span>` : ""}
-            ${q.Grade ? `<span class="qmb-badge" style="background:#f1f5f9;color:#334155">Lớp ${U.esc(q.Grade)}</span>` : ""}
-            ${q.Subject ? `<span class="qmb-badge" style="background:#f1f5f9;color:#334155">${U.esc(q.Subject)}</span>` : ""}
-          </div>
-          ${q.cccd ? `<span style="font-family:monospace;font-size:11.5px;color:#64748b">Mã câu hỏi: #${U.esc(q.cccd)}</span>` : ""}
+      previewEl.innerHTML = `<div class="qmb-prev-card">
+        <div class="qmb-qmeta" style="margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #f1f5f9">
+          <span class="qmb-qbadge type-${qType}">${Quiz.TYPES[qType] || qType}</span>
+          ${lv ? `<span class="qmb-qbadge lv">${U.esc(lv)}</span>` : ""}
+          ${full.mapId ? `<span class="qmb-qbadge" style="background:#f1f5f9;color:#475569">Mã bài: ${U.esc(full.mapId)}</span>` : ""}
+          <span style="font-size:12px;color:#64748b;margin-left:auto">ID: #${U.esc(qId)}</span>
         </div>
-
-        <div class="qmb-preview-stem">${Quiz.rich(q.Question)}</div>
+        <div class="qmb-prev-stem">${stem ? Quiz.rich(stem) : "<i>Không có nội dung đề bài</i>"}</div>
         ${optionsHtml}
-        ${q.Explain ? `<div class="qmb-preview-solution">
-          <b style="display:block;color:#4f46e5;margin-bottom:4px">💡 Lời giải chi tiết:</b>
-          <div>${Quiz.rich(q.Explain)}</div>
-        </div>` : `<div style="font-size:12px;color:#94a3b8;font-style:italic">Câu hỏi này chưa đính kèm lời giải chi tiết.</div>`}
+        ${explain ? `<div class="qmb-prev-sol">
+          <b>💡 Lời giải chi tiết:</b>
+          <div>${Quiz.rich(explain)}</div>
+        </div>` : ""}
       </div>`;
 
-      Quiz.typeset(prevEl);
+      Quiz.typeset(previewEl);
     }
 
-    /* ---------- Sự kiện bộ lọc & nút chọn nhanh ---------- */
-    body.querySelector("#qmbExpandAll").onclick = () => {
-      (function exp(nodes, anc) {
-        (nodes || []).forEach((n) => {
-          const p = [...anc, n];
-          state.expandedPaths.add(p.map((x) => x.id).join("_"));
-          if (n.children) exp(n.children, p);
-        });
-      })(QB.mapIdTree, []);
-      renderTree();
-    };
-    body.querySelector("#qmbCollapseAll").onclick = () => {
-      state.expandedPaths.clear();
-      renderTree();
-    };
-    body.querySelector("#qmbTreeSearch").oninput = U.debounce((e) => {
-      state.treeSearch = e.target.value;
-      renderTree();
-    }, 180);
-    body.querySelector("#qmbQSearch").oninput = U.debounce((e) => {
-      state.qSearch = e.target.value;
-      renderList();
-    }, 180);
+    /* ---------- Xác nhận đưa các câu hỏi đã chọn vào Game ---------- */
+    async function confirmSelection(modalObj) {
+      const ids = Array.from(state.selectedIds);
+      if (confirmBtnEl) {
+        confirmBtnEl.disabled = true;
+        confirmBtnEl.innerHTML = `<span class="spin"></span> Đang tải ${ids.length} câu hỏi...`;
+      }
 
-    body.querySelectorAll("#qmbSourceTabs .qmb-source-tab").forEach((b) => {
-      b.onclick = async () => {
-        body.querySelectorAll("#qmbSourceTabs .qmb-source-tab").forEach((x) => x.classList.toggle("active", x === b));
-        state.sourceTab = b.dataset.src;
-        state.loading = true;
-        renderList();
-        if (state.sourceTab === "exams") await QB.loadExamQuestions();
-        state.loading = false;
-        renderTree();
-        renderList();
-      };
-    });
+      const rawItems = ids.map((id) => state.selectedMap.get(id)).filter(Boolean);
+      const fullItems = [];
+      const concurrency = 8;
+      let cursor = 0;
 
-    body.querySelectorAll("#qmbLevelPills .qmb-pill").forEach((b) => {
-      b.onclick = () => {
-        body.querySelectorAll("#qmbLevelPills .qmb-pill").forEach((x) => x.classList.toggle("active", x === b));
-        state.levelFilter = b.dataset.lv;
-        renderList();
-      };
-    });
+      async function worker() {
+        while (cursor < rawItems.length) {
+          const idx = cursor++;
+          const full = await fetchFullQuestionDetail(rawItems[idx]);
+          if (full) fullItems[idx] = full;
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(concurrency, rawItems.length) }, () => worker()));
 
-    body.querySelectorAll("#qmbTypePills .qmb-pill").forEach((b) => {
-      b.onclick = () => {
-        body.querySelectorAll("#qmbTypePills .qmb-pill").forEach((x) => x.classList.toggle("active", x === b));
-        state.typeFilter = b.dataset.tp;
-        renderList();
-      };
-    });
+      const playableList = fullItems
+        .map((item) => convertQMathQuestionToGameFormat(item))
+        .filter(Boolean);
 
-    body.querySelector("#qmbSelectAllBtn").onclick = () => {
-      currentFiltered.slice(0, 120).forEach((q) => state.selectedMap.set(q.Id, q));
-      updateFooterSummary();
-      renderList();
-      renderPreview();
-      U.toast(`☑️ Đã chọn ${Math.min(120, currentFiltered.length)} câu hỏi trong danh sách hiện tại!`, "ok", 1800);
+      if (!playableList.length) {
+        if (confirmBtnEl) {
+          confirmBtnEl.disabled = false;
+          updateFooterCount();
+        }
+        U.toast("Các câu hỏi đã chọn không có phương án trắc nghiệm / trả lời ngắn hợp lệ cho Game!", "err", 4000);
+        return;
+      }
+
+      modalObj.close();
+      if (typeof onConfirm === "function") {
+        onConfirm(playableList);
+      } else {
+        DB.useLocalFile(playableList);
+        U.toast(`🎉 Đã nạp ${playableList.length} câu hỏi từ Ngân hàng QMath vào bộ câu hỏi hiện tại!`, "ok", 4000);
+      }
+    }
+
+    /* ---------- Sự kiện tìm kiếm & bộ lọc ---------- */
+    body.querySelector("#qmbSearchInp").addEventListener("input", U.debounce((e) => {
+      state.searchQuery = e.target.value;
+      state.pageLimit = 50;
+      applyFiltersAndRenderList();
+    }, 200));
+
+    body.querySelector("#qmbTypeSel").onchange = (e) => {
+      state.typeFilter = e.target.value;
+      state.pageLimit = 50;
+      applyFiltersAndRenderList();
     };
 
-    body.querySelector("#qmbRandom10Btn").onclick = () => {
-      if (!currentFiltered.length) return;
-      const picked = U.shuffle(currentFiltered).slice(0, 10);
-      picked.forEach((q) => state.selectedMap.set(q.Id, q));
-      updateFooterSummary();
-      renderList();
-      renderPreview();
-      U.toast(`🎲 Đã chọn ngẫu nhiên thêm ${picked.length} câu hỏi!`, "ok", 1800);
+    body.querySelector("#qmbLevelSel").onchange = (e) => {
+      state.levelFilter = e.target.value;
+      state.pageLimit = 50;
+      applyFiltersAndRenderList();
+    };
+
+    body.querySelector("#qmbSelectPageBtn").onclick = () => {
+      const slice = state.filteredQuestions.slice(0, state.pageLimit);
+      slice.forEach((q) => {
+        const qId = String(q.id || q.cccd || q.Id || "");
+        state.selectedIds.add(qId);
+        state.selectedMap.set(qId, fullQuestionCache.get(qId) || q);
+      });
+      updateFooterCount();
+      renderQuestionList();
+      if (state.activePreviewId) {
+        const curObj = slice.find((x) => String(x.id || x.cccd || x.Id || "") === state.activePreviewId);
+        if (curObj) renderPreviewActionBtn(state.activePreviewId, curObj);
+      }
+      U.toast(`Đã chọn ${slice.length} câu hỏi trong danh sách hiện tại!`, "ok", 1800);
     };
 
     body.querySelector("#qmbClearSelBtn").onclick = () => {
+      state.selectedIds.clear();
       state.selectedMap.clear();
-      updateFooterSummary();
-      renderList();
-      renderPreview();
+      updateFooterCount();
+      renderQuestionList();
+      if (state.activePreviewId) renderPreviewActionBtn(state.activePreviewId, null);
     };
 
-    // Tải song song Cây MapID và Ngân hàng R2
-    await Promise.all([QB.loadMapIdTree(), QB.loadR2BankQuestions()]);
-    // Nếu kho R2 trống (offline), tự động nạp Đề thi hoặc Kho trong Game
-    if (!QB.r2BankList.length) {
-      await QB.loadExamQuestions();
-      if (QB.myExamQuestions.length) {
-        state.sourceTab = "exams";
-      } else {
-        state.sourceTab = "game";
-      }
-      body.querySelectorAll("#qmbSourceTabs .qmb-source-tab").forEach((x) => x.classList.toggle("active", x.dataset.src === state.sourceTab));
-    }
-    state.loading = false;
-    renderTree();
-    renderBreadcrumb();
-    renderList();
+    body.querySelectorAll(".qmb-src-tab").forEach((tabBtn) => {
+      tabBtn.onclick = () => {
+        body.querySelectorAll(".qmb-src-tab").forEach((b) => b.classList.toggle("on", b === tabBtn));
+        state.sourceTab = tabBtn.getAttribute("data-src");
+        state.pageLimit = 50;
+        renderStage();
+      };
+    });
 
-    return dlg.result;
+    /* ---------- Khởi tạo dữ liệu ban đầu ---------- */
+    wizardStageEl.innerHTML = `<div class="qmb-preview-empty" style="height:360px"><div class="spin"></div><b>Đang kết nối Kho Ngân hàng câu hỏi QMath...</b></div>`;
+    await QB.init();
+    const [rawTree, bankQuestions] = await Promise.all([loadMapIdTree(), loadQMathBankCatalog()]);
+    state.enrichedTree = buildEnrichedKnowledgeTree(rawTree, bankQuestions);
+    renderStage();
   };
 
-  // Khởi động cầu nối ngay khi tải trang
-  QB.init();
+  /* ---------- 7. Gắn thanh công cụ Ngân hàng QMath + Word (.docx) + Hạn mức vào màn hình Cấu hình mọi Game ---------- */
+  function enhanceGameSetupScreen() {
+    if (!window.GameKit || typeof GameKit.page !== "function" || GameKit._qmathEnhanced) return;
+    GameKit._qmathEnhanced = true;
+
+    const origPage = GameKit.page;
+    GameKit.page = async function (view, gameId) {
+      const cleanup = await origPage.call(this, view, gameId);
+      try {
+        injectQMathToolsIntoGameSetup(view, gameId);
+      } catch (e) {
+        console.warn("[QMathBridge] Lỗi gắn công cụ vào GameSetup:", e);
+      }
+      return cleanup;
+    };
+  }
+
+  function injectQMathToolsIntoGameSetup(view, gameId) {
+    const g = window.Games && Games.get(gameId);
+    const setupGrid = view.querySelector(".setup-grid");
+    if (!g || !setupGrid) return;
+
+    const bannerHost = U.h(`<div></div>`);
+    setupGrid.parentNode.insertBefore(bannerHost, setupGrid);
+    QB.renderSetupQuotaBanner(bannerHost, g.name);
+
+    const srcSelect = view.querySelector("#sSrc");
+    const fileBox = view.querySelector("#sFileBox");
+    const fileInput = view.querySelector("#sFile");
+
+    if (srcSelect && srcSelect.parentElement) {
+      const fieldEl = srcSelect.parentElement;
+      const quickBar = U.h(`<div>
+        <div class="qm-src-toolbar">
+          <button type="button" class="qm-src-card bank-card" id="qmPickFromBankBtn">
+            <div class="qm-src-ic">📚</div>
+            <div class="qm-src-txt">
+              <b>Chọn từ Ngân hàng câu hỏi QMath</b>
+              <small>Chọn Lớp ➔ Phân môn ➔ Bài ➔ Dạng bài & Xem trước</small>
+            </div>
+          </button>
+          <button type="button" class="qm-src-card word-card" id="qmUploadWordQuickBtn">
+            <div class="qm-src-ic">📄</div>
+            <div class="qm-src-txt">
+              <b>Tải đề từ file Word (.docx)</b>
+              <small>Nhận diện công thức Toán MathType, gạch chân & hình ảnh</small>
+            </div>
+          </button>
+        </div>
+        <div class="qm-word-help-row">
+          <span>💡 <b>Mẹo đưa câu hỏi file Word (.docx) lên Game:</b> Hỗ trợ công thức MathType, LaTeX <code>$...$</code>, hình vẽ & gạch chân đáp án đúng.</span>
+          <button type="button" class="qm-link-btn" id="qmOpenWordGuideBtn">📘 Xem hướng dẫn chuẩn & Tải file Word mẫu</button>
+        </div>
+      </div>`);
+
+      fieldEl.parentNode.insertBefore(quickBar, fieldEl.nextSibling);
+
+      const applyCustomQuestionsToSetup = (questions, sourceLabel) => {
+        DB.useLocalFile(questions);
+        if (!srcSelect.querySelector('option[value="__qmath_picked"]')) {
+          const opt = document.createElement("option");
+          opt.value = "__qmath_picked";
+          srcSelect.insertBefore(opt, srcSelect.firstChild);
+        }
+        const opt = srcSelect.querySelector('option[value="__qmath_picked"]');
+        const playableCount = Quiz.countPlayable(questions);
+        opt.textContent = `✅ Đã chọn: ${sourceLabel} (${playableCount} câu chơi được)`;
+        srcSelect.value = "__qmath_picked";
+        if (fileBox) fileBox.classList.add("hide");
+
+        const cntB = view.querySelector("#sCnt");
+        const maxEl = view.querySelector("#sMax");
+        if (cntB) cntB.textContent = playableCount;
+        if (maxEl && playableCount > 0) {
+          maxEl.max = Math.max(5, playableCount);
+          if (+maxEl.value > playableCount) maxEl.value = playableCount;
+          maxEl.dispatchEvent(new Event("input"));
+        }
+      };
+
+      const origPool = DB.poolForGame;
+      if (!origPool._qmathPatched) {
+        const patchedPool = function (gid, setId) {
+          if (setId === "__qmath_picked") {
+            return DB.bank();
+          }
+          return origPool.call(DB, gid, setId);
+        };
+        patchedPool._qmathPatched = true;
+        DB.poolForGame = patchedPool;
+      }
+
+      quickBar.querySelector("#qmPickFromBankBtn").onclick = () => {
+        QB.openBankPickerModal({
+          targetName: g.name,
+          onConfirm: (pickedList) => {
+            applyCustomQuestionsToSetup(pickedList, `${pickedList.length} câu từ Ngân hàng QMath`);
+            U.toast(`🎉 Đã nạp ${pickedList.length} câu hỏi từ Ngân hàng QMath vào trò chơi "${g.name}"!`, "ok", 3800);
+          }
+        });
+      };
+
+      quickBar.querySelector("#qmUploadWordQuickBtn").onclick = () => {
+        srcSelect.value = "__file";
+        srcSelect.dispatchEvent(new Event("change"));
+        if (fileInput) fileInput.click();
+      };
+
+      quickBar.querySelector("#qmOpenWordGuideBtn").onclick = () => {
+        QB.openWordGuideModal(() => {
+          srcSelect.value = "__file";
+          srcSelect.dispatchEvent(new Event("change"));
+          if (fileInput) fileInput.click();
+        });
+      };
+    }
+
+    ["#goLocal", "#goPin", "#goSavePreset"].forEach((sel) => {
+      const btn = view.querySelector(sel);
+      if (!btn || btn._qmathQuotaWrapped) return;
+      btn._qmathQuotaWrapped = true;
+      const origHandler = btn.onclick;
+      btn.onclick = async (e) => {
+        if (sel === "#goLocal" || sel === "#goPin") {
+          const check = await QB.consumeGameQuota(g.name);
+          QB.renderSetupQuotaBanner(bannerHost, g.name);
+          if (!check.allowed) return;
+        }
+        if (typeof origHandler === "function") {
+          return origHandler.call(btn, e);
+        }
+      };
+    });
+  }
+
+  /* ---------- 8. Gắn sự kiện cho nút trên Trang chủ & Trang Quản trị ---------- */
+  function observeViewsForQMathButtons() {
+    document.addEventListener("click", (e) => {
+      const bankBtn = e.target.closest("#homeOpenBankPicker, #admOpenQMathBank");
+      if (bankBtn) {
+        e.preventDefault();
+        QB.openBankPickerModal({
+          targetName: "Bộ câu hỏi Trò chơi",
+          onConfirm: async (pickedList) => {
+            DB.useLocalFile(pickedList);
+            U.toast(`🎉 Đã nạp ${pickedList.length} câu hỏi từ Ngân hàng QMath! Hãy chọn trò chơi để bắt đầu.`, "ok", 4000);
+            if (window.App && typeof App.render === "function") App.render();
+          }
+        });
+        return;
+      }
+
+      const guideBtn = e.target.closest("#homeWordGuide, #admWordGuideBtn");
+      if (guideBtn) {
+        e.preventDefault();
+        QB.openWordGuideModal(() => {
+          const openLocalBtn = document.querySelector("#openLocal");
+          if (openLocalBtn) openLocalBtn.click();
+        });
+      }
+    });
+  }
+
+  function bootBridge() {
+    QB.init();
+    enhanceGameSetupScreen();
+    observeViewsForQMathButtons();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootBridge);
+  } else {
+    bootBridge();
+  }
+
   window.QMathBridge = QB;
 })();

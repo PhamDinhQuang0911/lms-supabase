@@ -1,10 +1,9 @@
 /* =========================================================
-   importer.js — Nhập / xuất câu hỏi: Word (.docx), JSON & Excel (SheetJS)
-   Hỗ trợ:
-   1. Word (.docx): Trắc nghiệm 4 lựa chọn (MC), Đúng/Sai (TF), Trả lời ngắn (SA),
-      nhận diện gạch chân <u>A.</u>, *A., "Chọn A", "[ĐS]", "Đáp án:", Bảng đáp án cuối đề,
-      công thức Toán LaTeX $...$ & MathType API, hình ảnh nhúng trong Word.
-   2. Excel (.xlsx/.xls/.csv) & JSON (.json/.js/.txt)
+   importer.js — Nhập / xuất câu hỏi: Word (.docx), LaTeX (.tex), JSON & Excel (SheetJS)
+   Đồng bộ 100% cơ chế đọc Word (.docx) từ exam-editor.html:
+   - Chuyển đổi công thức MathType sang LaTeX qua API cấu hình QMath LMS
+   - Giải mã hình ảnh vector EMF/WMF từ Word sang PNG độ nét cao qua emf-converter.js
+   - Bảo toàn hình ảnh nhúng, bảng số liệu, gạch chân đáp án đúng (<u>A.</u>)
    ========================================================= */
 (function () {
   const COLS = ["Id", "Type", "Level", "Grade", "Subject", "Chapter", "Topic", "Question", "A", "B", "C", "D", "CorrectAnswer", "Explain", "ParentId"];
@@ -30,6 +29,7 @@
     if (isChild && ["MC", "TF", "SA", "LA"].includes(u)) return "Group" + u;
     return ["MC", "TF", "SA", "LA"].includes(u) ? u : (u || "MC");
   }
+
   function cleanQ(q, isChild) {
     const o = {};
     o.Id = String(q.Id || q.id || "").trim();
@@ -53,11 +53,18 @@
     if (base === "Group") o.children = (q.children || []).map((c) => cleanQ(c, true));
     return o;
   }
+
   function validate(q) {
     const t = Quiz.baseType(q.Type), errs = [];
     if (!q.Question && t !== "Group") errs.push("thiếu nội dung câu hỏi");
-    if (t === "MC") { if (Object.keys(q.Options || {}).length < 2) errs.push("cần ≥ 2 phương án"); if (!/^[A-F]$/i.test(q.CorrectAnswer || "")) errs.push("đáp án MC phải là A–D (hãy gạch chân đáp án đúng hoặc ghi Chọn A)"); }
-    if (t === "TF") { if (!q.Options || !Object.keys(q.Options).length) errs.push("thiếu các ý a–d"); if (!/^[ĐDSTF01đs]{1,4}$/i.test(String(q.CorrectAnswer || "").replace(/[\s,;\-]/g, ""))) errs.push("đáp án TF dạng ĐSĐS"); }
+    if (t === "MC") {
+      if (Object.keys(q.Options || {}).length < 2) errs.push("cần ≥ 2 phương án");
+      if (!/^[A-F]$/i.test(q.CorrectAnswer || "")) errs.push("đáp án MC phải là A–D");
+    }
+    if (t === "TF") {
+      if (!q.Options || !Object.keys(q.Options).length) errs.push("thiếu các ý a–d");
+      if (!/^[ĐDSTF01đs]{1,4}$/i.test(String(q.CorrectAnswer || "").replace(/[\s,;\-]/g, ""))) errs.push("đáp án TF dạng ĐSĐS");
+    }
     if (t === "SA" && !q.CorrectAnswer) errs.push("thiếu đáp án");
     if (t === "Group" && !(q.children || []).length) errs.push("nhóm chưa có câu con");
     return errs;
@@ -70,35 +77,67 @@
     return window.mammoth;
   };
 
-  /* ---------- Làm sạch công thức Toán từ Word / MathType ---------- */
-  function cleanWordMathLatex(str) {
+  /* ---------- Nạp mô-đun giải mã ảnh vector EMF/WMF (dùng chung với exam-editor.html) ---------- */
+  async function ensureEmfConverter() {
+    if (typeof window.convertMetafileToDataUrl === "function") return window.convertMetafileToDataUrl;
+    try {
+      const emfUrl = new URL("../emf-converter.js?v=20260925", window.location.href).href;
+      const emfMod = await import(emfUrl);
+      if (emfMod && typeof emfMod.convertMetafileToDataUrl === "function") {
+        window.convertMetafileToDataUrl = emfMod.convertMetafileToDataUrl;
+        return window.convertMetafileToDataUrl;
+      }
+    } catch (e) {
+      console.warn("[Word Import] Không thể nạp emf-converter.js:", e);
+    }
+    return null;
+  }
+
+  /* ---------- Làm sạch công thức Toán từ Word / MathType (chuẩn exam-editor.html) ---------- */
+  function cleanWordMathLatex(str, tokenVault) {
     if (!str || typeof str !== "string") return str || "";
     const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right(?:\\\.|\.|\{|\})?\s*([\s\S]*?)\s*(?:\\\{|\\\}|\\\.|(?=\$))/g;
-    str = str.replace(regexMangledSystem, (match, eq1, eq2) => {
+    str = str.replace(regexMangledSystem, (_, eq1, eq2) => {
       const clean1 = (eq1 || "").trim().replace(/^\\left\s*/, "");
-      let clean2 = (eq2 || "").trim().replace(/^[.\s]+/, "").replace(/^\\\./, "").replace(/\\\{$/, "").trim();
+      const clean2 = (eq2 || "").trim().replace(/^[.\s]+/, "").replace(/^\\\./, "").replace(/\\\{$/, "").trim();
       return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
     });
     str = str.replace(/\\left\\\{\s*\\begin\{array\}\s*\{[^{}]*\}([\s\S]*?)\\end\{array\}\s*\\right\.?/g, "\\begin{cases}$1\\end{cases}");
+    str = str.replace(/\\left\[\s*\\begin\{array\}\s*\{[^{}]*\}([\s\S]*?)\\end\{array\}\s*\\right\]/g, "\\begin{bmatrix}$1\\end{bmatrix}");
     str = str.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, "");
     str = str.replace(/\\left([a-zA-Z0-9])/g, "$1");
     str = str.replace(/\\right([a-zA-Z0-9])/g, "$1");
+
+    // Khôi phục bảng HTML và ảnh nhúng từ token
+    if (tokenVault) {
+      if (Array.isArray(tokenVault.tables)) {
+        tokenVault.tables.forEach((tblHtml, idx) => {
+          str = str.split(`[[WORD_TABLE_${idx}]]`).join(tblHtml);
+        });
+      }
+      if (Array.isArray(tokenVault.images)) {
+        tokenVault.images.forEach((imgHtml, idx) => {
+          str = str.split(`[[WORD_IMG_${idx}]]`).join(imgHtml);
+        });
+      }
+    }
     return str.trim();
   }
   IO.cleanWordMathLatex = cleanWordMathLatex;
 
-  /* ---------- Chuyển HTML từ Mammoth sang văn bản chuẩn hóa để bóc tách ---------- */
+  /* ---------- Chuyển HTML từ Mammoth sang văn bản chuẩn hóa để bóc tách (chuẩn exam-editor.html) ---------- */
   function wordHtmlToImportText(html) {
     const source = new DOMParser().parseFromString(html || "", "text/html");
+    const wordTables = [];
+    const wordImages = [];
 
-    // Nhận diện thẻ gạch chân <u> trên chữ cái phương án A, B, C, D hoặc a, b, c, d
+    // 1. Nhận diện thẻ gạch chân <u> trên chữ cái phương án A, B, C, D hoặc a, b, c, d
     source.querySelectorAll("u").forEach((underlined) => {
       const txt = (underlined.textContent || "").trim();
       const label = txt.match(/^\*?([A-Da-d])\s*[\.\)\:]?$/);
       if (label) {
         underlined.before(document.createTextNode(` [[WORD_UNDERLINE_${label[1].toUpperCase()}]] `));
       } else {
-        // Trường hợp gạch chân cả phương án bắt đầu bằng "A. ..."
         const prefixMatch = txt.match(/^\*?([A-Da-d])\s*[\.\)\:]\s+/);
         if (prefixMatch) {
           underlined.before(document.createTextNode(` [[WORD_UNDERLINE_${prefixMatch[1].toUpperCase()}]] `));
@@ -106,11 +145,12 @@
       }
     });
 
+    // 2. Kiểm tra xem văn bản Word đã có sẵn các nhãn "Câu 1.", "Câu 2." được gõ tay hay chưa
     const rawBodyText = source.body.textContent || "";
     const explicitMatches = rawBodyText.match(/(?:^|\n|\s)(?:Câu|Bài)\s*\d+\s*[\.:]/gi) || [];
     const hasExplicitQuestions = explicitMatches.length >= 2;
 
-    // Khôi phục đánh số tự động <ol><li> của Word thành "Câu 1.", "Câu 2."
+    // 3. Khôi phục đánh số tự động <ol><li> của Word thành "Câu 1.", "Câu 2."
     let questionNumber = 1;
     source.querySelectorAll("ol").forEach((ol) => {
       if (ol.closest("table")) return;
@@ -135,28 +175,68 @@
       });
     });
 
-    // Giữ dòng cho các ô trong bảng (nếu giáo viên trình bày 4 đáp án A B C D trong bảng không viền)
-    source.querySelectorAll("td, th").forEach((cell) => cell.append("   "));
-    source.querySelectorAll("br").forEach((el) => el.replaceWith("\n"));
-    source.querySelectorAll("p, div, li, tr, h1, h2, h3, h4").forEach((el) => el.append("\n"));
+    // 4. Bảo vệ ảnh nhúng bằng token [[WORD_IMG_i]] trước khi xử lý bảng & textContent
+    //    (để ảnh nằm trong bảng hoặc nằm trong phương án A/B/C/D không bao giờ bị mất hay làm nhiễu regex)
     source.querySelectorAll("img").forEach((img) => {
       const src = img.getAttribute("src") || "";
-      if (/^(data:image\/|https?:\/\/)/i.test(src)) img.replaceWith(`\n${src}\n`);
-      else img.remove();
+      if (/^(data:image\/|https?:\/\/)/i.test(src)) {
+        const token = `[[WORD_IMG_${wordImages.length}]]`;
+        wordImages.push(`<img src="${src}" alt="Hình minh họa">`);
+        img.replaceWith(document.createTextNode(` ${token} `));
+      } else {
+        img.remove();
+      }
     });
 
-    return (source.body.textContent || "")
+    // 5. Xử lý bảng:
+    //    - Nếu bảng dùng để dàn trang 4 đáp án A. B. C. D. hoặc câu hỏi -> giải phóng các ô thành dòng văn bản
+    //    - Nếu bảng là bảng số liệu / bảng biến thiên -> giữ nguyên HTML table qua token [[WORD_TABLE_i]]
+    source.querySelectorAll("table").forEach((table) => {
+      const tblText = (table.textContent || "").trim();
+      const hasQuestionLabels = /(?:^|\n|\s)(?:Câu|Bài)\s*\d+\s*[\.:]/i.test(tblText);
+      const hasMcOptions = /(?:^|\s)A\s*[\.\):][\s\S]+(?:^|\s)B\s*[\.\):]/i.test(tblText);
+      if (hasQuestionLabels || hasMcOptions) {
+        table.querySelectorAll("td, th").forEach((cell) => cell.append("   "));
+        table.querySelectorAll("tr").forEach((tr) => tr.append("\n"));
+      } else {
+        table.classList.add("qm-latex-tbl");
+        table.setAttribute("border", "1");
+        table.querySelectorAll("td, th").forEach((cell) => {
+          cell.setAttribute("style", "border:1px solid #cbd5e1;padding:6px 10px;vertical-align:top;");
+        });
+        const token = `[[WORD_TABLE_${wordTables.length}]]`;
+        wordTables.push(`<div class="qm-tbl-wrap">${table.outerHTML}</div>`);
+        table.replaceWith(document.createTextNode(` ${token} `));
+      }
+    });
+
+    source.querySelectorAll("br").forEach((el) => el.replaceWith("\n"));
+    source.querySelectorAll("p, div, li, tr, h1, h2, h3, h4").forEach((el) => el.append("\n"));
+
+    const text = (source.body.textContent || "")
       .replace(/\u00a0/g, " ")
       .replace(/\r/g, "")
       .replace(/[ \t]+\n/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
+
+    return {
+      text,
+      vault: {
+        tables: wordTables,
+        images: wordImages
+      }
+    };
   }
   IO.wordHtmlToImportText = wordHtmlToImportText;
 
   /* ---------- Bóc tách danh sách câu hỏi từ văn bản Word ---------- */
-  IO.parseWordText = (rawText) => {
-    let text = String(rawText || "").replace(/\r/g, "").trim();
+  IO.parseWordText = (rawInput, externalVault) => {
+    const textObj = typeof rawInput === "object" && rawInput !== null && "text" in rawInput
+      ? rawInput
+      : { text: String(rawInput || ""), vault: externalVault || { tables: [], images: [] } };
+    const vault = textObj.vault || { tables: [], images: [] };
+    let text = String(textObj.text || "").replace(/\r/g, "").trim();
     if (!text) return [];
 
     // 1. Tách phần sau chữ "HẾT" hoặc "BẢNG ĐÁP ÁN" để dò bảng đáp án tổng hợp cuối đề (nếu có)
@@ -166,7 +246,6 @@
     if (hetMatch) {
       tailText = text.slice(hetMatch.index);
       text = text.slice(0, hetMatch.index).trim();
-      // Dò các cặp "1.A", "1-A", "1: A", "Câu 1: A" trong bảng đáp án cuối đề
       const ansPairs = [...tailText.matchAll(/(?:Câu\s*)?(\d{1,3})\s*[\.\-:)\s]\s*([ABCD])\b/gi)];
       ansPairs.forEach((m) => {
         const num = String(parseInt(m[1], 10));
@@ -217,6 +296,7 @@
       const tagMatches = [...body.matchAll(/\[\s*([A-Za-z0-9_\-]+)\s*\]/g)];
       tagMatches.forEach((tm) => {
         const tok = tm[1].toUpperCase();
+        if (tok.startsWith("WORD_")) return;
         if (tok === "NB") level = "Nhận biết";
         else if (tok === "TH") level = "Thông hiểu";
         else if (tok === "VD") level = "Vận dụng";
@@ -277,13 +357,13 @@
         const stem = cleanWordMathLatex(
           body.slice(0, tfMatches[0].index)
             .replace(/\[\s*(?:ĐS|Đ\/S|Đúng\s*[\/,-]?\s*Sai)\s*\]|\(\s*Đúng\s*[\/,-]?\s*Sai\s*\)/gi, "")
-            .trim()
+            .trim(),
+          vault
         );
         const opts = {};
         const tfKeys = ["a", "b", "c", "d"];
         let ansChars = "";
 
-        // Kiểm tra chuỗi đáp án tổng kiểu "Đáp án: Đ-S-Đ-S" hoặc "ĐSĐS" trong lời giải
         let explicitPattern = "";
         const patMatch = /(?:Đáp\s*án|Kết\s*quả)\s*[:=]?\s*([ĐDS][\s,\-–—/]*[ĐDS][\s,\-–—/]*[ĐDS][\s,\-–—/]*[ĐDS])/i.exec(solution || body);
         if (patMatch) {
@@ -311,7 +391,8 @@
           }
 
           opts[tfKeys[idx]] = cleanWordMathLatex(
-            rawText.replace(/(?:\[\s*(?:Đúng|Sai|Đ|S)\s*\]|\(\s*(?:Đúng|Sai|Đ|S)\s*\)|[-–—:]\s*(?:Đúng|Sai))\s*$/i, "").trim()
+            rawText.replace(/(?:\[\s*(?:Đúng|Sai|Đ|S)\s*\]|\(\s*(?:Đúng|Sai|Đ|S)\s*\)|[-–—:]\s*(?:Đúng|Sai))\s*$/i, "").trim(),
+            vault
           );
           ansChars += isTrue ? "Đ" : "S";
         });
@@ -326,19 +407,18 @@
           Question: stem,
           Options: opts,
           CorrectAnswer: ansChars || "ĐSĐS",
-          Explain: cleanWordMathLatex(solution)
+          Explain: cleanWordMathLatex(solution, vault)
         }));
       } else if (optionMatches.length >= 4) {
-        const stem = cleanWordMathLatex(body.slice(0, optionMatches[0].index).trim());
+        const stem = cleanWordMathLatex(body.slice(0, optionMatches[0].index).trim(), vault);
         const opts = {};
         const mcKeys = ["A", "B", "C", "D"];
         optionMatches.slice(0, 4).forEach((opt, idx) => {
           const optStart = opt.index + opt[0].length;
           const optEnd = idx < 3 ? optionMatches[idx + 1].index : body.length;
           let optText = body.slice(optStart, optEnd).trim();
-          // Loại dòng "Đáp án: A" nếu người dùng viết ở cuối phương án D
           optText = optText.replace(/(?:^|\n)\s*(?:Chọn|Đáp\s*án)\s*[:\-]?\s*[ABCD]\s*\.?\s*$/i, "").trim();
-          opts[mcKeys[idx]] = cleanWordMathLatex(optText);
+          opts[mcKeys[idx]] = cleanWordMathLatex(optText, vault);
         });
 
         let correct = "";
@@ -352,7 +432,7 @@
         } else if (endKeyMap[qNum]) {
           correct = endKeyMap[qNum];
         } else {
-          correct = "A"; // Mặc định A nếu người dùng quên đánh dấu, có thể sửa trong bảng xem trước
+          correct = "A";
         }
 
         out.push(cleanQ({
@@ -365,7 +445,7 @@
           Question: stem,
           Options: opts,
           CorrectAnswer: correct,
-          Explain: cleanWordMathLatex(solution)
+          Explain: cleanWordMathLatex(solution, vault)
         }));
       } else if (shortMatch) {
         let rawAns = (shortMatch[1] || shortMatch[2] || "").trim();
@@ -374,7 +454,8 @@
           body
             .replace(/(?:^|\n)\s*(?:Đáp\s*án|Đáp\s*số|Kết\s*quả)\s*[:=]\s*[^\n\r]+/i, "")
             .replace(/<key\s*=\s*[^>]+>/gi, "")
-            .trim()
+            .trim(),
+          vault
         );
         out.push(cleanQ({
           Id: qId,
@@ -384,8 +465,8 @@
           Subject: subject,
           mapId: mapId,
           Question: stem,
-          CorrectAnswer: cleanWordMathLatex(rawAns),
-          Explain: cleanWordMathLatex(solution)
+          CorrectAnswer: cleanWordMathLatex(rawAns, vault),
+          Explain: cleanWordMathLatex(solution, vault)
         }));
       }
     });
@@ -393,7 +474,7 @@
     return out;
   };
 
-  /* ---------- Đọc file Word (.docx) bằng Mammoth + trích xuất ảnh EMF/PNG ---------- */
+  /* ---------- Đọc file Word (.docx) bằng Mammoth + MathType API + EMF/WMF-to-PNG (y hệt exam-editor.html) ---------- */
   function extractEmbeddedRaster(arrayBuffer) {
     const bytes = new Uint8Array(arrayBuffer);
     if (!bytes || bytes.length < 16) return null;
@@ -432,26 +513,31 @@
 
   IO.parseDocx = async (buf, fileObj) => {
     const mammoth = await IO.needMammoth();
+    await ensureEmfConverter();
     let arrayBuffer = buf;
 
-    // Nếu hệ thống có cấu hình API chuyển đổi MathType sang LaTeX thì tự động gọi trước
-    if (window.QMathBridge && typeof window.QMathBridge.getMathTypeApiUrl === "function" && fileObj) {
+    // 1. Gọi dịch vụ chuyển đổi MathType sang LaTeX giống hệt exam-editor.html
+    if (window.QMathBridge && typeof window.QMathBridge.getMathTypeApiUrl === "function") {
       try {
         const apiUrl = await window.QMathBridge.getMathTypeApiUrl();
         if (apiUrl) {
-          U.toast("⏳ Đang chuyển đổi công thức MathType trong file Word sang LaTeX...", "info", 2200);
+          U.toast("⏳ Đang chuyển công thức MathType sang LaTeX...", "info", 2500);
           const fd = new FormData();
-          fd.append("file", fileObj);
+          const uploadFile = fileObj || new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+          fd.append("file", uploadFile, (fileObj && fileObj.name) || "questions.docx");
           const resp = await fetch(apiUrl, { method: "POST", body: fd });
           if (resp.ok) {
             arrayBuffer = await resp.arrayBuffer();
+          } else {
+            console.warn("[Word Import] MathType API trả về HTTP " + resp.status);
           }
         }
       } catch (e) {
-        console.warn("[Word Import] Bỏ qua MathType API, dùng trực tiếp nội dung Word:", e);
+        console.warn("[Word Import] Lỗi gọi MathType API, tiếp tục đọc file Word gốc:", e);
       }
     }
 
+    // 2. Cấu hình Mammoth giải mã cả ảnh thường và ảnh vector EMF/WMF (công thức / hình vẽ Word) sang PNG
     const mammothOptions = {
       styleMap: ["u => u"],
       convertImage: mammoth.images.imgElement((element) => {
@@ -459,26 +545,42 @@
         if (contentType === "image/x-emf" || contentType === "image/x-wmf") {
           return element.readAsArrayBuffer().then(async (rawBuf) => {
             try {
-              const ab = rawBuf instanceof ArrayBuffer ? rawBuf : rawBuf.buffer ? rawBuf.buffer.slice(rawBuf.byteOffset, rawBuf.byteOffset + rawBuf.byteLength) : new Uint8Array(rawBuf).buffer;
+              const ab = rawBuf instanceof ArrayBuffer
+                ? rawBuf
+                : rawBuf.buffer
+                  ? rawBuf.buffer.slice(rawBuf.byteOffset, rawBuf.byteOffset + rawBuf.byteLength)
+                  : new Uint8Array(rawBuf).buffer;
+
+              // Ưu tiên 1: Trích xuất ảnh raster (PNG/JPEG) nhúng trong EMF/WMF
               const embedded = extractEmbeddedRaster(ab);
               if (embedded) {
                 return { src: `data:${embedded.mime};base64,${uint8ArrayToBase64(embedded.data)}`, alt: "Hình minh họa" };
               }
-            } catch (e) {}
+
+              // Ưu tiên 2: Giải mã vector EMF/WMF sang PNG bằng emf-converter.js (giống exam-editor.html)
+              if (typeof window.convertMetafileToDataUrl === "function") {
+                const pngUrl = await window.convertMetafileToDataUrl(ab, { dpiScale: 2 });
+                if (pngUrl) {
+                  return { src: pngUrl, alt: "Hình minh họa" };
+                }
+              }
+            } catch (e) {
+              console.warn("[Word Import] Lỗi chuyển EMF/WMF sang PNG:", e);
+            }
             const b64 = await element.readAsBase64String();
             return { src: `data:${contentType};base64,${b64}`, alt: "Hình minh họa" };
           });
         }
         return element.readAsBase64String().then((b64) => ({
-          src: `data:${contentType};base64,${b64}`,
+          src: `data:${contentType || "image/png"};base64,${b64}`,
           alt: "Hình minh họa"
         }));
       })
     };
 
     const result = await mammoth.convertToHtml({ arrayBuffer }, mammothOptions);
-    const importText = wordHtmlToImportText(result.value);
-    const questions = IO.parseWordText(importText);
+    const extracted = wordHtmlToImportText(result.value);
+    const questions = IO.parseWordText(extracted);
     if (!questions.length) {
       throw new Error("Không tìm thấy câu hỏi hợp lệ trong file Word (.docx). Hãy đảm bảo các câu bắt đầu bằng 'Câu 1.', 'Câu 2.' và bấm nút '📘 Hướng dẫn file Word' để xem mẫu chuẩn.");
     }
@@ -488,7 +590,6 @@
   /* JSON: mảng câu hỏi hoặc {questions:[...]} hoặc OFFLINE_DATA */
   IO.parseJSON = (text) => {
     text = String(text).replace(/^\uFEFF/, "").trim();
-    // Nếu người dùng dán văn bản dạng Word (Câu 1. ... A. ... B. ...) vào ô dán JSON/Text thì tự động bóc tách luôn!
     if (/^\s*(?:Câu|Bài)\s*\d+\s*[\.:]/im.test(text) && !text.startsWith("[") && !text.startsWith("{")) {
       return IO.parseWordText(text);
     }
@@ -576,14 +677,13 @@
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "CauHoi");
     const guide = XLSX.utils.aoa_to_sheet([
       ["HƯỚNG DẪN NHẬP CÂU HỎI"], [""],
-      ["Type", "MC = trắc nghiệm 1 đáp án · TF = đúng/sai 4 ý · SA = trả lời ngắn · LA = tự luận · Group = nhóm câu (câu con có ParentId = Id của nhóm, Type GroupMC/GroupTF/GroupSA)"],
+      ["Type", "MC = trắc nghiệm 1 đáp án · TF = đúng/sai 4 ý · SA = trả lời ngắn · LA = tự luận · Group = nhóm câu"],
       ["MC", "Cột A–D là 4 phương án; CorrectAnswer là A/B/C/D"],
       ["TF", "Cột A–D là 4 ý a) b) c) d); CorrectAnswer dạng ĐSĐS (hoặc DSDS: D/Đ = Đúng, S = Sai)"],
       ["SA", "CorrectAnswer là số hoặc từ; nhiều đáp án chấp nhận ngăn bằng dấu |  (ví dụ: 0,5|1/2)"],
       ["Level", "Nhận biết · Thông hiểu · Vận dụng · Vận dụng cao"],
       ["Công thức", "Viết LaTeX giữa dấu $...$, ví dụ $\\dfrac{a}{b}$"],
-      ["Hình ảnh", "Dán đường link ảnh (.png/.jpg) vào nội dung câu hỏi, xuống dòng riêng"],
-      ["Trống", "Các cột Môn/Lớp/Chương/Chủ đề có thể để trống, bổ sung sau trong trang Quản trị"]
+      ["Hình ảnh", "Dán đường link ảnh (.png/.jpg) vào nội dung câu hỏi, xuống dòng riêng"]
     ]);
     guide["!cols"] = [{ wch: 14 }, { wch: 110 }];
     XLSX.utils.book_append_sheet(wb, guide, "HuongDan");
@@ -592,10 +692,7 @@
   IO.template = () => IO.toExcel([
     { Id: "Q001", Type: "MC", Level: "Nhận biết", Grade: "10", Subject: "Toán", Chapter: "Hệ thức lượng", Topic: "Định lí sin", Question: "Theo định lí sin, $\\dfrac{a}{\\sin A}$ bằng", Options: { A: "$R$", B: "$2R$", C: "$\\dfrac{R}{2}$", D: "$4R$" }, CorrectAnswer: "B", Explain: "Định lí sin." },
     { Id: "Q002", Type: "TF", Level: "Thông hiểu", Grade: "11", Subject: "Vật lý", Question: "Xét tính đúng sai:", Options: { a: "Ý a", b: "Ý b", c: "Ý c", d: "Ý d" }, CorrectAnswer: "SDDS" },
-    { Id: "Q003", Type: "SA", Level: "Vận dụng", Grade: "12", Subject: "Toán", Question: "Nghiệm âm của phương trình ... là?", CorrectAnswer: "-1" },
-    { Id: "Q005", Type: "Group", Grade: "12", Subject: "Toán", Question: "Cho hình chóp S.ABCD ... Trả lời các câu sau:", children: [
-      { Id: "Q005_1", Type: "GroupMC", Question: "Thể tích khối chóp là?", Options: { A: "1", B: "2", C: "3", D: "4" }, CorrectAnswer: "A" },
-      { Id: "Q005_2", Type: "GroupSA", Question: "Khoảng cách từ A đến (SBD)?", CorrectAnswer: "1" }] }
+    { Id: "Q003", Type: "SA", Level: "Vận dụng", Grade: "12", Subject: "Toán", Question: "Nghiệm âm của phương trình ... là?", CorrectAnswer: "-1" }
   ], "mau-nhap-cau-hoi.xlsx");
 
   window.IO = IO;

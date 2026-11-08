@@ -118,7 +118,7 @@
     return String(item.answer).split(/\s*[|;]\s*/)[0];
   };
 
-  /* ---------- Hiển thị nội dung giàu: ảnh + công thức LaTeX ---------- */
+  /* ---------- Hiển thị nội dung giàu: ảnh + công thức LaTeX chuẩn QMath (exam-editor / utils.js) ---------- */
   const IMG_HOST = /(res\.cloudinary\.com|cloudinary\.com\/.+\/image\/|i\.imgur\.com|googleusercontent\.com|i\.ibb\.co|imgbb\.com|drive\.google\.com\/uc|r2\.dev\/|firebasestorage\.googleapis\.com)/i;
   const IMG_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?|#|$)/i;
   Quiz.isImgUrl = (u) => /^data:image\//i.test(u) || IMG_EXT.test(u) || IMG_HOST.test(u);
@@ -126,33 +126,352 @@
     const u = U.esc(url);
     return `<span class="q-imgw" data-zoom="${u}" title="Bấm để phóng to"><img class="q-img" src="${u}" alt="Hình minh hoạ" loading="lazy" onerror="this.parentNode.classList.add('err')"><i class="q-zoom">🔍</i></span>`;
   };
-  Quiz.rich = (text) => {
-    let raw = String(text == null ? "" : text);
-    // ảnh dạng Markdown ![...](url) → chỉ giữ url
-    raw = raw.replace(/!\[[^\]]*\]\((https?:\/\/[^\s)]+|data:image\/[^\s)]+)\)/g, " $1 ");
-    // thẻ <img src="..."> dán từ nơi khác hoặc từ Word .docx → url
-    raw = raw.replace(/<img[^>]*?src=["']([^"']+)["'][^>]*>/gi, " $1 ");
-    const re = /(?:https?:\/\/[^\s<>"']+|data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+)/g;
-    let out = "", last = 0, m;
-    while ((m = re.exec(raw))) {
-      const url = /^data:image\//i.test(m[0]) ? m[0] : m[0].replace(/[),.;:!?\]}]+$/, "");
-      out += U.esc(raw.slice(last, m.index));
-      out += Quiz.isImgUrl(url) ? imgTag(url) : `<a href="${U.esc(url)}" target="_blank" rel="noopener">${U.esc(url.length > 48 ? url.slice(0, 45) + "…" : url)}</a>`;
-      last = m.index + url.length;
+
+  function replaceCustomMathCmd(text, cmd, leftDelim, rightDelim) {
+    let result = "";
+    let remaining = String(text || "");
+    const search = "\\" + cmd;
+    while (true) {
+      const idx = remaining.indexOf(search);
+      if (idx === -1) { result += remaining; break; }
+      result += remaining.substring(0, idx);
+      remaining = remaining.substring(idx + search.length).replace(/^\s*/, "");
+      if (!remaining.startsWith("{")) { result += search; continue; }
+      let depth = 1, i = 1;
+      while (i < remaining.length && depth > 0) {
+        if (remaining[i] === "{") depth++;
+        else if (remaining[i] === "}") depth--;
+        i++;
+      }
+      const content = remaining.substring(1, i - 1);
+      remaining = remaining.substring(i);
+      result += `${leftDelim}\\begin{aligned}${content}\\end{aligned}${rightDelim}`;
     }
-    out += U.esc(raw.slice(last));
-    return out.replace(/\n/g, "<br>").replace(/(<br>\s*)+(<span class="q-imgw")/g, "$2").replace(/(<\/span>)(\s*<br>)+/g, "$1");
+    return result;
+  }
+
+  function unwrapImmini(text) {
+    if (!text || !text.includes("\\immini")) return text || "";
+    let out = "";
+    let rem = String(text);
+    while (true) {
+      const m = rem.match(/\\immini(?:\s*\[[^\]]*\])?\s*\{/);
+      if (!m) { out += rem; break; }
+      const startIdx = m.index;
+      out += rem.slice(0, startIdx);
+      rem = rem.slice(startIdx + m[0].length);
+      // Extract 1st brace group {text}
+      let d = 1, i = 0;
+      while (i < rem.length && d > 0) {
+        if (rem[i] === "{") d++;
+        else if (rem[i] === "}") d--;
+        i++;
+      }
+      const g1 = rem.slice(0, Math.max(0, i - 1));
+      rem = rem.slice(i).replace(/^\s*/, "");
+      // Extract optional 2nd brace group {image}
+      if (rem.startsWith("{")) {
+        let d2 = 1, j = 1;
+        while (j < rem.length && d2 > 0) {
+          if (rem[j] === "{") d2++;
+          else if (rem[j] === "}") d2--;
+          j++;
+        }
+        const g2 = rem.slice(1, Math.max(1, j - 1));
+        rem = rem.slice(j);
+        out += g1 + "\n" + g2;
+      } else {
+        out += g1;
+      }
+    }
+    return out;
+  }
+
+  function processTabular(text) {
+    if (!text) return "";
+    let processed = text.replace(/\\begin\{table\}(?:\[.*?\])?([\s\S]*?)\\end\{table\}/gi, "$1");
+    processed = processed
+      .replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, "")
+      .replace(/\\renewcommand\s*\{?\s*\\arraystretch\s*\}?\s*\{[^}]+\}/g, "")
+      .replace(/\\centering/g, "");
+    const regex = /\\begin\{tabular\}\s*(?:\{[^}]*\}|\[[^\]]*\])([\s\S]*?)\\end\{tabular\}/gi;
+    return processed.replace(regex, (_, body) => {
+      const rows = body.split("\\\\").filter((r) => r.trim().length > 0);
+      let html = '<div class="qm-tbl-wrap"><table class="qm-latex-tbl">';
+      rows.forEach((row) => {
+        const cleanRow = row.replace(/\\hline/g, "").trim();
+        if (!cleanRow) return;
+        const cols = cleanRow.split("&");
+        html += "<tr>";
+        cols.forEach((col) => {
+          html += `<td>${col.trim()}</td>`;
+        });
+        html += "</tr>";
+      });
+      html += "</table></div>";
+      return html;
+    });
+  }
+
+  function processLatexLists(text) {
+    if (!text) return "";
+    let processed = text;
+    processed = processed.replace(/\\begin\{itemchoice\}([\s\S]*?)\\end\{itemchoice\}/gi, (_, body) => {
+      const items = body.split(/\\itemch\b/g).filter((s) => s.trim().length > 0);
+      const htmlItems = items.map((item, idx) => {
+        const letter = String.fromCharCode(97 + idx);
+        return `<div class="qm-ic-item"><span class="qm-ic-badge">${letter})</span><div class="qm-ic-body">${item.trim()}</div></div>`;
+      }).join("");
+      return `<div class="qm-ic-list">${htmlItems}</div>`;
+    });
+    processed = processed.replace(/\\itemch\b/g, '<br><strong class="qm-ic-inline">• Ý: </strong>');
+    processed = processed.replace(/\\begin\{nx\}([\s\S]*?)\\end\{nx\}/gi, (_, body) => {
+      return `<div class="qm-nx-box"><strong>💡 Nhận xét:</strong> ${body.trim()}</div>`;
+    });
+
+    const parseItems = (bodyStr) =>
+      bodyStr
+        .split(/\\item(?![a-zA-Z])/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+    processed = processed.replace(/\\begin\{\s*(?:listEX|enumEX|enumerate)\s*\}(?:\[[^\]]*\]|\{[^}]*\})*([\s\S]*?)\\end\{\s*(?:listEX|enumEX|enumerate)\s*\}/gi, (_, body) => {
+      const items = parseItems(body);
+      return `<ol class="qm-ol-list">${items.map((it) => `<li>${it}</li>`).join("")}</ol>`;
+    });
+    processed = processed.replace(/\\begin\{itemize\}([\s\S]*?)\\end\{itemize\}/gi, (_, body) => {
+      const items = parseItems(body);
+      return `<ul class="qm-ul-list">${items.map((it) => `<li>${it}</li>`).join("")}</ul>`;
+    });
+    return processed;
+  }
+
+  Quiz.formatQMathContent = (text) => {
+    if (text === null || text === undefined) return "";
+    let processed = String(text);
+
+    // 1. Bảo vệ hình ảnh (<img ...>, ![...](url)) thành token trước khi xử lý LaTeX/HTML
+    const imgTokens = [];
+    const pushImg = (url) => {
+      const cleanUrl = String(url || "").trim();
+      if (!cleanUrl) return "";
+      const tok = `@@QM_IMG_${imgTokens.length}@@`;
+      imgTokens.push(imgTag(cleanUrl));
+      return ` ${tok} `;
+    };
+
+    processed = processed.replace(/<div[^>]*>\s*(<img[^>]*>)\s*<\/div>/gi, "$1");
+    processed = processed.replace(/<img[^>]*?src=["']([^"']+)["'][^>]*>/gi, (_, src) => pushImg(src));
+    processed = processed.replace(/!\[[^\]]*\]\((https?:\/\/[^\s)]+|data:image\/[^\s)]+)\)/g, (_, src) => pushImg(src));
+    processed = processed.replace(/\\begin\{center\}\s*\\includegraphics(?:\[.*?\])?\{(https?:\/\/[^}]+)\}\s*\\end\{center\}/g, (_, src) => pushImg(src));
+    processed = processed.replace(/\\includegraphics(?:\[.*?\])?\{(https?:\/\/[^}]+)\}/g, (_, src) => pushImg(src));
+
+    // 2. Bảo vệ mã hình vẽ TikZ (<script type="text/tikz"> hoặc \begin{tikzpicture}...\end{tikzpicture})
+    const tikzTokens = [];
+    processed = processed.replace(/<script\s+type=["']text\/tikz["'][^>]*>([\s\S]*?)<\/script>/gi, (_, code) => {
+      const tok = `@@QM_TIKZ_${tikzTokens.length}@@`;
+      tikzTokens.push(`<div class="qm-tikz-holder" data-tikz="${U.esc(code.trim())}">⏳ Đang tải hình vẽ...</div>`);
+      return ` ${tok} `;
+    });
+    processed = processed.replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/gi, (code) => {
+      const tok = `@@QM_TIKZ_${tikzTokens.length}@@`;
+      tikzTokens.push(`<div class="qm-tikz-holder" data-tikz="${U.esc(code.trim())}">⏳ Đang tải hình vẽ...</div>`);
+      return ` ${tok} `;
+    });
+
+    // 3. Xử lý các lệnh toán học đặc thù của QMath / ex_test
+    processed = unwrapImmini(processed);
+    processed = replaceCustomMathCmd(processed, "heva*", "\\left\\{", "\\right.");
+    processed = replaceCustomMathCmd(processed, "hoac*", "\\left[", "\\right.");
+    processed = replaceCustomMathCmd(processed, "heva", "\\left\\{", "\\right.");
+    processed = replaceCustomMathCmd(processed, "hoac", "\\left[", "\\right.");
+
+    const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right(?:\\\.|\.|\{|\})?\s*([\s\S]*?)\s*(?:\\\{|\\\}|\\\.|(?=\$))/g;
+    processed = processed.replace(regexMangledSystem, (_, eq1, eq2) => {
+      const clean1 = (eq1 || "").trim().replace(/^\\left\s*/, "");
+      const clean2 = (eq2 || "").trim().replace(/^[.\\]+/, "").trim();
+      return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
+    });
+    processed = processed.replace(/\\left\\\{\s*\\begin\{array\}\s*\{[^{}]*\}([\s\S]*?)\\end\{array\}\s*\\right\.?/g, "\\begin{cases}$1\\end{cases}");
+    processed = processed.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, "");
+    processed = processed.replace(/\\left([a-zA-Z0-9])/g, "$1");
+    processed = processed.replace(/\\right([a-zA-Z0-9])/g, "$1");
+
+    // 4. Dọn dẹp môi trường LaTeX thừa
+    processed = processed.replace(/\\begin\{(?:ex|bt|vd|cau|question|center)\}(?:\[.*?\])?/gi, "");
+    processed = processed.replace(/\\end\{(?:ex|bt|vd|cau|question|center)\}/gi, "");
+    processed = processed.replace(/\\loigiai\s*\{/gi, "");
+    processed = processed.replace(/\\arrow(?![a-zA-Z])/g, "\\rightarrow ");
+    processed = processed.replace(/\\Arrow(?![a-zA-Z])/g, "\\Rightarrow ");
+    processed = processed.replace(/\\centering/g, "");
+    processed = processed.replace(/\\allowdisplaybreaks(\[.*?\])?/g, "");
+    processed = processed.replace(/\\lq\\lq/g, '"').replace(/\\rq\\rq/g, '"').replace(/\\lq/g, '"').replace(/\\rq/g, '"');
+    processed = processed.replace(/\\(?:wideparen|widearc|overparen|cung)\s*\{([^}]+)\}/g, "\\overset{\\frown}{$1}");
+    processed = processed.replace(/\\(?:wideparen|widearc|overparen|cung)(?:\s+|(?=[A-Za-z]))([A-Za-z0-9]{1,4})\b/g, "\\overset{\\frown}{$1}");
+    processed = processed.replace(/(^|[^\\])sđ(?=\s*\\overset\{\\frown\})/g, "$1\\text{sđ}\\;");
+    processed = processed.replace(/\\(?:h|v)space\*?\{[^}]+\}/g, " ").replace(/\\(?:no)?indent/g, "");
+    processed = processed.replace(/Click đúp để tải file|hoặc Ctrl \+ V để dán ảnh|ẢNH TỪ IMMINI|VỊ TRÍ HÌNH TIKZ|Ảnh minh họa \(immini\)|Ảnh canh giữa/gi, "");
+
+    // Bỏ thẻ <div ...> hoặc </div> rác bao ngoài ảnh từ kho ngân hàng cũ
+    processed = processed.replace(/<\/?(?:div|p|span)(?:\s+[^>]*)?>/gi, (tag) => {
+      if (/^<\/?(?:div|p)/i.test(tag)) return "\n";
+      return "";
+    });
+
+    // 5. Bảng & Danh sách LaTeX (itemchoice, itemch, tabular, enumEX...)
+    processed = processTabular(processed);
+    processed = processLatexLists(processed);
+
+    processed = processed.trim().replace(/^\{([\s\S]*)\}$/, "$1");
+
+    // 6. Tách phần Toán ($...$, $$...$$, \(...\), \[...\], \begin{...}...\end{...}) và thẻ HTML hợp lệ để xử lý xuống dòng \\ và \n
+    const tagWhitelist = "div|span|p|br|img|table|tbody|thead|tr|td|th|ul|ol|li|b|i|u|strong|em|a";
+    const splitRe = new RegExp(
+      `(\\\\begin\\{[a-zA-Z*]+\\}[\\s\\S]*?\\\\end\\{[a-zA-Z*]+\\}|\\$\\$[\\s\\S]*?\\$\\$|\\\\\\[[\\s\\S]*?\\\\\\]|\\\\\\([\\s\\S]*?\\\\\\)|\\$[\\s\\S]*?\\$|<\\/?(?:${tagWhitelist})(?:\\s+[^>]*)?>)`,
+      "gi"
+    );
+
+    const parts = processed.split(splitRe);
+    let htmlOut = parts.map((part) => {
+      if (!part) return "";
+      const trimmed = part.trim();
+      const isMath =
+        trimmed.startsWith("$") ||
+        trimmed.startsWith("\\(") ||
+        trimmed.startsWith("\\[") ||
+        trimmed.startsWith("\\begin{");
+      const isTag = part.startsWith("<") && part.endsWith(">");
+
+      if (isMath) {
+        return part.replace(/<br\s*\/?>/gi, " \\\\ ").replace(/</g, " &lt; ");
+      }
+      if (isTag) {
+        return part;
+      }
+
+      // Văn bản thường ngoài công thức Toán: nhận diện URL ảnh trần còn sót, mã hóa ký tự <, đổi \\ và \n thành <br>
+      const urlRe = /(?:https?:\/\/[^\s<>"']+|data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+)/g;
+      let seg = "", last = 0, m;
+      while ((m = urlRe.exec(part))) {
+        const url = /^data:image\//i.test(m[0]) ? m[0] : m[0].replace(/[),.;:!?\]}]+$/, "");
+        seg += transformPlainText(part.slice(last, m.index));
+        seg += Quiz.isImgUrl(url)
+          ? imgTag(url)
+          : `<a href="${U.esc(url)}" target="_blank" rel="noopener">${U.esc(url.length > 48 ? url.slice(0, 45) + "…" : url)}</a>`;
+        last = m.index + url.length;
+      }
+      seg += transformPlainText(part.slice(last));
+      return seg;
+    }).join("");
+
+    // 7. Khôi phục token ảnh và TikZ
+    imgTokens.forEach((html, idx) => {
+      htmlOut = htmlOut.replace(`@@QM_IMG_${idx}@@`, html);
+    });
+    tikzTokens.forEach((html, idx) => {
+      htmlOut = htmlOut.replace(`@@QM_TIKZ_${idx}@@`, html);
+    });
+
+    // Dọn các thẻ <br> thừa liên tiếp
+    htmlOut = htmlOut
+      .replace(/(?:<br\s*\/?>\s*){3,}/gi, "<br><br>")
+      .replace(/^(?:<br\s*\/?>\s*)+|(?:<br\s*\/?>\s*)+$/gi, "")
+      .replace(/(<br\s*\/?>\s*)+(<span class="q-imgw")/gi, "<br>$2")
+      .replace(/(<\/span>)(\s*<br\s*\/?>)+/gi, "$1<br>");
+
+    return htmlOut;
   };
+
+  function transformPlainText(str) {
+    if (!str) return "";
+    let s = U.esc(str);
+    s = s.replace(/\\%/g, "%");
+    s = s.replace(/\\textbf\{([^}]+)\}/g, "<b>$1</b>");
+    s = s.replace(/\\textit\{([^}]+)\}/g, "<i>$1</i>");
+    s = s.replace(/\\underline\{([^}]+)\}/g, "<u>$1</u>");
+    s = s.replace(/\\rightarrow/g, "→").replace(/\\Rightarrow/g, "⇒");
+    s = s.replace(/\\hfill/g, '<span style="display:inline-block;width:1.5rem"></span>');
+    s = s.replace(/\\\\/g, "<br>").replace(/\n/g, "<br>");
+    return s;
+  }
+
+  Quiz.rich = (text) => Quiz.formatQMathContent(text);
+
+  const tikzCache = new Map();
+  async function compileTikzBlocksInElement(el) {
+    if (!el || !el.querySelectorAll) return;
+    const holders = el.querySelectorAll(".qm-tikz-holder[data-tikz]");
+    if (!holders.length) return;
+    holders.forEach(async (holder) => {
+      const rawCode = holder.getAttribute("data-tikz") || "";
+      holder.removeAttribute("data-tikz");
+      if (!rawCode) return;
+      if (tikzCache.has(rawCode)) {
+        holder.outerHTML = imgTag(tikzCache.get(rawCode));
+        return;
+      }
+      try {
+        let code = rawCode
+          .replace(/AMP_PLACEHOLDER/g, "&")
+          .replace(/\\widecheck/g, "\\widehat");
+        if (!code.includes("\\usetikzlibrary")) {
+          code = "\\usetikzlibrary{calc,arrows.meta,angles,quotes,intersections,patterns,shapes,positioning}\n" + code;
+        }
+        const endpoints = ["https://api.qmath.io.vn/compile", "https://compile.qmath.io.vn/compile"];
+        let compiledUrl = "";
+        for (const ep of endpoints) {
+          try {
+            const resp = await fetch(ep, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code })
+            });
+            if (resp.ok) {
+              const data = await resp.json();
+              if (data && data.url && !data.url.includes("Image+Error")) {
+                compiledUrl = data.url;
+                break;
+              }
+            }
+          } catch (e) {}
+        }
+        if (compiledUrl) {
+          tikzCache.set(rawCode, compiledUrl);
+          holder.outerHTML = imgTag(compiledUrl);
+        } else {
+          holder.remove();
+        }
+      } catch (e) {
+        holder.remove();
+      }
+    });
+  }
+
   Quiz.typeset = (el) => {
-    if (!el || !window.renderMathInElement) return;
+    if (!el) return;
+    compileTikzBlocksInElement(el);
+    if (!window.renderMathInElement) return;
     try {
       window.renderMathInElement(el, {
         delimiters: [
-          { left: "$$", right: "$$", display: true }, { left: "\\[", right: "\\]", display: true },
-          { left: "$", right: "$", display: false }, { left: "\\(", right: "\\)", display: false }
-        ], throwOnError: false, ignoredClasses: ["no-math"]
+          { left: "$$", right: "$$", display: true },
+          { left: "\\[", right: "\\]", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\(", right: "\\)", display: false }
+        ],
+        macros: {
+          "\\heva": "\\left\\{\\begin{aligned}#1\\end{aligned}\\right.",
+          "\\hoac": "\\left[\\begin{aligned}#1\\end{aligned}\\right.",
+          "\\overparen": "\\overset{\\frown}{#1}",
+          "\\wideparen": "\\overset{\\frown}{#1}",
+          "\\widearc": "\\overset{\\frown}{#1}",
+          "\\cung": "\\overset{\\frown}{#1}",
+          "\\vec": "\\overrightarrow{#1}"
+        },
+        throwOnError: false,
+        ignoredClasses: ["no-math"]
       });
-    } catch (e) { }
+    } catch (e) {}
   };
   Quiz.html = (text) => Quiz.rich(text); // alias
   // Lưới an toàn: khi mở mục "Lời giải" (details.fb-ex), đảm bảo công thức Toán được render đẹp
