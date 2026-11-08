@@ -5551,16 +5551,251 @@ const kw = (kFrame[2] || 16.53) - kx0;
 const kh = (kFrame[3] || 23.39) - ky0;
 const scaleX = sheetW / kw;
 const scaleY = sheetH / kh;
+let rectGray = null;
+try {
+const sheetPixels = ctx.getImageData(0, headerH, sheetW, sheetH).data;
+rectGray = new Uint8Array(sheetW * sheetH);
+for (let p = 0, i = 0; p < rectGray.length; p++, i += 4) {
+const r = sheetPixels[i], g = sheetPixels[i + 1], b = sheetPixels[i + 2];
+const maxC = r > g ? (r > b ? r : b) : (g > b ? g : b);
+const minC = r < g ? (r < b ? r : b) : (g < b ? g : b);
+rectGray[p] = (maxC - minC > 48 && maxC > 130) ? 245 : ((r * 38 + g * 75 + b * 15) >> 7);
+}
+} catch (_) {
+rectGray = null;
+}
+const rNom = Math.max(7, Math.min(18, (tpl.r || 0.12) * (scaleX + scaleY) * 0.5));
+const rIn = rNom * 0.95;
+const rRing1 = rNom * 0.78;
+const rRing2 = rNom * 1.08;
+const rOut1 = rNom * 1.15;
+const rOut2 = rNom * 1.42;
+const maxOutDx = Math.round(rNom * 1.25);
+const lim = Math.ceil(rOut2);
+const inDx = [], inDy = [];
+const ringDx = [], ringDy = [];
+const outDx = [], outDy = [];
+for (let dy = -lim; dy <= lim; dy++) {
+for (let dx = -lim; dx <= lim; dx++) {
+const d = Math.hypot(dx, dy);
+if (d <= rIn) { inDx.push(dx); inDy.push(dy); }
+if (d >= rRing1 && d <= rRing2) { ringDx.push(dx); ringDy.push(dy); }
+if (d >= rOut1 && d <= rOut2 && Math.abs(dx) <= maxOutDx) { outDx.push(dx); outDy.push(dy); }
+}
+}
+const measureBubbleContrast = (pt, priorDx = 0, priorDy = 0, searchR = 14) => {
+const cx0 = (pt[0] - kx0) * scaleX;
+const cy0 = (pt[1] - ky0) * scaleY;
+if (!rectGray || inDx.length === 0 || outDx.length === 0) {
+return { cx0, cy0, dx: priorDx, dy: priorDy, conf: 0.1 };
+}
+const icx0 = Math.round(cx0);
+const icy0 = Math.round(cy0);
+const pdxI = Math.round(priorDx);
+const pdyI = Math.round(priorDy);
+let bestDx = pdxI, bestDy = pdyI, bestScore = 1e9, bestDarkness = 0;
+const maxR2 = searchR * searchR + 2;
+const inLen = inDx.length;
+const outLen = outDx.length;
+const invIn = 1 / inLen;
+const invOut = 1 / outLen;
+for (let dy = pdyI - searchR; dy <= pdyI + searchR; dy++) {
+const ddy = dy - priorDy;
+const cy = icy0 + dy;
+if (cy - lim < 0 || cy + lim >= sheetH) continue;
+for (let dx = pdxI - searchR; dx <= pdxI + searchR; dx++) {
+const ddx = dx - priorDx;
+const d2 = ddx * ddx + ddy * ddy;
+if (d2 > maxR2) continue;
+const cx = icx0 + dx;
+if (cx - lim < 0 || cx + lim >= sheetW) continue;
+let inSum = 0;
+for (let k = 0; k < inLen; k++) {
+inSum += rectGray[(cy + inDy[k]) * sheetW + (cx + inDx[k])];
+}
+let outSum = 0;
+for (let k = 0; k < outLen; k++) {
+outSum += rectGray[(cy + outDy[k]) * sheetW + (cx + outDx[k])];
+}
+const inMean = inSum * invIn;
+const outMean = outSum * invOut;
+const score = inMean - 0.35 * outMean + 0.18 * Math.sqrt(d2);
+if (score < bestScore) {
+bestScore = score;
+bestDx = dx;
+bestDy = dy;
+bestDarkness = outMean - inMean;
+}
+}
+}
+const conf = Math.max(0.05, Math.min(1.0, (bestDarkness - 8.0) / 42.0));
+return { cx0, cy0, dx: bestDx, dy: bestDy, conf };
+};
+const refineUnfilledRing = (pt, priorDx = 0, priorDy = 0, searchR = 3) => {
+const cx0 = (pt[0] - kx0) * scaleX;
+const cy0 = (pt[1] - ky0) * scaleY;
+if (!rectGray || ringDx.length === 0 || outDx.length === 0) {
+return { dx: priorDx, dy: priorDy };
+}
+const icx0 = Math.round(cx0);
+const icy0 = Math.round(cy0);
+const pdxI = Math.round(priorDx);
+const pdyI = Math.round(priorDy);
+let bestDx = priorDx, bestDy = priorDy, bestScore = 1e9;
+const ringLen = ringDx.length;
+const outLen = outDx.length;
+const invRing = 1 / ringLen;
+const invOut = 1 / outLen;
+for (let dy = pdyI - searchR; dy <= pdyI + searchR; dy++) {
+const cy = icy0 + dy;
+if (cy - lim < 0 || cy + lim >= sheetH) continue;
+for (let dx = pdxI - searchR; dx <= pdxI + searchR; dx++) {
+const cx = icx0 + dx;
+if (cx - lim < 0 || cx + lim >= sheetW) continue;
+let rSum = 0;
+for (let k = 0; k < ringLen; k++) {
+rSum += rectGray[(cy + ringDy[k]) * sheetW + (cx + ringDx[k])];
+}
+let oSum = 0;
+for (let k = 0; k < outLen; k++) {
+oSum += rectGray[(cy + outDy[k]) * sheetW + (cx + outDx[k])];
+}
+const rMean = rSum * invRing;
+const oMean = oSum * invOut;
+const distP = Math.hypot(dx - priorDx, dy - priorDy);
+const score = rMean - 0.30 * oMean + 0.65 * distP;
+if (score < bestScore) {
+bestScore = score;
+bestDx = dx;
+bestDy = dy;
+}
+}
+}
+return {
+dx: 0.65 * bestDx + 0.35 * priorDx,
+dy: 0.65 * bestDy + 0.35 * priorDy
+};
+};
+const filledSeedPts = [];
+if (rectGray) {
+if (tpl.sbd && Array.isArray(tpl.sbd)) {
+const sbdStr = String(sub.student_no || '').trim();
+for (let col = 0; col < tpl.sbd.length; col++) {
+let d = (rawResult?.sbdm && rawResult.sbdm[col] >= 0) ? rawResult.sbdm[col] : (col < sbdStr.length ? parseInt(sbdStr[col], 10) : -1);
+if (d >= 0 && d <= 9 && tpl.sbd[col]?.[d]?.[0] > 0) filledSeedPts.push(tpl.sbd[col][d]);
+}
+}
+if (tpl.made && Array.isArray(tpl.made)) {
+const codeStr = String(sub.code || '').trim();
+for (let col = 0; col < tpl.made.length; col++) {
+let d = (rawResult?.madem && rawResult.madem[col] >= 0) ? rawResult.madem[col] : (col < codeStr.length ? parseInt(codeStr[col], 10) : -1);
+if (d >= 0 && d <= 9 && tpl.made[col]?.[d]?.[0] > 0) filledSeedPts.push(tpl.made[col][d]);
+}
+}
+if (tpl.p1 && tpl.p1.length) {
+const qC1 = Math.min(tpl.p1.length, state.exam?.question_count ?? 12);
+for (let q = 0; q < qC1; q++) {
+const sIdx = 'ABCD'.indexOf((sub.answers || '')[q]);
+if (sIdx >= 0 && tpl.p1[q]?.[sIdx]?.[0] > 0) filledSeedPts.push(tpl.p1[q][sIdx]);
+}
+}
+if (tpl.p2 && tpl.p2.length >= 4) {
+const qC2 = state.exam?.part2_count ?? 4;
+for (let q = 0; q < qC2; q++) {
+const sChunk = (sub.part2 && sub.part2[q]) ? sub.part2[q] : '----';
+for (let r = 0; r < 4; r++) {
+const idx = q * 4 + r;
+if (idx >= tpl.p2.length) continue;
+const sChar = (sChunk[r] || '-').toUpperCase().replace('D', 'Đ');
+const pt = sChar === 'Đ' ? tpl.p2[idx]?.[0] : (sChar === 'S' ? tpl.p2[idx]?.[1] : null);
+if (pt && pt[0] > 0) filledSeedPts.push(pt);
+}
+}
+}
+if (tpl.p3 && tpl.p3.length) {
+const qC3 = state.exam?.part3_count ?? 6;
+for (let q = 0; q < qC3 && q < tpl.p3.length; q++) {
+let p3mS = (rawResult?.p3m && rawResult.p3m[q]) || sub.p3m?.[q] || null;
+if (!p3mS && tpl.p3hang) {
+const sAns = Array.isArray(sub.part3) ? String(sub.part3[q] || '').trim() : String(rawResult?.part3Text?.[q] || '').trim();
+if (sAns) p3mS = Array.from({ length: 4 }, (_, col) => sAns[col] ? tpl.p3hang.indexOf(sAns[col]) : -1);
+}
+if (p3mS) {
+for (let col = 0; col < 4; col++) {
+const v = p3mS[col];
+if (v >= 0 && tpl.p3[q]?.[col]?.[v]?.[0] > 0) filledSeedPts.push(tpl.p3[q][col][v]);
+}
+}
+}
+}
+}
+let bubbleAnchors = filledSeedPts.map(pt => measureBubbleContrast(pt, 0, 0, 14));
+const getSmoothBubbleOffset = (cx, cy, excludeSelf = false) => {
+if (!bubbleAnchors.length) return { dx: 0, dy: 0 };
+let wSum = 0, dxSum = 0, dySum = 0;
+for (let i = 0; i < bubbleAnchors.length; i++) {
+const a = bubbleAnchors[i];
+const d2 = (cx - a.cx0) * (cx - a.cx0) + (cy - a.cy0) * (cy - a.cy0);
+if (excludeSelf && d2 < 4) continue;
+const wt = a.conf / (d2 + 95 * 95);
+wSum += wt;
+dxSum += a.dx * wt;
+dySum += a.dy * wt;
+}
+return wSum > 0 ? { dx: dxSum / wSum, dy: dySum / wSum } : { dx: 0, dy: 0 };
+};
+if (bubbleAnchors.length > 0) {
+bubbleAnchors = filledSeedPts.map(pt => {
+const cx0 = (pt[0] - kx0) * scaleX;
+const cy0 = (pt[1] - ky0) * scaleY;
+const prior = getSmoothBubbleOffset(cx0, cy0, true);
+const m = measureBubbleContrast(pt, prior.dx, prior.dy, 6);
+const alpha = Math.min(0.92, 0.45 + 0.50 * m.conf);
+return {
+cx0,
+cy0,
+dx: alpha * m.dx + (1 - alpha) * prior.dx,
+dy: alpha * m.dy + (1 - alpha) * prior.dy,
+conf: Math.max(0.2, m.conf)
+};
+});
+}
+const ringPosCache = new Map();
 const drawRingOnCanvas = (pt, color, lineW = 4.5, r = 15, dashed = false) => {
 if (!pt || pt[0] <= 0 || pt[1] <= 0) return;
-const cx = (pt[0] - kx0) * scaleX;
-const cy = (pt[1] - ky0) * scaleY + headerH;
+const isFilled = !dashed;
+const cacheKey = `${pt[0]}_${pt[1]}_${isFilled ? 1 : 0}`;
+let pos = ringPosCache.get(cacheKey);
+if (!pos) {
+const cx0 = (pt[0] - kx0) * scaleX;
+const cy0 = (pt[1] - ky0) * scaleY;
+if (rectGray) {
+const prior = getSmoothBubbleOffset(cx0, cy0, false);
+if (isFilled) {
+const m = measureBubbleContrast(pt, prior.dx, prior.dy, 5);
+const alpha = Math.min(0.92, 0.45 + 0.50 * m.conf);
+pos = {
+cx: cx0 + alpha * m.dx + (1 - alpha) * prior.dx,
+cy: cy0 + alpha * m.dy + (1 - alpha) * prior.dy + headerH
+};
+} else {
+const ref = refineUnfilledRing(pt, prior.dx, prior.dy, 3);
+pos = {
+cx: cx0 + ref.dx,
+cy: cy0 + ref.dy + headerH
+};
+}
+} else {
+pos = { cx: cx0, cy: cy0 + headerH };
+}
+ringPosCache.set(cacheKey, pos);
+}
 ctx.save();
 ctx.strokeStyle = color;
 ctx.lineWidth = lineW;
 if (dashed) ctx.setLineDash([5, 4]);
 ctx.beginPath();
-ctx.arc(cx, cy, r, 0, Math.PI * 2);
+ctx.arc(pos.cx, pos.cy, r, 0, Math.PI * 2);
 ctx.stroke();
 ctx.restore();
 };
