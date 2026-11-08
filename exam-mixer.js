@@ -84,13 +84,13 @@ const prefix = matchTf[1];
 const rest = matchTf[2];
 const { blocks: mainOps, lastIdx } = parseOptionsSafely(rest, 4);
 if (mainOps.length === 4) {
-const unlockedIdx = [0, 1, 2, 3].filter(i => !mainOps[i].includes("##"));
+const unlockedIdx = [0, 1, 2, 3].filter(i => !/\[##\]|##/.test(mainOps[i]));
 const shuffledIdx = shuffleArray(unlockedIdx);
 const perm = [0, 1, 2, 3];
 for (let k = 0; k < unlockedIdx.length; k++) {
 perm[unlockedIdx[k]] = shuffledIdx[k];
 }
-const newOps = [0, 1, 2, 3].map(i => mainOps[perm[i]].replace(/##/g, ""));
+const newOps = [0, 1, 2, 3].map(i => mainOps[perm[i]].replace(/\[\s*##\s*\]|##/g, ""));
 const suffix = rest.substring(lastIdx);
 const tfReplaced = exText.substring(0, matchTf.index) + prefix + newOps.join('') + suffix;
 const icMatch = tfReplaced.match(/(\\begin\{itemchoice\}(?:\[.*?\])?)([\s\S]*?)(\\end\{itemchoice\})/);
@@ -132,24 +132,32 @@ const rest = matchCh[2];
 const { blocks: mainOps, lastIdx } = parseOptionsSafely(rest, 4);
 if (mainOps.length < 4) return exText;
 const suffix = rest.substring(lastIdx);
-const unlockedIdx = [0, 1, 2, 3].filter(i => !mainOps[i].includes("##"));
+const unlockedIdx = [0, 1, 2, 3].filter(i => !/\[##\]|##/.test(mainOps[i]));
 const unlockedOps = unlockedIdx.map(i => mainOps[i]);
 const shuffledOps = shuffleArray(unlockedOps);
 const newOps = [...mainOps];
 for (let k = 0; k < unlockedIdx.length; k++) {
 newOps[unlockedIdx[k]] = shuffledOps[k];
 }
-const cleanedOps = newOps.map(op => op.replace(/##/g, ""));
+const cleanedOps = newOps.map(op => op.replace(/\[\s*##\s*\]|##/g, ""));
 return exText.substring(0, matchCh.index) + prefix + cleanedOps.join('') + suffix;
 }
+function stripMixerControlTags(str) {
+if (!str || typeof str !== 'string') return str;
+return str
+.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '')
+.replace(/##/g, '')
+.replace(/((?:Câu|Bài|Question)\s*\d+\s*[:.])\s*[:.]\s*/gi, '$1 ')
+.replace(/[ \t]{2,}/g, ' ');
+}
 function smartShuffleQuestions(questionList, phanNhomMode = "Không phân nhóm") {
-if (!Array.isArray(questionList) || questionList.length <= 1) return questionList;
+if (!Array.isArray(questionList) || questionList.length === 0) return questionList;
 const unlockedIndices = [];
 const unlockedItems = [];
 for (let i = 0; i < questionList.length; i++) {
 const item = questionList[i];
 const itemText = typeof item === 'object' ? (item.rawLatex || item.content || '') : String(item);
-if (!itemText.includes("##")) {
+if (!/\[##\]|##/.test(itemText)) {
 unlockedIndices.push(i);
 unlockedItems.push(item);
 }
@@ -246,7 +254,13 @@ for (let k = 0; k < unlockedIndices.length; k++) {
 result[unlockedIndices[k]] = shuffledItems[k];
 }
 return result.map(item => {
-if (typeof item === 'string') return item.replace(/##/g, "");
+if (typeof item === 'string') return stripMixerControlTags(item);
+if (item && typeof item === 'object') {
+const copy = { ...item };
+if (typeof copy.content === 'string') copy.content = stripMixerControlTags(copy.content);
+if (typeof copy.rawLatex === 'string') copy.rawLatex = stripMixerControlTags(copy.rawLatex);
+return copy;
+}
 return item;
 });
 }
@@ -621,7 +635,7 @@ const text = (xml.match(/<w:t\b[^>]*>([\s\S]*?)<\/w:t>/g) || [])
 .join('');
 elements.push({ tag: match[1], xml, text });
 }
-const qStartRegex = /^(?:\[(?:NB|TH|VD|VDC|\w+)\]\s*)?(?:##\s*)?(?:Câu|Bài|Question)\s*(\d+)[:.\s]/i;
+const qStartRegex = /^\s*(?:(?:\[\s*(?:NB|TH|VD|VDC|##|\w+)\s*\]|##)\s*)*(?:Câu|Bài|Question)\s*(\d+)\s*(?:[:.\s(]|\[\s*(?:NB|TH|VD|VDC|##)\s*\])/i;
 const secStartRegex = /^\s*(?:PHẦN|Phần)\s+(I{1,3}|IV|[1-4])[:.\s]/i;
 const isEndOfExam = (text) => {
 const t = text.trim();
@@ -703,7 +717,7 @@ id: qCounter,
 originalNum: parseInt((trimmed.match(qStartRegex) || [])[1] || qCounter, 10),
 elements: [el],
 type: 'choice',
-isLocked: trimmed.includes('##')
+isLocked: /\[##\]|##/.test(trimmed)
 };
 } else if (currentQ) {
 currentQ.elements.push(el);
@@ -1050,6 +1064,74 @@ docXml: fullMixedDocXml,
 answers
 };
 }
+cleanQuestionHeaderXml(pXml, newQNum) {
+if (!pXml) return pXml;
+const tNodes = [];
+const tRegex = /(<w:t\b[^>]*>)([\s\S]*?)(<\/w:t>)/gi;
+let m;
+while ((m = tRegex.exec(pXml)) !== null) {
+tNodes.push({
+fullMatch: m[0],
+openTag: m[1],
+text: m[2],
+closeTag: m[3],
+index: m.index,
+length: m[0].length
+});
+}
+if (tNodes.length === 0) return pXml;
+const fullText = tNodes.map(n => n.text).join('');
+const headerPrefixRegex = /^\s*(?:(?:\[\s*(?:NB|TH|VD|VDC|##|B|H|V|C|Nhận\s*biết|Thông\s*hiểu|Vận\s*dụng\s*cao|Vận\s*dụng|\d[A-Z0-9]{4,5}-[A-Z0-9])\s*\]|##)\s*)*(?:Câu|Bài|Question)\s*\d+\s*[:.)]?\s*(?:(?:\[\s*(?:NB|TH|VD|VDC|##|B|H|V|C|Nhận\s*biết|Thông\s*hiểu|Vận\s*dụng\s*cao|Vận\s*dụng|\d[A-Z0-9]{4,5}-[A-Z0-9])\s*\]|##)\s*[:.)]?\s*)*/i;
+const hm = fullText.match(headerPrefixRegex);
+if (hm && hm[0].length > 0) {
+const prefixLen = hm[0].length;
+let charCursor = 0;
+let firstModified = false;
+for (let i = 0; i < tNodes.length; i++) {
+const node = tNodes[i];
+const nodeStart = charCursor;
+const nodeEnd = charCursor + node.text.length;
+charCursor = nodeEnd;
+if (nodeEnd <= prefixLen) {
+if (!firstModified) {
+node.newText = `Câu ${newQNum}: `;
+node.openTag = '<w:t xml:space="preserve">';
+firstModified = true;
+} else {
+node.newText = '';
+}
+} else if (nodeStart < prefixLen && nodeEnd > prefixLen) {
+const remainder = node.text.slice(prefixLen - nodeStart).replace(/^\s+/, '');
+if (!firstModified) {
+node.newText = `Câu ${newQNum}: ` + remainder;
+node.openTag = '<w:t xml:space="preserve">';
+firstModified = true;
+} else {
+node.newText = remainder;
+node.openTag = '<w:t xml:space="preserve">';
+}
+} else {
+node.newText = node.text;
+}
+node.newText = node.newText
+.replace(/\[\s*(?:NB|TH|VD|VDC|##|Nhận\s*biết|Thông\s*hiểu|Vận\s*dụng\s*cao|Vận\s*dụng|\d[A-Z0-9]{4,5}-[A-Z0-9])\s*\]\s*/gi, '')
+.replace(/##\s*/g, '');
+}
+let outXml = '';
+let lastIdx = 0;
+for (let i = 0; i < tNodes.length; i++) {
+const node = tNodes[i];
+outXml += pXml.slice(lastIdx, node.index);
+outXml += node.openTag + node.newText + node.closeTag;
+lastIdx = node.index + node.length;
+}
+outXml += pXml.slice(lastIdx);
+return outXml;
+}
+return pXml
+.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]\s*/gi, '')
+.replace(/##\s*/g, '');
+}
 renderMixedQuestion(q, newQNum, answersAccumulator, keepUnderlines = false, shuffleOpts = true) {
 let qElements = q.elements.map(e => ({ ...e }));
 if (!keepUnderlines) {
@@ -1075,20 +1157,7 @@ e.xml = e.xml.replace(/(<w:t\b[^>]*>)([\s\S]*?)(?:[-–•*]\s*)?(?:Đáp\s*án|
 }
 });
 }
-let firstXml = qElements[0].xml;
-if (/(<w:t\b[^>]*>)(?:\[(?:NB|TH|VD|VDC|\w+)\]\s*)?(?:##\s*)?(?:Câu|Bài|Question)\s*\d+([:.\s(])/i.test(firstXml)) {
-firstXml = firstXml.replace(
-/(<w:t\b[^>]*>)(?:\[(?:NB|TH|VD|VDC|\w+)\]\s*)?(?:##\s*)?(?:Câu|Bài|Question)\s*\d+([:.\s(])/i,
-`$1Câu ${newQNum}: `
-);
-} else {
-firstXml = firstXml.replace(/(<w:t\b[^>]*>)\s*\d+([:.\s(])/, `$1${newQNum}: `);
-}
-firstXml = firstXml.replace(/(<w:t\b[^>]*>)##\s*/i, '$1');
-if (!keepUnderlines) {
-firstXml = firstXml.replace(/(<w:t\b[^>]*>)\s*(?:\[\d[A-Z0-9]{4,5}-[A-Z0-9]\]|\[(?:NB|TH|VD|VDC|B|H|V|C|Nhận\s*biết|Thông\s*hiểu|Vận\s*dụng\s*cao|Vận\s*dụng)\])\s*/gi, '$1');
-}
-qElements[0].xml = firstXml;
+qElements[0].xml = this.cleanQuestionHeaderXml(qElements[0].xml, newQNum);
 if (q.type === 'choice') {
 let perm = [0, 1, 2, 3];
 if (shuffleOpts && this.config.dao_pa) {
@@ -1560,19 +1629,19 @@ else degocCh.push(ex);
 const deGocBlocks = [];
 if (degocCh.length > 0) {
 deGocBlocks.push(`\\subsection{Câu trắc nghiệm nhiều phương án lựa chọn}\n\\noindent \\textit{Thí sinh trả lời từ câu 1 đến câu ${degocCh.length}. Mỗi câu hỏi, thí sinh chỉ chọn một phương án trả lời.}\n\n\\setcounter{ex}{0}\n` +
-degocCh.map(ex => `\\begin{ex}${ex}\\end{ex}`).join('\n\n'));
+degocCh.map(ex => `\\begin{ex}${stripMixerControlTags(ex)}\\end{ex}`).join('\n\n'));
 }
 if (degocTF.length > 0) {
 deGocBlocks.push(`\\subsection{Câu trắc nghiệm Đúng/Sai}\n\\noindent \\textit{Thí sinh trả lời từ câu 1 đến câu ${degocTF.length}. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}\n\n\\setcounter{ex}{0}\n` +
-degocTF.map(ex => `\\begin{ex}${ex}\\end{ex}`).join('\n\n'));
+degocTF.map(ex => `\\begin{ex}${stripMixerControlTags(ex)}\\end{ex}`).join('\n\n'));
 }
 if (degocSh.length > 0) {
 deGocBlocks.push(`\\subsection{Câu trắc nghiệm trả lời ngắn}\n\\noindent \\textit{Thí sinh trả lời từ câu 1 đến câu ${degocSh.length}.}\n\n\\setcounter{ex}{0}\n` +
-degocSh.map(ex => `\\begin{ex}${ex}\\end{ex}`).join('\n\n'));
+degocSh.map(ex => `\\begin{ex}${stripMixerControlTags(ex)}\\end{ex}`).join('\n\n'));
 }
 if (btBlocks.length > 0) {
 deGocBlocks.push(`\\subsection{Bài tập tự luận}\n\\setcounter{bt}{0}\n` +
-btBlocks.map(bt => `\\begin{bt}${bt}\\end{bt}`).join('\n\n'));
+btBlocks.map(bt => `\\begin{bt}${stripMixerControlTags(bt)}\\end{bt}`).join('\n\n'));
 }
 const ansP1Goc = degocCh.map(ex => getAnswerChoice(ex));
 const ansP2Goc = degocTF.map(ex => getAnswerChoiceTF(ex));
@@ -1601,6 +1670,10 @@ if (this.config.dao_cau) {
 currCh = smartShuffleQuestions(currCh, this.config.phannhom);
 currTf = smartShuffleQuestions(currTf, this.config.phannhom);
 currSh = smartShuffleQuestions(currSh, this.config.phannhom);
+} else {
+currCh = currCh.map(ex => stripMixerControlTags(ex));
+currTf = currTf.map(ex => stripMixerControlTags(ex));
+currSh = currSh.map(ex => stripMixerControlTags(ex));
 }
 if (this.config.dao_pa) {
 currCh = currCh.map(ex => shuffleOptionsInQuestion(ex));
@@ -2381,11 +2454,13 @@ modal.innerHTML = `
 <li>Đề thi con học sinh tải về sẽ tự động cắt phần sau chữ HẾT và thay bằng chân trang chuẩn Bộ GD&ĐT: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">------------------- HẾT -------------------</code>.</li>
 </ul>
 <p class="font-bold text-gray-800 dark:text-gray-200 pt-1 flex items-center gap-1">
-<i class="fa-solid fa-lock text-amber-500"></i> 3. Khóa câu hỏi / phương án không đảo:
+<i class="fa-solid fa-lock text-amber-500"></i> 3. Phân nhóm mức độ &amp; Cố định vị trí câu hỏi:
 </p>
-<p class="text-gray-600 dark:text-gray-300">
-Thêm ký hiệu <code class="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-1 rounded font-bold">##</code> trước câu hỏi (VD: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">## Câu 5:</code>) hoặc trước phương án để giữ nguyên vị trí ban đầu, không bị đảo xáo.
-</p>
+<ul class="list-disc pl-4 space-y-1 text-gray-600 dark:text-gray-300">
+<li><b>Gắn mức độ câu hỏi:</b> Ghi thêm nhãn <code class="bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 px-1 rounded font-bold">[NB]</code>, <code class="bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 px-1 rounded font-bold">[TH]</code>, <code class="bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 px-1 rounded font-bold">[VD]</code>, <code class="bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 px-1 rounded font-bold">[VDC]</code> ngay sau số câu, ví dụ: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded font-bold">Câu 1:[NB]</code> hoặc <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded font-bold">Câu 1.[NB]</code>.</li>
+<li><b>Cố định vị trí câu hỏi:</b> Ghi ký hiệu <code class="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-1 rounded font-bold">[##]</code> (ví dụ: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded font-bold">Câu 1:[##]</code> hoặc <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded font-bold">Câu 1.[##]</code>) để cố định vị trí câu đó không bị đảo.</li>
+<li><b>Tự động làm sạch:</b> Sau khi trộn xong, hệ thống sẽ <b>tự động xóa bỏ toàn bộ các nhãn</b> <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">[NB]</code>, <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">[TH]</code>, <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">[VD]</code>, <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">[VDC]</code>, <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">[##]</code> trên đề kết quả.</li>
+</ul>
 </div>
 </div>
 </div>
@@ -2428,10 +2503,10 @@ Thêm ký hiệu <code class="bg-amber-100 dark:bg-amber-950/60 text-amber-800 d
 <div class="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs">
 <label class="flex items-center gap-2 cursor-pointer">
 <input type="checkbox" id="mixerShuffleQuestions" checked class="rounded text-primary-600 focus:ring-primary-500">
-<span class="text-gray-700 dark:text-gray-300 font-bold">Đảo câu hỏi (Hỗ trợ khóa ##)</span>
+<span class="text-gray-700 dark:text-gray-300 font-bold">Đảo câu hỏi (Hỗ trợ cố định [##] — VD: Câu 1:[##] hoặc Câu 1.[##])</span>
 </label>
 <div class="pl-5">
-<label class="block text-[11px] text-gray-500 mb-0.5">Phân nhóm mức độ ID6:</label>
+<label class="block text-[11px] text-gray-500 mb-0.5">Phân nhóm mức độ ([NB], [TH], [VD], [VDC] — VD: Câu 1:[NB] hoặc Câu 1.[NB]):</label>
 <select id="mixerPhanNhom" class="w-full text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 outline-none">
 <option value="Không phân nhóm" selected>Không phân nhóm (Đảo tự do toàn bộ)</option>
 <option value="2 nhóm">2 nhóm: Dễ (NB, TH) &lt; Khó (VD, VDC)</option>

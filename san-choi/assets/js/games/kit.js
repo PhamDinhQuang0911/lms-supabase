@@ -52,6 +52,20 @@
     if (!game) { view.innerHTML = `<div class="page"><div class="empty"><span class="em-ic">🕵️</span><h2>Không tìm thấy trò chơi</h2><a class="btn btn-primary" href="#/">Về trang chủ</a></div></div>`; return; }
     const S = { game, view, ctrl: null, timers: null, room: null, cleanups: [] };
     const q = App.query();
+    const urlParams = new URLSearchParams(window.location.search || "");
+    if (q.studentPractice === "1" || urlParams.get("studentPractice") === "1") {
+      try { sessionStorage.setItem("qmath_student_practice", "1"); } catch (e) {}
+    }
+    S.studentPractice = q.studentPractice === "1" || urlParams.get("studentPractice") === "1" || (function () { try { return sessionStorage.getItem("qmath_student_practice") === "1"; } catch (e) { return false; } })();
+    S.autoStart = q.autoStart === "1" || urlParams.get("autoStart") === "1";
+    if (S.studentPractice) {
+      const tbBack = document.querySelector('.topbar a[href="../dashboard.html"]');
+      if (tbBack) {
+        tbBack.href = "../practice.html?mode=game";
+        tbBack.title = "Quay lại Phòng Luyện Tập Trò Chơi";
+        tbBack.innerHTML = '🎮 <span class="hide-sm">Đổi bài / Đổi Game</span>';
+      }
+    }
     if (q.preset) { S.preset = DB.findPreset(q.preset) || null; if (!S.preset) U.toast("Không tìm thấy cấu hình đã lưu này.", "warn"); }
     if (q.new) S.creating = true;
     renderSetup(S);
@@ -211,11 +225,40 @@
     }
 
     // Nguồn câu hỏi & Cầu nối QMath LMS
-    if (window.QMathBridge) {
+    if (S.studentPractice) {
+      cfg.source = { kind: "all" };
+      cfg.mode = "local";
+      cfg.explain = true;
+      const metaRaw = (function () { try { return JSON.parse(localStorage.getItem("gfe_student_practice_meta") || "null"); } catch (e) { return null; } })();
+      const qTotal = DB.bank().length;
+      if (game.fields.some((f) => f.key === "goal") && qTotal > 0) {
+        cfg.goal = Math.min(30, Math.max(3, qTotal));
+      }
+      const quotaHost = $("#qmQuotaHost", v);
+      if (quotaHost) {
+        quotaHost.innerHTML = `<div class="notice" style="margin:0 0 12px 0;background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #10b981;color:#065f46;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-radius:14px;padding:12px 16px">
+          <div>
+            <div style="font-weight:800;font-size:14px;color:#047857">🎮 Luyện tập qua Trò chơi: ${esc((metaRaw && metaRaw.title) || ("Bộ " + qTotal + " câu hỏi Ngân hàng QMath"))}</div>
+            <div style="font-size:12px;color:#065f46;margin-top:2px">Đã nạp <b>${qTotal} câu hỏi</b> theo Khối / Phân môn / Chuyên đề bạn chọn. Bấm <b>▶ Bắt đầu chơi</b> hoặc chỉnh số đội bên dưới!</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <a class="btn btn-sm btn-ghost" href="../practice.html?mode=game" style="background:#ffffff;border:1.5px solid #10b981;color:#047857;font-weight:700;text-decoration:none">📚 Đổi bài học / Đổi Game</a>
+            <a class="btn btn-sm btn-ghost" href="../student.html" style="background:#ffffff;border:1px solid #cbd5e1;color:#334155;font-weight:700;text-decoration:none">🏠 Về Góc học tập</a>
+          </div>
+        </div>`;
+      }
+    } else if (window.QMathBridge && typeof QMathBridge.renderSetupQuotaBanner === "function") {
       QMathBridge.renderSetupQuotaBanner($("#qmQuotaHost", v), game.name);
+    }
+    if (window.QMathBridge) {
       const applyCreatedSet = (savedSet) => {
         if (!savedSet) return;
-        cfg.source = { kind: "set", setId: savedSet.id };
+        if (Array.isArray(savedSet)) {
+          DB.useLocalFile(savedSet);
+          cfg.source = { kind: "all" };
+        } else if (savedSet.id) {
+          cfg.source = { kind: "set", setId: savedSet.id };
+        }
         U.store.set("cfg_" + game.id, cfg);
         renderSetup(S);
       };
@@ -271,7 +314,7 @@
       const needQ = !game.needsQuestions || game.needsQuestions(cfg);
       if (!items.length && needQ) return U.toast("Không có câu hỏi phù hợp — hãy chọn nguồn khác hoặc thêm loại câu hỏi.", "warn");
       if (needQ && game.minQ && items.length < game.minQ) U.toast(`Gợi ý: nên có ít nhất ${game.minQ} câu cho trò này (hiện có ${items.length}).`, "warn", 3500);
-      if (window.QMathBridge) {
+      if (window.QMathBridge && !S.studentPractice && typeof QMathBridge.consumeGameQuota === "function") {
         const quotaRes = await QMathBridge.consumeGameQuota(game.name);
         if (!quotaRes.allowed) return;
       }
@@ -280,6 +323,16 @@
       U.Sound.click();
       if (cfg.mode === "online") startOnline(S, cfg, items); else startLocal(S, cfg, items);
     };
+    if (S.autoStart) {
+      S.autoStart = false;
+      try {
+        history.replaceState(null, "", "#/game/" + game.id + (S.studentPractice ? "?studentPractice=1" : ""));
+      } catch (e) {}
+      setTimeout(() => {
+        const btn = $("#goBtn", v);
+        if (btn && !S.ctrl) btn.click();
+      }, 150);
+    }
   }
 
 
@@ -537,7 +590,7 @@
       <div class="res-actions">
         ${S.room ? "" : `<button class="btn btn-lg btn-fun btn-3d" data-a="again">↻ Chơi lại</button>`}
         <button class="btn btn-lg btn-primary" data-a="setup">⚙️ Đổi cấu hình</button>
-        <button class="btn btn-lg btn-ghost" data-a="home">🏠 Trang chủ</button>
+        ${S.studentPractice ? `<a class="btn btn-lg btn-ghost" href="../practice.html?mode=game" style="text-decoration:none">📚 Đổi bài học / Đổi Game</a>` : `<button class="btn btn-lg btn-ghost" data-a="home">🏠 Trang chủ</button>`}
       </div></div></div>`);
     ctx.stage.appendChild(ov);
     U.Sound.win(); U.confetti(); setTimeout(() => U.confetti({ burst: true, count: 120 }), 700);

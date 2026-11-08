@@ -669,8 +669,12 @@ if (content) { content.classList.add('scale-95'); content.classList.remove('scal
             </button> <button onclick="switchTab('practice'); loadStudentPracticeHistory()" id="nav-practice" class="sidebar-item w-full text-left px-4 py-3 text-gray-600 flex items-center gap-3 transition-all rounded-xl hover:bg-primary-50 hover:text-primary-700">
                 <i class="fa-solid fa-brain w-5 text-center"></i> <span>Phòng Luyện Tập</span>
             </button>
-            <a href="san-choi/index.html" id="nav-game-center" class="sidebar-item w-full text-left px-4 py-3 text-gray-600 flex items-center gap-3 transition-all rounded-xl hover:bg-purple-50 hover:text-purple-700">
-                <i class="fa-solid fa-gamepad w-5 text-center text-purple-600"></i> <span>Sân Chơi Trí Thức (PIN)</span>
+            <a href="practice.html?mode=game" id="nav-game-center" class="sidebar-item w-full text-left px-4 py-3 text-gray-600 flex items-center justify-between gap-2 transition-all rounded-xl hover:bg-purple-50 hover:text-purple-700">
+                <span class="flex items-center gap-3"><i class="fa-solid fa-gamepad w-5 text-center text-purple-600"></i> <span>Trò Chơi Học Tập</span></span>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-700 border border-orange-200">HOT</span>
+            </a>
+            <a href="san-choi/index.html#/join" id="nav-game-pin" class="sidebar-item w-full text-left px-4 py-2.5 text-gray-600 flex items-center gap-3 transition-all rounded-xl hover:bg-purple-50 hover:text-purple-700 text-xs">
+                <i class="fa-solid fa-key w-5 text-center text-pink-500"></i> <span>Vào Phòng Game (PIN)</span>
             </a>
             <div class="px-4 pt-4 pb-2 text-[10px] font-black text-gray-400 uppercase tracking-wider">Học liệu</div>
             <button onclick="switchTab('my-courses')" id="nav-my-courses" class="sidebar-item w-full text-left px-4 py-3 text-gray-600 flex items-center gap-3 transition-all rounded-xl"><i class="fa-solid fa-book-bookmark w-5"></i> Khóa học đã mua</button>
@@ -763,7 +767,7 @@ if (content) { content.classList.add('scale-95'); content.classList.remove('scal
     </div>
 
     
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         
         <div onclick="switchTab('practice'); loadStudentPracticeHistory()" class="bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 dark:border-slate-700/70 group cursor-pointer relative overflow-hidden flex flex-col justify-between">
             <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform pointer-events-none"></div>
@@ -788,6 +792,32 @@ if (content) { content.classList.add('scale-95'); content.classList.remove('scal
         </div>
 
         
+        <div class="bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-purple-100 dark:border-purple-800/50 group relative overflow-hidden flex flex-col justify-between ring-1 ring-purple-500/10 hover:ring-purple-500/30">
+            <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-purple-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform pointer-events-none"></div>
+            <div onclick="window.location.href='practice.html?mode=game'" class="cursor-pointer">
+                <div class="flex items-center justify-between mb-2.5 sm:mb-3.5">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl text-white flex items-center justify-center text-lg sm:text-xl shadow-md shadow-purple-500/30 group-hover:scale-105 transition-transform" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%) !important;">
+                        <i class="fa-solid fa-gamepad"></i>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-300 border border-orange-200 dark:border-orange-800">HOT · GAME</span>
+                </div>
+                <h3 class="text-sm sm:text-base md:text-lg font-black text-gray-800 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                    Trò chơi học tập
+                </h3>
+                <p class="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 mt-1 line-clamp-1 font-medium">
+                    Chọn Khối, Môn, Chuyên đề để chơi
+                </p>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-gray-100 dark:border-slate-700/50 flex items-center gap-1.5 sm:gap-2">
+                <button type="button" onclick="event.stopPropagation(); window.location.href='practice.html?mode=game';" class="flex-1 py-1.5 sm:py-2 px-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] sm:text-xs rounded-lg sm:rounded-xl flex items-center justify-center gap-1 transition-all shadow-xs cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-play"></i> <span class="truncate">Chơi ngay</span>
+                </button>
+                <button type="button" onclick="event.stopPropagation(); window.location.href='san-choi/index.html#/join';" class="py-1.5 sm:py-2 px-2 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 font-bold text-[11px] sm:text-xs rounded-lg sm:rounded-xl flex items-center justify-center gap-1 transition-all border border-purple-200 dark:border-purple-800 shadow-2xs cursor-pointer active:scale-95" title="Nhập mã PIN từ Giáo viên">
+                    <i class="fa-solid fa-key"></i> <span>PIN</span>
+                </button>
+            </div>
+        </div>
+
         <div class="bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-teal-100 dark:border-teal-800/40 group relative overflow-hidden flex flex-col justify-between ring-1 ring-teal-500/10 hover:ring-teal-500/30">
             <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-teal-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform pointer-events-none"></div>
             <div onclick="window.studentOpenLookupModal()" class="cursor-pointer">
@@ -921,6 +951,23 @@ if (content) { content.classList.add('scale-95'); content.classList.remove('scal
                         </div>
 
                         
+                        <div onclick="window.location.href='practice.html?mode=game'" class="rounded-3xl p-5 text-white shadow-xl relative overflow-hidden group cursor-pointer border border-pink-400 transition-all hover:-translate-y-1 hover:shadow-2xl" style="background: linear-gradient(135deg, #db2777 0%, #9333ea 55%, #4f46e5 100%) !important; color: #ffffff !important;">
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-15 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700"></div>
+                            <div class="relative z-10">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner border border-white/30 group-hover:bg-white group-hover:text-pink-600 transition-colors">
+                                        <i class="fa-solid fa-gamepad text-xl" style="color: #ffffff !important;"></i>
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-white/30" style="background: rgba(255,255,255,0.2) !important; color: #ffffff !important;">HOT · 14+ Trò Chơi</span>
+                                </div>
+                                <h3 class="text-lg font-black mb-1" style="color: #ffffff !important;">Luyện Tập Bằng Trò Chơi</h3>
+                                <p class="text-xs mb-3 font-medium" style="color: rgba(255, 255, 255, 0.92) !important;">Chọn Khối (6-12), Phân môn, Chương bài & Dạng toán từ Ngân hàng câu hỏi rồi đưa trực tiếp vào Trò chơi yêu thích (Đua Vịt, Triệu Phú, Rung Chuông Vàng...).</p>
+                                <button class="px-4 py-2 font-black rounded-xl shadow-md hover:opacity-95 transition-all w-full flex items-center justify-center gap-2 text-xs cursor-pointer" style="background-color: #ffffff !important; color: #be185d !important;">
+                                    Chọn bài & Tạo trò chơi <i class="fa-solid fa-gamepad"></i>
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="bg-white rounded-3xl p-4 border border-gray-200 shadow-sm">
                             <div class="flex items-center gap-2 mb-2">
                                 <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold shrink-0"><i class="fa-solid fa-qrcode"></i></div>
@@ -1178,6 +1225,10 @@ if (content) { content.classList.add('scale-95'); content.classList.remove('scal
                     <span class="text-[9px] font-black text-primary-600 dark:text-primary-400 mt-0.5 uppercase tracking-wider">Luyện tập</span>
                 </div>
                 
+                <a href="practice.html?mode=game" id="studentBottomNavGame" class="flex flex-col items-center justify-center flex-1 py-1 text-purple-600 hover:text-purple-700 dark:text-purple-400 font-bold transition-colors cursor-pointer">
+                    <i class="fa-solid fa-gamepad text-lg mb-0.5"></i>
+                    <span class="text-[10px] tracking-tight">Trò chơi</span>
+                </a>
                 <button type="button" onclick="switchTab('history')" id="studentBottomNavHistory" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-500 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 font-bold transition-colors cursor-pointer">
                     <i class="fa-solid fa-clock-rotate-left text-lg mb-0.5"></i>
                     <span class="text-[10px] tracking-tight">Lịch sử</span>

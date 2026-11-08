@@ -156,9 +156,21 @@ if (Math.abs(H[8]) < 1e-9) return null;
 for (i = 0; i < 9; i++) H[i] /= g[8];
 return H;
 }
-function ap(H, x, y) {
+function apRaw(H, x, y) {
 var w = H[6] * x + H[7] * y + H[8];
 return [(H[0] * x + H[1] * y + H[2]) / w, (H[3] * x + H[4] * y + H[5]) / w];
+}
+function ap(H, x, y) {
+var p = apRaw(H, x, y), mr = H && H._mocRes;
+if (!mr || !mr.length) return p;
+var sx = 0, sy = 0, sw = 0;
+for (var i = 0; i < mr.length; i++) {
+var dx = x - mr[i][0], dy = y - mr[i][1];
+var w = 1 / (dx * dx * 0.35 + dy * dy + 0.8);
+sx += mr[i][2] * w; sy += mr[i][3] * w; sw += w;
+}
+if (sw > 0) { p[0] += sx / sw; p[1] += sy / sw; }
+return p;
 }
 function tiLe(H, k) { return [H[0] * k, H[1] * k, H[2] * k, H[3] * k, H[4] * k, H[5] * k, H[6], H[7], H[8]]; }
 function timKhoi(g) {
@@ -384,6 +396,10 @@ var ge = ap(H, gm.x + 1, gm.y), gf = ap(H, gm.x, gm.y + 1);
 var gPxcm = (Math.hypot(ge[0] - pOld[0], ge[1] - pOld[1]) + Math.hypot(gf[0] - pOld[0], gf[1] - pOld[1])) / 2;
 if (Math.hypot(pNew[0] - pOld[0], pNew[1] - pOld[1]) > 0.78 * gPxcm) return null;
 }
+H2._mocRes = items.map(function (it) {
+var pr = apRaw(H2, it.m.x, it.m.y);
+return [it.m.x, it.m.y, it.pt[0] - pr[0], it.pt[1] - pr[1]];
+});
 return { H: H2, soMoc: items.length, soGoc: soGoc, den: den / items.length };
 }
 var hg = new Int32Array(256);
@@ -431,8 +447,8 @@ var soDaO = 0;
 if (a) {
 var tam = tpl._tamO || (tpl._tamO = (function () {
 var ra = [];
-[tpl.p1, tpl.p2, tpl.sbd, tpl.made].forEach(function (g) { g.forEach(function (os) { os.forEach(function (x) { ra.push(x); }); }); });
-tpl.p3.forEach(function (c) { c.forEach(function (os) { os.forEach(function (x) { ra.push(x); }); }); });
+[tpl.p1, tpl.p2, tpl.sbd, tpl.made].forEach(function (g) { g.forEach(function (os) { os.forEach(function (x) { if (x[0] > 0 && x[1] > 0) ra.push(x); }); }); });
+tpl.p3.forEach(function (c) { c.forEach(function (os) { os.forEach(function (x) { if (x[0] > 0 && x[1] > 0) ra.push(x); }); }); });
 return ra;
 })());
 tam.forEach(function (p) {
@@ -455,7 +471,7 @@ return { giay: giay, che: soDa + soDaO >= 3 || khoi > 0, tiLeToi: soToi / n, soD
 }
 function diemGiay(tpl) {
 var ung = [], o = [], i, j;
-function giua(a, b) { ung.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]); }
+function giua(a, b) { if (a[0] > 0 && a[1] > 0 && b[0] > 0 && b[1] > 0) ung.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]); }
 function hang(os) { for (var t = 1; t < os.length; t++) giua(os[t - 1], os[t]); }
 function doc_(ds) { for (var t = 1; t < ds.length; t++) for (var u = 0; u < Math.min(ds[t].length, ds[t - 1].length); u++) giua(ds[t - 1][u], ds[t][u]); }
 for (i = 0; i < tpl.p1.length; i++) hang(tpl.p1[i]);
@@ -464,8 +480,8 @@ doc_(tpl.p1); doc_(tpl.p2);
 for (i = 0; i < tpl.p3.length; i++) for (j = 0; j < tpl.p3[i].length; j++) hang(tpl.p3[i][j]);
 for (i = 0; i < tpl.sbd.length; i++) hang(tpl.sbd[i]);
 for (i = 0; i < tpl.made.length; i++) hang(tpl.made[i]);
-[tpl.p1, tpl.p2, tpl.sbd, tpl.made].forEach(function (g) { g.forEach(function (os) { os.forEach(function (x) { o.push(x); }); }); });
-tpl.p3.forEach(function (c) { c.forEach(function (os) { os.forEach(function (x) { o.push(x); }); }); });
+[tpl.p1, tpl.p2, tpl.sbd, tpl.made].forEach(function (g) { g.forEach(function (os) { os.forEach(function (x) { if (x[0] > 0 && x[1] > 0) o.push(x); }); }); });
+tpl.p3.forEach(function (c) { c.forEach(function (os) { os.forEach(function (x) { if (x[0] > 0 && x[1] > 0) o.push(x); }); }); });
 var xa = tpl.r * 1.4, diem = ung.filter(function (p, k) {
 if (ung.slice(0, k).some(function (q) { return Math.abs(q[0] - p[0]) < 0.05 && Math.abs(q[1] - p[1]) < 0.05; })) return false;
 for (var t = 0; t < o.length; t++) if (Math.abs(o[t][0] - p[0]) < xa && Math.abs(o[t][1] - p[1]) < xa && Math.hypot(o[t][0] - p[0], o[t][1] - p[1]) < xa) return false;
@@ -477,25 +493,43 @@ return diem;
 }
 var hist = new Int32Array(256);
 function doO(G, H, x, y, r, den) {
+if (x <= 0 || y <= 0) return 0;
 var w = G.w, h = G.h, d = G.d;
 var c = ap(H, x, y), e = ap(H, x + r, y), f = ap(H, x, y + r);
 var rp = (Math.hypot(e[0] - c[0], e[1] - c[1]) + Math.hypot(f[0] - c[0], f[1] - c[1])) / 2;
-var ri = 0.66 * rp, ri2 = ri * ri, cx = c[0], cy = c[1], s = 0, n = 0, px, py;
-var x0 = Math.max(0, Math.ceil(cx - ri)), x1 = Math.min(w - 1, Math.floor(cx + ri));
-var y0 = Math.max(0, Math.ceil(cy - ri)), y1 = Math.min(h - 1, Math.floor(cy + ri));
-for (py = y0; py <= y1; py++) for (px = x0; px <= x1; px++) {
-var dx = px - cx, dy = py - cy;
-if (dx * dx + dy * dy <= ri2) { s += d[py * w + px]; n++; }
+var ri = 0.66 * rp, ri2 = ri * ri, cx = c[0], cy = c[1], px, py;
+var rTim = Math.min(4.5, Math.max(1.5, 0.88 * rp)), rTim2 = rTim * rTim;
+var buocTim = rp > 8 ? 2 : 1, limTim = Math.ceil(rTim);
+var bestMean = 256, n = 0;
+for (var oy = -limTim; oy <= limTim; oy += buocTim) {
+for (var ox = -limTim; ox <= limTim; ox += buocTim) {
+if (ox * ox + oy * oy > rTim2) continue;
+var scx = cx + ox, scy = cy + oy;
+var sx0 = Math.max(0, Math.ceil(scx - ri)), sx1 = Math.min(w - 1, Math.floor(scx + ri));
+var sy0 = Math.max(0, Math.ceil(scy - ri)), sy1 = Math.min(h - 1, Math.floor(scy + ri));
+var ss = 0, sn = 0;
+for (py = sy0; py <= sy1; py++) {
+var rowOff = py * w, dy = py - scy, dy2 = dy * dy;
+for (px = sx0; px <= sx1; px++) {
+var dx = px - scx;
+if (dx * dx + dy2 <= ri2) { ss += d[rowOff + px]; sn++; }
+}
+}
+if (sn > 0) {
+var mean = ss / sn;
+if (mean < bestMean) { bestMean = mean; n = sn; }
+}
+}
 }
 if (!n) return 0;
 var R = 2.6 * rp, buoc = rp > 9 ? 2 : 1, m = 0;
-x0 = Math.max(0, Math.round(cx - R)); x1 = Math.min(w - 1, Math.round(cx + R));
-y0 = Math.max(0, Math.round(cy - R)); y1 = Math.min(h - 1, Math.round(cy + R));
+var x0 = Math.max(0, Math.round(cx - R)), x1 = Math.min(w - 1, Math.round(cx + R));
+var y0 = Math.max(0, Math.round(cy - R)), y1 = Math.min(h - 1, Math.round(cy + R));
 hist.fill(0);
 for (py = y0; py <= y1; py += buoc) for (px = x0; px <= x1; px += buoc) { hist[d[py * w + px]]++; m++; }
 var can = m * 0.15, tr = 255;
 for (var acc = 0; tr > 0; tr--) { acc += hist[tr]; if (acc >= can) break; }
-var v = (tr - s / n) / Math.max(40, tr - den);
+var v = (tr - bestMean) / Math.max(40, tr - den);
 return v < 0 ? 0 : v > 1 ? 1 : v;
 }
 function chonP1(fs, ng) {
@@ -512,10 +546,11 @@ if (motO === 3 && fs.length >= 3) return chonP1(fs, ng);
 var top = 0, it = -1, nhi = 0, i;
 for (i = 0; i < fs.length; i++) if (fs[i] > top) { nhi = top; top = fs[i]; it = i; } else if (fs[i] > nhi) nhi = fs[i];
 if (top < ng.thap) {
-if (motO && top >= (motO === 2 ? 0.75 : 0.6) * ng.thap && top >= 2.5 * Math.max(nhi, 0.03)) return { i: it, nghi: true, cac: [it] };
+if (motO === 0 && top >= Math.max(0.105, 0.50 * ng.thap) && top >= 2.35 * Math.max(nhi, 0.025)) return { i: it, nghi: false, cac: [it] };
+if (motO && top >= (motO === 2 ? 0.75 : 0.6) * ng.thap && top >= 2.5 * Math.max(nhi, 0.03)) return { i: it, nghi: top < 0.85 * ng.thap, cac: [it] };
 return { i: -1, nghi: top > ng.thap * 0.9, cac: [] };
 }
-var giua = (ng.thap + ng.cao) / 2, dem = 0, nghi = top < giua, cac = [];
+var giua = (ng.thap + ng.cao) / 2, dem = 0, nghi = (top < giua && top < 2.2 * Math.max(nhi, 0.04)), cac = [];
 for (i = 0; i < fs.length; i++) {
 if (fs[i] >= ng.cao || (fs[i] >= ng.thap && fs[i] >= 0.72 * top)) { dem++; cac.push(i); }
 else if (i !== it && fs[i] >= ng.thap * 0.9) nghi = true;
@@ -523,9 +558,10 @@ else if (i !== it && fs[i] >= ng.thap * 0.9) nghi = true;
 return { i: dem === 1 ? it : -2, nghi: nghi, cac: cac };
 }
 function nguong(tat, Fdu) {
-var v = Array.prototype.slice.call(tat).sort(function (a, b) { return a - b; }), n = v.length;
+var v = Array.prototype.slice.call(tat).filter(function (x) { return x > 0.001; }).sort(function (a, b) { return a - b; }), n = v.length;
+if (!n) return { nen: 0, cao: 0.24, thap: 0.17, F: Fdu || 0.75 };
 var nen = v[Math.floor(n * 0.3)];
-if (nen > 0.2) nen = 0.2;
+if (nen > 0.22) nen = 0.22;
 var to = [];
 for (var i = 0; i < n; i++) if (v[i] - nen > 0.22) to.push(v[i] - nen);
 var F = to.length >= 4 ? to[to.length >> 1] : (Fdu || 0.75);
@@ -548,7 +584,7 @@ var NGV = {}, gt = {};
 for (i = 0; i < nh.length; i++) { var vv = vung(nh[i][0]); gt[vv] = gt[vv] || []; for (j = 0; j < nh[i][3]; j++) gt[vv].push(fs[nh[i][2] + j]); }
 for (var tv in gt) NGV[tv] = nguong(gt[tv], ng.F);
 var g3 = NGV['III.'];
-if (g3) { g3.thap = Math.max(g3.thap, 0.5 * g3.F); g3.cao = Math.max(g3.cao, 1.25 * g3.thap); }
+if (g3) { g3.thap = Math.max(g3.thap, 0.46 * g3.F); g3.cao = Math.max(g3.cao, 1.25 * g3.thap); }
 return { nh: nh, fs: fs, NGV: NGV, F: ng.F };
 }
 function quyetDinh(M, tpl, he) {
@@ -557,7 +593,19 @@ var nh = M.nh, fs = M.fs, kq = [], cac = [], ngh = [], i, j;
 for (i = 0; i < nh.length; i++) {
 var heV = nh[i][0] === 'III.' ? Math.max(1, he) : he;
 var f = [], g = M.NGV[vung(nh[i][0])], ngv = heV === 1 ? g : { nen: g.nen, cao: g.cao * heV, thap: g.thap * heV, F: g.F };
-for (j = 0; j < nh[i][3]; j++) f.push(fs[nh[i][2] + j] - ngv.nen);
+var colNen = ngv.nen;
+if (nh[i][3] >= 8) {
+var vals = [];
+for (j = 0; j < nh[i][3]; j++) { var vj = fs[nh[i][2] + j]; if (vj > 0.001) vals.push(vj); }
+if (vals.length >= 4) {
+vals.sort(function (a, b) { return a - b; });
+colNen = Math.max(ngv.nen, vals[Math.floor(vals.length * 0.45)]);
+}
+}
+for (j = 0; j < nh[i][3]; j++) {
+var rawV = fs[nh[i][2] + j];
+f.push(rawV > 0.001 ? Math.max(0, rawV - colNen) : 0);
+}
 var c = chon(f, ngv, nh[i][0] === 'SBD.' || nh[i][0] === 'Mã đề.' ? 1 : nh[i][0] === 'III.' ? 0 : nh[i][0] === 'I.' ? 3 : 2);
 kq.push(c.i); cac.push(c.cac); ngh.push(!!c.nghi);
 }

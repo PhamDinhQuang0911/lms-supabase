@@ -7,7 +7,7 @@ moc:[m('TL',53,43),m('TR',1594,43),m('BR',1594,2269),m('BL',53,2269),...[[54,759
 p1:Array.from({length:40},(_,i)=>[177,243,309,374].map(x=>p(x+Math.floor(i/10)*370,859+(i%10)*39.4))),
 p2:Array.from({length:32},(_,i)=>{const q=Math.floor(i/4),offset=Math.floor(q/2)*370+(q%2)*132;return [177,243].map(x=>p(x+offset,1413+(i%4)*39.4))}),
 p3:Array.from({length:6},(_,q)=>{const base=169+q*236.3;return Array.from({length:4},(_,col)=>{
-return [p(base+col*39.4,col===0?1710:1650),p(base+col*39.4,col===1||col===2?1754:1650),...rows.map(y=>p(base+col*39.4,y))];
+return [col===0?p(base+col*39.4,1710):[-1,-1],col===1||col===2?p(base+col*39.4,1754):[-1,-1],...rows.map(y=>p(base+col*39.4,y))];
 })}),p3hang:['-',',','0','1','2','3','4','5','6','7','8','9'],
 sbd:Array.from({length:8},(_,i)=>digitY.map(y=>p(1147+i*31.65,y))),sbdNhan:Array.from({length:10},(_,i)=>String(i)),
 made:[1433,1465,1496,1528].map(x=>digitY.map(y=>p(x,y))),madeNhan:Array.from({length:10},(_,i)=>String(i))};

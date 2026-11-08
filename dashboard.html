@@ -570,7 +570,7 @@ window.switchView = switchView;
     <script src="system-backup.js?v=20261007"></script>
     <script src="qrcode.min.js?v=20261017_V1"></script>
     <script src="word-mathtype-exporter.js?v=20261016_V5"></script>
-    <script src="exam-mixer.js?v=20261017_V3"></script>
+    <script src="exam-mixer.js?v=20261108_V4"></script>
     <script>
 window.MathJax = {
 loader: { load: ['[tex]/noerrors'] },
@@ -1477,11 +1477,12 @@ startup: { typeset: false }
             
             <div class="pt-2.5 border-t border-slate-100 dark:border-slate-800/60 space-y-0.5">
                 <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 pb-1">Khảo thí & Đề thi</p>
+                <button onclick="window.openCreateExam(); setTimeout(()=>window.closeSidebar(),60)" id="nav-create-exam" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-sm font-medium"><span class="flex items-center gap-3"><i class="fa-solid fa-file-circle-plus text-orange-600"></i> Tạo đề thi</span><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800">HOT</span></button>
+                <button onclick="window.openExamMixerModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-mixer" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-sm font-medium"><span class="flex items-center gap-3"><i class="fa-solid fa-shuffle text-orange-600"></i> Trộn đề thi</span><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800">HOT</span></button>
+                <button onclick="window.location.href='omr-grader.html'" id="nav-omr-grader" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-sm font-medium"><span class="flex items-center gap-3"><i class="fa-solid fa-camera text-orange-600"></i> Chấm thi OMR Camera</span><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800">HOT</span></button>
+                <a href="san-choi/index.html" id="nav-game-center" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-sm font-medium"><span class="flex items-center gap-3"><i class="fa-solid fa-gamepad text-orange-600"></i> Sân Chơi Trí Thức</span><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800">HOT</span></a>
                 <button onclick="switchView('questionbank')" id="nav-questionbank" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 text-sm font-medium"><i class="fa-solid fa-database"></i> Ngân hàng câu hỏi</button>
                 <button onclick="switchView('exambank')" id="nav-exambank" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 text-sm font-medium"><i class="fa-solid fa-folder-tree"></i> Quản lý Đề thi</button>
-                <button onclick="window.openExamMixerModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-mixer" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 text-sm font-medium"><i class="fa-solid fa-shuffle"></i> Trộn đề thi</button>
-                <button onclick="window.location.href='omr-grader.html'" id="nav-omr-grader" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 text-sm font-medium"><i class="fa-solid fa-camera"></i> Chấm thi OMR Camera</button>
-                <a href="san-choi/index.html" id="nav-game-center" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-sm font-medium"><span class="flex items-center gap-3"><i class="fa-solid fa-gamepad text-purple-600"></i> Sân Chơi Trí Thức</span><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">MỚI</span></a>
                 <button onclick="window.location.href='dashboard-mapid.html'" id="nav-mapid" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 text-sm font-medium"><i class="fa-solid fa-sitemap"></i> Quản lý ID</button>
                 <a href="topic-builder.html" id="nav-topic-builder" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center gap-3 text-sm font-medium"><i class="fa-solid fa-cubes"></i> Xưởng Chuyên Đề</a>
             </div>
@@ -1740,44 +1741,25 @@ startup: { typeset: false }
                                 <i class="fa-solid fa-graduation-cap text-primary-600 dark:text-primary-400"></i>
                                 Giảng dạy & Khảo thí
                             </h2>
-                            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">5 nghiệp vụ</span>
+                            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">7 nghiệp vụ</span>
                         </div>
                         <div class="divide-y divide-gray-100 dark:divide-[#2e2a40]">
                                                         
-                            <div id="home-card-game-center" onclick="window.location.href='san-choi/index.html'" class="group flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">
-                                        <i class="fa-solid fa-gamepad"></i>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="font-extrabold text-sm text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-2">
-                                            <span>Sân Chơi Trí Thức (Tạo Game Học Tập)</span>
-                                            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Mới</span>
-                                        </div>
-                                        <p class="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">14+ trò chơi thi đấu, nạp đề Word .docx & chọn câu hỏi theo Cây ID</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0 ml-3">
-                                    <span class="hidden sm:inline-block text-[11px] font-bold text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Tạo game</span>
-                                    <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all"></i>
-                                </div>
-                            </div>
-                            
-                            <div id="home-card-omr" onclick="window.location.href='omr-grader.html'" class="group flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
+                            <div id="home-card-create-exam" onclick="window.openCreateExam()" class="group flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
                                 <div class="flex items-center gap-3 min-w-0">
                                     <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">
-                                        <i class="fa-solid fa-camera"></i>
+                                        <i class="fa-solid fa-file-circle-plus"></i>
                                     </div>
                                     <div class="min-w-0">
                                         <div class="font-extrabold text-sm text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-2">
-                                            <span>Chấm thi OMR Camera</span>
+                                            <span>Tạo đề thi</span>
                                             <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">Hot</span>
                                         </div>
-                                        <p class="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">Chấm tự động phiếu trắc nghiệm bằng Camera AI, khớp danh sách lớp</p>
+                                        <p class="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">Tạo đề từ ma trận Ngân hàng ID, nhập từ LaTeX, Word hoặc PDF</p>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0 ml-3">
-                                    <span class="hidden sm:inline-block text-[11px] font-bold text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Chấm ngay</span>
+                                    <span class="hidden sm:inline-block text-[11px] font-bold text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Tạo đề</span>
                                     <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all"></i>
                                 </div>
                             </div>
@@ -1801,7 +1783,44 @@ startup: { typeset: false }
                                 </div>
                             </div>
 
-                            
+                            <div id="home-card-omr" onclick="window.location.href='omr-grader.html'" class="group flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="fa-solid fa-camera"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-extrabold text-sm text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-2">
+                                            <span>Chấm thi OMR Camera</span>
+                                            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">Hot</span>
+                                        </div>
+                                        <p class="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">Chấm tự động phiếu trắc nghiệm bằng Camera AI, khớp danh sách lớp</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0 ml-3">
+                                    <span class="hidden sm:inline-block text-[11px] font-bold text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Chấm ngay</span>
+                                    <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all"></i>
+                                </div>
+                            </div>
+
+                            <div id="home-card-game-center" onclick="window.location.href='san-choi/index.html'" class="group flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="fa-solid fa-gamepad"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-extrabold text-sm text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-2">
+                                            <span>Sân Chơi Trí Thức (Tạo Game Học Tập)</span>
+                                            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">Hot</span>
+                                        </div>
+                                        <p class="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">14+ trò chơi thi đấu, nạp đề Word .docx & chọn câu hỏi theo Cây ID</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0 ml-3">
+                                    <span class="hidden sm:inline-block text-[11px] font-bold text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Tạo game</span>
+                                    <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all"></i>
+                                </div>
+                            </div>
+
                             <div id="home-card-classes" onclick="switchView('classes')" class="group flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
                                 <div class="flex items-center gap-3 min-w-0">
                                     <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">
@@ -6837,6 +6856,38 @@ homeCardExams.onclick = () => window.promptTeacherVipUpgrade('Quản lý Đề t
 } else {
 if (cardBadge) cardBadge.remove();
 homeCardExams.onclick = () => switchView('exambank');
+}
+}
+const navCreateExam = document.getElementById('nav-create-exam');
+const homeCardCreateExam = document.getElementById('home-card-create-exam');
+if (navCreateExam) {
+navCreateExam.style.display = '';
+let badge = navCreateExam.querySelector('.free-vip-badge');
+if (!canExams && isFree) {
+if (!badge) {
+navCreateExam.insertAdjacentHTML('beforeend', '<span class="free-vip-badge ml-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-0.5 shrink-0"><i class="fa-solid fa-crown text-[8px] text-amber-500"></i> VIP</span>');
+}
+navCreateExam.onclick = (e) => {
+e.preventDefault(); e.stopPropagation();
+window.promptTeacherVipUpgrade('Tạo đề thi');
+};
+} else {
+if (badge) badge.remove();
+navCreateExam.onclick = () => { window.openCreateExam(); setTimeout(()=>window.closeSidebar(),60); };
+}
+}
+if (homeCardCreateExam) {
+homeCardCreateExam.style.display = '';
+let cardBadge = homeCardCreateExam.querySelector('.free-vip-badge');
+if (!canExams && isFree) {
+if (!cardBadge) {
+const titleArea = homeCardCreateExam.querySelector('.font-extrabold') || homeCardCreateExam;
+titleArea.insertAdjacentHTML('beforeend', ' <span class="free-vip-badge ml-1 px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700 inline-flex items-center gap-0.5"><i class="fa-solid fa-crown text-[8px] text-amber-500"></i> VIP</span>');
+}
+homeCardCreateExam.onclick = () => window.promptTeacherVipUpgrade('Tạo đề thi');
+} else {
+if (cardBadge) cardBadge.remove();
+homeCardCreateExam.onclick = () => window.openCreateExam();
 }
 }
 const btnSystemTab = document.getElementById('tabBankSystem');

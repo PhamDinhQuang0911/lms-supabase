@@ -193,9 +193,11 @@ window.switchHubTab = function(tabName) {
 var el = document.getElementById(id);
 if (el) el.classList.add('hidden');
 });
+window.isGamePracticeMode = (tabName === 'game');
 document.querySelectorAll('.hub-tab-btn').forEach(function(btn) { btn.classList.remove('active'); });
 if (tabName === 'roadmap') document.getElementById('navTabRoadmap')?.classList.add('active');
 if (tabName === 'custom') document.getElementById('navTabCustom')?.classList.add('active');
+if (tabName === 'game') document.getElementById('navTabGame')?.classList.add('active');
 if (tabName === 'history') document.getElementById('navTabHistory')?.classList.add('active');
 document.querySelectorAll('.subnav-pill').forEach(function(b) {
 b.classList.remove('active-subnav');
@@ -210,9 +212,10 @@ document.getElementById('customMobileBar')?.classList.add('hidden');
 document.getElementById('viewRoadmap')?.classList.remove('hidden');
 document.getElementById('customMobileBar')?.classList.add('hidden');
 if (window.loadRoadmaps) window.loadRoadmaps();
-} else if (tabName === 'custom') {
+} else if (tabName === 'custom' || tabName === 'game') {
 document.getElementById('viewCustom')?.classList.remove('hidden');
 document.getElementById('customMobileBar')?.classList.remove('hidden');
+if (window.syncGamePracticeModeUI) window.syncGamePracticeModeUI(tabName === 'game');
 if (window.renderTopicList) window.renderTopicList();
 if (window.updateMobileSummary) window.updateMobileSummary();
 } else if (tabName === 'history') {
@@ -675,6 +678,11 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                     <i class="fa-solid fa-sliders tab-icon text-gray-500"></i>
                     <span>Luyện tập tự chọn</span>
                 </button>
+                <button id="navTabGame" onclick="switchHubTab('game')" class="hub-tab-btn px-3.5 py-1.5 text-xs font-black flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                    <i class="fa-solid fa-gamepad tab-icon text-purple-600"></i>
+                    <span>Trò chơi học tập</span>
+                    <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-orange-100 text-orange-700 border border-orange-200">HOT</span>
+                </button>
                 <button id="navTabHistory" onclick="switchHubTab('history')" class="hub-tab-btn px-3.5 py-1.5 text-xs font-black flex items-center gap-2 text-gray-600 dark:text-gray-300">
                     <i class="fa-solid fa-clock-rotate-left tab-icon text-gray-500"></i>
                     <span>Lịch sử & Tiến trình</span>
@@ -716,6 +724,9 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
             <button onclick="switchHubTab('custom')" class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold text-center text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
                 <i class="fa-solid fa-sliders"></i> Tự chọn
             </button>
+            <button onclick="switchHubTab('game')" class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold text-center text-purple-600 dark:text-purple-400 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-gamepad"></i> Trò chơi
+            </button>
             <button onclick="switchHubTab('history')" class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold text-center text-gray-600 dark:text-gray-400 flex items-center justify-center gap-1">
                 <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử
             </button>
@@ -743,7 +754,7 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
             </div>
 
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-5xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-6xl mx-auto">
                 
                 <div onclick="switchHubTab('roadmap')" class="mode-selection-card mode-card-roadmap rounded-3xl p-6 sm:p-8 flex flex-col justify-between overflow-hidden relative group">
                     <div class="absolute top-0 right-0 w-36 h-36 bg-gradient-to-bl from-amber-100 to-orange-50 dark:from-slate-800 dark:to-slate-900 rounded-bl-full -mr-10 -mt-10 pointer-events-none transition-transform group-hover:scale-110 opacity-60"></div>
@@ -834,6 +845,51 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                         <button class="w-full py-3 sm:py-3.5 btn-season-primary font-black text-sm rounded-2xl flex items-center justify-center gap-2 group-hover:gap-3 transition-all">
                             <span>Tự tạo đề luyện tập</span>
                             <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div onclick="switchHubTab('game')" class="mode-selection-card rounded-3xl p-6 sm:p-8 flex flex-col justify-between overflow-hidden relative group bg-white dark:bg-slate-800 border-2 border-purple-200 dark:border-purple-800 hover:border-purple-500 shadow-sm hover:shadow-xl">
+                    <div class="absolute top-0 right-0 w-36 h-36 bg-gradient-to-bl from-purple-100 to-pink-50 dark:from-slate-800 dark:to-slate-900 rounded-bl-full -mr-10 -mt-10 pointer-events-none transition-transform group-hover:scale-110 opacity-70"></div>
+                    <div class="relative z-10 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl text-white flex items-center justify-center text-2xl sm:text-3xl shadow-lg" style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%) !important;">
+                                <i class="fa-solid fa-gamepad"></i>
+                            </div>
+                            <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+                                HOT · Sân Chơi Game
+                            </span>
+                        </div>
+
+                        <div>
+                            <h3 class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-tight">
+                                Luyện Tập Bằng Trò Chơi
+                            </h3>
+                            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
+                                Chọn Khối lớp (6-12), Phân môn, Chương bài & Dạng toán từ Ngân hàng câu hỏi rồi đưa trực tiếp vào 14+ trò chơi hấp dẫn để vừa học vừa chơi!
+                            </p>
+                        </div>
+
+                        <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-slate-700/60">
+                            <div class="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-slate-300">
+                                <i class="fa-solid fa-circle-check text-purple-600"></i>
+                                <span>14+ Trò chơi: Đua Vịt, Triệu Phú, Rung Chuông Vàng...</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-slate-300">
+                                <i class="fa-solid fa-circle-check text-purple-600"></i>
+                                <span>Lấy câu hỏi trực tiếp từ Ngân hàng theo Khối & Phân môn</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-slate-300">
+                                <i class="fa-solid fa-circle-check text-purple-600"></i>
+                                <span>Hỗ trợ cả tự luyện tập và nhập mã PIN thi đấu</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 relative z-10">
+                        <button class="w-full py-3 sm:py-3.5 text-white font-black text-sm rounded-2xl flex items-center justify-center gap-2 group-hover:gap-3 transition-all shadow-md" style="background: linear-gradient(135deg, #ec4899 0%, #7c3aed 100%) !important;">
+                            <span>Chọn bài & Chơi Game ngay</span>
+                            <i class="fa-solid fa-gamepad text-xs"></i>
                         </button>
                     </div>
                 </div>
@@ -976,7 +1032,37 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                     <button onclick="switchHubTab('custom')" class="subnav-pill subnav-pill-custom active-subnav flex-1 sm:flex-initial px-4 py-1.5 rounded-xl text-xs font-black text-gray-600 dark:text-gray-300 flex items-center justify-center gap-1.5">
                         <i class="fa-solid fa-sliders text-teal-500"></i> Luyện tập tự chọn
                     </button>
+                    <button onclick="switchHubTab('game')" class="subnav-pill subnav-pill-game flex-1 sm:flex-initial px-4 py-1.5 rounded-xl text-xs font-black text-gray-600 dark:text-gray-300 flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-gamepad text-purple-500"></i> Luyện tập bằng Trò chơi
+                    </button>
                 </div>
+            </div>
+
+            <!-- KHUNG CHỌN TRÒ CHƠI HỌC TẬP (HIỂN THỊ KHI CHỌN CHẾ ĐỘ TRÒ CHƠI) -->
+            <div id="gamePracticeSelectorBox" class="hidden bg-white dark:bg-slate-800/95 rounded-3xl p-4 sm:p-6 border-2 border-purple-200 dark:border-purple-800/80 shadow-md space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-purple-100 dark:border-slate-700">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl text-white flex items-center justify-center text-xl shadow-md shrink-0" style="background: linear-gradient(135deg, #ec4899 0%, #7c3aed 100%) !important;">
+                            <i class="fa-solid fa-gamepad"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="font-black text-gray-900 dark:text-white text-base sm:text-lg">Chọn Trò Chơi Để Luyện Tập</h3>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-orange-100 text-orange-700 border border-orange-200">HOT · Ngân hàng QMath</span>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                                Bước 1: Chọn 1 trò chơi bên dưới ➔ Bước 2: Chọn <b>Khối lớp, Phân môn, Mức độ & Chuyên đề</b> (như Phòng Luyện Tập) ➔ Bước 3: Bấm <b>Tạo Trò Chơi & Chơi Ngay</b>!
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <a href="san-choi/index.html#/join" class="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-black text-xs flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-key text-pink-500"></i> Vào phòng PIN của Giáo viên
+                        </a>
+                    </div>
+                </div>
+
+                <div id="studentGameCardsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5"></div>
             </div>
 
             
@@ -1126,12 +1212,17 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                     </div>
 
                     
-                    <div class="space-y-2 pt-2">
-                        
-                        <button onclick="startPractice()" class="w-full py-3.5 btn-special-cta rounded-2xl text-sm flex items-center justify-center gap-2 active:scale-98">
+                    <div class="space-y-2 pt-2" id="customActionButtonsBox">
+                        <button id="btnStartGamePracticeMain" onclick="window.startGamePractice()" class="hidden w-full py-3.5 text-white font-black rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg hover:opacity-95 active:scale-98 transition-all cursor-pointer" style="background: linear-gradient(135deg, #ec4899 0%, #7c3aed 100%) !important;">
+                            <i class="fa-solid fa-gamepad text-base"></i> <span id="btnStartGamePracticeLabel">TẠO TRÒ CHƠI & CHƠI NGAY</span>
+                        </button>
+                        <button id="btnStartNormalPracticeMain" onclick="startPractice()" class="w-full py-3.5 btn-special-cta rounded-2xl text-sm flex items-center justify-center gap-2 active:scale-98 cursor-pointer">
                             <i class="fa-solid fa-rocket text-base"></i> BẮT ĐẦU LUYỆN TẬP
                         </button>
-                        <button onclick="startPractice(true)" class="w-full py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-bold rounded-2xl shadow-2xs transition-all text-xs flex items-center justify-center gap-2">
+                        <button id="btnSwitchToGameMode" onclick="window.switchHubTab('game')" class="w-full py-2.5 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-black rounded-2xl shadow-2xs transition-all text-xs flex items-center justify-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-gamepad text-pink-500"></i> CHUYỂN CÂU HỎI VÀO TRÒ CHƠI HỌC TẬP
+                        </button>
+                        <button onclick="startPractice(true)" class="w-full py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 font-bold rounded-2xl shadow-2xs transition-all text-xs flex items-center justify-center gap-2 cursor-pointer">
                             <i class="fa-solid fa-file-pdf text-red-500"></i> XUẤT ĐỀ THI BẢN IN PDF
                         </button>
                     </div>
@@ -1200,8 +1291,8 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                     </p>
                 </div>
                 
-                <button onclick="startPractice()" class="px-5 py-2.5 btn-special-cta text-white font-black text-xs rounded-xl shrink-0 flex items-center gap-1.5 active:scale-95">
-                    <i class="fa-solid fa-rocket"></i> Bắt đầu ngay
+                <button id="mobileBtnStartPractice" onclick="window.isGamePracticeMode ? window.startGamePractice() : startPractice()" class="px-5 py-2.5 btn-special-cta text-white font-black text-xs rounded-xl shrink-0 flex items-center gap-1.5 active:scale-95">
+                    <i class="fa-solid fa-rocket" id="mobileBtnStartIcon"></i> <span id="mobileBtnStartText">Bắt đầu ngay</span>
                 </button>
             </div>
         </section>
@@ -2112,11 +2203,293 @@ handleUrlRouting();
 window.location.href = 'index.html';
 }
 });
+const STUDENT_GAMES_CATALOG = [
+  { id: 'dua-vit', name: 'Đua vịt sông xanh', icon: '🦆', tag: 'Đua tốc độ', hot: true },
+  { id: 'trieu-phu', name: 'Ai là triệu phú', icon: '💰', tag: 'Gameshow', hot: true },
+  { id: 'rung-chuong', name: 'Rung chuông vàng', icon: '🔔', tag: 'Vượt ải', hot: true },
+  { id: 'dua-xe', name: 'Đua xe tốc độ', icon: '🏎️', tag: 'Đua tốc độ', hot: true },
+  { id: 'keo-co', name: 'Kéo co tri thức', icon: '🪢', tag: 'Đối kháng', hot: false },
+  { id: 'nhanh-chop', name: 'Nhanh như chớp', icon: '⚡', tag: 'Phản xạ', hot: false },
+  { id: 'olympia', name: 'Đường lên đỉnh Olympia', icon: '🏔️', tag: '4 Vòng thi', hot: false },
+  { id: 'zombie', name: 'Chặn Zombie', icon: '🧟', tag: 'Phòng thủ', hot: false },
+  { id: 'dua-thuyen', name: 'Đua thuyền rồng', icon: '🐉', tag: 'Đồng đội', hot: false },
+  { id: 'nhay-bao', name: 'Nhảy bao bố', icon: '🛍️', tag: 'Dân gian', hot: false },
+  { id: 'xuc-xac', name: 'Tung xúc xắc', icon: '🎲', tag: 'May mắn', hot: false },
+  { id: 'lat-manh', name: 'Lật mảnh ghép', icon: '🧩', tag: 'Khám phá', hot: false },
+  { id: 'vong-quay', name: 'Vòng quay kỳ diệu', icon: '🎡', tag: 'Quay thưởng', hot: false },
+  { id: 'ghep-the', name: 'Lật thẻ trí nhớ', icon: '🃏', tag: 'Trí nhớ', hot: false }
+];
+window.selectedStudentGameId = 'dua-vit';
+
+window.renderStudentGamesGrid = function() {
+  const grid = document.getElementById('studentGameCardsGrid');
+  if (!grid) return;
+  grid.innerHTML = STUDENT_GAMES_CATALOG.map(g => {
+    const active = g.id === window.selectedStudentGameId;
+    return `<button type="button" onclick="window.selectStudentGame('${g.id}')" class="p-2.5 rounded-2xl border-2 text-left transition-all flex flex-col justify-between relative cursor-pointer ${active ? 'border-purple-600 bg-purple-50/90 dark:bg-purple-950/70 shadow-md scale-[1.02]' : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-purple-300'}">
+      <div class="flex items-center justify-between gap-1 mb-1">
+        <span class="text-2xl leading-none">${g.icon}</span>
+        ${active ? '<span class="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] flex items-center justify-center font-black"><i class="fa-solid fa-check"></i></span>' : (g.hot ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-orange-100 text-orange-700">HOT</span>' : '')}
+      </div>
+      <div>
+        <div class="font-black text-xs text-gray-900 dark:text-white leading-snug line-clamp-1">${g.name}</div>
+        <div class="text-[10px] font-semibold ${active ? 'text-purple-700 dark:text-purple-300' : 'text-gray-400'}">${g.tag}</div>
+      </div>
+    </button>`;
+  }).join('');
+  const curGame = STUDENT_GAMES_CATALOG.find(x => x.id === window.selectedStudentGameId) || STUDENT_GAMES_CATALOG[0];
+  const lbl = document.getElementById('btnStartGamePracticeLabel');
+  if (lbl && curGame) lbl.innerText = `CHƠI NGAY: ${curGame.name.toUpperCase()} ${curGame.icon}`;
+  const mobTxt = document.getElementById('mobileBtnStartText');
+  if (mobTxt && window.isGamePracticeMode && curGame) mobTxt.innerText = `Chơi ${curGame.name}`;
+};
+
+window.selectStudentGame = function(gameId) {
+  window.selectedStudentGameId = gameId;
+  window.renderStudentGamesGrid();
+};
+
+window.syncGamePracticeModeUI = function(isGame) {
+  window.isGamePracticeMode = Boolean(isGame);
+  const box = document.getElementById('gamePracticeSelectorBox');
+  const btnGame = document.getElementById('btnStartGamePracticeMain');
+  const btnSwitch = document.getElementById('btnSwitchToGameMode');
+  const mobIcon = document.getElementById('mobileBtnStartIcon');
+  const mobTxt = document.getElementById('mobileBtnStartText');
+  if (box) box.classList.toggle('hidden', !isGame);
+  if (btnGame) btnGame.classList.toggle('hidden', !isGame);
+  if (btnSwitch) btnSwitch.classList.toggle('hidden', isGame);
+  if (isGame) {
+    window.renderStudentGamesGrid();
+    if (mobIcon) mobIcon.className = 'fa-solid fa-gamepad';
+  } else {
+    if (mobIcon) mobIcon.className = 'fa-solid fa-rocket';
+    if (mobTxt) mobTxt.innerText = 'Bắt đầu ngay';
+  }
+};
+
+function convertPracticeQuestionToSanChoi(rawQ, gradeLabel, subjectLabel) {
+  if (!rawQ) return null;
+  const qId = String(rawQ.cccd || rawQ.id || ('Q' + Math.random().toString(36).slice(2, 8))).trim();
+  const mapId = String(rawQ.mapId || '').trim();
+  const stem = String(rawQ.content || rawQ.Question || '').trim();
+  if (!stem) return null;
+  const explain = String(rawQ.solution || rawQ.Explain || '').trim();
+  const level = String(rawQ.level || rawQ.Level || 'Thông hiểu').trim();
+  const rawType = String(rawQ.type || rawQ.Type || 'mc').toLowerCase().trim();
+
+  if (rawType === 'tf' || (Array.isArray(rawQ.statements) && rawQ.statements.length > 0)) {
+    const tfKeys = ['a', 'b', 'c', 'd'];
+    const Options = {};
+    let ansStr = '';
+    (rawQ.statements || []).slice(0, 4).forEach((st, idx) => {
+      const txt = typeof st === 'string' ? st : (st.text || st.content || '');
+      Options[tfKeys[idx]] = String(txt).trim();
+      const isT = Boolean(st && (st.isTrue === true || st.correct === true || st.isCorrect === true || st.isTrue === 'true' || st.isTrue === 'D' || st.isTrue === 'Đ'));
+      ansStr += isT ? 'Đ' : 'S';
+    });
+    if (Object.keys(Options).length === 0) return null;
+    return {
+      Id: qId, cccd: qId, mapId, Type: 'TF', Level: level,
+      Grade: String(gradeLabel || '12'), Subject: String(subjectLabel || 'Toán'),
+      Chapter: '', Topic: mapId, Question: stem, Options,
+      CorrectAnswer: ansStr || 'ĐSĐS', Explain: explain
+    };
+  }
+
+  if (rawType === 'short' || rawType === 'sa' || ((rawQ.answer !== undefined && rawQ.answer !== null && String(rawQ.answer).trim() !== '') && (!rawQ.options || !rawQ.options.length))) {
+    const ans = String(rawQ.answer != null ? rawQ.answer : (rawQ.correctAnswer || '')).trim().replace(/^\$+|\$+$/g, '').replace(/\{([.,])\}/g, '$1');
+    if (!ans) return null;
+    return {
+      Id: qId, cccd: qId, mapId, Type: 'SA', Level: level,
+      Grade: String(gradeLabel || '12'), Subject: String(subjectLabel || 'Toán'),
+      Chapter: '', Topic: mapId, Question: stem,
+      CorrectAnswer: ans, Explain: explain
+    };
+  }
+
+  const optsArr = Array.isArray(rawQ.options) ? rawQ.options : [];
+  const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const Options = {};
+  optsArr.slice(0, 6).forEach((txt, idx) => {
+    if (txt != null && String(txt).trim() !== '') Options[keys[idx]] = String(txt).trim();
+  });
+  if (Object.keys(Options).length < 2) return null;
+  let correctKey = 'A';
+  if (typeof rawQ.correct === 'number' && rawQ.correct >= 0 && rawQ.correct < 6) {
+    correctKey = keys[rawQ.correct];
+  } else if (typeof rawQ.correct === 'string' && /^[A-F]$/i.test(rawQ.correct.trim())) {
+    correctKey = rawQ.correct.trim().toUpperCase();
+  } else if (typeof rawQ.correctAnswer === 'string' && /^[A-F]$/i.test(rawQ.correctAnswer.trim())) {
+    correctKey = rawQ.correctAnswer.trim().toUpperCase();
+  }
+  return {
+    Id: qId, cccd: qId, mapId, Type: 'MC', Level: level,
+    Grade: String(gradeLabel || '12'), Subject: String(subjectLabel || 'Toán'),
+    Chapter: '', Topic: mapId, Question: stem, Options,
+    CorrectAnswer: correctKey, Explain: explain
+  };
+}
+
+window.startGamePractice = async function() {
+  const btn = document.getElementById('btnStartGamePracticeMain');
+  const ogHtml = btn ? btn.innerHTML : '';
+  try {
+    const practiceId = (document.getElementById('inputPracticeId')?.value || '').trim();
+    const grade = window.currentConfig.grade;
+    const subject = window.currentConfig.subject;
+    let qCount = practiceId ? 1 : (parseInt(document.getElementById('inputQCount')?.value) || 10);
+    const sortDiff = document.getElementById('toggleSortDifficulty')?.checked ?? true;
+    const checkedLevels = window.currentConfig.levels;
+    const reqTheory = document.getElementById('filterTheory')?.checked;
+    const reqRealWorld = document.getElementById('filterRealWorld')?.checked;
+    const checkedMapIds = Array.from(document.querySelectorAll('#treeContainer input[type="checkbox"]:checked'))
+      .map(cb => cb.value)
+      .filter(Boolean);
+
+    const getBaseIdForMatch = (id) => {
+      let raw = String(id || '').split('_')[0];
+      const match = raw.match(/^(\d+[a-zA-Z])/i);
+      if (!match) return raw;
+      const prefix = match[1].toUpperCase();
+      let suffix = raw.substring(prefix.length);
+      const parts = suffix.match(/\d+/g) || [];
+      return prefix + (parts.length > 0 ? '|' + parts.join('|') : '');
+    };
+    const checkedCleanIds = checkedMapIds.map(getBaseIdForMatch);
+
+    if (!window.globalBankCatalog || window.globalBankCatalog.length === 0) {
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối Ngân hàng câu hỏi...'; }
+      await loadBankCatalogFast();
+    }
+
+    let pool = (window.globalBankCatalog || []).filter(q => {
+      if (practiceId) return String(q.id) === practiceId || String(q.cccd) === practiceId;
+      const actualMapId = String(q.mapId || q.id || '').trim();
+      if (!actualMapId) return false;
+      let actualLevel = String(q.level || '').trim().toUpperCase();
+      if (!actualLevel && actualMapId) {
+        const lMatch = actualMapId.match(/^\d+[a-zA-Z]\d+([NHVC])/i);
+        if (lMatch) {
+          const c = lMatch[1].toUpperCase();
+          if (c === 'N') actualLevel = 'NHẬN BIẾT';
+          else if (c === 'H') actualLevel = 'THÔNG HIỂU';
+          else if (c === 'V') actualLevel = 'VẬN DỤNG';
+          else if (c === 'C') actualLevel = 'VẬN DỤNG CAO';
+        }
+      }
+      const qBaseId = getBaseIdForMatch(actualMapId);
+      const subjectMatch = actualMapId.match(/^\d+([a-zA-Z])/);
+      const subjectChar = subjectMatch ? subjectMatch[1].toUpperCase() : '';
+      if (!actualMapId.startsWith(grade)) return false;
+      if (subject === 'dai_so' && !['D', 'G', 'X'].includes(subjectChar)) return false;
+      if (subject === 'hinh_hoc' && subjectChar !== 'H') return false;
+      if (checkedLevels.length > 0) {
+        const isMatch = checkedLevels.some(code => {
+          if (code === 'NB' && (actualLevel.includes('NHẬN BIẾT') || actualLevel === 'NB' || /^\d+[a-zA-Z]\d+N/i.test(actualMapId))) return true;
+          if (code === 'TH' && (actualLevel.includes('THÔNG HIỂU') || actualLevel === 'TH' || /^\d+[a-zA-Z]\d+H/i.test(actualMapId))) return true;
+          if (code === 'VD' && (actualLevel === 'VẬN DỤNG' || actualLevel === 'VD' || /^\d+[a-zA-Z]\d+V/i.test(actualMapId))) return true;
+          if (code === 'VDC' && (actualLevel.includes('CAO') || actualLevel === 'VDC' || /^\d+[a-zA-Z]\d+C/i.test(actualMapId))) return true;
+          return false;
+        });
+        if (!isMatch) return false;
+      }
+      if (checkedCleanIds.length > 0) {
+        const isMatchTopic = checkedCleanIds.some(tId => {
+          if (qBaseId === tId || qBaseId.startsWith(tId + '|')) return true;
+          const rawId = String(actualMapId).split('_')[0];
+          if (rawId === tId || rawId.startsWith(tId + '|')) return true;
+          return false;
+        });
+        if (!isMatchTopic) return false;
+      }
+      if (reqTheory || reqRealWorld) {
+        const qTags = String(q.tags || '').toLowerCase();
+        let pass = false;
+        if (reqTheory && (qTags.includes('theory') || qTags.includes('ly-thuyet') || actualMapId.includes('LT'))) pass = true;
+        if (reqRealWorld && (qTags.includes('realworld') || qTags.includes('thuc-te') || actualMapId.includes('TT'))) pass = true;
+        if (!pass) return false;
+      }
+      return true;
+    });
+
+    if (pool.length === 0) {
+      await window.customAlert("Không tìm thấy câu hỏi phù hợp với tiêu chí đã chọn.\n\nHãy thử chọn thêm mức độ (NB, TH, VD, VDC) hoặc chọn bài học/phân môn khác nhé!", "info", "Không Tìm Thấy Câu Hỏi");
+      return;
+    }
+
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    let selected = pool.slice(0, Math.min(pool.length, Math.max(qCount, 15)));
+    if (sortDiff) {
+      const getLvlNum = (id) => {
+        const s = String(id);
+        if (s.includes('NB') || s.includes('N')) return 1;
+        if (s.includes('TH') || s.includes('H')) return 2;
+        if (s.includes('VD') || s.includes('V')) return 3;
+        if (s.includes('VDC') || s.includes('C')) return 4;
+        return 2;
+      };
+      selected.sort((a, b) => getLvlNum(a.mapId || a.id) - getLvlNum(b.mapId || b.id));
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ĐANG NẠP CÂU HỎI VÀO TRÒ CHƠI...';
+    }
+    selected = await ensureQuestionDetails(selected);
+    const subjLabel = subject === 'dai_so' ? 'Đại số' : subject === 'hinh_hoc' ? 'Hình học' : 'Toán';
+    const gameQuestions = selected
+      .map(q => convertPracticeQuestionToSanChoi(q, grade, subjLabel))
+      .filter(Boolean)
+      .slice(0, qCount);
+
+    if (gameQuestions.length === 0) {
+      await window.customAlert("Các câu hỏi trong mục này chưa có phương án trắc nghiệm để đưa vào trò chơi. Vui lòng thử chọn bài học khác!", "warning", "Chưa Có Câu Hỏi Tương Thích");
+      return;
+    }
+
+    const gameId = window.selectedStudentGameId || 'dua-vit';
+    const curGame = STUDENT_GAMES_CATALOG.find(x => x.id === gameId) || STUDENT_GAMES_CATALOG[0];
+    const topicSummary = `Lớp ${grade} • ${subjLabel} (${gameQuestions.length} câu)`;
+
+    localStorage.setItem('gfe_localFile', JSON.stringify({
+      questions: gameQuestions,
+      sets: [],
+      gameConfigs: {},
+      settings: {},
+      presets: []
+    }));
+    localStorage.setItem('gfe_student_practice_meta', JSON.stringify({
+      title: topicSummary,
+      gameId,
+      gameName: curGame.name,
+      grade,
+      subject: subjLabel,
+      count: gameQuestions.length,
+      ts: Date.now()
+    }));
+
+    window.location.href = `san-choi/index.html?studentPractice=1&autoStart=1#/game/${encodeURIComponent(gameId)}?studentPractice=1&autoStart=1`;
+  } catch (err) {
+    console.error("Lỗi tạo trò chơi luyện tập:", err);
+    await window.customAlert("Không thể khởi tạo trò chơi: " + err.message, "error", "Lỗi Khởi Tạo");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = ogHtml;
+    }
+  }
+};
+
 function handleUrlRouting() {
 const params = new URLSearchParams(window.location.search);
 const mode = params.get('mode');
 if (mode === 'roadmap') window.switchHubTab('roadmap');
 else if (mode === 'custom') window.switchHubTab('custom');
+else if (mode === 'game') window.switchHubTab('game');
 else if (mode === 'history') window.switchHubTab('history');
 else window.switchHubTab('landing');
 const lookup = params.get('lookup') || params.get('id') || params.get('cccd');
@@ -2124,6 +2497,7 @@ if (lookup) {
 setTimeout(() => window.openQuestionLookupModal(lookup), 400);
 }
 }
+setTimeout(() => { try { handleUrlRouting(); } catch(e) {} }, 0);
 async function loadBankCatalogFast() {
 const CATALOG_URL = "https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank_catalog.json";
 const CACHE_KEY = "lms_cached_bank_v2";

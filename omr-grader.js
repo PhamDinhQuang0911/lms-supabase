@@ -5552,7 +5552,7 @@ const kh = (kFrame[3] || 23.39) - ky0;
 const scaleX = sheetW / kw;
 const scaleY = sheetH / kh;
 const drawRingOnCanvas = (pt, color, lineW = 4.5, r = 15, dashed = false) => {
-if (!pt) return;
+if (!pt || pt[0] <= 0 || pt[1] <= 0) return;
 const cx = (pt[0] - kx0) * scaleX;
 const cy = (pt[1] - ky0) * scaleY + headerH;
 ctx.save();
@@ -5748,7 +5748,7 @@ if (tpl.p3[q]) {
 tpl.p3[q].forEach(colPts => {
 if (Array.isArray(colPts)) {
 colPts.forEach(pt => {
-if (pt) {
+if (pt && pt[0] > 0 && pt[1] > 0) {
 if (pt[0] < qMinX) qMinX = pt[0];
 if (pt[0] > qMaxX) qMaxX = pt[0];
 if (pt[1] > qMaxY) qMaxY = pt[1];
@@ -5836,6 +5836,7 @@ const tpl = rawResult.template;
 const key = resolveKeyForCode(code);
 let marks = '';
 const ring = (pt, color, stroke = 2.5, r = 14, dashed = false) => {
+if (!pt || pt[0] <= 0 || pt[1] <= 0) return '';
 const x = pt[0] * 100;
 const y = pt[1] * 100;
 const dashAttr = dashed ? 'stroke-dasharray="4 3"' : '';
@@ -5916,7 +5917,7 @@ if (tpl.p3[q]) {
 tpl.p3[q].forEach(colPts => {
 if (Array.isArray(colPts)) {
 colPts.forEach(pt => {
-if (pt) {
+if (pt && pt[0] > 0 && pt[1] > 0) {
 if (pt[0] < qMinX) qMinX = pt[0];
 if (pt[0] > qMaxX) qMaxX = pt[0];
 if (pt[1] > qMaxY) qMaxY = pt[1];
