@@ -57,7 +57,13 @@
 
   GK.getStudentPracticeBackUrl = () => {
     const info = GK.getStudentPracticeRoomInfo();
-    return "../practice.html?mode=game" + (info.pin ? "&room=" + encodeURIComponent(info.pin) : "");
+    try {
+      if (info.pin) {
+        sessionStorage.setItem("qmath_user_exited_game_pin", String(info.pin));
+        sessionStorage.setItem("qmath_user_exited_ts", String(Date.now()));
+      }
+    } catch (e) {}
+    return "../practice.html?mode=game" + (info.pin ? "&room=" + encodeURIComponent(info.pin) : "") + "&exitGame=1";
   };
 
   GK.returnToStudentPractice = (S) => {

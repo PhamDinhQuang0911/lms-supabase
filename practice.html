@@ -1241,6 +1241,19 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                                     </div>
                                 </div>
 
+                                <!-- Nút/Banner báo đến chỗ chọn câu hỏi & lăn xuống -->
+                                <div id="mobaQuestionPickerGuideBox" class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/80 text-amber-900 dark:text-amber-200 flex items-center justify-between gap-2 cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all shadow-xs" onclick="window.scrollToQuestionPicker()" title="Bấm để lăn xuống chọn bài học & câu hỏi">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <i class="fa-solid fa-hand-point-down text-amber-600 dark:text-amber-400 text-sm animate-bounce shrink-0"></i>
+                                        <div class="text-[11px] font-bold truncate">
+                                            <span>Chưa chọn câu hỏi? <b class="underline">Bấm vào đây</b> để chọn bài & đề thi</span>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-black text-[10px] shrink-0 flex items-center gap-1 shadow-2xs">
+                                        Chọn câu hỏi <i class="fa-solid fa-arrow-down text-[9px]"></i>
+                                    </span>
+                                </div>
+
                                 <!-- Nút Bắt đầu trận đấu (Chủ phòng) hoặc Làm bài ngay (Khách) -->
                                 <div class="space-y-1.5">
                                     <button type="button" id="btnHostStartMobaMatch" onclick="window.hostStartMobaMatch()" class="w-full py-3 rounded-xl text-white font-black text-xs sm:text-sm shadow-lg hover:opacity-95 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer" style="background: linear-gradient(135deg, #ec4899 0%, #7c3aed 100%) !important;">
@@ -2820,6 +2833,21 @@ if (!window.matchesSelectedQuestionTypes(q, window.currentConfig.questionTypes))
   return { pool, selected, grade, subject, qCount };
 };
 
+window.scrollToQuestionPicker = function() {
+  const treeContainer = document.getElementById('treeContainer');
+  const treeCol = treeContainer ? treeContainer.closest('.lg\\:col-span-7') : null;
+  const configCol = document.getElementById('gradePillGroup')?.closest('.lg\\:col-span-5');
+  const target = treeCol || configCol || treeContainer || document.getElementById('gradePillGroup');
+  
+  if (target) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target.classList.add('ring-4', 'ring-purple-500', 'ring-offset-4', 'shadow-2xl', 'transition-all', 'duration-500');
+    setTimeout(() => {
+      target.classList.remove('ring-4', 'ring-purple-500', 'ring-offset-4', 'shadow-2xl');
+    }, 2800);
+  }
+};
+
 window.startGamePractice = async function() {
   if (window.activeMobaRoom && window.activeMobaRoom.pin) {
     if (window.activeMobaRoom.isHost) {
@@ -2839,7 +2867,18 @@ window.startGamePractice = async function() {
     }
     const res = await window.selectQuestionsFromCatalogByConfig(true);
     if (res.error === 'EMPTY_POOL' || !res.selected || res.selected.length === 0) {
-      await window.customAlert("Không tìm thấy câu hỏi phù hợp với tiêu chí đã chọn.\n\nHãy thử chọn thêm Loại câu hỏi (TN, Đ/S, TLN), mức độ (NB, TH, VD, VDC) hoặc chọn bài học/phân môn khác nhé!", "info", "Không Tìm Thấy Câu Hỏi");
+      const goPick = await window.customConfirm(
+        "Chưa tìm thấy câu hỏi phù hợp với tiêu chí đã chọn!\n\nHãy chọn thêm Khối lớp, Phân môn, Chuyên đề hoặc Loại câu hỏi (TN, Đ/S, TLN).\n\nBạn có muốn di chuyển xuống khu vực chọn câu hỏi ngay bây giờ không?",
+        "Chưa Có Câu Hỏi",
+        {
+          confirmText: '👇 Đi tới chỗ chọn câu hỏi',
+          cancelText: 'Đóng',
+          danger: false
+        }
+      );
+      if (goPick) {
+        window.scrollToQuestionPicker();
+      }
       return;
     }
     const { selected, grade, subject, qCount } = res;
@@ -2895,6 +2934,7 @@ window.selectedMobaAvatar = '🦊';
 window.activeMobaRoom = null;
 window._lastLaunchedRoundId = null;
 window._navigatingToRoomGame = false;
+window._userExitedMatch = false;
 
 window.getMobaIdentity = function() {
   let saved = null;
@@ -3113,6 +3153,22 @@ window.onMobaRoomSnapshot = function(roomDoc) {
     }
   }
 
+  // Xử lý khi học sinh hoặc chủ phòng vừa bấm thoát/quay lại từ trận đấu
+  const roundId = roomDoc.state?.roundId || (meta.status === 'playing' ? 'R_ACTIVE' : null);
+  if (window._userExitedMatch) {
+    window._lastLaunchedRoundId = roundId || 'EXITED_ROUND';
+    window._userExitedMatch = false;
+    if (isNowHost && meta.status === 'playing' && window.Room) {
+      try {
+        await window.Room.resetForNextMatch(active.pin);
+        window.showToast('🔙 Chủ phòng đã quay lại sảnh. Trận đấu đã được đưa về Sảnh chờ!', 'info', 3000);
+      } catch(e) {}
+      return;
+    } else {
+      window.showToast('🔙 Bạn đã quay lại Sảnh phòng luyện tập.', 'info', 2500);
+    }
+  }
+
   // Hiển thị danh sách thành viên + nút Kích (cho Chủ phòng)
   const pList = Object.values(playersMap).sort((a, b) => (b.isHost ? 1 : 0) - (a.isHost ? 1 : 0) || (a.joinedAt || 0) - (b.joinedAt || 0));
   const maxP = Number(meta.maxPlayers) || 10;
@@ -3324,7 +3380,7 @@ window.syncCurrentConfigToMobaRoom = async function() {
 window.hostStartMobaMatch = async function() {
   if (!window.activeMobaRoom || !window.Room) return;
   const active = window.activeMobaRoom;
-  const roomDoc = active.lastDoc || await window.Room.getRoom(active.pin);
+  const roomDoc = (window.Room.getRoom ? await window.Room.getRoom(active.pin) : null) || active.lastDoc;
   if (!roomDoc) return;
   const meta = roomDoc.meta || {};
 
@@ -3340,13 +3396,65 @@ window.hostStartMobaMatch = async function() {
     return;
   }
 
+  // KIỂM TRA SỐ LƯỢNG NGƯỜI CHƠI TRONG PHÒNG
+  const playersMap = roomDoc.players || {};
+  const currentCount = Object.keys(playersMap).length;
+  const maxPlayers = Number(meta.maxPlayers) || 10;
+
+  if (currentCount <= 1) {
+    await window.customAlert(
+      `Phòng hiện tại mới chỉ có 1 người (${playersMap[active.pid]?.name || 'bạn'}).\n\nChế độ thi đấu nhóm cần ít nhất 2 người chơi! Hãy copy Mã PIN #${active.pin} hoặc gửi Link mời cho bạn bè cùng vào sảnh để so tài nhé!`,
+      'warning',
+      'Chưa Đủ Người Chơi'
+    );
+    return;
+  }
+
+  if (currentCount < maxPlayers) {
+    const choose = await window.customConfirm(
+      `Phòng hiện mới có ${currentCount}/${maxPlayers} người (chưa đủ số người tối đa đã cài đặt).\n\nBạn có muốn điều chỉnh số người tối đa về ${currentCount} người để BẮT ĐẦU NGAY không?\n\n(Hoặc chọn "Đợi thêm bạn" để tiếp tục chờ các bạn khác vào phòng).`,
+      'Chưa Đủ Số Người Trong Phòng',
+      {
+        confirmText: `Chỉnh về ${currentCount} người & Bắt đầu ngay`,
+        cancelText: 'Đợi thêm bạn vào',
+        danger: false
+      }
+    );
+    if (!choose) {
+      window.showToast(`Đang đợi thêm bạn vào phòng #${active.pin}...`, 'info', 3000);
+      return;
+    }
+    // Chủ phòng đồng ý chỉnh về currentCount để bắt đầu ngay
+    try {
+      await window.Room.setMaxPlayers(active.pin, currentCount);
+      const liveMaxInp = document.getElementById('mobaLiveMaxPlayers');
+      if (liveMaxInp) liveMaxInp.value = currentCount;
+      const cntBadge = document.getElementById('mobaPlayersCountBadge');
+      if (cntBadge) cntBadge.textContent = `${currentCount}/${currentCount} người`;
+      window.showToast(`Đã chỉnh số người tối đa về ${currentCount}! Đang khởi tạo trận đấu...`, 'success', 2000);
+    } catch(e) {
+      console.warn('Lỗi cập nhật maxPlayers:', e);
+    }
+  }
+
   const btn = document.getElementById('btnHostStartMobaMatch');
   const og = btn ? btn.innerHTML : '';
   try {
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ĐANG TẠO ĐỀ CHUNG CHO PHÒNG...'; }
     const res = await window.selectQuestionsFromCatalogByConfig(true);
     if (!res.selected || res.selected.length === 0) {
-      await window.customAlert('Không tìm thấy câu hỏi phù hợp với cấu hình hiện tại. Hãy chọn thêm Loại câu hỏi (TN, Đ/S, TLN) hoặc Mức độ!', 'warning', 'Chưa Có Câu Hỏi');
+      const goPick = await window.customConfirm(
+        'Phòng hiện chưa có câu hỏi nào sẵn sàng cho cấu hình này!\n\nHãy chọn thêm Chuyên đề / Dạng bài, Khối lớp hoặc Loại câu hỏi (TN, Đ/S, TLN) để tạo bộ đề cho phòng.\n\nBạn có muốn cuộn xuống khu vực chọn câu hỏi ngay bây giờ không?',
+        'Chưa Có Câu Hỏi',
+        {
+          confirmText: '👇 Đi tới chỗ chọn câu hỏi',
+          cancelText: 'Đóng',
+          danger: false
+        }
+      );
+      if (goPick) {
+        window.scrollToQuestionPicker();
+      }
       return;
     }
     const { selected, grade, subject } = res;
@@ -3576,6 +3684,22 @@ window.returnToMobaLobbyFromResult = async function() {
 function handleUrlRouting() {
 const params = new URLSearchParams(window.location.search);
 const mode = params.get('mode');
+const isExitGameParam = params.get('exitGame') === '1' || params.get('userExit') === '1';
+let exitedPin = '';
+try { exitedPin = sessionStorage.getItem('qmath_user_exited_game_pin') || ''; } catch(e) {}
+const roomParam = (params.get('room') || params.get('pin') || exitedPin || '').trim().replace(/\D/g, '');
+
+if (isExitGameParam || (exitedPin && exitedPin === roomParam)) {
+  window._userExitedMatch = true;
+  try { sessionStorage.removeItem('qmath_user_exited_game_pin'); } catch(e) {}
+  try {
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('exitGame');
+    cleanUrl.searchParams.delete('userExit');
+    window.history.replaceState(null, '', cleanUrl.toString());
+  } catch(e) {}
+}
+
 if (mode === 'roadmap') window.switchHubTab('roadmap');
 else if (mode === 'custom') window.switchHubTab('custom');
 else if (mode === 'game') window.switchHubTab('game');
@@ -3587,7 +3711,6 @@ else if (window.activeMobaRoom) {
   switchHubTab('landing');
 }
 const lookup = params.get('lookup') || params.get('id') || params.get('cccd');
-const roomParam = (params.get('room') || params.get('pin') || '').trim().replace(/\D/g, '');
 if (roomParam && roomParam.length >= 4) {
   if (mode !== 'game' && mode !== 'custom') window.switchHubTab('custom');
   window.setPracticePartyMode('group');
@@ -4301,14 +4424,19 @@ const checkedMapIds = Array.from(document.querySelectorAll('#treeContainer input
 .map(cb => cb.value)
 .filter(Boolean);
 if (!practiceId && !allowRandomAll && checkedMapIds.length === 0) {
-await window.customAlert("Bạn chưa chọn chuyên đề hoặc dạng bài nào!\n\nVui lòng tích chọn ít nhất 1 bài học hoặc dạng bài ở cây bên phải trước khi bắt đầu luyện tập.", "warning", "Chưa Chọn Dạng Bài");
-const treeEl = document.getElementById('treeContainer');
-if (treeEl) {
-treeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-treeEl.classList.add('ring-2', 'ring-orange-400');
-setTimeout(() => treeEl.classList.remove('ring-2', 'ring-orange-400'), 2500);
-}
-return;
+  const goPick = await window.customConfirm(
+    "Bạn chưa chọn chuyên đề hoặc dạng bài nào!\n\nVui lòng tích chọn ít nhất 1 bài học hoặc dạng bài ở cây bên phải trước khi bắt đầu luyện tập.\n\nBạn có muốn di chuyển xuống khu vực chọn câu hỏi ngay bây giờ không?",
+    "Chưa Chọn Dạng Bài",
+    {
+      confirmText: '👇 Đi tới chỗ chọn câu hỏi',
+      cancelText: 'Đóng',
+      danger: false
+    }
+  );
+  if (goPick) {
+    window.scrollToQuestionPicker();
+  }
+  return;
 }
 const getBaseIdForMatch = (id) => {
 let raw = String(id || "").split('_')[0];
@@ -4404,7 +4532,18 @@ if (qTypesSel.length < 3) {
   selected = await ensureQuestionDetails(selected);
 }
 if (selected.length === 0) {
-  await window.customAlert("Không tìm thấy câu hỏi thuộc Loại câu hỏi (Trắc nghiệm / Đúng-Sai / Trả lời ngắn) đã chọn trong mục này.\n\nHãy tích chọn thêm loại câu hỏi hoặc chọn bài học khác nhé!", "info", "Không Có Loại Câu Hỏi Này");
+  const goPick = await window.customConfirm(
+    "Không tìm thấy câu hỏi thuộc Loại câu hỏi (Trắc nghiệm / Đúng-Sai / Trả lời ngắn) đã chọn trong mục này.\n\nHãy chọn thêm Loại câu hỏi hoặc chọn bài học khác nhé!\n\nBạn có muốn di chuyển xuống khu vực chọn câu hỏi ngay bây giờ không?",
+    "Chưa Có Câu Hỏi Phù Hợp",
+    {
+      confirmText: '👇 Đi tới chỗ chọn câu hỏi',
+      cancelText: 'Đóng',
+      danger: false
+    }
+  );
+  if (goPick) {
+    window.scrollToQuestionPicker();
+  }
   return;
 }
 window.practiceQuestions = selected;
@@ -4890,6 +5029,16 @@ const ok = await window.customConfirm(
 if (ok) {
 if (timerInterval) clearInterval(timerInterval);
 if (window.activeMobaRoom) {
+  window._userExitedMatch = true;
+  window._lastLaunchedRoundId = window.activeMobaRoom.lastDoc?.state?.roundId || 'EXITED_PRACTICE';
+  if (window.activeMobaRoom.isHost && window.Room) {
+    try {
+      await window.Room.resetForNextMatch(window.activeMobaRoom.pin);
+      window.showToast('🔙 Chủ phòng đã quay lại sảnh. Trận đấu đã được chuyển về Sảnh chờ.', 'info', 2500);
+    } catch(e) {}
+  } else {
+    window.showToast('🔙 Bạn đã quay lại Sảnh phòng luyện tập.', 'info', 2000);
+  }
   switchHubTab('custom');
   window.setPracticePartyMode('group');
 } else {
