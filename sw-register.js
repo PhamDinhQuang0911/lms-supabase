@@ -1,4 +1,4 @@
-// Đăng ký Service Worker thống nhất và kích hoạt tức thì phiên bản mới
+﻿// ÄÄƒng kÃ½ Service Worker thá»‘ng nháº¥t vÃ  kÃ­ch hoáº¡t tá»©c thÃ¬ phiÃªn báº£n má»›i
 (async () => {
     if (!('serviceWorker' in navigator)) return;
     const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
@@ -13,8 +13,8 @@
         return;
     }
 
-    // Tự động dọn dẹp các cache phiên bản cũ để nạp ngay bản mới v67
-    const CURRENT_VERSION = 'qmath-v142';
+    // Tá»± Ä‘á»™ng dá»n dáº¹p cÃ¡c cache phiÃªn báº£n cÅ© Ä‘á»ƒ náº¡p ngay báº£n má»›i v67
+    const CURRENT_VERSION = 'qmath-v143';
     if ('caches' in window) {
         caches.keys().then((keys) => {
             keys.forEach((key) => {
@@ -25,6 +25,6 @@
         }).catch(() => {});
     }
 
-    const registration = await navigator.serviceWorker.register('/sw.js?v=142', { updateViaCache: 'none' });
+    const registration = await navigator.serviceWorker.register('/sw.js?v=143', { updateViaCache: 'none' });
     registration.update().catch(() => {});
 })().catch(() => {});
