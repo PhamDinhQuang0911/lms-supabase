@@ -16,7 +16,10 @@
   const ROOT_ADMIN_EMAILS = [
     "phamngockhanh.942002@gmail.com",
     "phamngockhanh.942001@gmail.com",
-    "phamdinhquang0911@gmail.com"
+    "phamdinhquang0911@gmail.com",
+    "phamdinhquang1@gmail.com",
+    "phamdinhquang1@hocsinh.com",
+    "phamdinhquang1"
   ];
   const MAX_FREE_GAMES_PER_MONTH = 4;
 

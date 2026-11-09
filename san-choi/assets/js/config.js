@@ -33,7 +33,10 @@ window.APP_CONFIG = {
     "dungchihappy79@gmail.com",
     "phamdinhquang0911@gmail.com",
     "phamngockhanh.942001@gmail.com",
-    "phamngockhanh.942002@gmail.com"
+    "phamngockhanh.942002@gmail.com",
+    "phamdinhquang1@gmail.com",
+    "phamdinhquang1@hocsinh.com",
+    "phamdinhquang1"
   ],
 
   cloudTimeout: 9000

@@ -53,7 +53,7 @@ export function httpsCallable(functions, name) {
 // ==========================================
 const AUTH_STORAGE_KEY = 'lms_supabase_current_user';
 const SESSION_SECRET_SALT = 'QM_SHIELD_2026_V5_9981_SECRET';
-const ROOT_ADMIN_EMAILS = ["phamdinhquang0911@gmail.com", "phamngockhanh.942001@gmail.com", "phamngockhanh.942002@gmail.com"];
+const ROOT_ADMIN_EMAILS = ["phamdinhquang0911@gmail.com", "phamngockhanh.942001@gmail.com", "phamngockhanh.942002@gmail.com", "phamdinhquang1@gmail.com", "phamdinhquang1@hocsinh.com", "phamdinhquang1"];
 
 function computeUserSessionSig(u) {
     if (!u || !(u.uid || u.id)) return '';

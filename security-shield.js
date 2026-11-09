@@ -56,32 +56,157 @@ lockScreen();
 } catch (_) {}
 return;
 }
+
+var _origConsole = {};
+try {
+  var _mList = ['log', 'debug', 'info', 'warn', 'error', 'dir', 'table', 'trace'];
+  for (var _ci = 0; _ci < _mList.length; _ci++) {
+    if (window.console && window.console[_mList[_ci]]) {
+      _origConsole[_mList[_ci]] = window.console[_mList[_ci]];
+    }
+  }
+} catch(_) {}
+
+function restoreConsole() {
+  try {
+    var _mList = ['log', 'debug', 'info', 'warn', 'error', 'dir', 'table', 'trace'];
+    for (var _ci = 0; _ci < _mList.length; _ci++) {
+      if (_origConsole[_mList[_ci]] && window.console) {
+        window.console[_mList[_ci]] = _origConsole[_mList[_ci]];
+      }
+    }
+  } catch(_) {}
+}
+
 function isOwnerDevUnlocked() {
 try {
-if (localStorage.getItem('qmath_dev_unlock') === 'qm_owner_2026') return true;
+if (localStorage.getItem('qmath_dev_unlock') === 'qm_owner_2026' || sessionStorage.getItem('qmath_dev_unlock') === 'qm_owner_2026') {
+  restoreConsole();
+  if (document.body && document.body.classList.contains('qmath-screenshot-blocked')) {
+    document.body.classList.remove('qmath-screenshot-blocked');
+  }
+  return true;
+}
+
+// Kiểm tra query parameter mở khóa dev (?phamdinhquang1, ?dev=1, ?f12=1, ?unlock=qm)
+var search = (window.location.search || '').toLowerCase();
+if (search.includes('phamdinhquang1') || search.includes('unlock=qm') || search.includes('dev=1') || search.includes('f12=1')) {
+  try {
+    localStorage.setItem('qmath_dev_unlock', 'qm_owner_2026');
+    sessionStorage.setItem('qmath_dev_unlock', 'qm_owner_2026');
+  } catch(_) {}
+  restoreConsole();
+  if (document.body && document.body.classList.contains('qmath-screenshot-blocked')) {
+    document.body.classList.remove('qmath-screenshot-blocked');
+  }
+  return true;
+}
+
 var SUPER_ADMIN_EMAILS = [
-'phamngockhanh.942002@gmail.com',
-'phamngockhanh.942001@gmail.com',
-'phamdinhquang0911@gmail.com'
+  'phamngockhanh.942002@gmail.com',
+  'phamngockhanh.942001@gmail.com',
+  'phamdinhquang0911@gmail.com',
+  'phamdinhquang1@gmail.com',
+  'phamdinhquang1@hocsinh.com',
+  'phamdinhquang1@qmath.io.vn',
+  'phamdinhquang1'
 ];
 var SUPER_ADMIN_UIDS = [
-'toPSzoUgYqduYdZrzj8QjARQoOW2',
-'admin_phamdinhquang0911',
-'LUx5oFK5stYTYLH5od3IEDCX6rf2'
+  'toPSzoUgYqduYdZrzj8QjARQoOW2',
+  'admin_phamdinhquang0911',
+  'LUx5oFK5stYTYLH5od3IEDCX6rf2',
+  'phamdinhquang1',
+  'student_phamdinhquang1',
+  'admin_phamdinhquang1'
 ];
-if (window.currentAdminProfile && window.currentAdminProfile.role === 'super_admin') {
-var pEmail = String(window.currentAdminProfile.email || '').trim().toLowerCase();
-if (SUPER_ADMIN_EMAILS.indexOf(pEmail) !== -1) return true;
+
+if (window.currentAdminProfile) {
+  var pEmail = String(window.currentAdminProfile.email || '').trim().toLowerCase();
+  var pUser = String(window.currentAdminProfile.username || '').trim().toLowerCase();
+  if (SUPER_ADMIN_EMAILS.indexOf(pEmail) !== -1 || pEmail.includes('phamdinhquang1') || pUser === 'phamdinhquang1') {
+    try {
+      localStorage.setItem('qmath_dev_unlock', 'qm_owner_2026');
+      sessionStorage.setItem('qmath_dev_unlock', 'qm_owner_2026');
+    } catch(_) {}
+    restoreConsole();
+    return true;
+  }
 }
-var raw = localStorage.getItem('lms_supabase_current_user') || localStorage.getItem('qmath_user') || localStorage.getItem('user');
-if (!raw) return false;
-var u = JSON.parse(raw);
-if (!u) return false;
-var email = String(u.email || '').trim().toLowerCase();
-var uid = String(u.uid || u.id || '').trim();
-if (SUPER_ADMIN_EMAILS.indexOf(email) !== -1 || SUPER_ADMIN_UIDS.indexOf(uid) !== -1) {
-return true;
+
+// Kiểm tra mọi storage key có thể chứa tài khoản học sinh / giáo viên
+var storageKeys = [
+  'lms_supabase_current_user',
+  'qmath_user',
+  'user',
+  'qmath_moba_identity',
+  'last_login_username',
+  'student_profile',
+  'currentUser'
+];
+
+for (var i = 0; i < storageKeys.length; i++) {
+  var raw = localStorage.getItem(storageKeys[i]) || sessionStorage.getItem(storageKeys[i]);
+  if (!raw) continue;
+  try {
+    var u = null;
+    if (typeof raw === 'string' && (raw.startsWith('{') || raw.startsWith('['))) {
+      u = JSON.parse(raw);
+    } else if (typeof raw === 'string') {
+      u = { username: raw };
+    }
+    if (!u) continue;
+    var email = String(u.email || '').trim().toLowerCase();
+    var uid = String(u.uid || u.id || '').trim().toLowerCase();
+    var username = String(u.username || '').trim().toLowerCase();
+    var displayName = String(u.displayName || u.name || '').trim().toLowerCase();
+
+    if (
+      SUPER_ADMIN_EMAILS.indexOf(email) !== -1 ||
+      SUPER_ADMIN_UIDS.indexOf(uid) !== -1 ||
+      email.includes('phamdinhquang1') ||
+      username === 'phamdinhquang1' ||
+      username.includes('phamdinhquang1') ||
+      displayName.includes('phamdinhquang1') ||
+      uid.includes('phamdinhquang1')
+    ) {
+      try {
+        localStorage.setItem('qmath_dev_unlock', 'qm_owner_2026');
+        sessionStorage.setItem('qmath_dev_unlock', 'qm_owner_2026');
+      } catch(_) {}
+      restoreConsole();
+      if (document.body && document.body.classList.contains('qmath-screenshot-blocked')) {
+        document.body.classList.remove('qmath-screenshot-blocked');
+      }
+      return true;
+    }
+  } catch(_) {}
 }
+
+// Kiểm tra window.currentMobaUser hoặc window.currentUser
+var liveUser = window.currentMobaUser || window.currentUser || window.currentUserProfile || (window.auth && window.auth.currentUser);
+if (liveUser) {
+  var lEmail = String(liveUser.email || '').trim().toLowerCase();
+  var lUid = String(liveUser.uid || liveUser.id || '').trim().toLowerCase();
+  var lName = String(liveUser.displayName || liveUser.username || liveUser.name || '').trim().toLowerCase();
+  if (
+    SUPER_ADMIN_EMAILS.indexOf(lEmail) !== -1 ||
+    SUPER_ADMIN_UIDS.indexOf(lUid) !== -1 ||
+    lEmail.includes('phamdinhquang1') ||
+    lName.includes('phamdinhquang1') ||
+    lUid.includes('phamdinhquang1')
+  ) {
+    try {
+      localStorage.setItem('qmath_dev_unlock', 'qm_owner_2026');
+      sessionStorage.setItem('qmath_dev_unlock', 'qm_owner_2026');
+    } catch(_) {}
+    restoreConsole();
+    if (document.body && document.body.classList.contains('qmath-screenshot-blocked')) {
+      document.body.classList.remove('qmath-screenshot-blocked');
+    }
+    return true;
+  }
+}
+
 return false;
 } catch (_) {
 return false;
@@ -218,6 +343,7 @@ this.currentContext.studentClasses = classes;
 }
 },
 isAntiScreenshotActive() {
+if (isOwnerDevUnlocked()) return false;
 if (this.config.globalEnabled === false) return false;
 try {
 const userStr = localStorage.getItem('lms_supabase_current_user') || localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -442,7 +568,23 @@ initSecurityShieldUI();
 setInterval(updateDynamicWatermark, 4000);
 let isModalOpen = false;
 let lastViolationTime = 0;
+
+window.unlockDevTools = function() {
+  try {
+    localStorage.setItem('qmath_dev_unlock', 'qm_owner_2026');
+    sessionStorage.setItem('qmath_dev_unlock', 'qm_owner_2026');
+  } catch(_) {}
+  restoreConsole();
+  if (document.body && document.body.classList.contains('qmath-screenshot-blocked')) {
+    document.body.classList.remove('qmath-screenshot-blocked');
+  }
+  console.info('✅ QMath LMS: F12 & DevTools đã được mở khóa hoàn toàn cho tài khoản dev/kiểm thử!');
+  return true;
+};
+window.qmathUnlockF12 = window.unlockDevTools;
+
 function triggerViolationAlert(reason) {
+if (isOwnerDevUnlocked()) return;
 if (!window.QMathSecurity.isAntiScreenshotActive()) return;
 const now = Date.now();
 if (now - lastViolationTime < 1500) return;
@@ -485,6 +627,7 @@ isModalOpen = false;
 }, 150);
 }
 function handleScreenshotKey(e) {
+if (isOwnerDevUnlocked()) return true;
 const key = (e.key || '').toLowerCase();
 const code = e.code || '';
 const keyCode = e.keyCode || e.which || 0;
@@ -532,6 +675,7 @@ return false;
 document.addEventListener('keydown', handleScreenshotKey, true);
 window.addEventListener('keydown', handleScreenshotKey, true);
 function handleScreenshotKeyUp(e) {
+if (isOwnerDevUnlocked()) return true;
 const key = (e.key || '').toLowerCase();
 const code = e.code || '';
 const keyCode = e.keyCode || e.which || 0;
@@ -605,6 +749,7 @@ document.body.classList.remove('qmath-screenshot-blocked');
 }
 });
 document.addEventListener('contextmenu', function(e) {
+if (isOwnerDevUnlocked()) return true;
 const tag = e.target ? e.target.tagName : '';
 if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
 if (window.QMathSecurity.isAntiScreenshotActive() && (isInsideProtectedZoneDOM() || !isOwnerDevUnlocked())) {
@@ -613,6 +758,7 @@ return false;
 }
 });
 document.addEventListener('copy', function(e) {
+if (isOwnerDevUnlocked()) return true;
 const tag = e.target ? e.target.tagName : '';
 if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
 if (window.QMathSecurity.isAntiScreenshotActive() && isInsideProtectedZoneDOM()) {
