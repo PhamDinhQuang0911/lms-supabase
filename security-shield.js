@@ -212,6 +212,21 @@ return false;
 return false;
 }
 }
+
+function isGamePracticeContext() {
+try {
+var p = (window.location.pathname || '').toLowerCase();
+var q = (window.location.search || '').toLowerCase();
+if (p.includes('/san-choi/')) return true;
+if (p.includes('practice')) {
+if (q.includes('mode=game')) return true;
+if (window.isGamePracticeMode === true) return true;
+var gb = document.getElementById('gamePracticeSelectorBox');
+if (gb && !gb.classList.contains('hidden')) return true;
+}
+} catch (_) {}
+return false;
+}
 function isAutomatedAgentBrowser() {
 try {
 if (isOwnerDevUnlocked()) return false;
@@ -344,6 +359,7 @@ this.currentContext.studentClasses = classes;
 },
 isAntiScreenshotActive() {
 if (isOwnerDevUnlocked()) return false;
+if (isGamePracticeContext()) return false;
 if (this.config.globalEnabled === false) return false;
 try {
 const userStr = localStorage.getItem('lms_supabase_current_user') || localStorage.getItem('user') || sessionStorage.getItem('user');
