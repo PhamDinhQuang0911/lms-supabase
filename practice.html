@@ -2492,7 +2492,7 @@ window.userAnswers = {};
 window.instantAnswered = {};
 window.skippedQuestions = {};
 if (window.updateSkippedBadgesUI) window.updateSkippedBadgesUI();
-if (!window.activeMobaRoom) document.getElementById('mobaLiveMatchBar')?.classList.add('hidden');
+if (window.practicePartyMode !== 'group' || !window.activeMobaRoom) document.getElementById('mobaLiveMatchBar')?.classList.add('hidden');
 let timerInterval = null;
 window.supabase = supabase;
 let tempResultData = null;
@@ -2893,7 +2893,7 @@ window.scrollToQuestionPicker = function() {
 };
 
 window.startGamePractice = async function() {
-  if (window.activeMobaRoom && window.activeMobaRoom.pin) {
+  if (window.practicePartyMode === 'group' && window.activeMobaRoom && window.activeMobaRoom.pin) {
     if (window.activeMobaRoom.isHost) {
       window.setMobaMatchMode('game', true);
       return await window.hostStartMobaMatch();
@@ -2902,6 +2902,7 @@ window.startGamePractice = async function() {
       return;
     }
   }
+  try { sessionStorage.removeItem('qmath_user_exited_game_pin'); } catch(e) {}
   const btn = document.getElementById('btnStartGamePracticeMain');
   const ogHtml = btn ? btn.innerHTML : '';
   try {
@@ -3417,7 +3418,7 @@ window.onMobaRoomSnapshot = async function(roomDoc) {
   window.renderMobaWinnerPodium(roomDoc);
 
   // Tự động vào trận khi Chủ phòng bấm Bắt đầu (status === 'playing' & roundId mới)
-  if (meta.status === 'playing' && roundId && window._lastLaunchedRoundId !== roundId) {
+  if (window.practicePartyMode === 'group' && meta.status === 'playing' && roundId && window._lastLaunchedRoundId !== roundId) {
     const openTime = Number(meta.openTime) || 0;
     if (!openTime || Date.now() >= openTime) {
       window._lastLaunchedRoundId = roundId;
@@ -3711,7 +3712,7 @@ window.copyMobaRoomLink = function() {
 window.renderMobaLiveMatchBar = function(roomDoc) {
   const bar = document.getElementById('mobaLiveMatchBar');
   if (!bar) return;
-  if (!window.activeMobaRoom || !roomDoc || !roomDoc.players) {
+  if (window.practicePartyMode !== 'group' || !window.activeMobaRoom || !roomDoc || !roomDoc.players) {
     bar.classList.add('hidden');
     return;
   }
@@ -3744,7 +3745,7 @@ window.renderMobaWinnerPodium = function(roomDoc) {
   const box = document.getElementById('mobaWinnerPodiumBox');
   const btnReturn = document.getElementById('btnReturnMobaLobby');
   if (!box) return;
-  if (!window.activeMobaRoom || !roomDoc || !roomDoc.players) {
+  if (window.practicePartyMode !== 'group' || !window.activeMobaRoom || !roomDoc || !roomDoc.players) {
     box.classList.add('hidden');
     btnReturn?.classList.add('hidden');
     return;
@@ -3791,9 +3792,10 @@ const mode = params.get('mode');
 const isExitGameParam = params.get('exitGame') === '1' || params.get('userExit') === '1';
 let exitedPin = '';
 try { exitedPin = sessionStorage.getItem('qmath_user_exited_game_pin') || ''; } catch(e) {}
-const roomParam = (params.get('room') || params.get('pin') || exitedPin || '').trim().replace(/\D/g, '');
+const explicitRoomParam = (params.get('room') || params.get('pin') || '').trim().replace(/\D/g, '');
+const roomParam = explicitRoomParam || (isExitGameParam ? exitedPin.trim().replace(/\D/g, '') : '');
 
-if (isExitGameParam || (exitedPin && exitedPin === roomParam)) {
+if (isExitGameParam || (exitedPin && explicitRoomParam && exitedPin === explicitRoomParam)) {
   window._userExitedMatch = true;
   try { sessionStorage.removeItem('qmath_user_exited_game_pin'); } catch(e) {}
   try {
@@ -3802,6 +3804,8 @@ if (isExitGameParam || (exitedPin && exitedPin === roomParam)) {
     cleanUrl.searchParams.delete('userExit');
     window.history.replaceState(null, '', cleanUrl.toString());
   } catch(e) {}
+} else if (!explicitRoomParam && exitedPin) {
+  try { sessionStorage.removeItem('qmath_user_exited_game_pin'); } catch(e) {}
 }
 
 if (mode === 'roadmap') window.switchHubTab('roadmap');
@@ -4504,7 +4508,7 @@ if (!val) { await window.customAlert("Vui lòng nhập mã ID câu hỏi!", "war
 window.openQuestionLookupModal(val);
 };
 window.startPractice = async (isExportPdf = false, allowRandomAll = false) => {
-if (!isExportPdf && window.activeMobaRoom && window.activeMobaRoom.pin) {
+if (!isExportPdf && window.practicePartyMode === 'group' && window.activeMobaRoom && window.activeMobaRoom.pin) {
   if (window.activeMobaRoom.isHost) {
     window.setMobaMatchMode('practice', true);
     return await window.hostStartMobaMatch();
@@ -4689,7 +4693,7 @@ window.userAnswers = {};
 window.instantAnswered = {};
 window.skippedQuestions = {};
 if (window.updateSkippedBadgesUI) window.updateSkippedBadgesUI();
-if (!window.activeMobaRoom) document.getElementById('mobaLiveMatchBar')?.classList.add('hidden');
+if (window.practicePartyMode !== 'group' || !window.activeMobaRoom) document.getElementById('mobaLiveMatchBar')?.classList.add('hidden');
 const total = window.practiceQuestions.length;
 document.getElementById('progressText').innerText = `0/${total}`;
 document.getElementById('progressBar').style.width = '0%';
@@ -4839,7 +4843,7 @@ if (pTxt) pTxt.innerText = `${done}/${total}`;
 const pBadge = document.getElementById('paletteAnsweredBadge');
 if (pBadge) pBadge.innerText = `Đã làm: ${done}/${total}`;
 if (window.updateSkippedBadgesUI) window.updateSkippedBadgesUI();
-if (window.activeMobaRoom && window.Room) {
+if (window.practicePartyMode === 'group' && window.activeMobaRoom && window.Room) {
   window.Room.updatePlayer(window.activeMobaRoom.pin, window.activeMobaRoom.pid, {
     progress: done,
     total
@@ -4961,7 +4965,7 @@ earnedUnits += frac;
 const totalQ = window.practiceQuestions.length;
 const score = totalQ > 0 ? (earnedUnits / totalQ) * 10 : 0;
 const fixedScore = score.toFixed(1);
-if (window.activeMobaRoom && window.Room) {
+if (window.practicePartyMode === 'group' && window.activeMobaRoom && window.Room) {
   window.Room.updatePlayer(window.activeMobaRoom.pin, window.activeMobaRoom.pid, {
     score: parseFloat(fixedScore),
     correct: correctCount,
@@ -5132,7 +5136,7 @@ const ok = await window.customConfirm(
 );
 if (ok) {
 if (timerInterval) clearInterval(timerInterval);
-if (window.activeMobaRoom) {
+if (window.practicePartyMode === 'group' && window.activeMobaRoom) {
   window._userExitedMatch = true;
   window._lastLaunchedRoundId = window.activeMobaRoom.lastDoc?.state?.roundId || 'EXITED_PRACTICE';
   if (window.activeMobaRoom.isHost && window.Room) {
