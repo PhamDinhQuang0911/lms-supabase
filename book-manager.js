@@ -1,4 +1,4 @@
-import { compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, cleanTikzCode } from "./utils.js?v=20261109-v3";
+import { compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, cleanTikzCode } from "./utils.js?v=20261109-v4";
 
 export const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
 
@@ -1426,10 +1426,10 @@ window.processAllTikz = async function(forcedEngine = null) {
     showProgress(`0/${total}`);
     
     // ---- Hàm xử lý kết quả ----
-    const processSuccessItem = (item, url) => {
+    const processSuccessItem = (item, url, customHtml = null) => {
         const originalItem = lesson.pendingImages.find(i => i.id === item.id);
         if(originalItem) originalItem._done = true;
-        const imgHtml = `<div class="flex justify-center my-2 image-zoom-container group relative inline-block w-fit mx-auto"><img id="img-${item.id}" src="${url}" class="rounded-lg shadow-sm object-contain w-auto transition-all duration-200" style="max-height: 180px;" loading="lazy"><div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-white/90 p-1 rounded shadow border border-gray-200 z-10"><button onclick="window.zoomImg(this, 1.25)" class="text-gray-700 hover:text-blue-600 px-1.5 py-0.5 rounded hover:bg-gray-100" title="Phóng to"><i class="fa-solid fa-search-plus"></i></button><button onclick="window.zoomImg(this, 0.8)" class="text-gray-700 hover:text-blue-600 px-1.5 py-0.5 rounded hover:bg-gray-100" title="Thu nhỏ"><i class="fa-solid fa-search-minus"></i></button></div></div>`;
+        const imgHtml = customHtml || `<div class="flex justify-center my-2 image-zoom-container group relative inline-block w-fit mx-auto"><img id="img-${item.id}" src="${url}" class="rounded-lg shadow-sm object-contain w-auto transition-all duration-200" style="max-height: 180px;" loading="lazy"><div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-white/90 p-1 rounded shadow border border-gray-200 z-10"><button onclick="window.zoomImg(this, 1.25)" class="text-gray-700 hover:text-blue-600 px-1.5 py-0.5 rounded hover:bg-gray-100" title="Phóng to"><i class="fa-solid fa-search-plus"></i></button><button onclick="window.zoomImg(this, 0.8)" class="text-gray-700 hover:text-blue-600 px-1.5 py-0.5 rounded hover:bg-gray-100" title="Thu nhỏ"><i class="fa-solid fa-search-minus"></i></button></div></div>`;
         replacePlaceholderById(item.id, imgHtml, lesson);
         
         // Cập nhật DOM trực tiếp để tránh gọi showEditorPane liên tục gây lỗi Out of Memory (OOM) do MathJax
@@ -1503,20 +1503,12 @@ window.processAllTikz = async function(forcedEngine = null) {
     }
 
     if (localQueue.length > 0) {
-        showProgress(`TikZJax: ${finishedCount}/${total}`);
-        const runTjWorker = async () => {
-            while (localQueue.length > 0) {
-                const item = localQueue.shift();
-                try {
-                    const url = await compileTikzLocalViaTikzJax(cleanTikzCode(item.contentCode));
-                    processSuccessItem(item, url);
-                } catch (e) {
-                    console.warn(`[Book TikZJax] Lỗi ${item.id}: ${e.message} -> chuyển QuickLaTeX`);
-                    quicklatexQueue.push(item);
-                }
-            }
-        };
-        await Promise.all([runTjWorker(), runTjWorker()]);
+        localQueue.forEach(item => {
+            const inlineHtml = `<div id="img-${item.id}" class="flex justify-center my-2 overflow-x-auto"><script type="text/tikz">${cleanTikzCode(item.contentCode)}</script></div>`;
+            processSuccessItem(item, null, inlineHtml);
+        });
+        localQueue.length = 0;
+        if (window.renderTikz) setTimeout(() => window.renderTikz(), 50);
     }
 
     if (quicklatexQueue.length > 0) {

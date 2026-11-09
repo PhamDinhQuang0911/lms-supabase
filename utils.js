@@ -206,20 +206,49 @@ export const compileTikZBatch = async (codesArray) => {
 const CLOUDFLARE_R2_UPLOAD_URL = "https://upload-helper.phamngockhanh-942001.workers.dev/";
 
 /**
- * Upload chuỗi SVG hoặc Blob ảnh lên Cloudflare R2 để lưu trữ bền vững,
- * nếu không kết nối được R2 sẽ trả về data URI dự phòng.
+ * Chuyển chuỗi SVG thành PNG Blob độ phân giải cao (Retina 2.5x) rồi upload lên Cloudflare R2.
+ * Lưu ý: R2 bucket không trả về header Content-Type: image/svg+xml cho file .svg khiến thẻ <img> bị vỡ ảnh,
+ * do đó khi lưu lên R2 bắt buộc lưu định dạng .png (trình duyệt tự nhận diện magic bytes \x89PNG).
  */
-export const uploadSvgStringToR2 = async (svgString, prefix = 'tikzjax') => {
+export const uploadSvgStringToR2 = async (svgString, prefix = 'tikz') => {
     if (!svgString || typeof svgString !== 'string') throw new Error("SVG rỗng");
     let finalSvg = svgString.trim();
     if (!finalSvg.match(/^<svg[^>]+xmlns=["']http:\/\/www\.w3\.org\/2000\/svg["']/i)) {
         finalSvg = finalSvg.replace(/^<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
     }
+    const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(finalSvg)}`;
+    if (typeof document === 'undefined' || typeof Image === 'undefined') {
+        return dataUri;
+    }
     try {
-        const blob = new Blob([finalSvg], { type: 'image/svg+xml' });
+        const pngBlob = await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                try {
+                    const scale = 2.5;
+                    const w = Math.max(img.naturalWidth || img.width || 300, 60);
+                    const h = Math.max(img.naturalHeight || img.height || 200, 40);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.round(w * scale);
+                    canvas.height = Math.round(h * scale);
+                    const ctx = canvas.getContext('2d');
+                    ctx.scale(scale, scale);
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob((blob) => {
+                        if (blob && blob.size > 100) resolve(blob);
+                        else reject(new Error("Canvas toBlob rỗng"));
+                    }, 'image/png');
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            img.onerror = () => reject(new Error("Không nạp được SVG vào Image"));
+            img.src = dataUri;
+        });
         const formData = new FormData();
-        const fileName = `tikz/${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.svg`;
-        formData.append('file', blob, fileName);
+        const fileName = `tikz/${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
+        formData.append('file', pngBlob, fileName);
         const resp = await fetch(CLOUDFLARE_R2_UPLOAD_URL, {
             method: 'PUT',
             body: formData
@@ -229,10 +258,9 @@ export const uploadSvgStringToR2 = async (svgString, prefix = 'tikzjax') => {
             if (data && data.url) return data.url;
         }
     } catch (e) {
-        console.warn("[R2 SVG Upload] Chuyển sang dùng Data URI dự phòng:", e.message);
+        console.warn("[R2 PNG Upload] Dùng Data URI trực tiếp:", e.message);
     }
-    const svgBase64 = btoa(unescape(encodeURIComponent(finalSvg)));
-    return `data:image/svg+xml;base64,${svgBase64}`;
+    return dataUri;
 };
 
 /**
@@ -299,6 +327,56 @@ function convertVietnameseForTikzJax(str) {
     });
 }
 
+// --- BỘ NHỚ ĐỆM SVG TIKZJAX TRỰC TIẾP TRÊN TRÌNH DUYỆT (0ms HIỂN THỊ TỨC THÌ) ---
+const TIKZJAX_SVG_CACHE_KEY = 'qmath_tikzjax_svg_cache_v3';
+const _tikzSvgMemCache = new Map();
+
+function hashTikzKey(code) {
+    const norm = String(code || '').replace(/\s+/g, ' ').trim();
+    let h1 = 0xdeadbeef ^ norm.length;
+    let h2 = 0x41c6ce57 ^ norm.length;
+    for (let i = 0; i < norm.length; i++) {
+        const ch = norm.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (h2 >>> 0).toString(36) + '_' + (h1 >>> 0).toString(36);
+}
+
+export function getCachedTikzSvg(code) {
+    const key = hashTikzKey(code);
+    if (_tikzSvgMemCache.has(key)) return _tikzSvgMemCache.get(key);
+    try {
+        const raw = safeStorageGet(TIKZJAX_SVG_CACHE_KEY, '');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed[key]) {
+                _tikzSvgMemCache.set(key, parsed[key]);
+                return parsed[key];
+            }
+        }
+    } catch (_) {}
+    return null;
+}
+
+function setCachedTikzSvg(code, svgHtml) {
+    if (!code || !svgHtml) return;
+    const key = hashTikzKey(code);
+    _tikzSvgMemCache.set(key, svgHtml);
+    try {
+        const raw = safeStorageGet(TIKZJAX_SVG_CACHE_KEY, '');
+        const parsed = raw ? JSON.parse(raw) : {};
+        const keys = Object.keys(parsed);
+        if (keys.length > 120) {
+            keys.slice(0, 40).forEach(k => delete parsed[k]);
+        }
+        parsed[key] = svgHtml;
+        safeStorageSet(TIKZJAX_SVG_CACHE_KEY, JSON.stringify(parsed));
+    } catch (_) {}
+}
+
 // --- HÀM BIÊN DỊCH BẰNG TIKZJAX WORKER (@rod2ik/tikzjax@1.6.0 WEBASSEMBLY) ---
 const TIKZJAX_CDN_DIST = "https://cdn.jsdelivr.net/npm/@rod2ik/tikzjax@1.6.0/dist";
 let _tikzWorker = null;
@@ -307,7 +385,7 @@ let _tikzWorkerPending = new Map();
 let _tikzWorkerUid = 1;
 let _tikzWorkerQueue = Promise.resolve();
 
-const ensureTikzJaxFontsLoaded = () => {
+export const ensureTikzJaxFontsLoaded = () => {
     if (typeof document === 'undefined') return;
     if (document.getElementById('qmath-tikzjax-fonts-css')) return;
     const link = document.createElement('link');
@@ -387,32 +465,44 @@ const initTikzJaxWorker = () => {
     return _tikzWorkerInitPromise;
 };
 
-export const compileTikzLocalViaTikzJax = async (code, options = {}) => {
-    if (!canRenderWithTikzJax(code)) {
+/**
+ * Biên dịch mã TikZ trực tiếp thành chuỗi <svg>...</svg> ngay trên trình duyệt bằng WebAssembly
+ * (không tạo file ảnh, không upload lên server, có bộ nhớ đệm 0ms).
+ */
+export const compileTikzToSvgViaTikzJax = async (code) => {
+    ensureTikzJaxFontsLoaded();
+    let cleaned = cleanTikzCode(String(code || ''));
+    const cached = getCachedTikzSvg(cleaned);
+    if (cached) return cached;
+
+    if (!canRenderWithTikzJax(cleaned)) {
         throw new Error("Mã TikZ chứa gói mở rộng đặc thù (tkz-euclide), tự động chuyển sang server");
     }
 
     const runTask = async () => {
+        const cachedAgain = getCachedTikzSvg(cleaned);
+        if (cachedAgain) return cachedAgain;
+
         await initTikzJaxWorker();
-        let cleaned = cleanTikzCode(String(code || ''));
+        let body = cleaned;
         const extraLibs = [];
-        cleaned = cleaned.replace(/\\usetikzlibrary\s*\{([^}]*)\}/g, (_, libs) => {
+        body = body.replace(/\\usetikzlibrary\s*\{([^}]*)\}/g, (_, libs) => {
             extraLibs.push(...libs.split(',').map(s => s.trim()).filter(Boolean));
             return '';
         });
 
         let extraPreambles = '';
-        cleaned = cleaned.replace(/\\tikzset\s*\{([\s\S]*?)\}\s*(?=\\begin\{tikzpicture\})/g, (m) => {
+        body = body.replace(/\\tikzset\s*\{([\s\S]*?)\}\s*(?=\\begin\{tikzpicture\})/g, (m) => {
             extraPreambles += m + '\n';
             return '';
         });
 
-        cleaned = cleaned.trim();
-        if (!cleaned.includes('\\begin{tikzpicture}') && !cleaned.includes('\\tikz')) {
-            cleaned = `\\begin{tikzpicture}\n${cleaned}\n\\end{tikzpicture}`;
+        body = body.trim();
+        if (!body.includes('\\begin{tikzpicture}') && !body.includes('\\tikz')) {
+            body = `\\begin{tikzpicture}\n${body}\n\\end{tikzpicture}`;
         }
 
-        const safeTexBody = convertVietnameseForTikzJax(cleaned);
+        const safeTexBody = convertVietnameseForTikzJax(body);
         const hasTkzTab = /\\tkzTab/i.test(safeTexBody);
         const hasPgfPlots = /\\begin\{axis\}|\\addplot/i.test(safeTexBody);
 
@@ -453,16 +543,26 @@ export const compileTikzLocalViaTikzJax = async (code, options = {}) => {
             throw new Error("TikZJax không trả về dữ liệu SVG hợp lệ");
         }
 
-        if (options.uploadToR2 !== false) {
-            return await uploadSvgStringToR2(svgString, 'tikzjax');
-        }
-        const svgBase64 = btoa(unescape(encodeURIComponent(svgString)));
-        return `data:image/svg+xml;base64,${svgBase64}`;
+        const styledSvg = svgString.trim().replace(
+            /^<svg\b/i,
+            '<svg class="tikzjax-inline-svg" style="max-height:240px;max-width:100%;height:auto;display:block;margin:0 auto;overflow:visible;"'
+        );
+        setCachedTikzSvg(cleaned, styledSvg);
+        return styledSvg;
     };
 
     const nextInQueue = _tikzWorkerQueue.then(runTask, runTask);
     _tikzWorkerQueue = nextInQueue.catch(() => {});
     return nextInQueue;
+};
+
+export const compileTikzLocalViaTikzJax = async (code, options = {}) => {
+    const svgString = await compileTikzToSvgViaTikzJax(code);
+    if (options.asRawSvg) return svgString;
+    if (options.uploadToR2 === true) {
+        return await uploadSvgStringToR2(svgString, 'tikzjax');
+    }
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
 };
 
 // --- HÀM BIÊN DỊCH BẰNG QUICKLATEX (CLOUD LATEX SERVER MIỄN PHÍ) ---
@@ -512,7 +612,7 @@ export const compileTikzViaQuickLaTeX = async (rawCode, options = {}) => {
     const preamble = preambleLines.join('\n');
     const bodyStr = [
         `formula=${encodeURIComponent(cleaned)}`,
-        `fsize=17px`,
+        `fsize=21px`,
         `fcolor=000000`,
         `mode=0`,
         `out=1`,
@@ -560,47 +660,42 @@ export const compileTikzViaQuickLaTeX = async (rawCode, options = {}) => {
     const lines = responseText.split(/\r?\n/);
     const status = lines[0].trim();
     const secondLine = (lines[1] || '').trim();
-    const imgUrl = secondLine.split(/\s+/)[0] || '';
+    const rawImgUrl = (secondLine.split(/\s+/)[0] || '').replace(/^http:\/\//i, 'https://');
 
-    if (status !== '0' || !imgUrl || imgUrl.includes('error.png')) {
+    if (status !== '0' || !rawImgUrl || rawImgUrl.includes('error.png')) {
         const errDetail = lines.slice(2).join(' ').trim() || 'Lỗi cú pháp TikZ trên QuickLaTeX';
         throw new Error(`QuickLaTeX: ${errDetail.substring(0, 220)}`);
     }
 
-    // Ưu tiên lấy bản vector SVG sắc nét từ QuickLaTeX và lưu lên R2
+    // Lưu ảnh định dạng .png chuẩn lên Cloudflare R2 (tránh lỗi R2 không trả về Content-Type cho .svg)
     if (options.uploadToR2 !== false) {
-        const svgUrl = imgUrl.replace(/\.png$/i, '.svg');
-        try {
-            const svgResp = await fetch(`https://corsmirror.com/v1?url=${encodeURIComponent(svgUrl)}`);
-            if (svgResp.ok) {
-                const svgText = await svgResp.text();
-                if (svgText && svgText.includes('<svg')) {
-                    return await uploadSvgStringToR2(svgText, 'quicklatex');
+        const pngFetchUrls = [
+            `https://images.weserv.nl/?url=${encodeURIComponent(rawImgUrl)}&output=png`,
+            `https://corsmirror.com/v1?url=${encodeURIComponent(rawImgUrl)}`
+        ];
+        for (const fetchUrl of pngFetchUrls) {
+            try {
+                const pngResp = await fetch(fetchUrl);
+                if (pngResp.ok) {
+                    const arrBuf = await pngResp.arrayBuffer();
+                    if (arrBuf && arrBuf.byteLength > 100) {
+                        const pngBlob = new Blob([arrBuf], { type: 'image/png' });
+                        const formData = new FormData();
+                        formData.append('file', pngBlob, `tikz/quicklatex_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`);
+                        const upResp = await fetch(CLOUDFLARE_R2_UPLOAD_URL, { method: 'PUT', body: formData });
+                        if (upResp.ok) {
+                            const upData = await upResp.json();
+                            if (upData && upData.url) return upData.url;
+                        }
+                    }
                 }
+            } catch (e) {
+                console.warn('[QuickLaTeX] Thử nguồn tải PNG tiếp theo:', e.message);
             }
-        } catch (e) {
-            console.warn('[QuickLaTeX] Không lấy được SVG vector, chuyển sang PNG:', e.message);
-        }
-
-        // Fallback: tải PNG qua weserv (có CORS) và upload lên R2
-        try {
-            const pngResp = await fetch(`https://images.weserv.nl/?url=${encodeURIComponent(imgUrl)}`);
-            if (pngResp.ok) {
-                const pngBlob = await pngResp.blob();
-                const formData = new FormData();
-                formData.append('file', pngBlob, `tikz/quicklatex_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`);
-                const upResp = await fetch(CLOUDFLARE_R2_UPLOAD_URL, { method: 'PUT', body: formData });
-                if (upResp.ok) {
-                    const upData = await upResp.json();
-                    if (upData && upData.url) return upData.url;
-                }
-            }
-        } catch (e) {
-            console.warn('[QuickLaTeX] Không upload được PNG lên R2, dùng URL trực tiếp:', e.message);
         }
     }
 
-    return imgUrl;
+    return rawImgUrl;
 };
 
 // --- CÁC HÀM EXPORT HỖ TRỢ ---
@@ -999,16 +1094,19 @@ export const formatContent = (text) => {
     // Xóa cặp ngoặc nhọn {} nếu nó bao bọc toàn bộ chuỗi (thường gặp trong parse mệnh đề Đúng/Sai)
     processed = processed.trim().replace(/^\{([\s\S]*)\}$/, '$1');
 
-    // 4. Regex Bảo Vệ MathJax & HTML (Loại trừ enumEX, listEX, enumerate, itemize khỏi MathJax block detection)
+    // 4. Regex Bảo Vệ MathJax, TikZ Script & HTML (Loại trừ enumEX, listEX, enumerate, itemize khỏi MathJax block detection)
     const tagWhitelist = "script|style|div|span|p|br|img|table|tbody|thead|tr|td|th|ul|ol|li|b|i|u|strong|em|mark|label|input|button|a|h1|h2|h3|h4";
-    const regex = new RegExp(`(\\\\begin\\{(?!(?:enumEX|listEX|enumerate|itemize|itemchoice)\\b)[a-zA-Z*]+\\}[\\s\\S]*?\\\\end\\{[a-zA-Z*]+\\}|\\$\\$[\\s\\S]*?\\$\\$|\\\\\\[[\\s\\S]*?\\\\\\]|\\\\\\([\\s\\S]*?\\\\\\)|(?:\\$[\\s\\S]*?\\$)|<\\/?(?:${tagWhitelist})[^>]*>)`, 'gi');
+    const regex = new RegExp(`(<script\\s+type=["']text\\/tikz["'][^>]*>[\\s\\S]*?<\\/script>|\\\\begin\\{(?!(?:enumEX|listEX|enumerate|itemize|itemchoice)\\b)[a-zA-Z*]+\\}[\\s\\S]*?\\\\end\\{[a-zA-Z*]+\\}|\\$\\$[\\s\\S]*?\\$\\$|\\\\\\[[\\s\\S]*?\\\\\\]|\\\\\\([\\s\\S]*?\\\\\\)|(?:\\$[\\s\\S]*?\\$)|<\\/?(?:${tagWhitelist})[^>]*>)`, 'gi');
     
     const parts = processed.split(regex);
     
     return parts.map(part => {
         const trimmed = part.trim();
+        if (/^<script\s+type=["']text\/tikz["']/i.test(trimmed)) {
+            return part; // Bảo toàn tuyệt đối mã nguồn bên trong <script type="text/tikz">...</script>
+        }
         const isMath = trimmed.startsWith('$') || trimmed.startsWith('\\(') || trimmed.startsWith('\\[') || (trimmed.startsWith('\\begin') && !trimmed.startsWith('\\begin{div') && !trimmed.startsWith('\\begin{grid'));
-        const isTag = part.startsWith('<') && part.endsWith('>');
+        const isTag = trimmed.startsWith('<') && trimmed.endsWith('>');
 
         if (isMath) {
             let mathType = trimmed.substring(0, 2);
@@ -1048,72 +1146,56 @@ export function stripBrAroundBlocks(html) {
 // ============================================================================
 
 export const renderTikz = (root = document) => {
-    const scripts = root.querySelectorAll ? root.querySelectorAll('script[type="text/tikz"]') : document.querySelectorAll('script[type="text/tikz"]');
+    const scripts = root && root.querySelectorAll ? root.querySelectorAll('script[type="text/tikz"]') : document.querySelectorAll('script[type="text/tikz"]');
     if (!scripts || scripts.length === 0) return;
-    
-    const mode = getTikzRenderMode(); // 'vps' (mặc định), 'tikzjax', hoặc 'quicklatex'
+
+    ensureTikzJaxFontsLoaded();
 
     scripts.forEach(script => {
-        const code = script.textContent;
+        const code = script.textContent || '';
         const cleaned = cleanTikzCode(code);
-        
-        // Tạo placeholder
+
+        // Tạo khung hiển thị SVG trực tiếp (kèm mathjax_ignore để MathJax không can thiệp)
         const placeholder = document.createElement('div');
-        placeholder.className = 'flex justify-center my-4 overflow-x-auto';
+        placeholder.className = 'tikzjax-wrapper mathjax_ignore flex justify-center my-2 overflow-x-auto';
         script.parentNode.replaceChild(placeholder, script);
-        
-        if (mode === 'quicklatex') {
-            placeholder.innerHTML = '<span class="text-purple-600 dark:text-purple-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình bằng QuickLaTeX...</span>';
-            compileTikzViaQuickLaTeX(cleaned)
-                .then(url => {
-                    placeholder.innerHTML = `<img src="${url}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
+
+        // 0. Nếu đã có trong bộ nhớ đệm SVG -> Hiển thị tức thì 0ms!
+        const cachedSvg = getCachedTikzSvg(cleaned);
+        if (cachedSvg) {
+            placeholder.innerHTML = cachedSvg;
+            return;
+        }
+
+        if (canRenderWithTikzJax(cleaned)) {
+            // Render trực tiếp bằng TikZJax WebAssembly ngay trên trình duyệt thành thẻ <svg> inline (như MathJax)
+            placeholder.innerHTML = '<span class="text-amber-600 dark:text-amber-400 italic text-xs flex items-center gap-1.5 py-2"><i class="fa-solid fa-bolt fa-fade"></i>Đang hiển thị hình TikZJax...</span>';
+            compileTikzToSvgViaTikzJax(cleaned)
+                .then(svgHtml => {
+                    placeholder.innerHTML = svgHtml;
                 })
                 .catch(err => {
-                    console.warn(`[QuickLaTeX] Lỗi render: ${err.message}. Chuyển tiếp sang VPS...`);
-                    placeholder.innerHTML = '<span class="text-amber-600 dark:text-amber-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>QuickLaTeX chuyển tiếp sang VPS...</span>';
-                    return compileTikZToImage(cleaned)
-                        .then(vpsUrl => {
-                            placeholder.innerHTML = `<img src="${vpsUrl}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
-                        })
-                        .catch(vpsErr => {
-                            placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình: ${vpsErr.message}</span>`;
-                        });
-                });
-        } else if (mode === 'tikzjax' && canRenderWithTikzJax(code)) {
-            // Dùng TikZJax (có cơ chế tự động fallback sang QuickLaTeX rồi VPS nếu gặp lỗi)
-            placeholder.innerHTML = '<span class="text-sky-600 dark:text-sky-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình TikZJax...</span>';
-            compileTikzLocalViaTikzJax(cleaned)
-                .then(url => {
-                    placeholder.innerHTML = `<img src="${url}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
-                })
-                .catch(err => {
-                    console.warn(`[TikZJax] Lỗi render nội bộ: ${err.message}. Đang chuyển tiếp sang QuickLaTeX / VPS...`);
-                    placeholder.innerHTML = '<span class="text-amber-600 dark:text-amber-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>TikZJax chuyển tiếp sang QuickLaTeX...</span>';
+                    console.warn(`[TikZJax Inline] Lỗi render (${err.message}), tự động chuyển sang QuickLaTeX / VPS...`);
+                    placeholder.innerHTML = '<span class="text-purple-600 dark:text-purple-400 italic text-xs flex items-center gap-1.5 py-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang chuyển tiếp sang QuickLaTeX...</span>';
                     return compileTikzViaQuickLaTeX(cleaned)
                         .catch(() => compileTikZToImage(cleaned))
                         .then(fallbackUrl => {
-                            placeholder.innerHTML = `<img src="${fallbackUrl}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
+                            placeholder.innerHTML = `<img src="${fallbackUrl}" class="rounded-lg shadow-sm max-h-[260px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
                         })
-                        .catch(vpsErr => {
-                            placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình: ${vpsErr.message}</span>`;
+                        .catch(finalErr => {
+                            placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình: ${finalErr.message}</span>`;
                         });
                 });
         } else {
-            // Lựa chọn 1: Biên dịch bằng VPS (hoặc bắt buộc do gói tkz-euclide)
-            placeholder.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình TikZ bằng VPS...</span>';
-            compileTikZToImage(cleaned)
+            // Mã có gói mở rộng đặc thù (tkz-euclide) -> Dùng QuickLaTeX / VPS
+            placeholder.innerHTML = '<span class="text-purple-600 dark:text-purple-400 italic text-xs flex items-center gap-1.5 py-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình phức tạp (QuickLaTeX / VPS)...</span>';
+            compileTikzViaQuickLaTeX(cleaned)
+                .catch(() => compileTikZToImage(cleaned))
                 .then(url => {
-                    placeholder.innerHTML = `<img src="${url}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
+                    placeholder.innerHTML = `<img src="${url}" class="rounded-lg shadow-sm max-h-[260px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
                 })
                 .catch(err => {
-                    console.warn(`[VPS] Lỗi render: ${err.message}. Chuyển tiếp sang QuickLaTeX...`);
-                    return compileTikzViaQuickLaTeX(cleaned)
-                        .then(qlUrl => {
-                            placeholder.innerHTML = `<img src="${qlUrl}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
-                        })
-                        .catch(() => {
-                            placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình VPS: ${err.message}</span>`;
-                        });
+                    placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình: ${err.message}</span>`;
                 });
         }
     });
@@ -1263,6 +1345,8 @@ if (typeof window !== 'undefined') {
     window.compileTikZToImage = compileTikZToImage;
     window.compileTikZBatch = compileTikZBatch;
     window.compileTikzLocalViaTikzJax = compileTikzLocalViaTikzJax;
+    window.compileTikzToSvgViaTikzJax = compileTikzToSvgViaTikzJax;
+    window.getCachedTikzSvg = getCachedTikzSvg;
     window.compileTikzViaQuickLaTeX = compileTikzViaQuickLaTeX;
     window.uploadSvgStringToR2 = uploadSvgStringToR2;
     window.canRenderWithTikzJax = canRenderWithTikzJax;

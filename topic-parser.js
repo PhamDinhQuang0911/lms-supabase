@@ -1,5 +1,5 @@
 // topic-parser.js - Parser cấu trúc LaTeX cho Kho Chuyên Đề
-import { compileTikZToImage, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode } from './utils.js?v=20261109-v3';
+import { compileTikZToImage, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode } from './utils.js?v=20261109-v4';
 
 // Cloudflare Upload Endpoint (Từ exam-editor.html)
 const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
@@ -254,14 +254,12 @@ export async function parseTopicFromTex(texFiles, imgFiles, updateProgressCallba
         const currentMode = getTikzRenderMode ? getTikzRenderMode() : 'vps';
 
         resultStr = resultStr.replace(tikzRegex, (match) => {
-            let marker = `___IMG_MARKER_${imgCounter++}___`;
             const isPure = canRenderWithTikzJax ? canRenderWithTikzJax(match) : !match.includes('tkz-euclide');
-            let taskType = 'tikz_vps';
             if (currentMode === 'tikzjax' && isPure) {
-                taskType = 'tikz_tikzjax';
-            } else if (currentMode === 'tikzjax' || currentMode === 'quicklatex') {
-                taskType = 'tikz_quicklatex';
+                return `\n<div class="flex justify-center my-2 overflow-x-auto"><script type="text/tikz">${cleanTikzCode(match)}<\/script></div>\n`;
             }
+            let marker = `___IMG_MARKER_${imgCounter++}___`;
+            let taskType = (currentMode === 'tikzjax' || currentMode === 'quicklatex') ? 'tikz_quicklatex' : 'tikz_vps';
             imageTasks.push({ id: marker, type: taskType, content: match });
             return marker;
         });
