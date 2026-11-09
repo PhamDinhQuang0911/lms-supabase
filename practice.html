@@ -1341,6 +1341,38 @@ try { if (localStorage.getItem('qmath_theme') === 'dark') document.documentEleme
                 </div>
 
                 <div id="studentGameCardsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5"></div>
+
+                <!-- THANH CHỌN ĐỘ KHÓ MÁY AI KHI CHƠI SOLO CÁC TRÒ CHƠI ĐỐI KHÁNG / ĐUA TỐC ĐỘ -->
+                <div id="soloBotDifficultyBar" style="background: linear-gradient(135deg, rgba(238,242,255,0.92), rgba(245,243,255,0.95)); border: 1.5px solid #c7d2fe; border-radius: 18px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; box-shadow: 0 3px 8px rgba(79,70,229,0.25);">🤖</div>
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                    <span style="font-weight: 900; font-size: 13px; color: #1e1b4b;">Chế độ Đấu Với Máy (AI Bot) — Dành cho Trò Chơi Đối Kháng (2+ đội)</span>
+                                    <span id="soloBotActiveGameBadge" style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: #dcfce7; color: #166534; border: 1px solid #86efac;">Đang bật cho trò chơi này</span>
+                                </div>
+                                <div style="font-size: 11px; color: #475569; margin-top: 2px;">
+                                    Khi luyện tập 1 mình, <b>Đội 2 là Máy AI tự động suy nghĩ & trả lời ngẫu nhiên theo độ khó</b> (🔒 <i>Ẩn hoàn toàn đề và đáp án của Máy để chống nhìn bài</i>).
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;" id="soloBotDiffButtons">
+                            <button type="button" onclick="window.selectBotDifficulty('easy')" data-botdiff="easy" class="bot-diff-btn" style="padding: 7px 12px; border-radius: 11px; font-size: 11.5px; font-weight: 800; border: 1.5px solid #cbd5e1; background: #ffffff; color: #334155; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.15s;">
+                                <span>🐣</span> <span>Dễ</span> <small style="opacity:0.75;font-weight:700">(45%)</small>
+                            </button>
+                            <button type="button" onclick="window.selectBotDifficulty('normal')" data-botdiff="normal" class="bot-diff-btn" style="padding: 7px 12px; border-radius: 11px; font-size: 11.5px; font-weight: 900; border: 2px solid #4f46e5; background: #e0e7ff; color: #312e81; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(79,70,229,0.2); transition: all 0.15s;">
+                                <span>🤖</span> <span>Trung bình</span> <small style="opacity:0.8;font-weight:700">(68%)</small>
+                            </button>
+                            <button type="button" onclick="window.selectBotDifficulty('hard')" data-botdiff="hard" class="bot-diff-btn" style="padding: 7px 12px; border-radius: 11px; font-size: 11.5px; font-weight: 800; border: 1.5px solid #cbd5e1; background: #ffffff; color: #334155; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.15s;">
+                                <span>🔥</span> <span>Khó</span> <small style="opacity:0.75;font-weight:700">(82%)</small>
+                            </button>
+                            <button type="button" onclick="window.selectBotDifficulty('insane')" data-botdiff="insane" class="bot-diff-btn" style="padding: 7px 12px; border-radius: 11px; font-size: 11.5px; font-weight: 800; border: 1.5px solid #cbd5e1; background: #ffffff; color: #334155; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.15s;">
+                                <span>👑</span> <span>Siêu cấp</span> <small style="opacity:0.75;font-weight:700">(92%)</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             
@@ -2539,42 +2571,99 @@ window.location.href = 'index.html';
 }
 });
 const STUDENT_GAMES_CATALOG = [
-  { id: 'dua-vit', name: 'Đua vịt sông xanh', icon: '🦆', tag: 'Đua tốc độ', hot: true },
-  { id: 'trieu-phu', name: 'Ai là triệu phú', icon: '💰', tag: 'Gameshow', hot: true },
-  { id: 'rung-chuong', name: 'Rung chuông vàng', icon: '🔔', tag: 'Vượt ải', hot: true },
-  { id: 'dua-xe', name: 'Đua xe tốc độ', icon: '🏎️', tag: 'Đua tốc độ', hot: true },
-  { id: 'keo-co', name: 'Kéo co tri thức', icon: '🪢', tag: 'Đối kháng', hot: false },
-  { id: 'nhanh-chop', name: 'Nhanh như chớp', icon: '⚡', tag: 'Phản xạ', hot: false },
-  { id: 'olympia', name: 'Đường lên đỉnh Olympia', icon: '🏔️', tag: '4 Vòng thi', hot: false },
-  { id: 'zombie', name: 'Chặn Zombie', icon: '🧟', tag: 'Phòng thủ', hot: false },
-  { id: 'dua-thuyen', name: 'Đua thuyền rồng', icon: '🐉', tag: 'Đồng đội', hot: false },
-  { id: 'nhay-bao', name: 'Nhảy bao bố', icon: '🛍️', tag: 'Dân gian', hot: false },
-  { id: 'xuc-xac', name: 'Tung xúc xắc', icon: '🎲', tag: 'May mắn', hot: false },
-  { id: 'lat-manh', name: 'Lật mảnh ghép', icon: '🧩', tag: 'Khám phá', hot: false },
-  { id: 'vong-quay', name: 'Vòng quay kỳ diệu', icon: '🎡', tag: 'Quay thưởng', hot: false },
-  { id: 'ghep-the', name: 'Lật thẻ trí nhớ', icon: '🃏', tag: 'Trí nhớ', hot: false }
+  { id: 'dua-vit', name: 'Đua vịt sông xanh', icon: '🦆', tag: 'Đua tốc độ', hot: true, vsBot: true },
+  { id: 'trieu-phu', name: 'Ai là triệu phú', icon: '💰', tag: 'Gameshow', hot: true, vsBot: false },
+  { id: 'rung-chuong', name: 'Rung chuông vàng', icon: '🔔', tag: 'Vượt ải', hot: true, vsBot: false },
+  { id: 'dua-xe', name: 'Đua xe tốc độ', icon: '🏎️', tag: 'Đua tốc độ', hot: true, vsBot: true },
+  { id: 'keo-co', name: 'Kéo co tri thức', icon: '🪢', tag: 'Đối kháng', hot: false, vsBot: true },
+  { id: 'nhanh-chop', name: 'Nhanh như chớp', icon: '⚡', tag: 'Phản xạ', hot: false, vsBot: true },
+  { id: 'olympia', name: 'Đường lên đỉnh Olympia', icon: '🏔️', tag: '4 Vòng thi', hot: false, vsBot: true },
+  { id: 'zombie', name: 'Chặn Zombie', icon: '🧟', tag: 'Phòng thủ', hot: false, vsBot: false },
+  { id: 'dua-thuyen', name: 'Đua thuyền rồng', icon: '🐉', tag: 'Đồng đội', hot: false, vsBot: true },
+  { id: 'nhay-bao', name: 'Nhảy bao bố', icon: '🛍️', tag: 'Dân gian', hot: false, vsBot: true },
+  { id: 'xuc-xac', name: 'Tung xúc xắc', icon: '🎲', tag: 'May mắn', hot: false, vsBot: true },
+  { id: 'lat-manh', name: 'Lật mảnh ghép', icon: '🧩', tag: 'Khám phá', hot: false, vsBot: false },
+  { id: 'vong-quay', name: 'Vòng quay kỳ diệu', icon: '🎡', tag: 'Quay thưởng', hot: false, vsBot: false },
+  { id: 'ghep-the', name: 'Lật thẻ trí nhớ', icon: '🃏', tag: 'Trí nhớ', hot: false, vsBot: false }
 ];
 window.selectedStudentGameId = 'dua-vit';
+window.selectedBotDifficulty = (function() {
+  try { return localStorage.getItem('qmath_solo_bot_diff') || 'normal'; } catch (e) { return 'normal'; }
+})();
+
+window.selectBotDifficulty = function(diff) {
+  const valid = ['easy', 'normal', 'hard', 'insane'].includes(diff) ? diff : 'normal';
+  window.selectedBotDifficulty = valid;
+  try { localStorage.setItem('qmath_solo_bot_diff', valid); } catch (e) {}
+  document.querySelectorAll('.bot-diff-btn').forEach(btn => {
+    const isAct = btn.getAttribute('data-botdiff') === valid;
+    if (isAct) {
+      btn.style.border = '2px solid #4f46e5';
+      btn.style.background = '#e0e7ff';
+      btn.style.color = '#312e81';
+      btn.style.fontWeight = '900';
+      btn.style.boxShadow = '0 2px 6px rgba(79,70,229,0.2)';
+    } else {
+      btn.style.border = '1.5px solid #cbd5e1';
+      btn.style.background = '#ffffff';
+      btn.style.color = '#334155';
+      btn.style.fontWeight = '800';
+      btn.style.boxShadow = 'none';
+    }
+  });
+  window.renderStudentGamesGrid();
+};
 
 window.renderStudentGamesGrid = function() {
   const grid = document.getElementById('studentGameCardsGrid');
   if (!grid) return;
+  const isSolo = window.practicePartyMode !== 'group';
   grid.innerHTML = STUDENT_GAMES_CATALOG.map(g => {
     const active = g.id === window.selectedStudentGameId;
+    const botBadge = (isSolo && g.vsBot)
+      ? `<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:6px;background:#e0e7ff;color:#4338ca;border:1px solid #c7d2fe;">🤖 Đấu Máy</span>`
+      : '';
     return `<button type="button" onclick="window.selectStudentGame('${g.id}')" class="p-2.5 rounded-2xl border-2 text-left transition-all flex flex-col justify-between relative cursor-pointer ${active ? 'border-purple-600 bg-purple-50/90 dark:bg-purple-950/70 shadow-md scale-[1.02]' : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-purple-300'}">
       <div class="flex items-center justify-between gap-1 mb-1">
         <span class="text-2xl leading-none">${g.icon}</span>
-        ${active ? '<span class="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] flex items-center justify-center font-black"><i class="fa-solid fa-check"></i></span>' : (g.hot ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-orange-100 text-orange-700">HOT</span>' : '')}
+        ${active ? '<span class="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] flex items-center justify-center font-black"><i class="fa-solid fa-check"></i></span>' : (botBadge || (g.hot ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-orange-100 text-orange-700">HOT</span>' : ''))}
       </div>
       <div>
         <div class="font-black text-xs text-gray-900 dark:text-white leading-snug line-clamp-1">${g.name}</div>
-        <div class="text-[10px] font-semibold ${active ? 'text-purple-700 dark:text-purple-300' : 'text-gray-400'}">${g.tag}</div>
+        <div class="text-[10px] font-semibold flex items-center justify-between gap-1 ${active ? 'text-purple-700 dark:text-purple-300' : 'text-gray-400'}">
+          <span>${g.tag}</span>
+          ${active && isSolo && g.vsBot ? '<span class="text-[9px] font-black text-indigo-600 dark:text-indigo-300">🤖 vs Máy</span>' : ''}
+        </div>
       </div>
     </button>`;
   }).join('');
   const curGame = STUDENT_GAMES_CATALOG.find(x => x.id === window.selectedStudentGameId) || STUDENT_GAMES_CATALOG[0];
+  const botBar = document.getElementById('soloBotDifficultyBar');
+  if (botBar) {
+    botBar.style.display = isSolo ? 'flex' : 'none';
+    const badge = document.getElementById('soloBotActiveGameBadge');
+    if (badge && curGame) {
+      if (curGame.vsBot) {
+        badge.style.background = '#dcfce7';
+        badge.style.color = '#166534';
+        badge.style.borderColor = '#86efac';
+        badge.textContent = `🤖 Đấu với Máy trong "${curGame.name}"`;
+      } else {
+        badge.style.background = '#f1f5f9';
+        badge.style.color = '#475569';
+        badge.style.borderColor = '#cbd5e1';
+        badge.textContent = `👤 Trò "${curGame.name}" chơi cá nhân 1 người`;
+      }
+    }
+  }
+  const diffNames = { easy: 'Dễ', normal: 'TB', hard: 'Khó', insane: 'Siêu cấp' };
+  const dLabel = diffNames[window.selectedBotDifficulty || 'normal'] || 'TB';
   const lbl = document.getElementById('btnStartGamePracticeLabel');
-  if (lbl && curGame) lbl.innerText = `CHƠI NGAY: ${curGame.name.toUpperCase()} ${curGame.icon}`;
+  if (lbl && curGame) {
+    lbl.innerText = (isSolo && curGame.vsBot)
+      ? `CHƠI NGAY: ${curGame.name.toUpperCase()} ${curGame.icon} (ĐẤU MÁY: ${dLabel.toUpperCase()})`
+      : `CHƠI NGAY: ${curGame.name.toUpperCase()} ${curGame.icon}`;
+  }
   const mobTxt = document.getElementById('mobileBtnStartText');
   if (mobTxt && window.isGamePracticeMode && curGame) mobTxt.innerText = `Chơi ${curGame.name}`;
 };
@@ -2599,7 +2688,8 @@ window.syncGamePracticeModeUI = function(isGame) {
   if (btnGame) btnGame.classList.toggle('hidden', !isGame);
   if (btnSwitch) btnSwitch.classList.toggle('hidden', isGame);
   if (isGame) {
-    window.renderStudentGamesGrid();
+    if (window.selectBotDifficulty) window.selectBotDifficulty(window.selectedBotDifficulty || 'normal');
+    else window.renderStudentGamesGrid();
     if (mobIcon) mobIcon.className = 'fa-solid fa-gamepad';
   } else {
     if (mobIcon) mobIcon.className = 'fa-solid fa-rocket';
@@ -2941,6 +3031,8 @@ window.startGamePractice = async function() {
     const gameId = window.selectedStudentGameId || 'dua-vit';
     const curGame = STUDENT_GAMES_CATALOG.find(x => x.id === gameId) || STUDENT_GAMES_CATALOG[0];
     const topicSummary = `Lớp ${grade} • ${subjLabel} (${gameQuestions.length} câu)`;
+    const botDiff = window.selectedBotDifficulty || 'normal';
+    try { localStorage.setItem('qmath_solo_bot_diff', botDiff); } catch (e) {}
 
     localStorage.setItem('gfe_localFile', JSON.stringify({
       questions: gameQuestions,
@@ -2956,10 +3048,11 @@ window.startGamePractice = async function() {
       grade,
       subject: subjLabel,
       count: gameQuestions.length,
+      botDifficulty: botDiff,
       ts: Date.now()
     }));
 
-    window.location.href = `san-choi/index.html?studentPractice=1&autoStart=1#/game/${encodeURIComponent(gameId)}?studentPractice=1&autoStart=1`;
+    window.location.href = `san-choi/index.html?studentPractice=1&autoStart=1&botDiff=${encodeURIComponent(botDiff)}#/game/${encodeURIComponent(gameId)}?studentPractice=1&autoStart=1&botDiff=${encodeURIComponent(botDiff)}`;
   } catch (err) {
     console.error("Lỗi tạo trò chơi luyện tập:", err);
     await window.customAlert("Không thể khởi tạo trò chơi: " + err.message, "error", "Lỗi Khởi Tạo");
@@ -3090,6 +3183,7 @@ window.setPracticePartyMode = function(mode) {
   if (id.avatar) {
     window.selectMobaAvatar(id.avatar);
   }
+  if (window.renderStudentGamesGrid) window.renderStudentGamesGrid();
 };
 
 window.getMobaPracticeConfigSnapshot = function() {

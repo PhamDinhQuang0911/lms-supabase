@@ -73,12 +73,140 @@
     window.location.href = GK.getStudentPracticeBackUrl();
   };
 
+  /* ---------------- Cấu hình Máy AI (Bot Đối Thủ Khi Chơi Solo) ---------------- */
+  GK.BOT_PROFILES = {
+    easy:   { id: "easy",   name: "Máy Tập Sự",     short: "Dễ",         icon: "🐣", acc: 0.45, minSec: 6.5, maxSec: 10.5, color: "#10b981", desc: "Đúng ~45% · 6.5–10.5s/câu" },
+    normal: { id: "normal", name: "Máy Thông Minh", short: "Trung bình", icon: "🤖", acc: 0.68, minSec: 4.5, maxSec: 7.8,  color: "#3b82f6", desc: "Đúng ~68% · 4.5–7.8s/câu" },
+    hard:   { id: "hard",   name: "Máy Cao Thủ",    short: "Khó",        icon: "🔥", acc: 0.82, minSec: 3.0, maxSec: 5.2,  color: "#f59e0b", desc: "Đúng ~82% · 3.0–5.2s/câu" },
+    insane: { id: "insane", name: "Máy Siêu Cấp",   short: "Siêu cấp",   icon: "👑", acc: 0.92, minSec: 2.0, maxSec: 3.8,  color: "#ef4444", desc: "Đúng ~92% · 2.0–3.8s/câu" }
+  };
+
+  GK.getBotDifficulty = () => {
+    const q = (window.App && typeof App.query === "function") ? App.query() : {};
+    const urlParams = new URLSearchParams(window.location.search || "");
+    const metaRaw = (function () { try { return JSON.parse(localStorage.getItem("gfe_student_practice_meta") || "null"); } catch (e) { return null; } })();
+    let saved = "";
+    try { saved = localStorage.getItem("qmath_solo_bot_diff") || ""; } catch (e) {}
+    const d = String(q.botDiff || urlParams.get("botDiff") || (metaRaw && metaRaw.botDifficulty) || saved || "normal").toLowerCase().trim();
+    return GK.BOT_PROFILES[d] ? d : "normal";
+  };
+
+  GK.setBotDifficulty = (diff) => {
+    const valid = GK.BOT_PROFILES[diff] ? diff : "normal";
+    try {
+      localStorage.setItem("qmath_solo_bot_diff", valid);
+      const metaRaw = JSON.parse(localStorage.getItem("gfe_student_practice_meta") || "null");
+      if (metaRaw) {
+        metaRaw.botDifficulty = valid;
+        localStorage.setItem("gfe_student_practice_meta", JSON.stringify(metaRaw));
+      }
+    } catch (e) {}
+    return GK.BOT_PROFILES[valid];
+  };
+
+  GK.getBotProfile = (diff) => GK.BOT_PROFILES[diff || GK.getBotDifficulty()] || GK.BOT_PROFILES.normal;
+
+  GK.renderBotPanelCard = (boxEl, botState, ctx, onDiffChanged) => {
+    if (!boxEl) return;
+    const prof = GK.getBotProfile(ctx && ctx.cfg && ctx.cfg.botDifficulty);
+    const qNum = botState.n || 1;
+    const cor = botState.botCor || 0;
+    const wr = botState.botWr || 0;
+    const statusHtml = botState.lastStatusHtml || `<span style="color:#4338ca;font-weight:700">🧠 ${esc(prof.name)} đang suy nghĩ câu hỏi #${qNum}...</span>`;
+    const thinkMs = botState.thinkMs || 5000;
+    const isThinking = botState.phase === "thinking";
+    const diffs = ["easy", "normal", "hard", "insane"];
+
+    boxEl.innerHTML = `<div class="qm-bot-arena" style="padding:14px;display:flex;flex-direction:column;gap:12px;height:100%;box-sizing:border-box;justify-content:space-between;background:linear-gradient(180deg,rgba(99,102,241,0.06),rgba(139,92,246,0.03));border-radius:14px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;background:rgba(255,255,255,0.85);padding:10px 12px;border-radius:12px;border:1.5px solid rgba(99,102,241,0.22)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:42px;height:42px;border-radius:12px;background:${prof.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 10px rgba(0,0,0,0.12)">${prof.icon}</div>
+            <div>
+              <div style="font-weight:800;font-size:14px;color:#1e1b4b">${esc(prof.name)} (${esc(prof.short)})</div>
+              <div style="font-size:11.5px;color:#475569;font-weight:600">${esc(prof.desc)}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;font-size:12px;font-weight:800">
+            <span style="padding:4px 8px;border-radius:8px;background:#dcfce7;color:#166534">✓ Đúng: ${cor}</span>
+            <span style="padding:4px 8px;border-radius:8px;background:#fee2e2;color:#991b1b">✗ Sai: ${wr}</span>
+          </div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.85);padding:9px 12px;border-radius:12px;border:1px solid rgba(148,163,184,0.3)">
+          <div style="font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;margin-bottom:6px">⚙️ Chọn độ khó của Máy ngay trong trận:</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+            ${diffs.map((k) => {
+              const pr = GK.BOT_PROFILES[k];
+              const act = pr.id === prof.id;
+              return `<button type="button" data-botdiff="${pr.id}" style="padding:6px 4px;border-radius:9px;font-size:11px;font-weight:${act ? "800" : "700"};border:${act ? "2px solid " + pr.color : "1px solid #cbd5e1"};background:${act ? "rgba(99,102,241,0.12)" : "#fff"};color:#1e293b;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px">
+                <span style="font-size:15px">${pr.icon}</span>
+                <span>${esc(pr.short)}</span>
+              </button>`;
+            }).join("")}
+          </div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.92);padding:14px;border-radius:14px;border:1.5px dashed rgba(99,102,241,0.35);text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center">
+          <div style="font-size:12px;font-weight:800;padding:3px 10px;border-radius:99px;background:#e0e7ff;color:#3730a3">Câu thứ #${qNum} của Máy</div>
+          <div style="font-size:13.5px;line-height:1.45">${statusHtml}</div>
+          <div style="width:100%;height:8px;border-radius:99px;background:#e2e8f0;overflow:hidden;margin-top:2px">
+            <div class="qm-bot-pbar" style="height:100%;width:${isThinking ? "8%" : "100%"};background:linear-gradient(90deg,${prof.color},#6366f1);border-radius:99px;transition:${isThinking ? `width ${Math.max(400, thinkMs - 120)}ms linear` : "width 0.2s ease"}"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11.5px;color:#64748b;background:rgba(241,245,249,0.9);padding:8px 10px;border-radius:10px;text-align:center;line-height:1.4;border:1px solid rgba(203,213,225,0.6)">
+        🔒 <b>Chế độ Công Bằng:</b> Nội dung câu hỏi & đáp án của Máy được ẩn hoàn toàn để Đội 1 không nhìn thấy mà bắt chước đáp án.
+      </div>
+    </div>`;
+
+    if (isThinking) {
+      requestAnimationFrame(() => {
+        const bar = boxEl.querySelector(".qm-bot-pbar");
+        if (bar) bar.style.width = "100%";
+      });
+    }
+
+    boxEl.querySelectorAll("button[data-botdiff]").forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const newDiff = btn.getAttribute("data-botdiff");
+        const newProf = GK.setBotDifficulty(newDiff);
+        if (ctx && ctx.cfg) ctx.cfg.botDifficulty = newProf.id;
+        if (ctx && Array.isArray(ctx.teams)) {
+          ctx.teams.forEach((t, idx) => {
+            if (t.isBot) {
+              t.botDiff = newProf.id;
+              t.icon = newProf.icon;
+              t.name = `${newProf.icon} ${newProf.name} (${newProf.short})`;
+              const panelNameEl = document.querySelector(`.tpanel[data-t="${idx}"] .tp-name`);
+              if (panelNameEl) panelNameEl.textContent = t.name;
+              const laneNameEl = document.querySelector(`.lane[data-i="${idx}"] .lane-tag b`);
+              if (laneNameEl) laneNameEl.textContent = t.name;
+              const tugNameEl = document.querySelectorAll(".tug .tg-score .ts span")[idx];
+              if (tugNameEl) tugNameEl.textContent = t.name;
+              const ncNameEl = document.querySelectorAll(".nc-race .nc-lane .nc-nm")[idx];
+              if (ncNameEl) ncNameEl.textContent = t.name;
+            }
+          });
+        }
+        const hudBtn = document.getElementById("hudBotDiffBtn");
+        if (hudBtn) hudBtn.innerHTML = `🤖 Đấu Máy: ${esc(newProf.icon + " " + newProf.short)} ▾`;
+        U.toast(`🤖 Đã chuyển độ khó của Máy sang: ${newProf.icon} ${newProf.name} (${newProf.short})`, "ok", 2000);
+        GK.renderBotPanelCard(boxEl, botState, ctx, onDiffChanged);
+        if (typeof onDiffChanged === "function") onDiffChanged(newProf);
+      };
+    });
+  };
+
   /* ---------------- Cấu hình mặc định ---------------- */
   function defaults(game) {
     const c = {
       mode: game.modes[0], teamCount: 2, teamNames: U.TEAM_NAMES.slice(),
       shuffleQ: true, shuffleA: true, explain: false, types: game.types.slice(), limit: 0,
-      onlineDurationMinutes: 15, onlineOpenTime: "", onlineMaxPlayers: 40, onlineSelfPaced: true
+      onlineDurationMinutes: 15, onlineOpenTime: "", onlineMaxPlayers: 40, onlineSelfPaced: true,
+      botOpponent: false, botDifficulty: GK.getBotDifficulty()
     };
     game.fields.forEach((f) => {
       if (f.type === "teams") c.teamCount = f.def || f.min || 2;
@@ -100,7 +228,19 @@
     c.types = (c.types || []).filter((t) => game.types.includes(t)); if (!c.types.length) c.types = game.types.slice();
     return c;
   }
-  GK.teamsOf = (cfg) => Array.from({ length: cfg.teamCount }, (_, i) => ({ name: (cfg.teamNames[i] || U.TEAM_NAMES[i]).trim() || U.TEAM_NAMES[i], color: U.TEAM_COLORS[i], i }));
+  GK.teamsOf = (cfg) => Array.from({ length: cfg.teamCount }, (_, i) => {
+    const isBot = Boolean(cfg.botOpponent && i >= 1);
+    const prof = isBot ? GK.getBotProfile(cfg.botDifficulty) : null;
+    const rawName = (cfg.teamNames[i] || U.TEAM_NAMES[i]).trim() || U.TEAM_NAMES[i];
+    return {
+      name: isBot ? `${prof.icon} ${prof.name} (${prof.short})` : rawName,
+      color: U.TEAM_COLORS[i],
+      i,
+      isBot,
+      botDiff: isBot ? prof.id : null,
+      icon: isBot ? prof.icon : ""
+    };
+  });
 
   /* ---------------- Trang game ---------------- */
   async function launchStudentPracticeDirect(S) {
@@ -110,7 +250,7 @@
     const roomInfo = GK.getStudentPracticeRoomInfo();
     S.studentRoomPin = roomInfo.pin || "";
     S.studentPid = roomInfo.pid || "";
-    S.studentPlayerName = roomInfo.playerName || (window.FB && typeof FB.name === "function" ? FB.name() : "Học sinh");
+    S.studentPlayerName = roomInfo.playerName || (window.FB && typeof FB.name === "function" ? FB.name() : "Bạn");
 
     const backUrl = GK.getStudentPracticeBackUrl();
     const tbBack = document.querySelector('.topbar a[href="../dashboard.html"], .topbar a[href*="practice.html"]');
@@ -144,10 +284,14 @@
     if (tf) {
       if ((tf.min || 1) <= 1) {
         cfg.teamCount = 1;
+        cfg.botOpponent = false;
         cfg.teamNames = [S.studentPlayerName || "Bạn"];
       } else {
+        const botProf = GK.getBotProfile();
         cfg.teamCount = 2;
-        cfg.teamNames = [S.studentPlayerName || "Đội 1", "Đội 2"];
+        cfg.botOpponent = true;
+        cfg.botDifficulty = botProf.id;
+        cfg.teamNames = [S.studentPlayerName || "Bạn", `${botProf.icon} ${botProf.name} (${botProf.short})`];
       }
     }
 
@@ -610,13 +754,18 @@
     const roomBadge = (isStu && roomPin)
       ? `<span class="chip green" style="font-weight:800;margin-right:6px" title="Đang chơi trong phòng nhóm PIN ${esc(roomPin)}">👥 Phòng #${esc(roomPin)}</span>`
       : "";
+    const hasBot = Boolean(ctx && ctx.cfg && ctx.cfg.botOpponent);
+    const botProf = hasBot ? GK.getBotProfile(ctx.cfg.botDifficulty) : null;
+    const botBadge = hasBot
+      ? `<button type="button" class="chip" id="hudBotDiffBtn" style="font-weight:800;margin-right:6px;background:rgba(79,70,229,0.22);border:1.5px solid rgba(165,180,252,0.75);color:#fff;cursor:pointer;padding:4px 10px" title="Bấm để đổi độ khó của Máy AI">🤖 Đấu Máy: ${esc(botProf.icon + " " + botProf.short)} ▾</button>`
+      : "";
     const exitLabel = isStu
       ? `<button class="hud-btn" data-a="exit" title="Quay lại chọn câu hỏi" style="width:auto;padding:0 12px;gap:6px;font-weight:700;font-size:13px">← <span class="hide-sm">Chọn câu hỏi</span></button>`
       : `<button class="hud-btn" data-a="exit" title="Thoát">←</button>`;
     const el = h(`<div class="hud">
       ${exitLabel}
       <div class="hud-title"><span class="hud-ic">${ctx.game.icon}</span><b>${esc(o.title || ctx.game.name)}</b></div>
-      <div class="hud-mid">${roomBadge}${o.mid || ""}</div>
+      <div class="hud-mid">${roomBadge}${botBadge}${o.mid || ""}</div>
       <div class="hud-right">${o.right || ""}
         <button class="hud-btn hud-music ${U.Music.on ? "on" : ""}" data-a="music" title="Nhạc nền (bật/tắt)">🎵</button>
         <button class="hud-btn" data-a="mute" title="Tuỳ chọn âm thanh">${U.Sound.muted ? "🔇" : "🔊"}</button>
@@ -624,6 +773,58 @@
       </div></div>`);
     stage.prepend(el);
     $("[data-a=exit]", el).onclick = () => ctx.exit();
+    const botBtn = $("#hudBotDiffBtn", el);
+    if (botBtn) {
+      botBtn.onclick = () => {
+        const curId = (ctx.cfg && ctx.cfg.botDifficulty) || GK.getBotDifficulty();
+        const body = h(`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 0">
+          ${["easy", "normal", "hard", "insane"].map((k) => {
+            const pr = GK.BOT_PROFILES[k];
+            const act = pr.id === curId;
+            return `<button type="button" data-pickbot="${pr.id}" style="padding:12px;border-radius:14px;border:${act ? "2.5px solid " + pr.color : "1.5px solid #cbd5e1"};background:${act ? "rgba(99,102,241,0.1)" : "#fff"};cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px">
+              <span style="font-size:28px">${pr.icon}</span>
+              <div>
+                <div style="font-weight:800;font-size:14px;color:#0f172a">${esc(pr.name)} (${esc(pr.short)})</div>
+                <div style="font-size:12px;color:#475569;margin-top:2px">${esc(pr.desc)}</div>
+              </div>
+            </button>`;
+          }).join("")}
+        </div>`);
+        const m = U.modal({ title: "🤖 Chọn Độ Khó Của Máy AI", size: "md", body, actions: [{ label: "Đóng", cls: "btn-ghost" }] });
+        $$("button[data-pickbot]", body).forEach((b) => {
+          b.onclick = () => {
+            const np = GK.setBotDifficulty(b.getAttribute("data-pickbot"));
+            if (ctx.cfg) ctx.cfg.botDifficulty = np.id;
+            if (Array.isArray(ctx.teams)) {
+              ctx.teams.forEach((t, idx) => {
+                if (t.isBot) {
+                  t.botDiff = np.id;
+                  t.icon = np.icon;
+                  t.name = `${np.icon} ${np.name} (${np.short})`;
+                  const panelNameEl = stage.querySelector(`.tpanel[data-t="${idx}"] .tp-name`);
+                  if (panelNameEl) panelNameEl.textContent = t.name;
+                  const laneNameEl = stage.querySelector(`.lane[data-i="${idx}"] .lane-tag b`);
+                  if (laneNameEl) laneNameEl.textContent = t.name;
+                  const tugNameEl = stage.querySelectorAll(".tug .tg-score .ts span")[idx];
+                  if (tugNameEl) tugNameEl.textContent = t.name;
+                  const ncNameEl = stage.querySelectorAll(".nc-race .nc-lane .nc-nm")[idx];
+                  if (ncNameEl) ncNameEl.textContent = t.name;
+                  const dgNameEl = stage.querySelector(`.dg-team[data-t="${idx}"] b`);
+                  if (dgNameEl) dgNameEl.textContent = t.name;
+                  const olNameEl = stage.querySelector(`.ol-cst[data-c="${idx}"] .ol-cname b`);
+                  if (olNameEl) olNameEl.textContent = t.name;
+                  const botBox = stage.querySelector(`.tpanel[data-t="${idx}"] .tp-q`);
+                  if (botBox && t._botState) GK.renderBotPanelCard(botBox, t._botState, ctx);
+                }
+              });
+            }
+            botBtn.innerHTML = `🤖 Đấu Máy: ${esc(np.icon + " " + np.short)} ▾`;
+            U.toast(`🤖 Đã đổi độ khó Máy thành: ${np.icon} ${np.name} (${np.short})`, "ok", 2200);
+            m.close();
+          };
+        });
+      };
+    }
     const mBtn = $("[data-a=music]", el), sBtn = $("[data-a=mute]", el);
     mBtn.onclick = () => { const on = U.Music.toggle(); mBtn.classList.toggle("on", on); U.toast(on ? "🎵 Đã bật nhạc nền" : "🎵 Đã tắt nhạc nền", "info", 1400); };
     sBtn.onclick = (e) => { e.stopPropagation(); GK.soundMenu(sBtn, () => { mBtn.classList.toggle("on", U.Music.on); sBtn.textContent = U.Sound.muted ? "🔇" : "🔊"; }); };
@@ -697,7 +898,23 @@
         <div class="tp-q"></div>
         <div class="tp-freeze"><div class="fz-ic">❄️</div><b>ĐÓNG BĂNG</b><span class="tp-fz">0</span></div>
       </section>`).join("") + `</div><div class="tp-back" title="Bấm để thu nhỏ"></div>`;
-    const P = teams.map((t, i) => ({ queue: Quiz.queue(ctx.items, { shuffleQ: ctx.cfg.shuffleQ, shuffleA: ctx.cfg.shuffleA }), ctrl: null, frozen: 0, el: host.querySelector(`.tpanel[data-t="${i}"]`), n: 0 }));
+    const P = teams.map((t, i) => {
+      const pObj = {
+        queue: Quiz.queue(ctx.items, { shuffleQ: ctx.cfg.shuffleQ, shuffleA: ctx.cfg.shuffleA }),
+        ctrl: null,
+        botTimer: null,
+        frozen: 0,
+        el: host.querySelector(`.tpanel[data-t="${i}"]`),
+        n: 0,
+        botCor: 0,
+        botWr: 0,
+        phase: "idle",
+        thinkMs: 5000,
+        lastStatusHtml: ""
+      };
+      if (t.isBot) t._botState = pObj;
+      return pObj;
+    });
     let over = false, zoomed = -1;
     const back = $(".tp-back", host);
     /* Phóng to bảng của một đội (gần toàn màn hình) */
@@ -711,15 +928,49 @@
       back.classList.toggle("on", zoomed >= 0);
       document.body.classList.toggle("has-zoom", zoomed >= 0);
     }
-    P.forEach((p, i) => { $(".tp-h", p.el).onclick = () => zoom(i); });
+    P.forEach((p, i) => {
+      if (!teams[i].isBot) $(".tp-h", p.el).onclick = () => zoom(i);
+      else {
+        const zBtn = $(".tp-zoom", p.el);
+        if (zBtn) zBtn.remove();
+        GK.renderBotPanelCard($(".tp-q", p.el), p, ctx);
+      }
+    });
     back.onclick = () => zoom(zoomed);
     const onKey = (e) => { if (e.key === "Escape" && zoomed >= 0 && !document.querySelector(".modal-wrap,.lbx")) zoom(zoomed); };
     document.addEventListener("keydown", onKey);
     function next(i) {
       if (over) return;
       const p = P[i]; p.ctrl && p.ctrl.destroy();
-      const item = p.queue.next(); p.n++;
-      p.ctrl = Quiz.mount($(".tp-q", p.el), item, { compact: true, keypad: o.keypad, num: p.n, explain: ctx.cfg.explain, autofocus: zoomed === i || teams.length === 1, onAnswer: (res) => handle(i, res, item) });
+      p.botTimer && ctx.timers.stop(p.botTimer);
+      p.n++;
+      if (teams[i] && teams[i].isBot) {
+        const prof = GK.getBotProfile(ctx.cfg && ctx.cfg.botDifficulty);
+        const thinkSec = prof.minSec + Math.random() * Math.max(0.5, prof.maxSec - prof.minSec);
+        const thinkMs = Math.round(thinkSec * 1000);
+        p.phase = "thinking";
+        p.thinkMs = thinkMs;
+        p.lastStatusHtml = `<span style="color:#4338ca;font-weight:800">🧠 ${esc(prof.name)} đang giải câu #${p.n}...</span>`;
+        GK.renderBotPanelCard($(".tp-q", p.el), p, ctx);
+        p.botTimer = ctx.timers.after(thinkMs, () => {
+          if (over) return;
+          const curProf = GK.getBotProfile(ctx.cfg && ctx.cfg.botDifficulty);
+          const ok = Math.random() < curProf.acc;
+          p.phase = "done";
+          if (ok) {
+            p.botCor++;
+            p.lastStatusHtml = `<span style="color:#15803d;font-weight:800">✅ Câu #${p.n}: ${esc(curProf.name)} trả lời ĐÚNG! (+1 bước)</span>`;
+          } else {
+            p.botWr++;
+            p.lastStatusHtml = `<span style="color:#b91c1c;font-weight:800">❌ Câu #${p.n}: ${esc(curProf.name)} trả lời SAI! ${o.freeze > 0 ? `(Đóng băng ${o.freeze}s ❄️)` : ""}</span>`;
+          }
+          GK.renderBotPanelCard($(".tp-q", p.el), p, ctx);
+          handle(i, { ok, points: ok ? 1 : 0 }, null);
+        });
+        return;
+      }
+      const item = p.queue.next();
+      p.ctrl = Quiz.mount($(".tp-q", p.el), item, { compact: true, keypad: o.keypad, num: p.n, explain: ctx.cfg.explain, autofocus: zoomed === i || teams.filter((t) => !t.isBot).length === 1, onAnswer: (res) => handle(i, res, item) });
       $(".tp-q", p.el).scrollTop = 0;
     }
     function handle(i, res, item) {
@@ -741,8 +992,8 @@
     }
     return {
       start() { P.forEach((_, i) => next(i)); },
-      stop() { over = true; if (zoomed >= 0) zoom(zoomed); P.forEach((p) => { p.ctrl && p.ctrl.lock(); }); },
-      destroy() { over = true; document.body.classList.remove("has-zoom"); document.removeEventListener("keydown", onKey); P.forEach((p) => p.ctrl && p.ctrl.destroy()); },
+      stop() { over = true; if (zoomed >= 0) zoom(zoomed); P.forEach((p) => { p.botTimer && ctx.timers.stop(p.botTimer); p.ctrl && p.ctrl.lock(); }); },
+      destroy() { over = true; document.body.classList.remove("has-zoom"); document.removeEventListener("keydown", onKey); P.forEach((p) => { p.botTimer && ctx.timers.stop(p.botTimer); p.ctrl && p.ctrl.destroy(); }); },
       zoom,
       score(i, v) { const s = $(".tp-score", P[i].el); s.textContent = v; s.classList.remove("bump"); void s.offsetWidth; s.classList.add("bump"); },
       stat(i, html) { $(".tp-stat", P[i].el).innerHTML = html; },

@@ -147,6 +147,26 @@
             const got = {};
             $$(".olj-b", jc).forEach((b) => (b.onclick = () => { const i = +b.dataset.c; got[i] = !got[i]; b.classList.toggle("on", !!got[i]); U.Sound.click(); }));
             if (single && chosenOk === true) { got[who[0]] = true; const b = $(`.olj-b[data-c="${who[0]}"]`, jc); if (b) b.classList.add("on"); }
+            if (C.some((x) => x.isBot)) {
+              if (!single) {
+                if (chosenOk === true) { got[0] = true; const b0 = $(`.olj-b[data-c="0"]`, jc); if (b0) b0.classList.add("on"); }
+                const prof = GK.getBotProfile(ctx.cfg && ctx.cfg.botDifficulty);
+                C.forEach((c, bi) => {
+                  if (c.isBot) {
+                    const botOk = Math.random() < prof.acc;
+                    if (botOk) {
+                      got[bi] = true;
+                      const bb = $(`.olj-b[data-c="${bi}"]`, jc);
+                      if (bb) bb.classList.add("on");
+                    } else {
+                      c.wrong++;
+                    }
+                  }
+                });
+              } else if (chosenOk === false && C[who[0]]) {
+                C[who[0]].wrong++;
+              }
+            }
             $("#olReveal", main).classList.add("hide"); $("#olNext", main).classList.remove("hide");
             $("#olNext", main).onclick = () => { Object.keys(got).forEach((i) => { if (got[i]) { C[i].score += o.value || 10; C[i].correct++; } }); paintBoard(stage, C); done(Object.keys(got).filter((i) => got[i]).map(Number)); };
           }
@@ -154,7 +174,55 @@
         });
       }
 
+      async function simulateBotOlympiaTurn(botIdx, qCount, valList, roundTitle) {
+        const bot = C[botIdx];
+        if (!bot || over || skip) return;
+        const prof = GK.getBotProfile(ctx.cfg && ctx.cfg.botDifficulty);
+        let rightCnt = 0, deltaScore = 0;
+        const details = [];
+        for (let q = 0; q < qCount; q++) {
+          const v = Array.isArray(valList) ? (valList[q] || 10) : (valList || 10);
+          const star = roundTitle.includes("Về đích") && q === qCount - 1 && Math.random() < 0.6;
+          const ok = Math.random() < prof.acc;
+          if (ok) {
+            rightCnt++;
+            bot.correct++;
+            const pts = star ? v * 2 : v;
+            deltaScore += pts;
+            details.push(`Câu ${q + 1}${star ? " ⭐" : ""}: <b style="color:#4ade80">Đúng (+${pts}đ)</b>`);
+          } else {
+            bot.wrong++;
+            if (star) deltaScore -= v;
+            details.push(`Câu ${q + 1}${star ? " ⭐" : ""}: <b style="color:#f87171">Sai (${star ? "-" + v : "0"}đ)</b>`);
+          }
+        }
+        bot.score += deltaScore;
+        paintBoard(stage, C);
+        main.innerHTML = `<div class="ol-intro"><div class="oi-ic">${prof.icon}</div><h1>${esc(bot.name)} — ${esc(roundTitle)}</h1>
+          <p>🔒 Máy tự động hoàn thành ${qCount} câu hỏi bí mật (Ẩn đề & đáp án): Đúng <b>${rightCnt}/${qCount}</b> câu (${deltaScore >= 0 ? "+" + deltaScore : deltaScore} điểm)</p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:10px 0">${details.map((d) => `<span class="chip" style="background:rgba(255,255,255,0.14);color:#fff;padding:6px 12px">${d}</span>`).join("")}</div>
+        </div>`;
+        U.Sound.coin();
+        await U.sleep(2000);
+      }
+
       async function roundWarm() {
+        if (C.some((x) => x.isBot)) {
+          for (let i = 0; i < C.length; i++) {
+            if (over || skip) return;
+            if (C[i].isBot) {
+              await simulateBotOlympiaTurn(i, cfg.warmEach, 10, "Khởi động");
+            } else {
+              for (let k = 0; k < cfg.warmEach; k++) {
+                if (over || skip) return;
+                GK.banner(stage, `🔥 ${esc(C[i].name)} — câu ${k + 1}/${cfg.warmEach}`, 1100); await U.sleep(900);
+                if (over || skip) return;
+                await ask(queue.next(), { who: i, value: 10, badge: "Khởi động · " + C[i].name });
+              }
+            }
+          }
+          return;
+        }
         for (let k = 0; k < cfg.warmEach; k++) for (let i = 0; i < C.length; i++) {
           if (over || skip) return;
           const idx = pickMode ? await pickTeam(`Khởi động · câu ${k + 1} — chọn thí sinh trả lời`) : i;
@@ -218,6 +286,10 @@
           if (over || skip) return;
           const i = pickMode ? await pickTeam(`Về đích — chọn thí sinh (lượt ${t + 1}/${total})`) : t;
           if (over || skip || i == null) return;
+          if (C[i] && C[i].isBot) {
+            await simulateBotOlympiaTurn(i, cfg.vedichQ, [20, 20, 30, 30, 20], "Về đích");
+            continue;
+          }
           const loops = pickMode ? 1 : cfg.vedichQ;
           for (let k = 0; k < loops; k++) {
             if (over || skip) return;

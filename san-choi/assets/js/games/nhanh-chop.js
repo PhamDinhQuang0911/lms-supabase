@@ -47,10 +47,18 @@
           </section>`).join("")}</div>`);
       const st = T.map(() => ({ pts: 0, correct: 0, wrong: 0, streak: 0, best: 0 }));
       let over = false;
-      const P = T.map((t, i) => ({
-        queue: Quiz.queue(ctx.items, { shuffleQ: cfg.shuffleQ, shuffleA: cfg.shuffleA }),
-        el: $(`.tpanel[data-t="${i}"]`, stage), ctrl: null, capT: null, t0: 0, n: 0, frozen: false
-      }));
+      const P = T.map((t, i) => {
+        const pObj = {
+          queue: Quiz.queue(ctx.items, { shuffleQ: cfg.shuffleQ, shuffleA: cfg.shuffleA }),
+          el: $(`.tpanel[data-t="${i}"]`, stage), ctrl: null, capT: null, t0: 0, n: 0, frozen: false,
+          botCor: 0, botWr: 0, phase: "idle", thinkMs: 5000, lastStatusHtml: ""
+        };
+        if (t.isBot) {
+          t._botState = pObj;
+          GK.renderBotPanelCard($(".tp-q", pObj.el), pObj, ctx);
+        }
+        return pObj;
+      });
       function drawRace() {
         const lead = Math.max(1, ...st.map((s) => s.pts));
         $$(".nc-lane", stage).forEach((el, i) => { $(".nc-bar i", el).style.width = Math.round((st[i].pts / lead) * 100) + "%"; $(".nc-sc", el).textContent = U.fmtNum(st[i].pts); });
@@ -65,8 +73,35 @@
         if (over) return;
         const p = P[i];
         p.ctrl && p.ctrl.destroy();
-        const item = p.queue.next(); p.n++;
+        ctx.timers.stop(p.capT);
+        p.n++;
         p.t0 = Date.now();
+        if (T[i] && T[i].isBot) {
+          const prof = GK.getBotProfile(ctx.cfg && ctx.cfg.botDifficulty);
+          const thinkSec = prof.minSec + Math.random() * Math.max(0.5, prof.maxSec - prof.minSec);
+          const thinkMs = Math.round(thinkSec * 1000);
+          p.phase = "thinking";
+          p.thinkMs = thinkMs;
+          p.lastStatusHtml = `<span style="color:#4338ca;font-weight:800">⚡ ${esc(prof.name)} đang giải câu #${p.n}...</span>`;
+          GK.renderBotPanelCard($(".tp-q", p.el), p, ctx);
+          p.capT = ctx.timers.after(thinkMs, () => {
+            if (over) return;
+            const curProf = GK.getBotProfile(ctx.cfg && ctx.cfg.botDifficulty);
+            const ok = Math.random() < curProf.acc;
+            p.phase = "done";
+            if (ok) {
+              p.botCor++;
+              p.lastStatusHtml = `<span style="color:#15803d;font-weight:800">✅ Câu #${p.n}: ${esc(curProf.name)} trả lời ĐÚNG!</span>`;
+            } else {
+              p.botWr++;
+              p.lastStatusHtml = `<span style="color:#b91c1c;font-weight:800">❌ Câu #${p.n}: ${esc(curProf.name)} trả lời SAI! (Đóng băng 2s ❄️)</span>`;
+            }
+            GK.renderBotPanelCard($(".tp-q", p.el), p, ctx);
+            handle(i, { ok, points: ok ? 1 : 0 });
+          });
+          return;
+        }
+        const item = p.queue.next();
         p.ctrl = Quiz.mount($(".tp-q", p.el), item, {
           compact: true, keypad: true, num: p.n, explain: cfg.explain,
           onAnswer: (res) => handle(i, res, item)

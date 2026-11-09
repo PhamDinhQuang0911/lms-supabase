@@ -119,13 +119,55 @@
       function ask() {
         refresh();
         $(".dg-roll", side).classList.add("hide");
-        $(".dg-turn", side).innerHTML = `<div class="turn-pill" style="--tc:${T[turn].color}"><span>${Art.pawn(T[turn].color, turn + 1)}</span>Lượt của <b>${esc(T[turn].name)}</b>${cfg.qtime ? `<em class="q-time"></em>` : ""}</div>`;
+        $(".dg-turn", side).innerHTML = `<div class="turn-pill" style="--tc:${T[turn].color}"><span>${Art.pawn(T[turn].color, turn + 1)}</span>Lượt của <b>${esc(T[turn].name)}</b>${cfg.qtime && !(T[turn] && T[turn].isBot) ? `<em class="q-time"></em>` : ""}</div>`;
         qctrl && qctrl.destroy();
+        qclock && ctx.timers.stop(qclock);
+        if (T[turn] && T[turn].isBot) {
+          const prof = GK.getBotProfile(ctx.cfg && ctx.cfg.botDifficulty);
+          const qBox = $(".dg-q", side);
+          const botDummyState = {
+            n: st[turn].correct + st[turn].wrong + 1,
+            botCor: st[turn].correct,
+            botWr: st[turn].wrong,
+            phase: "thinking",
+            thinkMs: 2200,
+            lastStatusHtml: `<span style="color:#4338ca;font-weight:800">🎲 ${esc(prof.name)} đang giải câu hỏi bí mật...</span>`
+          };
+          T[turn]._botState = botDummyState;
+          GK.renderBotPanelCard(qBox, botDummyState, ctx);
+          qclock = ctx.timers.after(2200, () => {
+            if (over) return;
+            const curProf = GK.getBotProfile(ctx.cfg && ctx.cfg.botDifficulty);
+            const ok = Math.random() < curProf.acc;
+            botDummyState.phase = "done";
+            if (ok) {
+              st[turn].correct++;
+              st[turn].pts += 10;
+              botDummyState.botCor = st[turn].correct;
+              botDummyState.lastStatusHtml = `<span style="color:#15803d;font-weight:800">✅ ${esc(curProf.name)} trả lời ĐÚNG! Đang tự động tung xúc xắc 🎲...</span>`;
+              GK.renderBotPanelCard(qBox, botDummyState, ctx);
+              U.Sound.correct();
+              refresh();
+              $(".dg-roll", side).classList.remove("hide");
+              const rb = $("#rollBtn", side);
+              if (rb) rb.disabled = true;
+              ctx.timers.after(700, () => { if (!over) roll(); });
+            } else {
+              st[turn].wrong++;
+              botDummyState.botWr = st[turn].wrong;
+              botDummyState.lastStatusHtml = `<span style="color:#b91c1c;font-weight:800">❌ ${esc(curProf.name)} trả lời SAI! Nhường lượt cho bạn.</span>`;
+              GK.renderBotPanelCard(qBox, botDummyState, ctx);
+              U.Sound.wrong();
+              refresh();
+              ctx.timers.after(1400, () => nextTurn());
+            }
+          });
+          return;
+        }
         const item = queue.next();
         qctrl = Quiz.mount($(".dg-q", side), item, { keypad: cfg.keypad, explain: cfg.explain, hotkeys: true, onAnswer: onAns });
         if (cfg.qtime) {
           let left = cfg.qtime; const el = $(".q-time", side); el.textContent = left + "s";
-          qclock && ctx.timers.stop(qclock);
           qclock = ctx.timers.every(1000, () => { left--; el.textContent = left + "s"; if (left <= 5 && left > 0) U.Sound.tick(); if (left <= 0) { ctx.timers.stop(qclock); qctrl.timeout(); } });
         }
       }
