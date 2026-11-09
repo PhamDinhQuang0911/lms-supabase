@@ -201,254 +201,406 @@ export const compileTikZBatch = async (codesArray) => {
     }
 };
 
-// --- QUẢN LÝ CHẾ ĐỘ BIÊN DỊCH TIKZ (LỰA CHỌN 1: VPS - ỔN ĐỊNH | LỰA CHỌN 2: TIKZJAX - TRÌNH DUYỆT) ---
+// --- QUẢN LÝ CHẾ ĐỘ BIÊN DỊCH TIKZ (LỰA CHỌN 1: VPS - ỔN ĐỊNH | LỰA CHỌN 2: TIKZJAX - TRÌNH DUYỆT | LỰA CHỌN 3: QUICKLATEX) ---
+
+const CLOUDFLARE_R2_UPLOAD_URL = "https://upload-helper.phamngockhanh-942001.workers.dev/";
 
 /**
- * Lấy chế độ biên dịch TikZ hiện tại ('vps' hoặc 'tikzjax'). Mặc định là 'vps' (đang ổn định).
+ * Upload chuỗi SVG hoặc Blob ảnh lên Cloudflare R2 để lưu trữ bền vững,
+ * nếu không kết nối được R2 sẽ trả về data URI dự phòng.
  */
-export const getTikzRenderMode = () => {
-    return safeStorageGet('tikzRenderMode', 'vps') || 'vps';
+export const uploadSvgStringToR2 = async (svgString, prefix = 'tikzjax') => {
+    if (!svgString || typeof svgString !== 'string') throw new Error("SVG rỗng");
+    let finalSvg = svgString.trim();
+    if (!finalSvg.match(/^<svg[^>]+xmlns=["']http:\/\/www\.w3\.org\/2000\/svg["']/i)) {
+        finalSvg = finalSvg.replace(/^<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    try {
+        const blob = new Blob([finalSvg], { type: 'image/svg+xml' });
+        const formData = new FormData();
+        const fileName = `tikz/${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.svg`;
+        formData.append('file', blob, fileName);
+        const resp = await fetch(CLOUDFLARE_R2_UPLOAD_URL, {
+            method: 'PUT',
+            body: formData
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.url) return data.url;
+        }
+    } catch (e) {
+        console.warn("[R2 SVG Upload] Chuyển sang dùng Data URI dự phòng:", e.message);
+    }
+    const svgBase64 = btoa(unescape(encodeURIComponent(finalSvg)));
+    return `data:image/svg+xml;base64,${svgBase64}`;
 };
 
 /**
- * Đặt chế độ biên dịch TikZ ('vps' hoặc 'tikzjax') và lưu vào localStorage.
+ * Lấy chế độ biên dịch TikZ hiện tại ('vps', 'tikzjax', hoặc 'quicklatex'). Mặc định là 'vps'.
+ */
+export const getTikzRenderMode = () => {
+    const mode = safeStorageGet('tikzRenderMode', 'vps') || 'vps';
+    return ['vps', 'tikzjax', 'quicklatex'].includes(mode) ? mode : 'vps';
+};
+
+/**
+ * Đặt chế độ biên dịch TikZ ('vps', 'tikzjax', hoặc 'quicklatex') và lưu vào localStorage.
  */
 export const setTikzRenderMode = (mode) => {
-    const valid = mode === 'tikzjax' ? 'tikzjax' : 'vps';
+    const valid = ['vps', 'tikzjax', 'quicklatex'].includes(mode) ? mode : 'vps';
     safeStorageSet('tikzRenderMode', valid);
     return valid;
 };
 
 /**
- * Kiểm tra xem mã TikZ có đủ điều kiện render bằng TikzJax không.
- * TikzJax là TeX chạy qua WebAssembly và KHÔNG hỗ trợ các gói mở rộng: tkz-euclide, tkz-tab, pgfplots,...
- * Nếu chứa các gói này -> Bắt buộc chuyển sang VPS.
+ * Kiểm tra xem mã TikZ có đủ điều kiện render bằng TikzJax (@rod2ik/tikzjax WebAssembly) không.
+ * Bản @rod2ik/tikzjax 1.6.0 hỗ trợ đầy đủ: tikz thuần, calc, arrows.meta, angles, quotes, patterns,
+ * intersections, pgfplots, và cả tkz-tab (bảng biến thiên)!
+ * Chỉ các gói đặc thù của Việt Nam/Euclide (tkz-euclide: \tkzDefPoint, \tkzDraw...) mới cần chuyển sang QuickLaTeX / VPS.
  */
 export function canRenderWithTikzJax(code) {
     if (!code || typeof code !== 'string') return false;
-    const vpsKeywords = [
-        'tkz-euclide', 'tkz-tab', 'tkz-base', 'tkz-', 'tkzTab', 'tkzTabSetup', 'tkzTabLine',
-        'tkzDefPoint', 'tkzDraw', 'tkzMark', 'tkzLabel',
-        'pgfplots', 'pgf-', '\\begin{axis}', '\\end{axis}', 'addplot',
+    const vpsOnlyKeywords = [
+        'tkz-euclide', 'tkzDefPoint', 'tkzDraw', 'tkzMark', 'tkzLabel', 'tkzInter', 'tkzFind',
         '\\usepackage{twemoji}', '\\usepackage{emoji}', '\\usepackage{tcolorbox}',
-        'bchart', 'forest', 'smartdiagram', 'datavisualization'
+        'bchart', 'forest', 'smartdiagram'
     ];
-    return !vpsKeywords.some(kw => code.includes(kw));
+    return !vpsOnlyKeywords.some(kw => code.includes(kw));
 }
 
-// --- HÀM BIÊN DỊCH BẰNG TIKZJAX (SỬ DỤNG IFRAME CÁCH LY ĐỂ TRÁNH XUNG ĐỘT MATHJAX) ---
-let _tikzIframe = null;
-let _tikzReady = false;
-let _tikzIframeInitStarted = false;
-let _tikzTaskQueue = [];
-let _tikzCurrentTask = null;
-
-const initTikzIframe = () => {
-    if (_tikzIframeInitStarted) return;
-    if (typeof document === 'undefined') return;
-    _tikzIframeInitStarted = true;
-
-    _tikzIframe = document.createElement('iframe');
-    _tikzIframe.style.display = 'none';
-    _tikzIframe.title = 'TikzJax Isolation Sandbox';
-    const target = document.body || document.documentElement;
-    if (target) {
-        target.appendChild(_tikzIframe);
-    } else {
-        document.addEventListener('DOMContentLoaded', () => {
-            (document.body || document.documentElement).appendChild(_tikzIframe);
-        });
-    }
-
-    const doc = _tikzIframe.contentWindow ? _tikzIframe.contentWindow.document : (_tikzIframe.contentDocument || null);
-    if (!doc) return;
-    doc.open();
-    doc.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <link rel="stylesheet" type="text/css" href="https://tikzjax.com/v1/fonts.css">
-            <script>
-                window.__tikzJaxLoaded = false;
-                window.addEventListener('message', async function(event) {
-                    if (!event.data || event.data.type !== 'render-tikz') return;
-                    const id = event.data.id;
-                    let code = event.data.code;
-                    
-                    if (!code.includes('\\\\begin{tikzpicture}') && !code.includes('\\\\tikz')) {
-                        code = '\\\\begin{tikzpicture}\\n' + code + '\\n\\\\end{tikzpicture}';
-                    }
-                    if (!code.includes('\\\\usetikzlibrary')) {
-                        code = '\\\\usetikzlibrary{calc,arrows.meta}\\n' + code;
-                    }
-
-                    const container = document.createElement('div');
-                    container.id = 'container-' + id;
-                    document.body.appendChild(container);
-
-                    let isHandled = false;
-                    let pollInterval = null;
-                    let observer = null;
-
-                    const cleanup = () => {
-                        if (isHandled) return;
-                        isHandled = true;
-                        if (observer) { try { observer.disconnect(); } catch(e) {} }
-                        if (pollInterval) { try { clearInterval(pollInterval); } catch(e) {} }
-                        try { container.remove(); } catch(e) {}
-                    };
-
-                    const handleSvgFound = (svg) => {
-                        if (isHandled) return;
-                        isHandled = true;
-                        if (observer) { try { observer.disconnect(); } catch(e) {} }
-                        if (pollInterval) { try { clearInterval(pollInterval); } catch(e) {} }
-                        try {
-                            const serializer = new XMLSerializer();
-                            let svgString = serializer.serializeToString(svg);
-                            if (!svgString.match(/^<svg[^>]+xmlns="http:\\/\\/www\\.w3\\.org\\/2000\\/svg"/)) {
-                                svgString = svgString.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
-                            }
-                            window.parent.postMessage({ type: 'tikz-result', id: id, svg: svgString }, '*');
-                        } catch(err) {
-                            window.parent.postMessage({ type: 'tikz-error', id: id, error: err.message }, '*');
-                        } finally {
-                            try { container.remove(); } catch(e) {}
-                        }
-                    };
-
-                    try {
-                        observer = new MutationObserver(function() {
-                            const svg = container.querySelector('svg');
-                            if (svg) handleSvgFound(svg);
-                        });
-                        observer.observe(container, { childList: true, subtree: true });
-
-                        const script = document.createElement('script');
-                        script.type = 'text/tikz';
-                        script.textContent = code;
-                        container.appendChild(script);
-
-                        // Polling song song dự phòng MutationObserver
-                        let pollElapsed = 0;
-                        pollInterval = setInterval(function() {
-                            pollElapsed += 50;
-                            const svg = container.querySelector('svg');
-                            if (svg) {
-                                handleSvgFound(svg);
-                            } else if (pollElapsed >= 9000) {
-                                cleanup();
-                                window.parent.postMessage({ type: 'tikz-error', id: id, error: 'TikZJax timeout: Không nhận được SVG sau 9s' }, '*');
-                            }
-                        }, 50);
-
-                        // Kích hoạt TikzJax xử lý thẻ script
-                        if (typeof window.onload === 'function') {
-                            window.onload();
-                        }
-                    } catch(err) {
-                        cleanup();
-                        window.parent.postMessage({ type: 'tikz-error', id: id, error: err.message }, '*');
-                    }
-                });
-            </script>
-            <script src="https://tikzjax.com/v1/tikzjax.js" onload="window.__tikzJaxLoaded=true; window.parent.postMessage({ type: 'tikz-iframe-ready' }, '*');"></script>
-        </head>
-        <body></body>
-        </html>
-    `);
-    doc.close();
-
-    window.addEventListener('message', (event) => {
-        if (!event.data) return;
-        if (event.data.type === 'tikz-iframe-ready') {
-            _tikzReady = true;
-        } else if (event.data.type === 'tikz-result') {
-            if (_tikzCurrentTask && _tikzCurrentTask.id === event.data.id) {
-                clearTimeout(_tikzCurrentTask.timeoutHandle);
-                _tikzCurrentTask.resolve(event.data.svg);
-                _tikzCurrentTask = null;
-                processNextTikzTask();
-            }
-        } else if (event.data.type === 'tikz-error') {
-            if (_tikzCurrentTask && _tikzCurrentTask.id === event.data.id) {
-                clearTimeout(_tikzCurrentTask.timeoutHandle);
-                _tikzCurrentTask.reject(new Error(event.data.error || "TikZJax render failed"));
-                _tikzCurrentTask = null;
-                processNextTikzTask();
-            }
+/**
+ * Chuyển đổi ký tự tiếng Việt UTF-8 trong mã TikZ sang lệnh dấu chuẩn LaTeX OT1
+ * để trình biên dịch e-TeX WebAssembly của TikZJax không bị lỗi bảng mã.
+ */
+function convertVietnameseForTikzJax(str) {
+    if (!str || typeof str !== 'string') return '';
+    const map = {
+        'á': "\\'{a}", 'à': "\\`{a}", 'ả': "\\'{a}", 'ã': "\\~{a}", 'ạ': "\\d{a}",
+        'ă': "\\u{a}", 'ắ': "\\'{\\u{a}}", 'ằ': "\\`{\\u{a}}", 'ẳ': "\\'{\\u{a}}", 'ẵ': "\\~{\\u{a}}", 'ặ': "\\d{\\u{a}}",
+        'â': "\\^{a}", 'ấ': "\\'{\\^{a}}", 'ầ': "\\`{\\^{a}}", 'ẩ': "\\'{\\^{a}}", 'ẫ': "\\~{\\^{a}}", 'ậ': "\\d{\\^{a}}",
+        'é': "\\'{e}", 'è': "\\`{e}", 'ẻ': "\\'{e}", 'ẽ': "\\~{e}", 'ẹ': "\\d{e}",
+        'ê': "\\^{e}", 'ế': "\\'{\\^{e}}", 'ề': "\\`{\\^{e}}", 'ể': "\\'{\\^{e}}", 'ễ': "\\~{\\^{e}}", 'ệ': "\\d{\\^{e}}",
+        'í': "\\'{\\i}", 'ì': "\\`{\\i}", 'ỉ': "\\'{\\i}", 'ĩ': "\\~{\\i}", 'ị': "\\d{i}",
+        'ó': "\\'{o}", 'ò': "\\`{o}", 'ỏ': "\\'{o}", 'õ': "\\~{o}", 'ọ': "\\d{o}",
+        'ô': "\\^{o}", 'ố': "\\'{\\^{o}}", 'ồ': "\\`{\\^{o}}", 'ổ': "\\'{\\^{o}}", 'ỗ': "\\~{\\^{o}}", 'ộ': "\\d{\\^{o}}",
+        'ơ': "o", 'ớ': "\\'{o}", 'ờ': "\\`{o}", 'ở': "\\'{o}", 'ỡ': "\\~{o}", 'ợ': "\\d{o}",
+        'ú': "\\'{u}", 'ù': "\\`{u}", 'ủ': "\\'{u}", 'ũ': "\\~{u}", 'ụ': "\\d{u}",
+        'ư': "u", 'ứ': "\\'{u}", 'ừ': "\\`{u}", 'ử': "\\'{u}", 'ữ': "\\~{u}", 'ự': "\\d{u}",
+        'ý': "\\'{y}", 'ỳ': "\\`{y}", 'ỷ': "\\'{y}", 'ỹ': "\\~{y}", 'ỵ': "\\d{y}",
+        'đ': "d", 'Đ': "D"
+    };
+    return str.replace(/[^\x00-\x7F]/g, (ch) => {
+        if (map[ch]) return map[ch];
+        const lower = ch.toLowerCase();
+        if (map[lower]) {
+            return map[lower].replace(/\{([a-z])\}/, (_, c) => `{${c.toUpperCase()}}`);
         }
+        return ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    });
+}
+
+// --- HÀM BIÊN DỊCH BẰNG TIKZJAX WORKER (@rod2ik/tikzjax@1.6.0 WEBASSEMBLY) ---
+const TIKZJAX_CDN_DIST = "https://cdn.jsdelivr.net/npm/@rod2ik/tikzjax@1.6.0/dist";
+let _tikzWorker = null;
+let _tikzWorkerInitPromise = null;
+let _tikzWorkerPending = new Map();
+let _tikzWorkerUid = 1;
+let _tikzWorkerQueue = Promise.resolve();
+
+const ensureTikzJaxFontsLoaded = () => {
+    if (typeof document === 'undefined') return;
+    if (document.getElementById('qmath-tikzjax-fonts-css')) return;
+    const link = document.createElement('link');
+    link.id = 'qmath-tikzjax-fonts-css';
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = `${TIKZJAX_CDN_DIST}/fonts.min.css`;
+    (document.head || document.documentElement).appendChild(link);
+};
+
+const callTikzWorkerMethod = (method, args, timeoutMs = 25000) => {
+    return new Promise((resolve, reject) => {
+        if (!_tikzWorker) return reject(new Error("TikZJax Worker chưa khởi tạo"));
+        const uid = _tikzWorkerUid++;
+        const timer = setTimeout(() => {
+            if (_tikzWorkerPending.has(uid)) {
+                _tikzWorkerPending.delete(uid);
+                reject(new Error(`TikZJax timeout (${Math.round(timeoutMs / 1000)}s)`));
+            }
+        }, timeoutMs);
+        _tikzWorkerPending.set(uid, {
+            resolve: (val) => { clearTimeout(timer); resolve(val); },
+            reject: (err) => { clearTimeout(timer); reject(err); }
+        });
+        _tikzWorker.postMessage({ type: 'run', uid, method, args });
     });
 };
 
-const processNextTikzTask = async () => {
-    if (_tikzCurrentTask || _tikzTaskQueue.length === 0) return;
-    _tikzCurrentTask = _tikzTaskQueue.shift();
+const initTikzJaxWorker = () => {
+    if (_tikzWorkerInitPromise) return _tikzWorkerInitPromise;
+    _tikzWorkerInitPromise = (async () => {
+        ensureTikzJaxFontsLoaded();
+        const workerResp = await fetch(`${TIKZJAX_CDN_DIST}/run-tex.js`);
+        if (!workerResp.ok) throw new Error(`Không tải được TikZJax Worker (${workerResp.status})`);
+        const workerJs = await workerResp.text();
+        const blob = new Blob([workerJs], { type: 'application/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
 
-    let wait = 0;
-    while (!_tikzReady && wait < 40) {
-        await new Promise(r => setTimeout(r, 200));
-        wait++;
-    }
-
-    if (!_tikzReady) {
-        clearTimeout(_tikzCurrentTask.timeoutHandle);
-        const task = _tikzCurrentTask;
-        _tikzCurrentTask = null;
-        task.reject(new Error("TikzJax iframe CDN timeout"));
-        processNextTikzTask();
-        return;
-    }
-
-    _tikzIframe.contentWindow.postMessage({
-        type: 'render-tikz',
-        id: _tikzCurrentTask.id,
-        code: _tikzCurrentTask.code
-    }, '*');
-};
-
-export const compileTikzLocalViaTikzJax = async (code) => {
-    if (!canRenderWithTikzJax(code)) {
-        throw new Error("Mã TikZ chứa thư viện phức tạp (tkz-euclide/pgfplots), cần dùng VPS");
-    }
-
-    initTikzIframe();
-
-    return new Promise((resolve, reject) => {
-        const id = Date.now().toString() + Math.random().toString().slice(2);
-        const timeoutHandle = setTimeout(() => {
-            if (_tikzCurrentTask && _tikzCurrentTask.id === id) {
-                _tikzCurrentTask = null;
-                reject(new Error("TikzJax timeout sau 10s"));
-                processNextTikzTask();
-            } else {
-                const idx = _tikzTaskQueue.findIndex(t => t.id === id);
-                if (idx !== -1) {
-                    _tikzTaskQueue.splice(idx, 1);
-                    reject(new Error("TikzJax timeout sau 10s"));
+        await new Promise((resolve, reject) => {
+            const w = new Worker(blobUrl);
+            const initTimeout = setTimeout(() => reject(new Error("TikZJax Worker khởi động quá thời gian")), 15000);
+            w.onmessage = (ev) => {
+                const msg = ev.data;
+                if (!msg) return;
+                if (msg.type === 'init') {
+                    clearTimeout(initTimeout);
+                    _tikzWorker = w;
+                    resolve();
+                } else if (msg.type === 'result' && msg.complete) {
+                    const p = _tikzWorkerPending.get(msg.uid);
+                    if (p) {
+                        _tikzWorkerPending.delete(msg.uid);
+                        p.resolve(msg.payload);
+                    }
+                } else if (msg.type === 'error') {
+                    const p = _tikzWorkerPending.get(msg.uid);
+                    if (p) {
+                        _tikzWorkerPending.delete(msg.uid);
+                        const errMsg = (msg.error && msg.error.message) ? msg.error.message : JSON.stringify(msg.error || 'TikZJax error');
+                        p.reject(new Error(errMsg));
+                    }
                 }
-            }
-        }, 10000);
-
-        _tikzTaskQueue.push({
-            id,
-            code,
-            resolve: (svgString) => {
-                try {
-                    const svgBase64 = btoa(unescape(encodeURIComponent(svgString)));
-                    resolve(`data:image/svg+xml;base64,${svgBase64}`);
-                } catch(e) {
-                    const blob = new Blob([svgString], { type: 'image/svg+xml' });
-                    resolve(URL.createObjectURL(blob));
-                }
-            },
-            reject,
-            timeoutHandle
+            };
+            w.onerror = (err) => {
+                clearTimeout(initTimeout);
+                reject(new Error(err.message || "Lỗi TikZJax Web Worker"));
+            };
         });
 
-        processNextTikzTask();
+        await callTikzWorkerMethod('load', [TIKZJAX_CDN_DIST], 30000);
+        return _tikzWorker;
+    })().catch((err) => {
+        _tikzWorkerInitPromise = null;
+        _tikzWorker = null;
+        throw err;
     });
+    return _tikzWorkerInitPromise;
+};
+
+export const compileTikzLocalViaTikzJax = async (code, options = {}) => {
+    if (!canRenderWithTikzJax(code)) {
+        throw new Error("Mã TikZ chứa gói mở rộng đặc thù (tkz-euclide), tự động chuyển sang server");
+    }
+
+    const runTask = async () => {
+        await initTikzJaxWorker();
+        let cleaned = cleanTikzCode(String(code || ''));
+        const extraLibs = [];
+        cleaned = cleaned.replace(/\\usetikzlibrary\s*\{([^}]*)\}/g, (_, libs) => {
+            extraLibs.push(...libs.split(',').map(s => s.trim()).filter(Boolean));
+            return '';
+        });
+
+        let extraPreambles = '';
+        cleaned = cleaned.replace(/\\tikzset\s*\{([\s\S]*?)\}\s*(?=\\begin\{tikzpicture\})/g, (m) => {
+            extraPreambles += m + '\n';
+            return '';
+        });
+
+        cleaned = cleaned.trim();
+        if (!cleaned.includes('\\begin{tikzpicture}') && !cleaned.includes('\\tikz')) {
+            cleaned = `\\begin{tikzpicture}\n${cleaned}\n\\end{tikzpicture}`;
+        }
+
+        const safeTexBody = convertVietnameseForTikzJax(cleaned);
+        const hasTkzTab = /\\tkzTab/i.test(safeTexBody);
+        const hasPgfPlots = /\\begin\{axis\}|\\addplot/i.test(safeTexBody);
+
+        const pkgList = ['amsmath', 'amssymb', 'amsfonts'];
+        if (hasTkzTab) pkgList.push('tkz-tab');
+        if (hasPgfPlots) pkgList.push('pgfplots');
+
+        const defaultLibs = [
+            'calc', 'arrows', 'arrows.meta', 'angles', 'quotes',
+            'intersections', 'patterns', 'positioning',
+            'shapes', 'shapes.geometric', 'shapes.misc',
+            'decorations', 'decorations.markings', 'decorations.pathreplacing', 'decorations.pathmorphing',
+            'backgrounds', '3d', 'babel'
+        ];
+        const mergedLibs = Array.from(new Set([...defaultLibs, ...extraLibs])).join(',');
+
+        const defaultStyles = "\\tikzset{" +
+            "circle line/.style={draw}," +
+            "construction/.style={draw}," +
+            "marked point/.style={circle, fill, inner sep=1.2pt}," +
+            "point label/.style={}," +
+            "figure label/.style={}," +
+            "line/.style={draw}," +
+            "point/.style={circle, fill, inner sep=1pt}," +
+            "dot/.style={circle, fill, inner sep=1pt}" +
+            "}\n" + extraPreambles;
+
+        const svgString = await callTikzWorkerMethod('texify', [
+            safeTexBody,
+            {
+                texPackages: pkgList.join(','),
+                tikzLibraries: mergedLibs,
+                addToPreamble: defaultStyles
+            }
+        ], 20000);
+
+        if (!svgString || !svgString.includes('<svg')) {
+            throw new Error("TikZJax không trả về dữ liệu SVG hợp lệ");
+        }
+
+        if (options.uploadToR2 !== false) {
+            return await uploadSvgStringToR2(svgString, 'tikzjax');
+        }
+        const svgBase64 = btoa(unescape(encodeURIComponent(svgString)));
+        return `data:image/svg+xml;base64,${svgBase64}`;
+    };
+
+    const nextInQueue = _tikzWorkerQueue.then(runTask, runTask);
+    _tikzWorkerQueue = nextInQueue.catch(() => {});
+    return nextInQueue;
+};
+
+// --- HÀM BIÊN DỊCH BẰNG QUICKLATEX (CLOUD LATEX SERVER MIỄN PHÍ) ---
+export const compileTikzViaQuickLaTeX = async (rawCode, options = {}) => {
+    let cleaned = cleanTikzCode(String(rawCode || ''));
+    const extraLibs = [];
+    cleaned = cleaned.replace(/\\usetikzlibrary\s*\{([^}]*)\}/g, (_, libs) => {
+        extraLibs.push(...libs.split(',').map(s => s.trim()).filter(Boolean));
+        return '';
+    });
+
+    let extraTikzSet = '';
+    cleaned = cleaned.replace(/\\tikzset\s*\{([\s\S]*?)\}\s*(?=\\begin\{tikzpicture\})/g, (m) => {
+        extraTikzSet += m + '\n';
+        return '';
+    });
+
+    cleaned = cleaned.trim();
+    if (!cleaned.includes('\\begin{tikzpicture}') && !cleaned.includes('\\tikz')) {
+        cleaned = `\\begin{tikzpicture}\n${cleaned}\n\\end{tikzpicture}`;
+    }
+
+    const hasVietChars = /[^\x00-\x7F]/.test(cleaned);
+    const hasTkzEuclide = /tkzDef|tkzDraw|tkzMark|tkzLabel|tkzInter|tkzFind|tkz-euclide/i.test(cleaned);
+    const hasTkzTab = /tkzTab|tkz-tab/i.test(cleaned);
+    const hasPgfPlots = /\\begin\{axis\}|\\addplot|pgfplots/i.test(cleaned);
+
+    const preambleLines = [];
+    if (hasVietChars) preambleLines.push('\\usepackage[utf8]{vietnam}');
+    preambleLines.push('\\usepackage{amsmath,amsfonts,amssymb}');
+    const tikzPkgs = ['tikz'];
+    if (hasTkzTab) tikzPkgs.push('tkz-tab');
+    if (hasTkzEuclide) tikzPkgs.push('tkz-euclide');
+    if (hasPgfPlots) tikzPkgs.push('pgfplots');
+    preambleLines.push(`\\usepackage{${tikzPkgs.join(',')}}`);
+    if (hasPgfPlots) preambleLines.push('\\pgfplotsset{compat=newest}');
+
+    const baseLibs = [
+        'calc', 'arrows', 'arrows.meta', 'angles', 'quotes',
+        'intersections', 'patterns', 'positioning', 'shapes', 'shapes.geometric',
+        'decorations.markings', 'decorations.pathreplacing', 'backgrounds'
+    ];
+    const allLibs = Array.from(new Set([...baseLibs, ...extraLibs])).join(',');
+    preambleLines.push(`\\usetikzlibrary{${allLibs}}`);
+    if (extraTikzSet) preambleLines.push(extraTikzSet.trim());
+
+    const preamble = preambleLines.join('\n');
+    const bodyStr = [
+        `formula=${encodeURIComponent(cleaned)}`,
+        `fsize=17px`,
+        `fcolor=000000`,
+        `mode=0`,
+        `out=1`,
+        `remhost=quicklatex.com`,
+        `preamble=${encodeURIComponent(preamble)}`
+    ].join('&');
+
+    const qlTarget = 'https://www.quicklatex.com/latex3.f';
+    const endpoints = [
+        `https://corsmirror.com/v1?url=${encodeURIComponent(qlTarget)}`,
+        qlTarget
+    ];
+
+    let responseText = '';
+    let lastErr = null;
+
+    for (const ep of endpoints) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 25000);
+        try {
+            const resp = await fetch(ep, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: bodyStr,
+                signal: controller.signal
+            });
+            clearTimeout(timer);
+            if (resp.ok) {
+                const txt = await resp.text();
+                if (txt && (txt.trim().startsWith('0') || txt.trim().startsWith('-'))) {
+                    responseText = txt.trim();
+                    break;
+                }
+            }
+        } catch (err) {
+            clearTimeout(timer);
+            lastErr = err;
+        }
+    }
+
+    if (!responseText) {
+        throw new Error(`Không thể kết nối QuickLaTeX (${lastErr ? lastErr.message : 'Timeout'})`);
+    }
+
+    const lines = responseText.split(/\r?\n/);
+    const status = lines[0].trim();
+    const secondLine = (lines[1] || '').trim();
+    const imgUrl = secondLine.split(/\s+/)[0] || '';
+
+    if (status !== '0' || !imgUrl || imgUrl.includes('error.png')) {
+        const errDetail = lines.slice(2).join(' ').trim() || 'Lỗi cú pháp TikZ trên QuickLaTeX';
+        throw new Error(`QuickLaTeX: ${errDetail.substring(0, 220)}`);
+    }
+
+    // Ưu tiên lấy bản vector SVG sắc nét từ QuickLaTeX và lưu lên R2
+    if (options.uploadToR2 !== false) {
+        const svgUrl = imgUrl.replace(/\.png$/i, '.svg');
+        try {
+            const svgResp = await fetch(`https://corsmirror.com/v1?url=${encodeURIComponent(svgUrl)}`);
+            if (svgResp.ok) {
+                const svgText = await svgResp.text();
+                if (svgText && svgText.includes('<svg')) {
+                    return await uploadSvgStringToR2(svgText, 'quicklatex');
+                }
+            }
+        } catch (e) {
+            console.warn('[QuickLaTeX] Không lấy được SVG vector, chuyển sang PNG:', e.message);
+        }
+
+        // Fallback: tải PNG qua weserv (có CORS) và upload lên R2
+        try {
+            const pngResp = await fetch(`https://images.weserv.nl/?url=${encodeURIComponent(imgUrl)}`);
+            if (pngResp.ok) {
+                const pngBlob = await pngResp.blob();
+                const formData = new FormData();
+                formData.append('file', pngBlob, `tikz/quicklatex_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`);
+                const upResp = await fetch(CLOUDFLARE_R2_UPLOAD_URL, { method: 'PUT', body: formData });
+                if (upResp.ok) {
+                    const upData = await upResp.json();
+                    if (upData && upData.url) return upData.url;
+                }
+            }
+        } catch (e) {
+            console.warn('[QuickLaTeX] Không upload được PNG lên R2, dùng URL trực tiếp:', e.message);
+        }
+    }
+
+    return imgUrl;
 };
 
 // --- CÁC HÀM EXPORT HỖ TRỢ ---
@@ -899,46 +1051,68 @@ export const renderTikz = (root = document) => {
     const scripts = root.querySelectorAll ? root.querySelectorAll('script[type="text/tikz"]') : document.querySelectorAll('script[type="text/tikz"]');
     if (!scripts || scripts.length === 0) return;
     
-    const mode = getTikzRenderMode(); // 'vps' (mặc định) hoặc 'tikzjax'
+    const mode = getTikzRenderMode(); // 'vps' (mặc định), 'tikzjax', hoặc 'quicklatex'
 
     scripts.forEach(script => {
         const code = script.textContent;
-        const container = script.parentElement;
+        const cleaned = cleanTikzCode(code);
         
         // Tạo placeholder
         const placeholder = document.createElement('div');
         placeholder.className = 'flex justify-center my-4 overflow-x-auto';
+        script.parentNode.replaceChild(placeholder, script);
         
-        if (mode === 'vps' || !canRenderWithTikzJax(code)) {
-            // Lựa chọn 1: Biên dịch bằng VPS (hoặc bắt buộc VPS do có gói tkz-euclide/pgfplots)
-            placeholder.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình TikZ bằng VPS...</span>';
-            script.parentNode.replaceChild(placeholder, script);
-            
-            compileTikZToImage(cleanTikzCode(code))
+        if (mode === 'quicklatex') {
+            placeholder.innerHTML = '<span class="text-purple-600 dark:text-purple-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình bằng QuickLaTeX...</span>';
+            compileTikzViaQuickLaTeX(cleaned)
                 .then(url => {
                     placeholder.innerHTML = `<img src="${url}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
                 })
                 .catch(err => {
-                    placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình VPS: ${err.message}</span>`;
-                });
-        } else {
-            // Lựa chọn 2: Dùng TikZJax (có cơ chế tự động fallback sang VPS nếu gặp lỗi)
-            placeholder.innerHTML = '<span class="text-sky-600 dark:text-sky-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình TikZJax...</span>';
-            script.parentNode.replaceChild(placeholder, script);
-            
-            compileTikzLocalViaTikzJax(cleanTikzCode(code))
-                .then(url => {
-                    placeholder.innerHTML = `<img src="${url}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
-                })
-                .catch(err => {
-                    console.warn(`[TikZJax] Lỗi render nội bộ: ${err.message}. Đang chuyển tiếp sang VPS...`);
-                    placeholder.innerHTML = '<span class="text-amber-600 dark:text-amber-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>TikZJax chuyển tiếp sang VPS...</span>';
-                    return compileTikZToImage(cleanTikzCode(code))
+                    console.warn(`[QuickLaTeX] Lỗi render: ${err.message}. Chuyển tiếp sang VPS...`);
+                    placeholder.innerHTML = '<span class="text-amber-600 dark:text-amber-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>QuickLaTeX chuyển tiếp sang VPS...</span>';
+                    return compileTikZToImage(cleaned)
                         .then(vpsUrl => {
                             placeholder.innerHTML = `<img src="${vpsUrl}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
                         })
                         .catch(vpsErr => {
                             placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình: ${vpsErr.message}</span>`;
+                        });
+                });
+        } else if (mode === 'tikzjax' && canRenderWithTikzJax(code)) {
+            // Dùng TikZJax (có cơ chế tự động fallback sang QuickLaTeX rồi VPS nếu gặp lỗi)
+            placeholder.innerHTML = '<span class="text-sky-600 dark:text-sky-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình TikZJax...</span>';
+            compileTikzLocalViaTikzJax(cleaned)
+                .then(url => {
+                    placeholder.innerHTML = `<img src="${url}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
+                })
+                .catch(err => {
+                    console.warn(`[TikZJax] Lỗi render nội bộ: ${err.message}. Đang chuyển tiếp sang QuickLaTeX / VPS...`);
+                    placeholder.innerHTML = '<span class="text-amber-600 dark:text-amber-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>TikZJax chuyển tiếp sang QuickLaTeX...</span>';
+                    return compileTikzViaQuickLaTeX(cleaned)
+                        .catch(() => compileTikZToImage(cleaned))
+                        .then(fallbackUrl => {
+                            placeholder.innerHTML = `<img src="${fallbackUrl}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
+                        })
+                        .catch(vpsErr => {
+                            placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình: ${vpsErr.message}</span>`;
+                        });
+                });
+        } else {
+            // Lựa chọn 1: Biên dịch bằng VPS (hoặc bắt buộc do gói tkz-euclide)
+            placeholder.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i>Đang vẽ hình TikZ bằng VPS...</span>';
+            compileTikZToImage(cleaned)
+                .then(url => {
+                    placeholder.innerHTML = `<img src="${url}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
+                })
+                .catch(err => {
+                    console.warn(`[VPS] Lỗi render: ${err.message}. Chuyển tiếp sang QuickLaTeX...`);
+                    return compileTikzViaQuickLaTeX(cleaned)
+                        .then(qlUrl => {
+                            placeholder.innerHTML = `<img src="${qlUrl}" class="rounded-lg shadow-sm max-h-[300px] object-contain mx-auto w-full md:w-auto" loading="lazy">`;
+                        })
+                        .catch(() => {
+                            placeholder.innerHTML = `<span class="text-rose-500 italic text-xs">Lỗi vẽ hình VPS: ${err.message}</span>`;
                         });
                 });
         }
@@ -1089,6 +1263,8 @@ if (typeof window !== 'undefined') {
     window.compileTikZToImage = compileTikZToImage;
     window.compileTikZBatch = compileTikZBatch;
     window.compileTikzLocalViaTikzJax = compileTikzLocalViaTikzJax;
+    window.compileTikzViaQuickLaTeX = compileTikzViaQuickLaTeX;
+    window.uploadSvgStringToR2 = uploadSvgStringToR2;
     window.canRenderWithTikzJax = canRenderWithTikzJax;
     window.getTikzRenderMode = getTikzRenderMode;
     window.setTikzRenderMode = setTikzRenderMode;

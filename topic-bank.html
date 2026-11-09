@@ -148,7 +148,7 @@
                     </div>
                 </div>
 
-                <!-- Cấu hình Công nghệ Biên dịch TikZ (2 Lựa chọn: VPS hoặc TikZJax) -->
+                <!-- Cấu hình Công nghệ Biên dịch TikZ (3 Lựa chọn: VPS, TikZJax hoặc QuickLaTeX) -->
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mt-4">
                     <label class="block text-sm font-bold text-gray-800 mb-2.5">Công nghệ Biên dịch Hình vẽ TikZ</label>
                     <div class="space-y-2 mb-3">
@@ -163,10 +163,20 @@
                             <input type="radio" name="topicTikzEngineChoice" value="tikzjax" id="topicRadioTikzJax" class="mt-0.5 text-brand" onchange="window.handleTopicTikzEngineChange('tikzjax')">
                             <div>
                                 <div class="flex items-center gap-1.5">
-                                    <span class="text-xs font-bold text-gray-800 block">⚡ Lựa chọn 2: Dùng TikZJax (Web Client - Đang phát triển)</span>
-                                    <span class="text-[9px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.5 rounded">Beta</span>
+                                    <span class="text-xs font-bold text-gray-800 block">⚡ Lựa chọn 2: Dùng TikZJax (WebAssembly trên trình duyệt)</span>
+                                    <span class="text-[9px] bg-amber-100 text-amber-800 font-extrabold px-1.5 py-0.5 rounded">WebAssembly</span>
                                 </div>
-                                <span class="text-[11px] text-gray-500 block leading-tight mt-0.5">Vẽ trực tiếp hình TikZ thuần trên trình duyệt của học sinh (nhẹ, không chờ server). Tự động chuyển VPS cho hình phức tạp (tkz-euclide, bảng biến thiên).</span>
+                                <span class="text-[11px] text-gray-500 block leading-tight mt-0.5">Biên dịch hình vẽ ngay trên trình duyệt bằng WebAssembly (hỗ trợ cả tkz-tab, pgfplots, tiếng Việt) và tải lên R2. Tự động chuyển QuickLaTeX / VPS nếu gặp gói phức tạp.</span>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-gray-100/70 cursor-pointer transition shadow-xs">
+                            <input type="radio" name="topicTikzEngineChoice" value="quicklatex" id="topicRadioTikzQuickLatex" class="mt-0.5 text-brand" onchange="window.handleTopicTikzEngineChange('quicklatex')">
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs font-bold text-gray-800 block">☁️ Lựa chọn 3: Dùng QuickLaTeX (Cloud LaTeX Miễn phí)</span>
+                                    <span class="text-[9px] bg-purple-100 text-purple-800 font-extrabold px-1.5 py-0.5 rounded">Cloud SVG</span>
+                                </div>
+                                <span class="text-[11px] text-gray-500 block leading-tight mt-0.5">Biên dịch qua đám mây QuickLaTeX miễn phí (hỗ trợ đầy đủ tkz-tab, tkz-euclide, pgfplots, tiếng Việt UTF-8) và tự động lưu ảnh SVG lên Cloudflare R2.</span>
                             </div>
                         </label>
                     </div>
@@ -254,8 +264,10 @@
             const engineMode = localStorage.getItem('tikzRenderMode') || 'vps';
             const rVps = document.getElementById('topicRadioTikzVps');
             const rTikzJax = document.getElementById('topicRadioTikzJax');
+            const rQuickLatex = document.getElementById('topicRadioTikzQuickLatex');
             if (rVps && rTikzJax) {
                 if (engineMode === 'tikzjax') rTikzJax.checked = true;
+                else if (engineMode === 'quicklatex' && rQuickLatex) rQuickLatex.checked = true;
                 else rVps.checked = true;
             }
 

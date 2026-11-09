@@ -1,5 +1,5 @@
 // topic-parser.js - Parser cấu trúc LaTeX cho Kho Chuyên Đề
-import { compileTikZToImage, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode } from './utils.js?v=20261011-v2';
+import { compileTikZToImage, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode } from './utils.js?v=20261109-v3';
 
 // Cloudflare Upload Endpoint (Từ exam-editor.html)
 const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
@@ -249,21 +249,21 @@ export async function parseTopicFromTex(texFiles, imgFiles, updateProgressCallba
         
         resultStr = parseImmini(resultStr);
         
-        // 4.1. TikZ (Phân loại theo Lựa chọn 1: VPS vs Lựa chọn 2: TikZJax)
+        // 4.1. TikZ (Phân loại theo Lựa chọn 1: VPS, Lựa chọn 2: TikZJax, Lựa chọn 3: QuickLaTeX)
         const tikzRegex = /\\begin\{tikzpicture\}([\s\S]*?)\\end\{tikzpicture\}/g;
         const currentMode = getTikzRenderMode ? getTikzRenderMode() : 'vps';
 
         resultStr = resultStr.replace(tikzRegex, (match) => {
-            const isPure = canRenderWithTikzJax ? canRenderWithTikzJax(match) : !match.includes('tkz');
+            let marker = `___IMG_MARKER_${imgCounter++}___`;
+            const isPure = canRenderWithTikzJax ? canRenderWithTikzJax(match) : !match.includes('tkz-euclide');
+            let taskType = 'tikz_vps';
             if (currentMode === 'tikzjax' && isPure) {
-                // Lựa chọn 2: Dùng TikZJax cho mã TikZ thuần (render trực tiếp trên client)
-                return `\n<script type="text/tikz">\n${match}\n</script>\n`;
-            } else {
-                // Lựa chọn 1: Biên dịch bằng VPS (hoặc hình phức tạp tkz-euclide)
-                let marker = `___IMG_MARKER_${imgCounter++}___`;
-                imageTasks.push({ id: marker, type: 'tikz_vps', content: match });
-                return marker;
+                taskType = 'tikz_tikzjax';
+            } else if (currentMode === 'tikzjax' || currentMode === 'quicklatex') {
+                taskType = 'tikz_quicklatex';
             }
+            imageTasks.push({ id: marker, type: taskType, content: match });
+            return marker;
         });
 
         // 4.2. Includegraphics
@@ -316,18 +316,43 @@ export async function parseTopicFromTex(texFiles, imgFiles, updateProgressCallba
                 while (retries < 3 && !success) {
                     try {
                         let url = "";
-                        if (task.type === 'tikz_vps') {
+                        if (task.type === 'tikz_tikzjax' || task.type === 'tikz_quicklatex' || task.type === 'tikz_vps') {
                             const hash = await hashString(task.content);
                             if (tikzCache[hash]) {
                                 url = tikzCache[hash];
                             } else {
                                 let cleaned = cleanTikzCode(task.content);
-                                url = await compileTikZToImage(cleaned);
-                                if (url && !url.includes('Image+Error')) {
+                                if (task.type === 'tikz_tikzjax') {
+                                    try {
+                                        url = await compileTikzLocalViaTikzJax(cleaned);
+                                    } catch (tjErr) {
+                                        console.warn(`[Topic TikZJax] Lỗi (${tjErr.message}), chuyển sang QuickLaTeX / VPS...`);
+                                        try {
+                                            url = await compileTikzViaQuickLaTeX(cleaned);
+                                        } catch {
+                                            url = await compileTikZToImage(cleaned);
+                                        }
+                                    }
+                                } else if (task.type === 'tikz_quicklatex') {
+                                    try {
+                                        url = await compileTikzViaQuickLaTeX(cleaned);
+                                    } catch (qlErr) {
+                                        console.warn(`[Topic QuickLaTeX] Lỗi (${qlErr.message}), chuyển sang VPS...`);
+                                        url = await compileTikZToImage(cleaned);
+                                    }
+                                    await new Promise(r => setTimeout(r, 250));
+                                } else {
+                                    try {
+                                        url = await compileTikZToImage(cleaned);
+                                    } catch (vpsErr) {
+                                        console.warn(`[Topic VPS] Lỗi (${vpsErr.message}), chuyển sang QuickLaTeX...`);
+                                        url = await compileTikzViaQuickLaTeX(cleaned);
+                                    }
+                                    await new Promise(r => setTimeout(r, 500));
+                                }
+                                if (url && !url.includes('Image+Error') && !url.startsWith('data:')) {
                                     tikzCache[hash] = url;
                                 }
-                                // Nghỉ 500ms sau mỗi lần gọi VPS thành công để nó kịp xả RAM
-                                await new Promise(r => setTimeout(r, 500));
                             }
                         } else if (task.type === 'file') {
                             let fName = `topic_${Date.now()}_${task.fileObj.name}`;

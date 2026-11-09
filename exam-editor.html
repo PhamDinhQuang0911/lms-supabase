@@ -2059,13 +2059,15 @@ getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs,
 getStorage, ref, uploadBytes, getDownloadURL,
 supabase
 } from "./supabase-db-compat.js?v=25";
-import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, canRenderWithTikzJax, getTikzRenderMode, setTikzRenderMode, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, renderTikz } from "./utils.js?v=20261011-v2";
+import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, getTikzRenderMode, setTikzRenderMode, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, renderTikz } from "./utils.js?v=20261109-v3";
 import { readCache, writeCache } from "./perf-cache.js";
 window.formatContent = formatContent;
 window.autoScaleTables = autoScaleTables;
 window.convertArrayToMatrix = convertArrayToMatrix;
 window.renderTikz = renderTikz;
 window.canRenderWithTikzJax = canRenderWithTikzJax;
+window.compileTikzLocalViaTikzJax = compileTikzLocalViaTikzJax;
+window.compileTikzViaQuickLaTeX = compileTikzViaQuickLaTeX;
 window.getTikzRenderMode = getTikzRenderMode;
 window.setTikzRenderMode = setTikzRenderMode;
 const app = initializeApp({});
@@ -3931,13 +3933,16 @@ const total = rawQueue.length;
 let finishedCount = 0;
 const engineMode = forcedEngine || (window.getTikzRenderMode ? window.getTikzRenderMode() : localStorage.getItem('tikzRenderMode')) || 'vps';
 const useTikzJax = (engineMode === 'tikzjax');
+const useQuickLaTeX = (engineMode === 'quicklatex');
 const vpsMode = localStorage.getItem('tikzVpsMode') || 'personal';
 const engineIndicator = document.getElementById('compileEngineText');
 const updateIndicator = (text) => {
 if (engineIndicator) engineIndicator.innerText = text;
 };
 updateIndicator(useTikzJax
-? "⚡ Đang xử lý bằng TikZJax (Client Web)..."
+? "⚡ Đang xử lý bằng TikZJax (Client WebAssembly)..."
+: useQuickLaTeX
+? "☁️ Đang xử lý bằng QuickLaTeX (Cloud LaTeX)..."
 : "🚀 Đang gửi sang VPS Batching siêu tốc...");
 const updateUI = () => {
 const pct = total > 0 ? Math.round((finishedCount / total) * 100) : 100;
@@ -3977,16 +3982,19 @@ finishedCount++;
 updateUI();
 };
 let localQueue = [];
+let quicklatexQueue = [];
 let vpsQueue = [];
 if (useTikzJax) {
 rawQueue.forEach(item => {
-const isPureTikz = window.canRenderWithTikzJax ? window.canRenderWithTikzJax(item.contentCode) : !item.contentCode.includes('tkz');
+const isPureTikz = window.canRenderWithTikzJax ? window.canRenderWithTikzJax(item.contentCode) : !item.contentCode.includes('tkz-euclide');
 if (isPureTikz) {
 localQueue.push(item);
 } else {
-vpsQueue.push(item);
+quicklatexQueue.push(item);
 }
 });
+} else if (useQuickLaTeX) {
+quicklatexQueue = [...rawQueue];
 } else {
 vpsQueue = [...rawQueue];
 }
@@ -3995,7 +4003,7 @@ updateIndicator(`⚡ Đang vẽ ${localQueue.length} hình TikZJax trên trình 
 let consecutiveFailures = 0;
 const runLocalWorker = async () => {
 while (localQueue.length > 0) {
-if (consecutiveFailures >= 4) {
+if (consecutiveFailures >= 6) {
 break;
 }
 const item = localQueue.shift();
@@ -4005,17 +4013,45 @@ const url = await compileTikzLocalViaTikzJax(item.contentCode);
 processSuccessItem(item, url);
 consecutiveFailures = 0;
 } catch(e) {
-console.warn(`[TikZJax] Câu ${item.questionIdx + 1} lỗi WebAssembly: ${e.message}. Chuyển vào hàng đợi VPS Batch.`);
+console.warn(`[TikZJax] Câu ${item.questionIdx + 1} lỗi WebAssembly: ${e.message}. Chuyển sang QuickLaTeX / VPS.`);
 consecutiveFailures++;
-vpsQueue.push(item);
+quicklatexQueue.push(item);
 }
 }
 };
 await Promise.all([runLocalWorker(), runLocalWorker()]);
 if (localQueue.length > 0) {
-console.warn(`[TikZJax Circuit Breaker] Chuyển ${localQueue.length} hình còn lại sang VPS Batching siêu tốc!`);
-vpsQueue.push(...localQueue);
+console.warn(`[TikZJax Circuit Breaker] Chuyển ${localQueue.length} hình còn lại sang QuickLaTeX / VPS!`);
+quicklatexQueue.push(...localQueue);
 localQueue.length = 0;
+}
+}
+if (quicklatexQueue.length > 0) {
+updateIndicator(`☁️ Đang biên dịch ${quicklatexQueue.length} hình bằng QuickLaTeX...`);
+let qlConsecutiveFailures = 0;
+const runQuickLaTeXWorker = async (workerId) => {
+while (quicklatexQueue.length > 0) {
+if (qlConsecutiveFailures >= 6) {
+break;
+}
+const item = quicklatexQueue.shift();
+try {
+console.log(`[QuickLaTeX ${workerId}] Đang xử lý câu ${item.questionIdx + 1}...`);
+const url = await compileTikzViaQuickLaTeX(item.contentCode);
+processSuccessItem(item, url);
+qlConsecutiveFailures = 0;
+} catch(e) {
+console.warn(`[QuickLaTeX ${workerId}] Câu ${item.questionIdx + 1} lỗi: ${e.message}. Chuyển tiếp sang VPS.`);
+qlConsecutiveFailures++;
+vpsQueue.push(item);
+}
+await new Promise(r => setTimeout(r, 200));
+}
+};
+await Promise.all([runQuickLaTeXWorker(1), runQuickLaTeXWorker(2), runQuickLaTeXWorker(3)]);
+if (quicklatexQueue.length > 0) {
+vpsQueue.push(...quicklatexQueue);
+quicklatexQueue.length = 0;
 }
 }
 if (vpsQueue.length > 0) {
@@ -10546,8 +10582,13 @@ btn.disabled = false;
         <div class="p-2.5 bg-slate-50 overflow-y-auto flex-1">
             <div id="missingImagesGrid" class="grid grid-cols-4 gap-1.5"></div>
         </div>
-        <div class="p-1.5 bg-white text-xs text-center text-slate-500 border-t border-slate-100">
-            Bấm vào số để đến vị trí ảnh
+        <div class="p-1.5 bg-white text-[11px] text-center text-slate-500 border-t border-slate-100 space-y-1.5">
+            <div>Bấm số để xem • Đúp chuột tải ảnh</div>
+            <div class="grid grid-cols-3 gap-1 pt-0.5">
+                <button type="button" onclick="window.handleAutoCompileAll('vps')" class="px-1.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded font-bold text-[10px] cursor-pointer" title="Biên dịch các hình còn thiếu bằng VPS">VPS</button>
+                <button type="button" onclick="window.handleAutoCompileAll('tikzjax')" class="px-1.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded font-bold text-[10px] cursor-pointer" title="Biên dịch các hình còn thiếu bằng TikZJax">TikZJax</button>
+                <button type="button" onclick="window.handleAutoCompileAll('quicklatex')" class="px-1.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded font-bold text-[10px] cursor-pointer" title="Biên dịch các hình còn thiếu bằng QuickLaTeX">QuickLaTeX</button>
+            </div>
         </div>
     </div>
     
@@ -11110,7 +11151,7 @@ window.loadQuestionToEditor(window.questions.length - 1);
 </script>
 
     <div id="importModeModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[150] flex items-center justify-center bg-gray-900 bg-opacity-70 px-4">
-        <div class="bg-white rounded-2xl w-full max-w-3xl md:max-w-4xl shadow-2xl transform scale-95 transition-all duration-300 flex flex-col max-h-[92vh] overflow-hidden">
+        <div class="bg-white rounded-2xl w-full max-w-3xl md:max-w-5xl shadow-2xl transform scale-95 transition-all duration-300 flex flex-col max-h-[92vh] overflow-hidden">
             
             <div class="px-6 pt-5 pb-3 text-center border-b border-slate-200 relative shrink-0 bg-white">
                 <button type="button" onclick="window.handleManualImport()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition cursor-pointer" title="Đóng">
@@ -11126,9 +11167,9 @@ window.loadQuestionToEditor(window.questions.length - 1);
             
             <div class="overflow-y-auto px-6 py-5 space-y-4 flex-1">
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                     
-                    <button type="button" onclick="window.handleAutoCompileAll('vps')" class="group relative p-4 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 rounded-xl hover:shadow-xs transition-all text-left flex flex-col justify-between cursor-pointer">
+                    <button type="button" onclick="window.handleAutoCompileAll('vps')" class="group relative p-4 border border-slate-200 hover:border-blue-400 bg-white hover:bg-blue-50/30 rounded-xl hover:shadow-xs transition-all text-left flex flex-col justify-between cursor-pointer">
                         <div>
                             <div class="flex items-center justify-between gap-2 mb-2.5">
                                 <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center font-bold text-sm shadow-xs group-hover:scale-105 transition-transform">
@@ -11145,19 +11186,36 @@ window.loadQuestionToEditor(window.questions.length - 1);
                     </button>
 
                     
-                    <button type="button" onclick="window.handleAutoCompileAll('tikzjax')" class="group relative p-4 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 rounded-xl hover:shadow-xs transition-all text-left flex flex-col justify-between cursor-pointer">
+                    <button type="button" onclick="window.handleAutoCompileAll('tikzjax')" class="group relative p-4 border border-slate-200 hover:border-amber-400 bg-white hover:bg-amber-50/30 rounded-xl hover:shadow-xs transition-all text-left flex flex-col justify-between cursor-pointer">
                         <div>
                             <div class="flex items-center justify-between gap-2 mb-2.5">
-                                <span class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-sm shadow-xs group-hover:scale-105 transition-transform">
+                                <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center font-bold text-sm shadow-xs group-hover:scale-105 transition-transform">
                                     <i class="fa-solid fa-bolt"></i>
                                 </span>
-                                <span class="text-xs bg-amber-50 text-amber-800 border border-amber-200 font-bold px-2 py-0.5 rounded-full">Beta Siêu Tốc</span>
+                                <span class="text-xs bg-amber-50 text-amber-800 border border-amber-200 font-bold px-2 py-0.5 rounded-full">WebAssembly</span>
                             </div>
                             <span class="font-bold text-slate-900 text-sm block">2. Dùng TikZJax (Web)</span>
-                            <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">Vẽ trực tiếp trên trình duyệt bằng WebAssembly, siêu nhanh cho TikZ thuần. Hình phức tạp (tkz-euclide) tự động chuyển sang VPS.</p>
+                            <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">Vẽ trực tiếp trên trình duyệt bằng WebAssembly (hỗ trợ cả tkz-tab, pgfplots, tiếng Việt) và lưu lên R2. Tự động fallback nếu gặp gói lạ.</p>
                         </div>
-                        <div class="mt-3.5 pt-2.5 border-t border-slate-100 text-xs font-bold text-blue-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                        <div class="mt-3.5 pt-2.5 border-t border-slate-100 text-xs font-bold text-amber-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                             Biên dịch bằng TikZJax <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </div>
+                    </button>
+
+                    
+                    <button type="button" onclick="window.handleAutoCompileAll('quicklatex')" class="group relative p-4 border border-slate-200 hover:border-purple-400 bg-white hover:bg-purple-50/30 rounded-xl hover:shadow-xs transition-all text-left flex flex-col justify-between cursor-pointer">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-2.5">
+                                <span class="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center font-bold text-sm shadow-xs group-hover:scale-105 transition-transform">
+                                    <i class="fa-solid fa-cloud-bolt"></i>
+                                </span>
+                                <span class="text-xs bg-purple-50 text-purple-800 border border-purple-200 font-bold px-2 py-0.5 rounded-full">Cloud Miễn Phí</span>
+                            </div>
+                            <span class="font-bold text-slate-900 text-sm block">3. Dùng QuickLaTeX</span>
+                            <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">Biên dịch qua đám mây QuickLaTeX miễn phí (hỗ trợ đầy đủ tkz-tab, tkz-euclide, pgfplots, tiếng Việt UTF-8) và tự động lưu ảnh SVG lên R2.</p>
+                        </div>
+                        <div class="mt-3.5 pt-2.5 border-t border-slate-100 text-xs font-bold text-purple-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                            Biên dịch QuickLaTeX <i class="fa-solid fa-arrow-right text-xs"></i>
                         </div>
                     </button>
 
@@ -11170,7 +11228,7 @@ window.loadQuestionToEditor(window.questions.length - 1);
                                 </span>
                                 <span class="text-xs bg-slate-100 text-slate-700 border border-slate-200 font-bold px-2 py-0.5 rounded-full">Tự dán</span>
                             </div>
-                            <span class="font-bold text-slate-800 text-sm block">3. Thủ công</span>
+                            <span class="font-bold text-slate-800 text-sm block">4. Thủ công</span>
                             <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">Giữ nguyên các khung ô chờ ảnh trong đề. Bạn có thể tự dán ảnh (Ctrl+V) hoặc chọn file từ máy tính để tải lên sau.</p>
                         </div>
                         <div class="mt-3.5 pt-2.5 border-t border-slate-100 text-xs font-bold text-slate-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">

@@ -1,4 +1,4 @@
-import { compileTikZToImage, compileTikZBatch, cleanTikzCode } from "./utils.js";
+import { compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, cleanTikzCode } from "./utils.js?v=20261109-v3";
 
 export const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
 
@@ -1174,9 +1174,11 @@ function showEditorPane() {
                                         <div class="text-xs text-gray-500">ID: ${item.id}</div>
                                     </div>
                                 </div>
-                                <div>
+                                <div class="flex flex-wrap gap-1.5">
                                     ${item.type === 'tikz' ? 
-                                        `<button onclick="window.processAllTikz()" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition">Biên dịch qua VPS</button>`
+                                        `<button onclick="window.processAllTikz('vps')" class="px-2.5 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition">VPS</button>
+                                         <button onclick="window.processAllTikz('tikzjax')" class="px-2.5 py-1.5 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 transition">TikZJax</button>
+                                         <button onclick="window.processAllTikz('quicklatex')" class="px-2.5 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 transition">QuickLaTeX</button>`
                                         :
                                         `<input type="file" id="upload-${item.id}" class="hidden" accept="image/*" onchange="window.uploadNormalImage('${item.id}')"><label for="upload-${item.id}" class="cursor-pointer px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded-lg hover:bg-teal-700 transition">Tải ảnh lên</label>`
                                     }
@@ -1184,9 +1186,15 @@ function showEditorPane() {
                             </div>
                         `).join('')}
                     </div>
-                    <div class="mt-5 pt-4 border-t border-yellow-200/60 flex flex-wrap gap-2 justify-between">
+                    <div class="mt-5 pt-4 border-t border-yellow-200/60 flex flex-wrap gap-2 justify-between items-center">
                         ${pendingList.some(i => i.type === 'normal') ? `<label class="cursor-pointer px-4 py-2 bg-teal-600 text-white text-sm font-bold rounded-lg hover:bg-teal-700 shadow-md transition"><i class="fa-solid fa-folder-open mr-2"></i> Tải lên Thư mục Ảnh (Tự nhận diện)<input type="file" webkitdirectory directory multiple class="hidden" onchange="window.uploadImageFolder(event)"></label>` : '<div></div>'}
-                        ${pendingList.some(i => i.type === 'tikz') ? `<button onclick="window.processAllTikz()" class="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 shadow-md transition"><i class="fa-solid fa-microchip mr-2"></i>Biên dịch tất cả TikZ</button>` : ''}
+                        ${pendingList.some(i => i.type === 'tikz') ? `
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="window.processAllTikz('vps')" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 shadow-md transition"><i class="fa-solid fa-server mr-1.5"></i>Biên dịch bằng VPS</button>
+                                <button onclick="window.processAllTikz('tikzjax')" class="px-4 py-2 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 shadow-md transition"><i class="fa-solid fa-bolt mr-1.5"></i>Dùng TikZJax (Web)</button>
+                                <button onclick="window.processAllTikz('quicklatex')" class="px-4 py-2 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 shadow-md transition"><i class="fa-solid fa-cloud-bolt mr-1.5"></i>Dùng QuickLaTeX</button>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -1347,8 +1355,8 @@ function replacePlaceholderById(itemId, imgHtml, lesson) {
     traverse(lesson);
 }
 
-// --- HÀM XỬ LÝ TẤT CẢ TikZ (SMART RETRY + BẢNG KẾT QUẢ) ---
-window.processAllTikz = async function() {
+// --- HÀM XỬ LÝ TẤT CẢ TikZ (SMART RETRY + BẢNG KẾT QUẢ + HỖ TRỢ VPS / TIKZJAX / QUICKLATEX) ---
+window.processAllTikz = async function(forcedEngine = null) {
     if(!window.currentNodeIndex || !window.currentBookData) return;
     const {cIdx, lIdx} = window.currentNodeIndex;
     const lesson = window.currentBookData.chapters[cIdx].lessons[lIdx];
@@ -1359,6 +1367,8 @@ window.processAllTikz = async function() {
         showToast('Không có hình TikZ nào cần biên dịch!', 'info');
         return;
     }
+    const engineMode = forcedEngine || localStorage.getItem('tikzRenderMode') || 'vps';
+    if (forcedEngine) localStorage.setItem('tikzRenderMode', forcedEngine);
     
     const total = rawQueue.length;
     let finishedCount = 0;
@@ -1461,14 +1471,15 @@ window.processAllTikz = async function() {
             for (let attempt = 0; attempt < 3; attempt++) {
                 try {
                     console.log(`[Single-${workerId}] Thử ${attempt+1}/3 hình ${item.id}...`);
-                    // Nếu code quá dài (>8KB), nén bằng cleanTikzCode tích cực
                     let code = cleanTikzCode(item.contentCode);
-                    const url = await compileTikZToImage(code);
+                    const url = attempt < 2
+                        ? await compileTikZToImage(code)
+                        : await compileTikzViaQuickLaTeX(code);
                     processSuccessItem(item, url);
                     succeeded = true;
                     break;
                 } catch(e) {
-                    if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+                    if (attempt < 2) await new Promise(r => setTimeout(r, 1500));
                 }
             }
             if (!succeeded) processFailItem(item, '(vẫn lỗi sau 3 lần thử)');
@@ -1476,7 +1487,57 @@ window.processAllTikz = async function() {
         }
     };
     
-    // ---- Gửi batch với retry thông minh ----
+    let vpsQueue = [];
+    let localQueue = [];
+    let quicklatexQueue = [];
+
+    if (engineMode === 'tikzjax') {
+        rawQueue.forEach(item => {
+            if (canRenderWithTikzJax(item.contentCode)) localQueue.push(item);
+            else quicklatexQueue.push(item);
+        });
+    } else if (engineMode === 'quicklatex') {
+        quicklatexQueue = [...rawQueue];
+    } else {
+        vpsQueue = [...rawQueue];
+    }
+
+    if (localQueue.length > 0) {
+        showProgress(`TikZJax: ${finishedCount}/${total}`);
+        const runTjWorker = async () => {
+            while (localQueue.length > 0) {
+                const item = localQueue.shift();
+                try {
+                    const url = await compileTikzLocalViaTikzJax(cleanTikzCode(item.contentCode));
+                    processSuccessItem(item, url);
+                } catch (e) {
+                    console.warn(`[Book TikZJax] Lỗi ${item.id}: ${e.message} -> chuyển QuickLaTeX`);
+                    quicklatexQueue.push(item);
+                }
+            }
+        };
+        await Promise.all([runTjWorker(), runTjWorker()]);
+    }
+
+    if (quicklatexQueue.length > 0) {
+        showProgress(`QuickLaTeX: ${finishedCount}/${total}`);
+        const runQlWorker = async () => {
+            while (quicklatexQueue.length > 0) {
+                const item = quicklatexQueue.shift();
+                try {
+                    const url = await compileTikzViaQuickLaTeX(cleanTikzCode(item.contentCode));
+                    processSuccessItem(item, url);
+                } catch (e) {
+                    console.warn(`[Book QuickLaTeX] Lỗi ${item.id}: ${e.message} -> chuyển VPS`);
+                    vpsQueue.push(item);
+                }
+                await new Promise(r => setTimeout(r, 200));
+            }
+        };
+        await Promise.all([runQlWorker(), runQlWorker(), runQlWorker()]);
+    }
+
+    // ---- Gửi batch VPS với retry thông minh ----
     // Cấp 1: Batch 20 hình → nếu lỗi → Cấp 2: Chia 4 sub-batch nhỏ → nếu vẫn lỗi → Cấp 3: single
     const singleFallbackQueue = [];
     
@@ -1515,23 +1576,25 @@ window.processAllTikz = async function() {
     };
     
     // Chia thành các chunk 20 hình, chạy 4 batch workers song song
-    const CHUNK_SIZE = 20;
-    const chunks = [];
-    for (let i = 0; i < rawQueue.length; i += CHUNK_SIZE) {
-        chunks.push(rawQueue.slice(i, i + CHUNK_SIZE));
+    if (vpsQueue.length > 0) {
+        const CHUNK_SIZE = 20;
+        const chunks = [];
+        for (let i = 0; i < vpsQueue.length; i += CHUNK_SIZE) {
+            chunks.push(vpsQueue.slice(i, i + CHUNK_SIZE));
+        }
+        
+        let chunkIndex = 0;
+        const batchWorkerPromises = [];
+        for (let w = 1; w <= 4; w++) {
+            batchWorkerPromises.push((async () => {
+                while (chunkIndex < chunks.length) {
+                    const idx = chunkIndex++;
+                    if (chunks[idx]) await sendBatchWithSubRetry(chunks[idx], w);
+                }
+            })());
+        }
+        await Promise.all(batchWorkerPromises);
     }
-    
-    let chunkIndex = 0;
-    const batchWorkerPromises = [];
-    for (let w = 1; w <= 4; w++) {
-        batchWorkerPromises.push((async () => {
-            while (chunkIndex < chunks.length) {
-                const idx = chunkIndex++;
-                if (chunks[idx]) await sendBatchWithSubRetry(chunks[idx], w);
-            }
-        })());
-    }
-    await Promise.all(batchWorkerPromises);
     
     // Cấp 3: Single workers cho những hình không qua được cả 2 cấp trên
     if (singleFallbackQueue.length > 0) {

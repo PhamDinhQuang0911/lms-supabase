@@ -14,7 +14,7 @@
  * (network-first) nhÆ°ng nÃªn tÄƒng khi Ä‘á»•i styles.css/utils.js Ä‘á»ƒ cháº¯c cháº¯n.
  */
 
-const VERSION = 'qmath-v145-solo-ai-bot';
+const VERSION = 'qmath-v146-tikzjax-quicklatex';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const CDN_CACHE = `${VERSION}-cdn`;
@@ -30,6 +30,9 @@ const NEVER_CACHE_HOSTS = [
   'workers.dev',
   'api.qmath.io.vn',
   'compile.qmath.io.vn',
+  'quicklatex.com',
+  'corsmirror.com',
+  'codetabs.com',
 ];
 
 // CDN tÄ©nh cho phÃ©p cache
