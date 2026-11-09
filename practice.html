@@ -14,6 +14,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180.png">
     <link rel="icon" type="image/png" href="/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-title" content="Toán Thầy Choang">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
@@ -3224,7 +3225,7 @@ window.enterMobaRoomUI = function(pin, pid, isHost) {
   });
 };
 
-window.onMobaRoomSnapshot = function(roomDoc) {
+window.onMobaRoomSnapshot = async function(roomDoc) {
   const active = window.activeMobaRoom;
   if (!active) return;
   if (!roomDoc || !roomDoc.meta) {
@@ -3416,7 +3417,6 @@ window.onMobaRoomSnapshot = function(roomDoc) {
   window.renderMobaWinnerPodium(roomDoc);
 
   // Tự động vào trận khi Chủ phòng bấm Bắt đầu (status === 'playing' & roundId mới)
-  const roundId = roomDoc.state?.roundId || (meta.status === 'playing' ? 'R_ACTIVE' : null);
   if (meta.status === 'playing' && roundId && window._lastLaunchedRoundId !== roundId) {
     const openTime = Number(meta.openTime) || 0;
     if (!openTime || Date.now() >= openTime) {
