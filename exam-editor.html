@@ -102,6 +102,7 @@ startup: { typeset: false }
     <script src="question-importer.js?v=20261016_V5"></script>
     <script src="word-mathtype-exporter.js?v=20261016_V5"></script>
     <script src="exam-mixer.js?v=20261017_V3"></script>
+    <script src="imath-studio.js?v=20261110-v1" defer></script>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
@@ -3492,6 +3493,7 @@ ${cccdBadgeHtml}
 <input type="text" id="editMapId" class="w-28 px-2 py-0.5 bg-white border border-slate-200 rounded font-mono font-bold text-blue-700 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none" value="${q.mapId || ''}" placeholder="VD: 9D1H2-4" oninput="autoSaveMemory(); if(typeof renderPreviewList==='function') renderPreviewList();">
 <button type="button" onclick="window.assignSingleQuestionMapIdAi(${index}, '${listType}')" class="px-2 py-1 ml-1 text-slate-600 hover:text-blue-600 hover:bg-white rounded transition text-xs font-semibold inline-flex items-center gap-1 cursor-pointer" title="Gợi ý MapID bằng AI (Gemini Flash)"><i class="fa-solid fa-robot text-slate-400 text-xs"></i> AI</button>
 <button type="button" onclick="window.pickSingleQuestionMapIdTree(${index}, '${listType}')" class="px-2 py-1 text-slate-600 hover:text-blue-600 hover:bg-white rounded transition text-xs font-semibold inline-flex items-center gap-1 cursor-pointer" title="Chọn MapID từ Cây Ma Trận"><i class="fa-solid fa-network-wired text-slate-400 text-xs"></i> Cây</button>
+<button type="button" onclick="window.openIMathForCurrentEditorQuestion()" class="px-2 py-1 text-indigo-700 hover:text-indigo-900 bg-indigo-50/80 hover:bg-indigo-100 rounded transition text-xs font-semibold inline-flex items-center gap-1 cursor-pointer border border-indigo-200/70 ml-0.5" title="Sinh câu hỏi đổi số cùng dạng theo MapID này"><i class="fa-solid fa-dice text-indigo-600 text-xs"></i> Đổi số</button>
 </div>
 <div class="inline-flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-600 gap-1.5">
 <i class="fa-solid fa-book-bookmark text-slate-400 text-xs"></i>
