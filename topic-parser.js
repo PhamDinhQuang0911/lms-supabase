@@ -1,5 +1,5 @@
 // topic-parser.js - Parser cấu trúc LaTeX cho Kho Chuyên Đề
-import { compileTikZToImage, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode } from './utils.js?v=20261110-v5';
+import { compileTikZToImage, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode, extractTikzPrelude, attachTikzPrelude } from './utils.js?v=20261110-v6';
 
 // Cloudflare Upload Endpoint (Từ exam-editor.html)
 const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
@@ -209,6 +209,7 @@ export async function parseTopicFromTex(texFiles, imgFiles, updateProgressCallba
     // 4. Thu thập ảnh cần xử lý (TikZ và includegraphics)
     updateProgressCallback("Đang trích xuất hình ảnh...", 40);
     
+    const globalTikzPrelude = (typeof extractTikzPrelude === 'function') ? extractTikzPrelude(fullContent).prelude : '';
     let imageTasks = [];
     let imgCounter = 0;
 
@@ -248,21 +249,32 @@ export async function parseTopicFromTex(texFiles, imgFiles, updateProgressCallba
         };
         
         resultStr = parseImmini(resultStr);
+
+        // 4.0. Gom các lệnh định nghĩa màu/kiểu đặt ngoài tikzpicture (\definecolor, \tikzset...)
+        const localPrelude = extractTikzPrelude(resultStr).prelude;
+        const withPrelude = (code) => attachTikzPrelude(code, globalTikzPrelude, localPrelude);
         
         // 4.1. TikZ (Phân loại theo Lựa chọn 1: VPS, Lựa chọn 2: TikZJax, Lựa chọn 3: QuickLaTeX)
         const tikzRegex = /\\begin\{tikzpicture\}([\s\S]*?)\\end\{tikzpicture\}/g;
         const currentMode = getTikzRenderMode ? getTikzRenderMode() : 'vps';
 
         resultStr = resultStr.replace(tikzRegex, (match) => {
-            const isPure = canRenderWithTikzJax ? canRenderWithTikzJax(match) : !match.includes('tkz-euclide');
+            const fullCode = withPrelude(cleanTikzCode(match));
+            const isPure = canRenderWithTikzJax ? canRenderWithTikzJax(fullCode) : !fullCode.includes('tkz-euclide');
             if (currentMode === 'tikzjax' && isPure) {
-                return `\n<div class="flex justify-center my-2 overflow-x-auto"><script type="text/tikz">${cleanTikzCode(match)}<\/script></div>\n`;
+                return `\n<div class="flex justify-center my-2 overflow-x-auto"><script type="text/tikz">${fullCode}<\/script></div>\n`;
             }
             let marker = `___IMG_MARKER_${imgCounter++}___`;
             let taskType = (currentMode === 'tikzjax' || currentMode === 'quicklatex') ? 'tikz_quicklatex' : 'tikz_vps';
-            imageTasks.push({ id: marker, type: taskType, content: match });
+            imageTasks.push({ id: marker, type: taskType, content: fullCode });
             return marker;
         });
+        if (localPrelude) {
+            // Gỡ lệnh định nghĩa khỏi phần chữ (không gỡ bên trong <script type="text/tikz">)
+            resultStr = resultStr.split(/(<script type="text\/tikz">[\s\S]*?<\/script>)/).map(part =>
+                part.startsWith('<script type="text/tikz">') ? part : extractTikzPrelude(part).rest
+            ).join('');
+        }
 
         // 4.2. Includegraphics
         const includeRegex = /\\includegraphics(?:\[.*?\])?\{([^}]+)\}/g;

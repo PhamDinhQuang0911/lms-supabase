@@ -1,4 +1,4 @@
-import { compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, cleanTikzCode } from "./utils.js?v=20261110-v5";
+import { compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, cleanTikzCode, extractTikzPrelude, attachTikzPrelude } from "./utils.js?v=20261110-v6";
 
 export const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
 
@@ -188,6 +188,9 @@ function postProcess(text) {
         processed = processed.substring(0, tcData.startIndex) + tcData.contents[1] + processed.substring(tcData.endIndex);
     }
     
+    const globalPrelude = (typeof extractTikzPrelude === 'function') ? extractTikzPrelude(processed).prelude : '';
+    const withPrelude = (code, extra) => (typeof attachTikzPrelude === 'function') ? attachTikzPrelude(code, globalPrelude, extra) : code;
+
     let imminiData;
     // Dọn "\\immini": văn bản bên trái, ảnh bên phải
     while ((imminiData = extractBracesAfterCommand(processed, '\\immini', 2)).found && imminiData.contents.length === 2) {
@@ -195,6 +198,13 @@ function postProcess(text) {
         const imgPart = imminiData.contents[1];
         // loại bỏ } "thừa" nếu ảnh có bao bời ngoặc nhọn
         let cleanImgPart = imgPart.replace(/^\s*\{([\s\S]*?)\}\s*$/, '$1').trim();
+        const imgPrelude = (typeof extractTikzPrelude === 'function') ? extractTikzPrelude(cleanImgPart).prelude : '';
+        if (imgPrelude && cleanImgPart.includes('\\begin{tikzpicture}')) {
+            cleanImgPart = cleanImgPart.replace(/\\begin\{tikzpicture\}([\s\S]*?)\\end\{tikzpicture\}/g, (m) => {
+                return withPrelude(cleanTikzCode(m), imgPrelude);
+            });
+            cleanImgPart = extractTikzPrelude(cleanImgPart).rest.trim();
+        }
         let replacement = `<div class="flex flex-col md:flex-row gap-6 items-start my-4">`
             + `<div class="flex-1 w-full text-justify">${textPart}</div>`
             + `<div class="flex-none flex justify-center items-center">${cleanImgPart}</div>`
@@ -222,11 +232,12 @@ function postProcess(text) {
     processed = processed.replace(/\\begin\{tikzpicture\}([\s\S]*?)\\end\{tikzpicture\}/g, (match) => {
         const uid = 'img_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
         if(!window.currentPendingImages) window.currentPendingImages = [];
+        const fullTikz = withPrelude(cleanTikzCode(match));
         window.currentPendingImages.push({
             id: uid,
             originalPath: `TikZ Code ${uid.substr(-5)}`,
             type: 'tikz',
-            contentCode: match,
+            contentCode: fullTikz,
             _done: false
         });
         return `<div data-id="${uid}" tabindex="0" class="pending-image-placeholder text-center p-4 bg-gray-100 border border-dashed border-gray-300 my-4 rounded text-gray-500 font-semibold cursor-pointer hover:bg-gray-200 transition" ondblclick="document.getElementById('upload-inline-${uid}')?.click()" onkeydown="if(event.key==='Enter') document.getElementById('upload-inline-${uid}')?.click()" onclick="this.focus()" title="Bấm đúp để tải ảnh thủ công nếu TikZ bị lỗi, hoặc chọn khung rồi dán [Ctrl+V]">
@@ -235,6 +246,10 @@ function postProcess(text) {
             <input type="file" accept="image/*" class="hidden" id="upload-inline-${uid}" onchange="window.uploadNormalImage('${uid}', this)">
         </div>`;
     });
+
+    if (typeof extractTikzPrelude === 'function' && globalPrelude) {
+        processed = extractTikzPrelude(processed).rest;
+    }
 
     function getListStyle(opt) {
         if (!opt) return "list-decimal";

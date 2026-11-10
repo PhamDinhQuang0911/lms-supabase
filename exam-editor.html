@@ -2059,7 +2059,7 @@ getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs,
 getStorage, ref, uploadBytes, getDownloadURL,
 supabase
 } from "./supabase-db-compat.js?v=25";
-import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzToSvgViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, getTikzRenderMode, setTikzRenderMode, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, renderTikz } from "./utils.js?v=20261110-v5";
+import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzToSvgViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, getTikzRenderMode, setTikzRenderMode, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, extractTikzPrelude, attachTikzPrelude, renderTikz } from "./utils.js?v=20261110-v6";
 import { readCache, writeCache } from "./perf-cache.js";
 window.formatContent = formatContent;
 window.autoScaleTables = autoScaleTables;
@@ -2071,6 +2071,8 @@ window.compileTikzToSvgViaTikzJax = compileTikzToSvgViaTikzJax;
 window.compileTikzViaQuickLaTeX = compileTikzViaQuickLaTeX;
 window.getTikzRenderMode = getTikzRenderMode;
 window.setTikzRenderMode = setTikzRenderMode;
+window.extractTikzPrelude = extractTikzPrelude;
+window.attachTikzPrelude = attachTikzPrelude;
 const app = initializeApp({});
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -2430,6 +2432,8 @@ isPastingImageLock = false;
 function processLatexImagesWithDetection(text, questionIndex, isSolution = false) {
 if (!text) return "";
 let processed = String(text);
+const ownPrelude = window.extractTikzPrelude ? window.extractTikzPrelude(processed).prelude : '';
+const withPrelude = (code) => window.attachTikzPrelude ? window.attachTikzPrelude(code, window._texGlobalTikzPrelude, window._currentTikzPrelude, ownPrelude) : code;
 while (true) {
 const idx = processed.indexOf('\\immini');
 if (idx === -1) break;
@@ -2452,7 +2456,7 @@ let ph = "";
 if (needsUpload) {
 const uid = `img_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
 const imgType = (placeholderType.includes("TikZ")) ? 'tikz' : 'normal';
-const tikzContent = (imgType === 'tikz') ? cleanTikzCode(arg2.content) : null;
+const tikzContent = (imgType === 'tikz') ? withPrelude(cleanTikzCode(arg2.content)) : null;
 pendingImageUploads.push({ id: uid, originalPath: imgPath, questionIdx: questionIndex, type: imgType, contentCode: tikzContent });
 ph = getPlaceholderHTML(uid, placeholderType);
 } else {
@@ -2478,10 +2482,13 @@ id:uid,
 originalPath:"standalone_tikz",
 questionIdx:questionIndex,
 type: 'tikz',
-contentCode: cleanTikzCode(match)
+contentCode: withPrelude(cleanTikzCode(match))
 });
 return getPlaceholderHTML(uid, "Hình TikZ");
 });
+if (window.extractTikzPrelude) {
+processed = window.extractTikzPrelude(processed).rest;
+}
 processed = processed.replace(/\\begin\{center\}\s*([\s\S]*?)\\includegraphics\s*(?:\[.*?\])?\s*\{(.*?)\}([\s\S]*?)\\end\{center\}/g, (m, pre, p, post) => {
 const uid = `img_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
 pendingImageUploads.push({id:uid, originalPath:p, questionIdx:questionIndex, type: 'normal'});
@@ -4162,9 +4169,11 @@ content = content.replace(/\\begin\{array\}\s*\{[^{}]*?\}/g, '\\begin{matrix}').
 pendingImageUploads = [];
 const blockRegex = /\\begin\{(ex|bt|vd|vidu)\}([\s\S]*?)\\end\{\1\}/g;
 let match, count = 0;
+window._texGlobalTikzPrelude = window.extractTikzPrelude ? window.extractTikzPrelude(content.replace(/\\begin\{(ex|bt|vd|vidu)\}[\s\S]*?\\end\{\1\}/g, '')).prelude : '';
 while ((match = blockRegex.exec(content)) !== null) {
 const currentEnv = match[1];
 let fullBody = match[2];
+window._currentTikzPrelude = window.extractTikzPrelude ? window.extractTikzPrelude(fullBody.replace(/(?<!\\)%.*/g, '')).prelude : '';
 let questionID = "";
 let assignedCccd = "";
 let source = "";
@@ -4432,9 +4441,11 @@ content = content.replace(/\\begin\{array\}\s*\{[^{}]*?\}/g, '\\begin{matrix}').
 const parsedList = [];
 const blockRegex = /\\begin\{(ex|bt|vd|vidu)\}([\s\S]*?)\\end\{\1\}/g;
 let match, count = 0;
+window._texGlobalTikzPrelude = window.extractTikzPrelude ? window.extractTikzPrelude(content.replace(/\\begin\{(ex|bt|vd|vidu)\}[\s\S]*?\\end\{\1\}/g, '')).prelude : '';
 while ((match = blockRegex.exec(content)) !== null) {
 const currentEnv = match[1];
 let fullBody = match[2];
+window._currentTikzPrelude = window.extractTikzPrelude ? window.extractTikzPrelude(fullBody.replace(/(?<!\\)%.*/g, '')).prelude : '';
 let questionID = "";
 let assignedCccd = "";
 let source = "";

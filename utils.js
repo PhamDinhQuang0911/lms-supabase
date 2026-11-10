@@ -497,6 +497,12 @@ export const compileTikzToSvgViaTikzJax = async (code) => {
             return '';
         });
 
+        const preludeData = extractTikzPrelude(body);
+        if (preludeData.prelude) {
+            extraPreambles += preludeData.prelude + '\n';
+            body = preludeData.rest;
+        }
+
         body = body.trim();
         if (!body.includes('\\begin{tikzpicture}') && !body.includes('\\tikz')) {
             body = `\\begin{tikzpicture}\n${body}\n\\end{tikzpicture}`;
@@ -580,6 +586,13 @@ export const compileTikzViaQuickLaTeX = async (rawCode, options = {}) => {
         return '';
     });
 
+    const preludeData = extractTikzPrelude(cleaned);
+    let extraPrelude = '';
+    if (preludeData.prelude) {
+        extraPrelude = preludeData.prelude + '\n';
+        cleaned = preludeData.rest;
+    }
+
     cleaned = cleaned.trim();
     if (!cleaned.includes('\\begin{tikzpicture}') && !cleaned.includes('\\tikz')) {
         cleaned = `\\begin{tikzpicture}\n${cleaned}\n\\end{tikzpicture}`;
@@ -608,6 +621,7 @@ export const compileTikzViaQuickLaTeX = async (rawCode, options = {}) => {
     const allLibs = Array.from(new Set([...baseLibs, ...extraLibs])).join(',');
     preambleLines.push(`\\usetikzlibrary{${allLibs}}`);
     if (extraTikzSet) preambleLines.push(extraTikzSet.trim());
+    if (extraPrelude) preambleLines.push(extraPrelude.trim());
 
     const preamble = preambleLines.join('\n');
     const bodyStr = [
@@ -786,6 +800,99 @@ export function extractNextBrace(text) {
     }
     if (end === -1) return null;
     return { content: text.substring(start + 1, end), remaining: text.substring(end + 1), fullMatch: text.substring(start, end + 1) };
+}
+
+/**
+ * TÁCH CÁC LỆNH ĐỊNH NGHĨA DÙNG CHO TIKZ ĐẶT NGOÀI \begin{tikzpicture}
+ * (\definecolor, \colorlet, \tikzset, \tikzstyle, \usetikzlibrary, \pgfplotsset, \pgfmathsetmacro)
+ * Trả về { prelude: chuỗi các lệnh, rest: văn bản sau khi đã gỡ các lệnh đó }.
+ * Dùng để ghép phần định nghĩa màu/kiểu vào trước mã hình khi gửi biên dịch.
+ */
+const TIKZ_PRELUDE_SPECS = [
+    { name: 'definecolor', args: 3 },
+    { name: 'colorlet', args: 2 },
+    { name: 'tikzset', args: 1 },
+    { name: 'usetikzlibrary', args: 1 },
+    { name: 'pgfplotsset', args: 1 },
+    { name: 'pgfmathsetmacro', args: 2 },
+];
+
+export function extractTikzPrelude(text) {
+    if (!text || typeof text !== 'string') return { prelude: '', rest: text || '' };
+    const found = [];
+    let rest = '';
+    let i = 0;
+    const src = text;
+    while (i < src.length) {
+        if (src[i] !== '\\') { rest += src[i++]; continue; }
+        let matched = false;
+        for (const spec of TIKZ_PRELUDE_SPECS) {
+            const cmd = '\\' + spec.name;
+            if (!src.startsWith(cmd, i)) continue;
+            const after = src[i + cmd.length];
+            if (after && /[a-zA-Z]/.test(after)) continue;
+            let pos = i + cmd.length;
+            const skipWs = () => { while (pos < src.length && /\s/.test(src[pos])) pos++; };
+            skipWs();
+            if (src[pos] === '[') {
+                const close = src.indexOf(']', pos);
+                if (close === -1) break;
+                pos = close + 1;
+                skipWs();
+            }
+            let ok = true;
+            for (let a = 0; a < spec.args; a++) {
+                skipWs();
+                if (src[pos] !== '{') { ok = false; break; }
+                let depth = 0, j = pos;
+                for (; j < src.length; j++) {
+                    if (src[j] === '\\') { j++; continue; }
+                    if (src[j] === '{') depth++;
+                    else if (src[j] === '}') { depth--; if (depth === 0) break; }
+                }
+                if (depth !== 0) { ok = false; break; }
+                pos = j + 1;
+            }
+            if (!ok) break;
+            found.push(src.substring(i, pos).trim());
+            i = pos;
+            matched = true;
+            break;
+        }
+        if (!matched) {
+            // \tikzstyle{name}=[...]
+            const m = src.substring(i).match(/^\\tikzstyle\s*\{[^{}]*\}\s*=\s*\[/);
+            if (m) {
+                let depth = 0, j = i + m[0].length - 1;
+                for (; j < src.length; j++) {
+                    if (src[j] === '[') depth++;
+                    else if (src[j] === ']') { depth--; if (depth === 0) break; }
+                }
+                if (depth === 0) {
+                    found.push(src.substring(i, j + 1).trim());
+                    i = j + 1;
+                    continue;
+                }
+            }
+            rest += src[i++];
+        }
+    }
+    const uniq = Array.from(new Set(found));
+    return { prelude: uniq.join('\n'), rest };
+}
+
+/**
+ * Ghép phần định nghĩa (màu, kiểu, macro) vào trước mã TikZ nếu mã chưa chứa chúng.
+ */
+export function attachTikzPrelude(tikzCode, ...preludes) {
+    const code = String(tikzCode || '');
+    const lines = [];
+    preludes.filter(Boolean).forEach(p => {
+        String(p).split('\n').map(s => s.trim()).filter(Boolean).forEach(line => {
+            if (!code.includes(line) && !lines.includes(line)) lines.push(line);
+        });
+    });
+    return lines.length ? lines.join('\n') + '\n' + code : code;
 }
 
 // --- CÁC HÀM XỬ LÝ NỘI BỘ ---
@@ -1374,6 +1481,8 @@ if (typeof window !== 'undefined') {
     window.autoScaleTables = autoScaleTables;
     window.cleanTikzCode = cleanTikzCode;
     window.extractNextBrace = extractNextBrace;
+    window.extractTikzPrelude = extractTikzPrelude;
+    window.attachTikzPrelude = attachTikzPrelude;
     window.renderTikz = renderTikz;
     window.reorderTfSolution = reorderTfSolution;
 }
