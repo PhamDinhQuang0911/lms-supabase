@@ -551,7 +551,7 @@ export const compileTikzToSvgViaTikzJax = async (code) => {
 
         const styledSvg = svgString.trim().replace(
             /^<svg\b/i,
-            '<svg class="tikzjax-inline-svg" style="max-height:240px;max-width:100%;height:auto;display:block;margin:0 auto;overflow:visible;"'
+            '<svg class="tikzjax-inline-svg" style="max-height:220px;max-width:100%;height:auto;display:block;margin:2px auto;overflow:visible;"'
         );
         setCachedTikzSvg(cleaned, styledSvg);
         return styledSvg;
@@ -1155,10 +1155,13 @@ export const formatContent = (text) => {
         tikzShield.push(m);
         return `QMTIKZSHIELD${tikzShield.length - 1}QMEND`;
     });
+    let out = '';
     if (tikzShield.length) {
-        return restoreTikzShield(formatContentCore(processed));
+        out = restoreTikzShield(formatContentCore(processed));
+    } else {
+        out = formatContentCore(processed);
     }
-    return formatContentCore(processed);
+    return stripBrAroundBlocks(out);
 };
 
 const formatContentCore = (text) => {
@@ -1192,8 +1195,12 @@ const formatContentCore = (text) => {
     processed = processed.replace(/\\loigiai\s*\{/gi, '');
 
     // 1. Clean Text (Math-safe replacements)
+    // Hỗ trợ triệt để lệnh mũi tên phản ứng hóa học / suy ra (\arrow, \Arrow, arrow)
+    processed = processed.replace(/(?<=[0-9a-zA-Z_)}])\s*\\?arrow\s*(?=[0-9a-zA-Z_(\\])/gi, ' \\rightarrow ');
     processed = processed.replace(/\\arrow(?![a-zA-Z])/g, '\\rightarrow ');
     processed = processed.replace(/\\Arrow(?![a-zA-Z])/g, '\\Rightarrow ');
+    processed = processed.replace(/\\arrow\b/gi, '\\rightarrow ');
+    processed = processed.replace(/\\Arrow\b/g, '\\Rightarrow ');
     processed = processed.replace(/\\centering/g, "");
     processed = processed.replace(/\\allowdisplaybreaks(\[.*?\])?/g, "");
     processed = processed.replace(/\\lq\\lq/g, '"').replace(/\\rq\\rq/g, '"').replace(/\\lq/g, '"').replace(/\\rq/g, '"');
@@ -1257,12 +1264,20 @@ const formatContentCore = (text) => {
 };
 
 export function stripBrAroundBlocks(html) {
-    // Xóa <br> thừa trước và sau các block elements
-    return html
-        .replace(/(<br\s*\/?>[\s]*){1,}<div class="[^"]*js-scale-wrapper/gi, '<div class="js-scale-wrapper')
-        .replace(/js-scale-wrapper([^>]*)>/gi, (m) => m) // keep
-        .replace(/<\/div>([\s]*<br\s*\/?>[\s]*){1,}(?=<div class="[^"]*js-scale-wrapper)/gi, '</div>')
-        .replace(/(<br\s*\/?>\s*){3,}/gi, '<br><br>'); // Max 2 br consecutive
+    if (!html || typeof html !== 'string') return '';
+    let res = html;
+    // 1. Xóa <br> thừa trước và sau các block elements (bảng js-scale-wrapper, ảnh)
+    res = res.replace(/(<br\s*\/?>[\s]*){1,}<div class="[^"]*js-scale-wrapper/gi, '<div class="js-scale-wrapper');
+    res = res.replace(/<\/div>([\s]*<br\s*\/?>[\s]*){1,}(?=<div class="[^"]*js-scale-wrapper)/gi, '</div>');
+    
+    // 2. Xóa triệt để khoảng trắng <br> thừa bám sát trước và sau khung TikZ / TikZJax
+    res = res.replace(/(?:<br\s*\/?>\s*)+(?=<div[^>]*class=["'][^"']*(?:tikzjax|tikz-container|justify-center)[^"']*)/gi, '');
+    res = res.replace(/(?:<br\s*\/?>\s*)+(?=<script[^>]*type=["']text\/tikz["'])/gi, '');
+    res = res.replace(/(<\/script>\s*<\/div>|<\/script>)(?:\s*<br\s*\/?>)+/gi, '$1');
+    res = res.replace(/(<div[^>]*class=["'][^"']*(?:tikzjax|tikz-container)[^"']*>[^<]*<\/div>)(?:\s*<br\s*\/?>)+/gi, '$1');
+
+    res = res.replace(/(<br\s*\/?>\s*){3,}/gi, '<br><br>'); // Max 2 br consecutive
+    return res;
 }
 
 // ============================================================================
@@ -1281,7 +1296,7 @@ export const renderTikz = (root = document) => {
 
         // Tạo khung hiển thị SVG trực tiếp (kèm mathjax_ignore để MathJax không can thiệp)
         const placeholder = document.createElement('div');
-        placeholder.className = 'tikzjax-wrapper mathjax_ignore flex justify-center my-2 overflow-x-auto';
+        placeholder.className = 'tikzjax-wrapper mathjax_ignore flex justify-center my-0.5 overflow-x-auto';
         script.parentNode.replaceChild(placeholder, script);
 
         // 0. Nếu đã có trong bộ nhớ đệm SVG -> Hiển thị tức thì 0ms!

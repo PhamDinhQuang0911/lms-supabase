@@ -262,7 +262,7 @@ export async function parseTopicFromTex(texFiles, imgFiles, updateProgressCallba
             const fullCode = withPrelude(cleanTikzCode(match));
             const isPure = canRenderWithTikzJax ? canRenderWithTikzJax(fullCode) : !fullCode.includes('tkz-euclide');
             if (currentMode === 'tikzjax' && isPure) {
-                return `\n<div class="flex justify-center my-2 overflow-x-auto"><script type="text/tikz">${fullCode}<\/script></div>\n`;
+                return `\n<div class="tikz-container flex justify-center my-1 overflow-x-auto"><script type="text/tikz">${fullCode}<\/script></div>\n`;
             }
             let marker = `___IMG_MARKER_${imgCounter++}___`;
             let taskType = (currentMode === 'tikzjax' || currentMode === 'quicklatex') ? 'tikz_quicklatex' : 'tikz_vps';

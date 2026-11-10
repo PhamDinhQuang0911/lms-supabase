@@ -121,6 +121,8 @@ Z: "\\mathbb{Z}",
 vectors: ["\\overrightarrow{#1}", 1],
 mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1],
 arrow: "\\rightarrow",
+rightarrow: "\\rightarrow",
+to: "\\rightarrow",
 Arrow: "\\Rightarrow"
 }
 },
@@ -364,10 +366,28 @@ document.body.appendChild(viewer);
         }
         
         /* 2. Văn bản: Ép dòng sát lại (Line-height thấp) */
-        #questionContent, .solution-box, #answerOptions { 
-            line-height: 1.25 !important; /* Mức thấp nhất dễ đọc */
-            font-size: 16px; 
-            text-align: justify; 
+        /* 2. Văn bản & Công thức: Căn lề trái chống giãn chữ vô duyên khi rớt dòng */
+        #questionContent, .solution-box, #answerOptions, .latex-container, .math-content {
+            line-height: 1.35 !important;
+            font-size: 16px;
+            text-align: left !important;
+            text-align-last: left !important;
+            word-break: normal;
+            overflow-wrap: break-word;
+        }
+
+        /* 2.1 Tối ưu khoảng trắng hiển thị hình TikZ & TikZJax (xóa sạch khoảng trắng thừa) */
+        .tikzjax-wrapper, .tikz-container {
+            margin: 4px auto !important;
+            padding: 0 !important;
+            line-height: 1 !important;
+        }
+        .tikzjax-wrapper svg,
+        svg.tikzjax-inline-svg {
+            margin: 2px auto !important;
+            padding: 0 !important;
+            max-height: 220px !important;
+            display: block !important;
         }
 
         /* 3. Đoạn văn (P): Xóa khoảng cách giữa các đoạn */
@@ -1549,7 +1569,7 @@ supabase, getServerNow, calibrateServerTime, parseDateSafe
 window.getServerNow = getServerNow;
 window.calibrateServerTime = calibrateServerTime;
 window.parseDateSafe = parseDateSafe;
-import { formatContent, autoScaleTables, renderTikz, compressImage, watermarkImage, reorderTfSolution } from "./utils.js?v=8";
+import { formatContent, autoScaleTables, renderTikz, compressImage, watermarkImage, reorderTfSolution } from "./utils.js?v=20261110-v6";
 const getEmbeddableUrl = (url) => {
 if (!url) return '';
 try {

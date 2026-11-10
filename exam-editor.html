@@ -4000,7 +4000,7 @@ updateUI();
 };
 if (useTikzJax) {
 rawQueue.forEach(item => {
-const inlineTikzHtml = `<div data-id="${item.id}" class="flex justify-center my-2 overflow-x-auto"><script type="text/tikz">${item.contentCode}<\/script></div>`;
+const inlineTikzHtml = `<div data-id="${item.id}" class="tikz-container flex justify-center my-1 overflow-x-auto"><script type="text/tikz">${item.contentCode}<\/script></div>`;
 processSuccessItem(item, null, inlineTikzHtml);
 });
 window.finishImportProcess();
@@ -4979,6 +4979,9 @@ str = str.replace(/\\left\\\{\s*\\begin\{array\}\s*\{[^{}]*\}([\s\S]*?)\\end\{ar
 str = str.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, '');
 str = str.replace(/\\left([a-zA-Z0-9])/g, '$1');
 str = str.replace(/\\right([a-zA-Z0-9])/g, '$1');
+str = str.replace(/(?<=[0-9a-zA-Z_)}])\s*\\?arrow\s*(?=[0-9a-zA-Z_(\\])/gi, ' \\rightarrow ');
+str = str.replace(/\\arrow\b/gi, '\\rightarrow ');
+str = str.replace(/\\Arrow\b/gi, '\\Rightarrow ');
 return str;
 }
 window.cleanWordMathLatex = cleanWordMathLatex;
