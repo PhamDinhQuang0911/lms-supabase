@@ -1,0 +1,115 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{vietnam}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{tikz}
+\usetikzlibrary{calc,arrows.meta,angles,quotes,intersections}
+
+\begin{document}
+
+% ============================================================================
+% PHẦN I: CÂU TRẮC NGHIỆM NHIỀU LỰA CHỌN (4 PHƯƠNG ÁN A, B, C, D)
+% ============================================================================
+
+\begin{ex}%[9D1N1-1][NB]
+Căn bậc hai số học của số $16$ là
+\choice
+{$-4$}
+{\True $4$}
+{$8$}
+{$256$}
+\loigiai{
+Ta có $4 > 0$ và $4^2 = 16$ nên căn bậc hai số học của $16$ là $4$.
+}
+\end{ex}
+
+\begin{ex}%[9D1H2-8][TH][##]
+Tìm các số nguyên $x, y$ để cân bằng phương trình phản ứng hóa học sau: $x\mathrm{Al} + y\mathrm{O}_2 \rightarrow 2\mathrm{Al}_2\mathrm{O}_3$.
+\choice
+{$x = 1$; $y = 3$}
+{$x = 3$; $y = 4$}
+{\True $x = 4$; $y = 3$}
+{$x = 3$; $y = 1$}
+\loigiai{
+Cân bằng số nguyên tử của nguyên tố $\mathrm{Al}$ ở hai vế: $x = 2 \times 2 = 4$.\\
+Cân bằng số nguyên tử của nguyên tố $\mathrm{O}$ ở hai vế: $2y = 2 \times 3 = 6 \Rightarrow y = 3$.\\
+Vậy $x = 4$ và $y = 3$.
+}
+\end{ex}
+
+% ============================================================================
+% PHẦN II: CÂU TRẮC NGHIỆM ĐÚNG / SAI
+% ============================================================================
+
+\begin{ex}%[9D2T1-2][VD]
+Cho hàm số bậc nhất $y = (m - 1)x + 2$ với $m$ là tham số ($m \ne 1$).
+Xét tính đúng, sai của các khẳng định sau:
+\choiceTF
+{\True Đồ thị hàm số luôn đi qua điểm $A(0; 2)$ với mọi $m \ne 1$.}
+{Khi $m = 2$, hàm số nghịch biến trên $\mathbb{R}$.}
+{\True Khi $m = -1$, đồ thị hàm số tạo với trục $Ox$ một góc tù.}
+{Đồ thị hàm số cắt trục hoành tại điểm $B(2; 0)$ khi $m = 0$.}
+\loigiai{
+a) Với $x = 0$ ta có $y = 2$, vậy đồ thị luôn đi qua $A(0; 2)$ (Đúng).\\
+b) Khi $m = 2$, hàm số trở thành $y = x + 2$ có hệ số $a = 1 > 0$ nên đồng biến (Sai).\\
+c) Khi $m = -1$, hệ số $a = -2 < 0$ nên đồ thị tạo với trục $Ox$ góc tù (Đúng).\\
+d) Với $y = 0 \Rightarrow (m - 1)x + 2 = 0$. Khi $m = 0 \Rightarrow -x + 2 = 0 \Rightarrow x = 2$. Vậy cắt $Ox$ tại $B(2; 0)$ (Đúng, mệnh đề trong đề bài phát biểu $B(2;0)$ là đúng).
+}
+\end{ex}
+
+% ============================================================================
+% PHẦN III: CÂU HỎI TRẢ LỜI NGẮN (ĐIỀN KHUYẾT / TLN)
+% ============================================================================
+
+\begin{ex}%[9H1V3-1][VDC]
+Một người đứng trên đỉnh tháp hải đăng cao $32\,\text{m}$ so với mực nước biển, nhìn thấy một con thuyền đang neo đậu dưới góc hạ $30^\circ$. Khoảng cách từ chân tháp hải đăng (ngang mặt nước) đến con thuyền bằng bao nhiêu mét? (Làm tròn kết quả đến hàng đơn vị).
+\shortans{55}
+\loigiai{
+Gọi $h = 32\,\text{m}$ là chiều cao ngọn tháp, $d$ là khoảng cách từ chân tháp đến thuyền.\\
+Ta có $\tan 30^\circ = \dfrac{h}{d} \Rightarrow d = \dfrac{h}{\tan 30^\circ} = \dfrac{32}{\frac{1}{\sqrt{3}}} = 32\sqrt{3} \approx 55{,}43\,\text{m}$.\\
+Làm tròn đến hàng đơn vị ta được kết quả là $55$.
+}
+\end{ex}
+
+\end{document}
+
+% ============================================================================
+% HƯỚNG DẪN CHI TIẾT QUY CHUẨN SOẠN ĐỀ CHO HỆ THỐNG QMATH
+% ============================================================================
+%
+% 1. ĐÁNH DẤU ĐÁP ÁN ĐÚNG TRONG FILE TEX & WORD:
+%    - TRẮC NGHIỆM 4 LỰA CHỌN:
+%      + Trong TeX: Đặt lệnh \True ngay trước nội dung phương án đúng trong khối \choice{...}.
+%        Ví dụ: \choice {Phương án sai} {\True Phương án đúng} {Phương án sai} {Phương án sai}
+%      + Trong Word: Gạch chân chữ cái đầu (VD: <u>A.</u> hoặc <u>A</u>), hoặc tô màu highlight
+%        phương án đúng. Hệ thống sẽ tự động nhận diện và xóa gạch chân/tô màu trên đề học sinh.
+%
+%    - TRẮC NGHIỆM ĐÚNG / SAI:
+%      + Trong TeX: Dùng môi trường \choiceTF{...}{...}{...}{...}.
+%        Mệnh đề nào ĐÚNG thì chèn \True ở đầu ngoặc nhọn. Mệnh đề nào SAI thì để trống \True.
+%        Ví dụ: \choiceTF {\True Mệnh đề này đúng} {Mệnh đề này sai} {\True Mệnh đề này đúng} {Mệnh đề này sai}
+%      + Trong Word: Ghi rõ [Đúng] / [Sai] ở cuối mỗi ý a), b), c), d).
+%        Ví dụ: a) Đồ thị hàm số đi qua gốc toạ độ. [Đúng]
+%
+%    - CÂU HỎI TRẢ LỜI NGẮN (TLN / ĐIỀN KHUYẾT):
+%      + Trong TeX: Dùng lệnh \shortans{<giá trị>} đặt trong nội dung câu hỏi hoặc trong \loigiai{}.
+%        Giá trị có thể là số nguyên, số thập phân (dấu chấm hoặc dấu phẩy) hoặc phân số.
+%        Ví dụ: \shortans{4}, \shortans{-2.5}, \shortans{2,5}, \shortans{3/4}.
+%      + Trong Word: Để một dòng riêng biệt ghi rõ "Đáp án: <giá trị>" hoặc "Đáp số: <giá trị>".
+%        Ví dụ: Đáp án: 55
+%
+% 2. XỬ LÝ CÁC KÝ HIỆU PHÂN LOẠI & THẺ MỨC ĐỘ [NB], [TH], [VD], [VDC], [##]:
+%    - Bạn có thể gắn thẻ mức độ nhận thức theo cú pháp:
+%      + [NB]  : Nhận biết
+%      + [TH]  : Thông hiểu
+%      + [VD]  : Vận dụng
+%      + [VDC] : Vận dụng cao
+%      + [##]  : Thẻ phân tách câu hỏi của hệ thống Azota
+%    - Vị trí: Đặt ngay sau \begin{ex} (ví dụ: \begin{ex}%[9D1N1-1][NB] hoặc \begin{ex}[NB][##])
+%      hoặc đặt ở đầu câu hỏi trong file Word (ví dụ: Câu 1. [NB] Căn bậc hai...).
+%    - Tự động hóa: Hệ thống QMath sẽ TỰ ĐỘNG nhận diện mức độ của câu hỏi, đồng thời TỰ ĐỘNG
+%      LOẠI BỎ hoàn toàn các thẻ [NB], [TH], [VD], [VDC], [##] khỏi nội dung hiển thị cho học sinh.
+%
+% 3. MÃ MAPID / MA TRẬN ĐỀ THI:
+%    - Cú pháp chuẩn Ex_Test: %[Mã_MapID] hoặc [CCCD][Nguồn][Mã_MapID] đặt ngay sau \begin{ex}.
+%    - Ví dụ: \begin{ex}%[9D1N1-1] hoặc \begin{ex}%[001234][Đề thi thử 2026][9D1N1-1]
+% ============================================================================

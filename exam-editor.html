@@ -992,6 +992,15 @@ window.clearExamTime = clearExamTime;
                                         <i class="fa-solid fa-circle-question w-4 text-slate-400 text-center"></i> Cấu trúc file Word chuẩn
                                     </button>
                                 </div>
+                                <div class="py-1 border-b border-slate-100">
+                                    <div class="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-500">File mẫu chuẩn</div>
+                                    <a href="mau_de_tron_chuan.docx" download="De_Thi_Mau_Word_QMath.docx" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 cursor-pointer font-medium text-slate-700 text-xs">
+                                        <i class="fa-solid fa-file-arrow-down w-4 text-blue-600 text-center"></i> Tải file Word mẫu (.docx)
+                                    </a>
+                                    <a href="mau_de_tao_de.tex" download="De_Thi_Mau_TeX_QMath.tex" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 cursor-pointer font-medium text-slate-700 text-xs">
+                                        <i class="fa-solid fa-file-arrow-down w-4 text-emerald-600 text-center"></i> Tải file TeX mẫu (.tex)
+                                    </a>
+                                </div>
                                 <div class="py-1">
                                     <div class="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Xuất dữ liệu</div>
                                     <button type="button" onclick="window.closeImportExportDropdown(); window.openExportLatexModal();" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 cursor-pointer font-medium text-slate-700">
@@ -1035,6 +1044,14 @@ window.clearExamTime = clearExamTime;
                             <button type="button" onclick="addNewQuestion('mc');" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs">
                                 <i class="fa-solid fa-plus"></i> + Thêm câu trắc nghiệm
                             </button>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-center gap-2 text-xs">
+                            <a href="mau_de_tron_chuan.docx" download="De_Thi_Mau_Word_QMath.docx" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded border border-blue-200 font-medium transition cursor-pointer shadow-2xs">
+                                <i class="fa-solid fa-file-arrow-down text-blue-600"></i> Tải file Word mẫu (.docx)
+                            </a>
+                            <a href="mau_de_tao_de.tex" download="De_Thi_Mau_TeX_QMath.tex" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 rounded border border-emerald-200 font-medium transition cursor-pointer shadow-2xs">
+                                <i class="fa-solid fa-file-arrow-down text-emerald-700"></i> Tải file TeX mẫu (.tex)
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -2059,7 +2076,7 @@ getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs,
 getStorage, ref, uploadBytes, getDownloadURL,
 supabase
 } from "./supabase-db-compat.js?v=25";
-import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzToSvgViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, getTikzRenderMode, setTikzRenderMode, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, extractTikzPrelude, attachTikzPrelude, renderTikz } from "./utils.js?v=20261110-v6";
+import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzToSvgViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, getTikzRenderMode, setTikzRenderMode, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, extractTikzPrelude, attachTikzPrelude, renderTikz } from "./utils.js?v=20261110-v7";
 import { readCache, writeCache } from "./perf-cache.js";
 window.formatContent = formatContent;
 window.autoScaleTables = autoScaleTables;
@@ -3136,6 +3153,14 @@ list.innerHTML = `
 <i class="fa-solid fa-plus"></i> + Thêm câu trắc nghiệm
 </button>
 </div>
+<div class="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-center gap-2 text-xs">
+<a href="mau_de_tron_chuan.docx" download="De_Thi_Mau_Word_QMath.docx" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded border border-blue-200 font-medium transition cursor-pointer shadow-2xs">
+<i class="fa-solid fa-file-arrow-down text-blue-600"></i> Tải file Word mẫu (.docx)
+</a>
+<a href="mau_de_tao_de.tex" download="De_Thi_Mau_TeX_QMath.tex" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 rounded border border-emerald-200 font-medium transition cursor-pointer shadow-2xs">
+<i class="fa-solid fa-file-arrow-down text-emerald-700"></i> Tải file TeX mẫu (.tex)
+</a>
+</div>
 </div>`;
 document.getElementById('editorArea').innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm"><p>Chọn câu hỏi bên trái để sửa</p></div>';
 document.getElementById('quickPaletteContainer').classList.add('hidden');
@@ -4180,7 +4205,25 @@ let source = "";
 let tags = { subject: 'Chưa phân loại', level: '', levelColor: 'gray' };
 const firstNewline = fullBody.indexOf('\n');
 const firstLine = firstNewline !== -1 ? fullBody.substring(0, firstNewline) : fullBody;
-const bracketMatches = Array.from(firstLine.matchAll(/\[(.*?)\]/g)).map(m => m[1].trim());
+const rawBrackets = Array.from(firstLine.matchAll(/\[(.*?)\]/g)).map(m => m[1].trim());
+let detectedLevel = '';
+const bracketMatches = [];
+rawBrackets.forEach(b => {
+const upper = b.toUpperCase().trim();
+if (upper === '##') return;
+if (upper === 'NB') { detectedLevel = 'Nhận biết'; return; }
+if (upper === 'TH') { detectedLevel = 'Thông hiểu'; return; }
+if (upper === 'VD') { detectedLevel = 'Vận dụng'; return; }
+if (upper === 'VDC') { detectedLevel = 'Vận dụng cao'; return; }
+bracketMatches.push(b);
+});
+if (detectedLevel) {
+tags.level = detectedLevel;
+if (detectedLevel === 'Nhận biết') tags.levelColor = 'blue';
+else if (detectedLevel === 'Thông hiểu') tags.levelColor = 'green';
+else if (detectedLevel === 'Vận dụng') tags.levelColor = 'amber';
+else if (detectedLevel === 'Vận dụng cao') tags.levelColor = 'red';
+}
 if (bracketMatches.length >= 3) {
 assignedCccd = bracketMatches[0];
 source = bracketMatches[1];
@@ -4214,9 +4257,14 @@ questionID = idMatch[1];
 }
 }
 if (questionID) {
-tags = (typeof parseQuestionID === 'function')
+const idTags = (typeof parseQuestionID === 'function')
 ? parseQuestionID(questionID)
 : (typeof window !== 'undefined' && typeof window.parseQuestionID === 'function' ? window.parseQuestionID(questionID) : tags);
+tags.subject = idTags.subject;
+if (!tags.level) {
+tags.level = idTags.level;
+tags.levelColor = idTags.levelColor;
+}
 }
 let testLine = firstLine.trim();
 testLine = testLine.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+/, '').trim();
@@ -4232,6 +4280,7 @@ fullBody = fullBody.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+\s*/, '');
 fullBody = fullBody.replace(/(?:%%|%)\s*\[[a-zA-Z0-9\-_.]+\]/g, '');
 fullBody = fullBody.replace(/(?<!\\)%.*/g, '');
 fullBody = fullBody.replace(/^\s*\[.*?\]/, '');
+fullBody = fullBody.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '');
 let qType = 'essay';
 let qData = {
 content: '', solution: '', options: [], statements: [], answer: '', point: 0,
@@ -4270,7 +4319,7 @@ if(e!==-1) { cursor=e+1; return str.substring(s+1, e); } return null;
 cursor = 0;
 while(cursor < stmtsRaw.length){
 let txt = getNextArg(stmtsRaw); if(txt===null) break;
-tempStmts.push({text: txt.replace(/\\(True|False)/g,'').trim(), isTrue: txt.includes('\\True')});
+tempStmts.push({text: txt.replace(/\\(True|False)/g,'').replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim(), isTrue: txt.includes('\\True')});
 }
 qData.statements = tempStmts;
 if (cursor < stmtsRaw.length) {
@@ -4290,7 +4339,7 @@ if(e!==-1) { cursor=e+1; return str.substring(s+1, e); } return null;
 while(optCount < 4) {
 let txt = getNextArg(optsRaw); if(txt===null) break;
 if(txt.includes('\\True')) qData.correct = optCount;
-qData.options.push(txt.replace('\\True','').trim());
+qData.options.push(txt.replace('\\True','').replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim());
 optCount++;
 }
 if (cursor < optsRaw.length) {
@@ -4300,7 +4349,7 @@ if (leftover) qData.content += '\n\n' + leftover;
 } else if (procBody.includes('\\shortans')) {
 qType = 'short';
 const parts = procBody.split('\\shortans');
-qData.content = parts[0].trim();
+qData.content = parts[0].replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim();
 let start = procBody.indexOf('\\shortans') + 9, depth = 0, end = -1;
 if(procBody[start] !== '{') start = procBody.indexOf('{', start);
 for(let i=start; i<procBody.length; i++){ if(procBody[i]=='{') depth++; else if(procBody[i]=='}') depth--; if(depth===0 && depth!==-1) { end=i; break; } }
@@ -4309,6 +4358,16 @@ qData.answer = procBody.substring(start+1, end).trim().replace(/^\$+|\$+$/g, '')
 const leftover = procBody.substring(end+1).trim();
 if (leftover) qData.content += '\n\n' + leftover;
 }
+} else if (qData.solution && qData.solution.includes('\\shortans')) {
+qType = 'short';
+let start = qData.solution.indexOf('\\shortans') + 9, depth = 0, end = -1;
+if(qData.solution[start] !== '{') start = qData.solution.indexOf('{', start);
+for(let i=start; i<qData.solution.length; i++){ if(qData.solution[i]=='{') depth++; else if(qData.solution[i]=='}') depth--; if(depth===0 && depth!==-1) { end=i; break; } }
+if(end!==-1) {
+qData.answer = qData.solution.substring(start+1, end).trim().replace(/^\$+|\$+$/g, '').replace(/\{([.,])\}/g, '$1').trim();
+qData.solution = (qData.solution.substring(0, qData.solution.indexOf('\\shortans')) + qData.solution.substring(end+1)).trim();
+}
+qData.content = procBody.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim();
 } else {
 qType = 'essay';
 qData.content = procBody;
@@ -4452,7 +4511,25 @@ let source = "";
 let tags = { subject: 'Chưa phân loại', level: '', levelColor: 'gray' };
 const firstNewline = fullBody.indexOf('\n');
 const firstLine = firstNewline !== -1 ? fullBody.substring(0, firstNewline) : fullBody;
-const bracketMatches = Array.from(firstLine.matchAll(/\[(.*?)\]/g)).map(m => m[1].trim());
+const rawBrackets = Array.from(firstLine.matchAll(/\[(.*?)\]/g)).map(m => m[1].trim());
+let detectedLevel = '';
+const bracketMatches = [];
+rawBrackets.forEach(b => {
+const upper = b.toUpperCase().trim();
+if (upper === '##') return;
+if (upper === 'NB') { detectedLevel = 'Nhận biết'; return; }
+if (upper === 'TH') { detectedLevel = 'Thông hiểu'; return; }
+if (upper === 'VD') { detectedLevel = 'Vận dụng'; return; }
+if (upper === 'VDC') { detectedLevel = 'Vận dụng cao'; return; }
+bracketMatches.push(b);
+});
+if (detectedLevel) {
+tags.level = detectedLevel;
+if (detectedLevel === 'Nhận biết') tags.levelColor = 'blue';
+else if (detectedLevel === 'Thông hiểu') tags.levelColor = 'green';
+else if (detectedLevel === 'Vận dụng') tags.levelColor = 'amber';
+else if (detectedLevel === 'Vận dụng cao') tags.levelColor = 'red';
+}
 if (bracketMatches.length >= 3) {
 assignedCccd = bracketMatches[0];
 source = bracketMatches[1];
@@ -4486,7 +4563,14 @@ questionID = idMatch[1];
 }
 }
 if (questionID) {
-tags = parseQuestionID(questionID);
+const idTags = (typeof parseQuestionID === 'function')
+? parseQuestionID(questionID)
+: (typeof window !== 'undefined' && typeof window.parseQuestionID === 'function' ? window.parseQuestionID(questionID) : tags);
+tags.subject = idTags.subject;
+if (!tags.level) {
+tags.level = idTags.level;
+tags.levelColor = idTags.levelColor;
+}
 }
 let testLine = firstLine.trim();
 testLine = testLine.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+/, '').trim();
@@ -4502,6 +4586,7 @@ fullBody = fullBody.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+\s*/, '');
 fullBody = fullBody.replace(/(?:%%|%)\s*\[[a-zA-Z0-9\-_.]+\]/g, '');
 fullBody = fullBody.replace(/(?<!\\)%.*/g, '');
 fullBody = fullBody.replace(/^\s*\[.*?\]/, '');
+fullBody = fullBody.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '');
 let qType = 'essay';
 let qData = {
 content: '', solution: '', options: [], statements: [], answer: '', point: 0,
@@ -4540,7 +4625,7 @@ if(e!==-1) { cursor=e+1; return str.substring(s+1, e); } return null;
 cursor = 0;
 while(cursor < stmtsRaw.length){
 let txt = getNextArg(stmtsRaw); if(txt===null) break;
-tempStmts.push({text: txt.replace(/\\(True|False)/g,'').trim(), isTrue: txt.includes('\\True')});
+tempStmts.push({text: txt.replace(/\\(True|False)/g,'').replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim(), isTrue: txt.includes('\\True')});
 }
 qData.statements = tempStmts;
 if (cursor < stmtsRaw.length) {
@@ -4560,7 +4645,7 @@ if(e!==-1) { cursor=e+1; return str.substring(s+1, e); } return null;
 while(optCount < 4) {
 let txt = getNextArg(optsRaw); if(txt===null) break;
 if(txt.includes('\\True')) qData.correct = optCount;
-qData.options.push(txt.replace('\\True','').trim());
+qData.options.push(txt.replace('\\True','').replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim());
 optCount++;
 }
 if (cursor < optsRaw.length) {
@@ -4570,7 +4655,7 @@ if (leftover) qData.content += '\n\n' + leftover;
 } else if (procBody.includes('\\shortans')) {
 qType = 'short';
 const parts = procBody.split('\\shortans');
-qData.content = parts[0].trim();
+qData.content = parts[0].replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim();
 let start = procBody.indexOf('\\shortans') + 9, depth = 0, end = -1;
 if(procBody[start] !== '{') start = procBody.indexOf('{', start);
 for(let i=start; i<procBody.length; i++){ if(procBody[i]=='{') depth++; else if(procBody[i]=='}') depth--; if(depth===0 && depth!==-1) { end=i; break; } }
@@ -4579,6 +4664,16 @@ qData.answer = procBody.substring(start+1, end).trim().replace(/^\$+|\$+$/g, '')
 const leftover = procBody.substring(end+1).trim();
 if (leftover) qData.content += '\n\n' + leftover;
 }
+} else if (qData.solution && qData.solution.includes('\\shortans')) {
+qType = 'short';
+let start = qData.solution.indexOf('\\shortans') + 9, depth = 0, end = -1;
+if(qData.solution[start] !== '{') start = qData.solution.indexOf('{', start);
+for(let i=start; i<qData.solution.length; i++){ if(qData.solution[i]=='{') depth++; else if(qData.solution[i]=='}') depth--; if(depth===0 && depth!==-1) { end=i; break; } }
+if(end!==-1) {
+qData.answer = qData.solution.substring(start+1, end).trim().replace(/^\$+|\$+$/g, '').replace(/\{([.,])\}/g, '$1').trim();
+qData.solution = (qData.solution.substring(0, qData.solution.indexOf('\\shortans')) + qData.solution.substring(end+1)).trim();
+}
+qData.content = procBody.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim();
 } else {
 qType = 'essay';
 qData.content = procBody;
@@ -4977,11 +5072,14 @@ return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
 });
 str = str.replace(/\\left\\\{\s*\\begin\{array\}\s*\{[^{}]*\}([\s\S]*?)\\end\{array\}\s*\\right\.?/g, '\\begin{cases}$1\\end{cases}');
 str = str.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, '');
-str = str.replace(/\\left([a-zA-Z0-9])/g, '$1');
-str = str.replace(/\\right([a-zA-Z0-9])/g, '$1');
-str = str.replace(/(?<=[0-9a-zA-Z_)}])\s*\\?arrow\s*(?=[0-9a-zA-Z_(\\])/gi, ' \\rightarrow ');
-str = str.replace(/\\arrow\b/gi, '\\rightarrow ');
-str = str.replace(/\\Arrow\b/gi, '\\Rightarrow ');
+str = str.replace(/\\(?:left|right)(?=\s*[0-9])/g, '');
+str = str.replace(/\\(?:left|right)(?=\s+[a-zA-Z]\b)/g, '');
+str = str.replace(/\\(?:left|right)(?=(?:[a-zA-Z]\b)(?!arrow|leftharpoon|rightharpoon|leftharpoons))/g, '');
+str = str.replace(/\\arrow(?![a-zA-Z])/g, ' \\rightarrow ');
+str = str.replace(/\\Arrow(?![a-zA-Z])/g, ' \\Rightarrow ');
+str = str.replace(/(?<!\\right)(?<!\\left)(?<!\\long)(?<!\\up)(?<!\\down)(?<=[0-9a-zA-Z_)}])\s*(?:\\?arrow)\s*(?=[0-9a-zA-Z_(\\])/gi, ' \\rightarrow ');
+str = str.replace(/(?<![\\a-zA-Z])arrow(?![a-zA-Z])/gi, ' \\rightarrow ');
+str = str.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '');
 return str;
 }
 window.cleanWordMathLatex = cleanWordMathLatex;
@@ -5078,7 +5176,7 @@ solution = stripTrailingSectionHeaders(solution);
 } else {
 body = stripTrailingSectionHeaders(body);
 }
-const levelMatch = /^\s*\[(NB|TH|VD|VDC)\]/i.exec(body);
+const levelMatch = /(?:^|\s|%|#)\[\s*(NB|TH|VD|VDC)\s*\]/i.exec(body);
 let level = '';
 if (levelMatch) {
 const lvl = levelMatch[1].toUpperCase();
@@ -5087,6 +5185,7 @@ else if (lvl === 'TH') level = 'Thông hiểu';
 else if (lvl === 'VD') level = 'Vận dụng';
 else if (lvl === 'VDC') level = 'Vận dụng cao';
 }
+body = body.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim();
 const optionMatches = [...body.matchAll(/(?:^|\n|\s)([ABCD])\s*[\.\)\:]\s*/g)];
 const tfMatches = [...body.matchAll(/(?:^|\n)\s*([a-d])\s*[\.\)]\s*/gi)];
 const isTrueFalse = tfMatches.length >= 4 && (

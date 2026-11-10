@@ -1,4 +1,4 @@
-import { compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, cleanTikzCode, extractTikzPrelude, attachTikzPrelude } from "./utils.js?v=20261110-v6";
+import { compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, cleanTikzCode, extractTikzPrelude, attachTikzPrelude } from "./utils.js?v=20261110-v7";
 
 export const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
 
@@ -1340,7 +1340,11 @@ function showEditorPane() {
         document.getElementById("previewArea").innerHTML = cleanArcLatex(html);
         
         if (window.MathJax) {
-            MathJax.typesetPromise([document.getElementById("previewArea")]).catch((err) => console.log('MathJax error:', err));
+            MathJax.typesetPromise([document.getElementById("previewArea")]).then(() => {
+                if (window.renderTikz) window.renderTikz(document.getElementById("previewArea"));
+            }).catch((err) => console.log('MathJax error:', err));
+        } else if (window.renderTikz) {
+            window.renderTikz(document.getElementById("previewArea"));
         }
     }
 }
@@ -1508,22 +1512,18 @@ window.processAllTikz = async function(forcedEngine = null) {
 
     if (engineMode === 'tikzjax') {
         rawQueue.forEach(item => {
-            if (canRenderWithTikzJax(item.contentCode)) localQueue.push(item);
-            else quicklatexQueue.push(item);
+            const inlineHtml = `<div id="img-${item.id}" class="tikz-container flex justify-center my-2 overflow-x-auto"><script type="text/tikz">${cleanTikzCode(item.contentCode)}<\/script></div>`;
+            processSuccessItem(item, null, inlineHtml);
         });
+        if (window.renderTikz) {
+            setTimeout(() => window.renderTikz(), 50);
+        }
+        showToast("⚡ Đã nhúng mã TikZJax trực tiếp! Hình vẽ tự động hiển thị trong bài học.", "success");
+        return;
     } else if (engineMode === 'quicklatex') {
         quicklatexQueue = [...rawQueue];
     } else {
         vpsQueue = [...rawQueue];
-    }
-
-    if (localQueue.length > 0) {
-        localQueue.forEach(item => {
-            const inlineHtml = `<div id="img-${item.id}" class="flex justify-center my-2 overflow-x-auto"><script type="text/tikz">${cleanTikzCode(item.contentCode)}</script></div>`;
-            processSuccessItem(item, null, inlineHtml);
-        });
-        localQueue.length = 0;
-        if (window.renderTikz) setTimeout(() => window.renderTikz(), 50);
     }
 
     if (quicklatexQueue.length > 0) {

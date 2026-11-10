@@ -14,7 +14,7 @@
     }
 
     // Tá»± Ä‘á»™ng dá»n dáº¹p cÃ¡c cache phiÃªn báº£n cÅ© Ä‘á»ƒ náº¡p ngay báº£n má»›i v67
-    const CURRENT_VERSION = 'qmath-v150';
+    const CURRENT_VERSION = 'qmath-v151';
     if ('caches' in window) {
         caches.keys().then((keys) => {
             keys.forEach((key) => {

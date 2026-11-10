@@ -56,7 +56,6 @@
 
     function cleanWordMathLatex(str) {
         if (!str || typeof str !== 'string') return str;
-        // 1. Chuẩn hóa hệ phương trình MathType bị vỡ cấu trúc array
         const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right(?:\\\.|\.|\{|\})?\s*([\s\S]*?)\s*(?:\\\{|\\\}|\\\.|(?=\$))/g;
         str = str.replace(regexMangledSystem, (match, eq1, eq2) => {
             const clean1 = (eq1 || '').trim().replace(/^\\left\s*/, '');
@@ -65,6 +64,14 @@
         });
         str = str.replace(/\\left\{\s*\\begin\{array\}/g, '\\begin{cases}').replace(/\\end\{array\}\s*\\right\./g, '\\end{cases}');
         str = str.replace(/\\left\[\s*\\begin\{array\}/g, '\\begin{bmatrix}').replace(/\\end\{array\}\s*\\right\]/g, '\\end{bmatrix}');
+        str = str.replace(/\\(?:left|right)(?=\s*[0-9])/g, '');
+        str = str.replace(/\\(?:left|right)(?=\s+[a-zA-Z]\b)/g, '');
+        str = str.replace(/\\(?:left|right)(?=(?:[a-zA-Z]\b)(?!arrow|leftharpoon|rightharpoon|leftharpoons))/g, '');
+        str = str.replace(/\\arrow(?![a-zA-Z])/g, ' \\rightarrow ');
+        str = str.replace(/\\Arrow(?![a-zA-Z])/g, ' \\Rightarrow ');
+        str = str.replace(/(?<!\\right)(?<!\\left)(?<!\\long)(?<!\\up)(?<!\\down)(?<=[0-9a-zA-Z_)}])\s*(?:\\?arrow)\s*(?=[0-9a-zA-Z_(\\])/gi, ' \\rightarrow ');
+        str = str.replace(/(?<![\\a-zA-Z])arrow(?![a-zA-Z])/gi, ' \\rightarrow ');
+        str = str.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '');
         return str;
     }
 
@@ -130,7 +137,25 @@
             const trimmedBody = fullBody.trimStart();
             const firstNewline = trimmedBody.indexOf('\n');
             const firstLine = firstNewline !== -1 ? trimmedBody.substring(0, firstNewline) : trimmedBody;
-            const bracketMatches = Array.from(firstLine.matchAll(/\[(.*?)\]/g)).map(m => m[1].trim());
+            const rawBrackets = Array.from(firstLine.matchAll(/\[(.*?)\]/g)).map(m => m[1].trim());
+            let detectedLevel = '';
+            const bracketMatches = [];
+            rawBrackets.forEach(b => {
+                const upper = b.toUpperCase().trim();
+                if (upper === '##') return;
+                if (upper === 'NB') { detectedLevel = 'Nhận biết'; return; }
+                if (upper === 'TH') { detectedLevel = 'Thông hiểu'; return; }
+                if (upper === 'VD') { detectedLevel = 'Vận dụng'; return; }
+                if (upper === 'VDC') { detectedLevel = 'Vận dụng cao'; return; }
+                bracketMatches.push(b);
+            });
+            if (detectedLevel) {
+                tags.level = detectedLevel;
+                if (detectedLevel === 'Nhận biết') tags.levelColor = 'blue';
+                else if (detectedLevel === 'Thông hiểu') tags.levelColor = 'green';
+                else if (detectedLevel === 'Vận dụng') tags.levelColor = 'amber';
+                else if (detectedLevel === 'Vận dụng cao') tags.levelColor = 'red';
+            }
 
             if (bracketMatches.length >= 3) {
                 assignedCccd = bracketMatches[0];
@@ -164,7 +189,14 @@
                 if (idMatch) questionID = idMatch[1];
             }
 
-            if (questionID) tags = parseQuestionID(questionID);
+            if (questionID) {
+                const idTags = parseQuestionID(questionID);
+                tags.subject = idTags.subject;
+                if (!tags.level) {
+                    tags.level = idTags.level;
+                    tags.levelColor = idTags.levelColor;
+                }
+            }
 
             let testLine = firstLine.trim();
             testLine = testLine.replace(/^(\s*\[[^\]]*\]|\s*(?:%%|%)\[[^\]]*\])+/, '').trim();
@@ -180,6 +212,7 @@
             fullBody = fullBody.replace(/(?:%%|%)\s*\[[a-zA-Z0-9\-_.]+\]/g, '');
             fullBody = fullBody.replace(/(?<!\\)%.*/g, '');
             fullBody = fullBody.replace(/^\s*\[.*?\]/, '');
+            fullBody = fullBody.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '');
             
             let qType = 'essay';
             let qData = { 
@@ -223,7 +256,7 @@
                 cursor = 0; 
                 while (cursor < stmtsRaw.length) {
                     let txt = getNextArg(stmtsRaw); if (txt === null) break;
-                    tempStmts.push({ text: txt.replace(/\\(True|False)/g, '').trim(), isTrue: txt.includes('\\True') });
+                    tempStmts.push({ text: txt.replace(/\\(True|False)/g, '').replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim(), isTrue: txt.includes('\\True') });
                 }
                 qData.statements = tempStmts;
                 if (cursor < stmtsRaw.length) {
@@ -243,7 +276,7 @@
                 while (optCount < 4) {
                     let txt = getNextArg(optsRaw); if (txt === null) break;
                     if (txt.includes('\\True')) qData.correct = optCount;
-                    qData.options.push(txt.replace('\\True', '').trim());
+                    qData.options.push(txt.replace('\\True', '').replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '').trim());
                     optCount++;
                 }
                 if (cursor < optsRaw.length) {

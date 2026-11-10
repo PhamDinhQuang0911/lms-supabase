@@ -117,7 +117,21 @@ processHtmlClass: 'tex2jax_process'
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     </style>
     <link rel="stylesheet" href="/styles.css?v=5">
-<meta name="view-transition" content="same-origin" /></head>
+<meta name="view-transition" content="same-origin" />    <style>
+        .tikzjax-wrapper, .tikz-container {
+            margin: 4px auto !important;
+            padding: 0 !important;
+            line-height: 1 !important;
+        }
+        .tikzjax-wrapper svg,
+        svg.tikzjax-inline-svg {
+            margin: 2px auto !important;
+            padding: 0 !important;
+            max-height: 250px !important;
+            display: block !important;
+        }
+    </style>
+</head>
 <body class="h-screen flex overflow-hidden text-gray-800 bg-gray-50">
 
     

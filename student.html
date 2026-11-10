@@ -77,8 +77,6 @@ vectors: ["\\overrightarrow{#1}", 1],
 vec: ["\\overrightarrow{#1}", 1],
 mtx: ["\\left[\\begin{matrix}#1\\end{matrix}\\right]", 1],
 arrow: "\\rightarrow",
-rightarrow: "\\rightarrow",
-to: "\\rightarrow",
 Arrow: "\\Rightarrow"
 }
 },
@@ -1670,7 +1668,7 @@ if (content) { content.classList.add('scale-95'); content.classList.remove('scal
     <div id="notificationContainer" class="fixed top-5 right-5 z-[120] flex flex-col gap-3 pointer-events-none"></div>
 
     <script type="module">
-import { formatContent, renderTikz, autoScaleTables } from "./utils.js?v=20261110-v6";
+import { formatContent, renderTikz, autoScaleTables } from "./utils.js?v=20261110-v7";
 window.formatContent = formatContent;
 window.renderTikz = renderTikz;
 window.autoScaleTables = autoScaleTables;

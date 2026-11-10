@@ -1180,8 +1180,10 @@ const formatContentCore = (text) => {
         return `\\begin{cases} ${clean1} \\\\ ${clean2} \\end{cases}`;
     });
     processed = processed.replace(/\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}/g, '');
-    processed = processed.replace(/\\left([a-zA-Z0-9])/g, '$1');
-    processed = processed.replace(/\\right([a-zA-Z0-9])/g, '$1');
+    // Sửa lỗi orphaned \left / \right nhưng không được xóa tiền tố của \rightarrow, \leftarrow, \rightleftharpoons
+    processed = processed.replace(/\\(?:left|right)(?=\s*[0-9])/g, '');
+    processed = processed.replace(/\\(?:left|right)(?=\s+[a-zA-Z]\b)/g, '');
+    processed = processed.replace(/\\(?:left|right)(?=(?:[a-zA-Z]\b)(?!arrow|leftharpoon|rightharpoon|leftharpoons))/g, '');
 
     // Cleanup metadata LaTeX bảng (caption, arraystretch)
     processed = processed.replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '');
@@ -1196,11 +1198,13 @@ const formatContentCore = (text) => {
 
     // 1. Clean Text (Math-safe replacements)
     // Hỗ trợ triệt để lệnh mũi tên phản ứng hóa học / suy ra (\arrow, \Arrow, arrow)
-    processed = processed.replace(/(?<=[0-9a-zA-Z_)}])\s*\\?arrow\s*(?=[0-9a-zA-Z_(\\])/gi, ' \\rightarrow ');
-    processed = processed.replace(/\\arrow(?![a-zA-Z])/g, '\\rightarrow ');
-    processed = processed.replace(/\\Arrow(?![a-zA-Z])/g, '\\Rightarrow ');
-    processed = processed.replace(/\\arrow\b/gi, '\\rightarrow ');
-    processed = processed.replace(/\\Arrow\b/g, '\\Rightarrow ');
+    // Bảo vệ tuyệt đối các lệnh LaTeX chuẩn: \rightarrow, \leftarrow, \Rightarrow, \Leftarrow, v.v.
+    processed = processed.replace(/\\arrow(?![a-zA-Z])/g, ' \\rightarrow ');
+    processed = processed.replace(/\\Arrow(?![a-zA-Z])/g, ' \\Rightarrow ');
+    processed = processed.replace(/(?<!\\right)(?<!\\left)(?<!\\long)(?<!\\up)(?<!\\down)(?<=[0-9a-zA-Z_)}])\s*(?:\\?arrow)\s*(?=[0-9a-zA-Z_(\\])/gi, ' \\rightarrow ');
+    processed = processed.replace(/(?<![\\a-zA-Z])arrow(?![a-zA-Z])/gi, ' \\rightarrow ');
+    // Loại bỏ triệt để các thẻ phân loại [NB], [TH], [VD], [VDC], [##] khỏi nội dung hiển thị
+    processed = processed.replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, '');
     processed = processed.replace(/\\centering/g, "");
     processed = processed.replace(/\\allowdisplaybreaks(\[.*?\])?/g, "");
     processed = processed.replace(/\\lq\\lq/g, '"').replace(/\\rq\\rq/g, '"').replace(/\\lq/g, '"').replace(/\\rq/g, '"');
