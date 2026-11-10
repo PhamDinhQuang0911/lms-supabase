@@ -571,7 +571,7 @@ window.switchView = switchView;
     <script src="qrcode.min.js?v=20261017_V1"></script>
     <script src="word-mathtype-exporter.js?v=20261016_V5"></script>
     <script src="exam-mixer.js?v=20261108_V4"></script>
-    <script src="imath-studio.js?v=20261110-v1" defer></script>
+    <script src="imath-studio.js?v=20261111-v2" defer></script>
     <script>
 window.MathJax = {
 loader: { load: ['[tex]/noerrors'] },
@@ -1479,6 +1479,7 @@ startup: { typeset: false }
             <div class="pt-2.5 border-t border-slate-100 dark:border-slate-800/60 space-y-0.5">
                 <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 pb-1">Khảo thí & Đề thi</p>
                 <button onclick="window.openCreateExam(); setTimeout(()=>window.closeSidebar(),60)" id="nav-create-exam" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-sm font-medium"><span class="flex items-center gap-3"><i class="fa-solid fa-file-circle-plus text-orange-600"></i> Tạo đề thi</span><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800">HOT</span></button>
+                <button onclick="window.openIMathStudioModal('bank'); setTimeout(()=>window.closeSidebar(),60)" id="nav-imath-studio" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-sm font-medium"><span class="flex items-center gap-3"><i class="fa-solid fa-dice text-orange-600"></i> Tạo câu hỏi đổi số</span><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800">HOT</span></button>
                 <button onclick="window.openExamMixerModal(); setTimeout(()=>window.closeSidebar(),60)" id="nav-mixer" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-sm font-medium"><span class="flex items-center gap-3"><i class="fa-solid fa-shuffle text-orange-600"></i> Trộn đề thi</span><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800">HOT</span></button>
                 <button onclick="window.location.href='omr-grader.html'" id="nav-omr-grader" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-sm font-medium"><span class="flex items-center gap-3"><i class="fa-solid fa-camera text-orange-600"></i> Chấm thi OMR Camera</span><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800">HOT</span></button>
                 <a href="san-choi/index.html" id="nav-game-center" class="nav-item w-full text-left px-3 py-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors flex items-center justify-between text-sm font-medium"><span class="flex items-center gap-3"><i class="fa-solid fa-gamepad text-orange-600"></i> Sân Chơi Trí Thức</span><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800">HOT</span></a>
@@ -1742,7 +1743,7 @@ startup: { typeset: false }
                                 <i class="fa-solid fa-graduation-cap text-primary-600 dark:text-primary-400"></i>
                                 Giảng dạy & Khảo thí
                             </h2>
-                            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">7 nghiệp vụ</span>
+                            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">8 nghiệp vụ</span>
                         </div>
                         <div class="divide-y divide-gray-100 dark:divide-[#2e2a40]">
                                                         
@@ -1761,6 +1762,25 @@ startup: { typeset: false }
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0 ml-3">
                                     <span class="hidden sm:inline-block text-[11px] font-bold text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Tạo đề</span>
+                                    <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all"></i>
+                                </div>
+                            </div>
+
+                            <div id="home-card-imath-studio" onclick="window.openIMathStudioModal('bank')" class="group flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 flex items-center justify-center text-base shrink-0 group-hover:scale-105 transition-transform">
+                                        <i class="fa-solid fa-dice"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-extrabold text-sm text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-2">
+                                            <span>Tạo câu hỏi đổi số (Theo dạng)</span>
+                                            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">Hot</span>
+                                        </div>
+                                        <p class="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">Sinh câu hỏi biến thể đổi số Toán 6, 7, 8, 9 chuẩn MapID & nạp Ngân hàng</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0 ml-3">
+                                    <span class="hidden sm:inline-block text-[11px] font-bold text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Mở xưởng</span>
                                     <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all"></i>
                                 </div>
                             </div>

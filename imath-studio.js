@@ -2,7 +2,7 @@
  * QMath LMS - Xưởng Câu Hỏi Theo Dạng (Đổi Số Thông Minh - iMath Integration)
  * ============================================================================
  * Tích hợp đồng bộ với:
- *   1. Ngân hàng câu hỏi Cloudflare R2 (dashboard.html -> #view-questionbank)
+ *   1. Ngân hàng câu hỏi Cloudflare R2 (dashboard.html -> Sảnh chính, Sidebar & #view-questionbank)
  *      -> Chuẩn hóa MapID, cấp CCCD 8 số và nạp trực tiếp vào Ngân hàng để dùng cho
  *         Luyện tập (Practice), Tạo đề ma trận, và Trò chơi (Games).
  *   2. Trình soạn đề thi (exam-editor.html)
@@ -10,7 +10,7 @@
  *         vẽ hình trực tiếp bằng TikZJax và chèn thẳng vào đề thi.
  *   3. Hỗ trợ Hybrid Runtime:
  *      - Tự động kết nối Local Python Engine (http://127.0.0.1:8765) nếu đang bật
- *        để sinh vô hạn biến thể mới từ 37 module .pyc (0.001s/câu) và lưu mẫu TikZ mới.
+ *        để sinh vô hạn biến thể mới từ 37 module .pyc (0.004s/câu) và lưu mẫu TikZ mới.
  *      - Tự động chuyển sang Kho Đổi Số Web Tĩnh (data/imath/catalog_mapped.json + pool_L0x.json)
  *        để hoạt động 24/7 trên mọi thiết bị mà không cần cài đặt.
  */
@@ -19,7 +19,7 @@
     'use strict';
 
     const LOCAL_BRIDGE_URL = 'http://127.0.0.1:8765';
-    const CATALOG_URL = 'data/imath/catalog_mapped.json?v=20261110';
+    const CATALOG_URL = 'data/imath/catalog_mapped.json?v=20261111';
 
     const state = {
         catalog: [],
@@ -29,6 +29,7 @@
         variantCounters: {}, // { tag: idx }
         localBridgeOnline: false,
         mode: 'editor', // 'editor' | 'bank'
+        mobileTab: 'topics', // 'filter' | 'topics' | 'workspace'
         filters: {
             grade: 'Toán 9',
             chapter: 'all',
@@ -38,7 +39,7 @@
             onlyTikz: false,
             keyword: ''
         },
-        workspaceQuestions: [], // [{ id, tag, map_id, title, category, level_vi, latex_mc, tikz_group_id, is_tikz_overridden, showCode }]
+        workspaceQuestions: [],
         isLoadingCatalog: false
     };
 
@@ -52,10 +53,729 @@
 
     function notify(msg, type = 'info') {
         if (typeof window.showToast === 'function') {
-            window.showToast(msg, type);
-        } else {
-            console.log(`[iMathStudio][${type}]`, msg);
+            try {
+                window.showToast(msg, type);
+                return;
+            } catch (_) {}
         }
+        console.log(`[iMathStudio][${type}]`, msg);
+    }
+
+    // ------------------------------------------------------------------
+    // 0. SELF-CONTAINED CSS (KHÔNG PHỤ THUỘC TAILWIND JIT)
+    // ------------------------------------------------------------------
+    function injectStudioStyles() {
+        if (document.getElementById('imath-studio-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'imath-studio-styles';
+        style.textContent = `
+            #imathStudioModal.ims-overlay {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                z-index: 9999 !important;
+                background: rgba(15, 23, 42, 0.74) !important;
+                backdrop-filter: blur(5px) !important;
+                -webkit-backdrop-filter: blur(5px) !important;
+                display: none !important;
+                align-items: center !important;
+                justify-content: center !important;
+                padding: 12px !important;
+                box-sizing: border-box !important;
+            }
+            #imathStudioModal.ims-overlay.ims-open {
+                display: flex !important;
+            }
+            .ims-dialog {
+                width: 100% !important;
+                max-width: 1440px !important;
+                height: 92vh !important;
+                max-height: 960px !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                border-radius: 18px !important;
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.55) !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                font-family: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system, sans-serif !important;
+                box-sizing: border-box !important;
+            }
+            html.dark .ims-dialog {
+                background: #13111c !important;
+                color: #f1f5f9 !important;
+                border-color: #2e2a40 !important;
+            }
+            .ims-header {
+                padding: 12px 18px !important;
+                background: linear-gradient(135deg, #312e81 0%, #1d4ed8 52%, #0f766e 100%) !important;
+                color: #ffffff !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 12px !important;
+                flex-shrink: 0 !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+            }
+            .ims-header-left {
+                display: flex !important;
+                align-items: center !important;
+                gap: 12px !important;
+                min-width: 0 !important;
+                flex: 1 !important;
+            }
+            .ims-header-icon {
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 12px !important;
+                background: rgba(255, 255, 255, 0.16) !important;
+                border: 1px solid rgba(255, 255, 255, 0.28) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-size: 18px !important;
+                color: #ffffff !important;
+                flex-shrink: 0 !important;
+            }
+            .ims-header-title-row {
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                flex-wrap: wrap !important;
+            }
+            .ims-header-title {
+                font-size: 16px !important;
+                font-weight: 800 !important;
+                margin: 0 !important;
+                color: #ffffff !important;
+                line-height: 1.25 !important;
+            }
+            .ims-header-sub {
+                font-size: 11.5px !important;
+                color: #dbeafe !important;
+                margin: 2px 0 0 0 !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+            .ims-status-badge {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                padding: 3px 10px !important;
+                border-radius: 999px !important;
+                font-size: 11px !important;
+                font-weight: 700 !important;
+                background: rgba(255, 255, 255, 0.16) !important;
+                color: #ffffff !important;
+                border: 1px solid rgba(255, 255, 255, 0.28) !important;
+            }
+            .ims-status-badge.ims-online {
+                background: rgba(16, 185, 129, 0.25) !important;
+                color: #d1fae5 !important;
+                border-color: rgba(110, 231, 183, 0.5) !important;
+            }
+            .ims-header-actions {
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                flex-shrink: 0 !important;
+            }
+            .ims-hdr-btn {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                padding: 6px 11px !important;
+                border-radius: 10px !important;
+                font-size: 11.5px !important;
+                font-weight: 700 !important;
+                text-decoration: none !important;
+                transition: all 0.15s ease !important;
+                cursor: pointer !important;
+                white-space: nowrap !important;
+            }
+            .ims-hdr-btn-pdf {
+                background: rgba(251, 191, 36, 0.22) !important;
+                color: #fef3c7 !important;
+                border: 1px solid rgba(252, 211, 77, 0.45) !important;
+            }
+            .ims-hdr-btn-pdf:hover {
+                background: rgba(251, 191, 36, 0.35) !important;
+            }
+            .ims-hdr-btn-tex {
+                background: rgba(255, 255, 255, 0.14) !important;
+                color: #ffffff !important;
+                border: 1px solid rgba(255, 255, 255, 0.25) !important;
+            }
+            .ims-hdr-btn-tex:hover {
+                background: rgba(255, 255, 255, 0.24) !important;
+            }
+            .ims-close-btn {
+                width: 34px !important;
+                height: 34px !important;
+                border-radius: 999px !important;
+                background: rgba(255, 255, 255, 0.16) !important;
+                border: 1px solid rgba(255, 255, 255, 0.25) !important;
+                color: #ffffff !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-size: 15px !important;
+                cursor: pointer !important;
+                transition: all 0.15s ease !important;
+            }
+            .ims-close-btn:hover {
+                background: #ef4444 !important;
+                border-color: #ef4444 !important;
+            }
+
+            /* Mobile tab bar */
+            .ims-mobile-tabs {
+                display: none !important;
+                background: #f1f5f9 !important;
+                border-bottom: 1px solid #cbd5e1 !important;
+                padding: 6px 10px !important;
+                gap: 6px !important;
+                flex-shrink: 0 !important;
+            }
+            html.dark .ims-mobile-tabs {
+                background: #1a1726 !important;
+                border-bottom-color: #2e2a40 !important;
+            }
+            .ims-mobile-tab-btn {
+                flex: 1 !important;
+                padding: 7px 8px !important;
+                border-radius: 9px !important;
+                font-size: 12px !important;
+                font-weight: 700 !important;
+                border: 1px solid transparent !important;
+                background: transparent !important;
+                color: #475569 !important;
+                cursor: pointer !important;
+                text-align: center !important;
+            }
+            html.dark .ims-mobile-tab-btn {
+                color: #94a3b8 !important;
+            }
+            .ims-mobile-tab-btn.ims-tab-active {
+                background: #4f46e5 !important;
+                color: #ffffff !important;
+            }
+
+            /* Main 3-Column Grid */
+            .ims-body {
+                flex: 1 !important;
+                min-height: 0 !important;
+                display: grid !important;
+                grid-template-columns: 290px 400px 1fr !important;
+                overflow: hidden !important;
+            }
+            .ims-col-filter {
+                background: #f8fafc !important;
+                border-right: 1px solid #e2e8f0 !important;
+                padding: 14px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 12px !important;
+                overflow-y: auto !important;
+                min-height: 0 !important;
+            }
+            html.dark .ims-col-filter {
+                background: #181524 !important;
+                border-right-color: #2e2a40 !important;
+            }
+            .ims-col-topics {
+                background: #ffffff !important;
+                border-right: 1px solid #e2e8f0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
+            }
+            html.dark .ims-col-topics {
+                background: #13111c !important;
+                border-right-color: #2e2a40 !important;
+            }
+            .ims-col-workspace {
+                background: #f1f5f9 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                min-height: 0 !important;
+                overflow: hidden !important;
+            }
+            html.dark .ims-col-workspace {
+                background: #0d0b14 !important;
+            }
+
+            /* Filter controls */
+            .ims-section-hdr {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                font-size: 11.5px !important;
+                font-weight: 800 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.04em !important;
+                color: #334155 !important;
+            }
+            html.dark .ims-section-hdr {
+                color: #cbd5e1 !important;
+            }
+            .ims-reset-link {
+                font-size: 11px !important;
+                font-weight: 700 !important;
+                color: #4f46e5 !important;
+                background: none !important;
+                border: none !important;
+                cursor: pointer !important;
+                text-transform: none !important;
+            }
+            html.dark .ims-reset-link {
+                color: #818cf8 !important;
+            }
+            .ims-label {
+                display: block !important;
+                font-size: 11.5px !important;
+                font-weight: 700 !important;
+                color: #475569 !important;
+                margin-bottom: 5px !important;
+            }
+            html.dark .ims-label {
+                color: #94a3b8 !important;
+            }
+            .ims-grade-grid {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 6px !important;
+            }
+            .ims-grade-btn {
+                padding: 7px 4px !important;
+                border-radius: 9px !important;
+                font-size: 12px !important;
+                font-weight: 700 !important;
+                border: 1px solid #cbd5e1 !important;
+                background: #ffffff !important;
+                color: #334155 !important;
+                cursor: pointer !important;
+                transition: all 0.15s ease !important;
+                text-align: center !important;
+            }
+            html.dark .ims-grade-btn {
+                background: #1e1b2e !important;
+                border-color: #38344d !important;
+                color: #cbd5e1 !important;
+            }
+            .ims-grade-btn.ims-active {
+                background: #4f46e5 !important;
+                border-color: #4f46e5 !important;
+                color: #ffffff !important;
+                box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35) !important;
+            }
+            .ims-select, .ims-input {
+                width: 100% !important;
+                height: 36px !important;
+                padding: 0 10px !important;
+                border-radius: 10px !important;
+                border: 1px solid #cbd5e1 !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                font-size: 12px !important;
+                font-weight: 600 !important;
+                outline: none !important;
+                box-sizing: border-box !important;
+            }
+            html.dark .ims-select, html.dark .ims-input {
+                background: #1e1b2e !important;
+                border-color: #38344d !important;
+                color: #f1f5f9 !important;
+            }
+            .ims-select:focus, .ims-input:focus {
+                border-color: #6366f1 !important;
+                box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+            }
+            .ims-grid-2 {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+            }
+            .ims-search-wrap {
+                position: relative !important;
+            }
+            .ims-search-wrap i {
+                position: absolute !important;
+                left: 10px !important;
+                top: 11px !important;
+                color: #64748b !important;
+                font-size: 12px !important;
+                pointer-events: none !important;
+            }
+            .ims-search-wrap .ims-input {
+                padding-left: 30px !important;
+            }
+            .ims-tikz-filter-box {
+                display: flex !important;
+                align-items: center !important;
+                gap: 10px !important;
+                padding: 10px 12px !important;
+                border-radius: 12px !important;
+                background: #fffbeb !important;
+                border: 1px solid #fde68a !important;
+                cursor: pointer !important;
+                user-select: none !important;
+            }
+            html.dark .ims-tikz-filter-box {
+                background: rgba(120, 53, 15, 0.25) !important;
+                border-color: rgba(217, 119, 6, 0.45) !important;
+            }
+            .ims-guide-box {
+                margin-top: auto !important;
+                padding: 12px !important;
+                border-radius: 12px !important;
+                background: #eef2ff !important;
+                border: 1px solid #c7d2fe !important;
+                font-size: 11.5px !important;
+                color: #334155 !important;
+                line-height: 1.5 !important;
+            }
+            html.dark .ims-guide-box {
+                background: rgba(49, 46, 129, 0.25) !important;
+                border-color: rgba(99, 102, 241, 0.35) !important;
+                color: #cbd5e1 !important;
+            }
+
+            /* Column Subheaders */
+            .ims-col-subheader {
+                padding: 10px 14px !important;
+                background: #f8fafc !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 8px !important;
+                flex-shrink: 0 !important;
+            }
+            html.dark .ims-col-subheader {
+                background: #1a1726 !important;
+                border-bottom-color: #2e2a40 !important;
+            }
+            .ims-col-subheader-title {
+                font-size: 12.5px !important;
+                font-weight: 800 !important;
+                color: #1e293b !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+            }
+            html.dark .ims-col-subheader-title {
+                color: #f1f5f9 !important;
+            }
+
+            /* Scrollable Lists */
+            .ims-scroll-list {
+                flex: 1 !important;
+                min-height: 0 !important;
+                overflow-y: auto !important;
+                padding: 12px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+
+            /* Topic Item Card */
+            .ims-topic-card {
+                padding: 11px 12px !important;
+                border-radius: 12px !important;
+                border: 1px solid #e2e8f0 !important;
+                background: #ffffff !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 7px !important;
+                transition: all 0.15s ease !important;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+            }
+            html.dark .ims-topic-card {
+                background: #1c192b !important;
+                border-color: #2e2a40 !important;
+            }
+            .ims-topic-card:hover {
+                border-color: #6366f1 !important;
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
+            }
+            .ims-topic-top {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 6px !important;
+                flex-wrap: wrap !important;
+            }
+            .ims-badge-row {
+                display: flex !important;
+                align-items: center !important;
+                gap: 5px !important;
+                flex-wrap: wrap !important;
+            }
+            .ims-badge-tag {
+                padding: 2px 7px !important;
+                border-radius: 6px !important;
+                background: #0f172a !important;
+                color: #ffffff !important;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+                font-size: 10.5px !important;
+                font-weight: 700 !important;
+            }
+            html.dark .ims-badge-tag {
+                background: #312e81 !important;
+            }
+            .ims-badge-mapid {
+                padding: 2px 7px !important;
+                border-radius: 6px !important;
+                background: #eef2ff !important;
+                color: #4338ca !important;
+                border: 1px solid #c7d2fe !important;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+                font-size: 10.5px !important;
+                font-weight: 700 !important;
+            }
+            html.dark .ims-badge-mapid {
+                background: rgba(79, 70, 229, 0.2) !important;
+                color: #a5b4fc !important;
+                border-color: rgba(99, 102, 241, 0.4) !important;
+            }
+            .ims-badge-tikz {
+                padding: 2px 7px !important;
+                border-radius: 6px !important;
+                background: #fef3c7 !important;
+                color: #92400e !important;
+                border: 1px solid #fcd34d !important;
+                font-size: 10px !important;
+                font-weight: 700 !important;
+            }
+            .ims-badge-tikz.ims-tikz-override {
+                background: #ccfbf1 !important;
+                color: #115e59 !important;
+                border-color: #5eead4 !important;
+            }
+            .ims-badge-lvl {
+                padding: 2px 7px !important;
+                border-radius: 6px !important;
+                font-size: 10px !important;
+                font-weight: 700 !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            .ims-lvl-M1 { background: #ecfdf5 !important; color: #047857 !important; border-color: #a7f3d0 !important; }
+            .ims-lvl-M2 { background: #f0f9ff !important; color: #0369a1 !important; border-color: #bae6fd !important; }
+            .ims-lvl-M3 { background: #fffbeb !important; color: #b45309 !important; border-color: #fde68a !important; }
+            .ims-lvl-M4 { background: #fff1f2 !important; color: #be123c !important; border-color: #fecdd3 !important; }
+            .ims-topic-title {
+                font-size: 12.5px !important;
+                font-weight: 700 !important;
+                color: #1e293b !important;
+                line-height: 1.4 !important;
+            }
+            html.dark .ims-topic-title {
+                color: #f1f5f9 !important;
+            }
+            .ims-topic-foot {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 8px !important;
+                padding-top: 6px !important;
+                border-top: 1px solid #f1f5f9 !important;
+            }
+            html.dark .ims-topic-foot {
+                border-top-color: #2e2a40 !important;
+            }
+            .ims-topic-lesson {
+                font-size: 10.5px !important;
+                color: #64748b !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+            .ims-btn-add1 {
+                padding: 4px 10px !important;
+                border-radius: 7px !important;
+                background: #4f46e5 !important;
+                color: #ffffff !important;
+                border: none !important;
+                font-size: 11px !important;
+                font-weight: 700 !important;
+                cursor: pointer !important;
+            }
+            .ims-btn-add1:hover {
+                background: #4338ca !important;
+            }
+            .ims-btn-add3 {
+                padding: 4px 8px !important;
+                border-radius: 7px !important;
+                background: #eef2ff !important;
+                color: #4338ca !important;
+                border: 1px solid #c7d2fe !important;
+                font-size: 11px !important;
+                font-weight: 700 !important;
+                cursor: pointer !important;
+            }
+            .ims-btn-add3:hover {
+                background: #e0e7ff !important;
+            }
+
+            /* Workspace Question Card */
+            .ims-q-card {
+                background: #ffffff !important;
+                border-radius: 14px !important;
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+                overflow: hidden !important;
+                flex-shrink: 0 !important;
+            }
+            html.dark .ims-q-card {
+                background: #181524 !important;
+                border-color: #2e2a40 !important;
+            }
+            .ims-q-card-hdr {
+                padding: 8px 12px !important;
+                background: #f8fafc !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 8px !important;
+                flex-wrap: wrap !important;
+            }
+            html.dark .ims-q-card-hdr {
+                background: #1f1b2e !important;
+                border-bottom-color: #2e2a40 !important;
+            }
+            .ims-q-body {
+                padding: 14px !important;
+                font-size: 13.5px !important;
+                color: #0f172a !important;
+                line-height: 1.65 !important;
+            }
+            html.dark .ims-q-body {
+                color: #f1f5f9 !important;
+            }
+            .ims-choices-grid {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+                margin-top: 10px !important;
+            }
+            .ims-choices-tf {
+                display: grid !important;
+                grid-template-columns: 1fr !important;
+                gap: 6px !important;
+                margin-top: 10px !important;
+            }
+            .ims-choice-item {
+                padding: 8px 10px !important;
+                border-radius: 9px !important;
+                border: 1px solid #e2e8f0 !important;
+                background: #f8fafc !important;
+                font-size: 12.5px !important;
+                display: flex !important;
+                align-items: flex-start !important;
+                gap: 6px !important;
+            }
+            html.dark .ims-choice-item {
+                background: #13111c !important;
+                border-color: #2e2a40 !important;
+                color: #e2e8f0 !important;
+            }
+            .ims-choice-item.ims-choice-true {
+                background: #ecfdf5 !important;
+                border-color: #34d399 !important;
+                color: #064e3b !important;
+                font-weight: 600 !important;
+            }
+            html.dark .ims-choice-item.ims-choice-true {
+                background: rgba(6, 78, 59, 0.35) !important;
+                border-color: #10b981 !important;
+                color: #d1fae5 !important;
+            }
+
+            /* Workspace Bottom Action Bar */
+            .ims-footer {
+                padding: 12px 14px !important;
+                background: #ffffff !important;
+                border-top: 1px solid #e2e8f0 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 8px !important;
+                flex-wrap: wrap !important;
+                flex-shrink: 0 !important;
+            }
+            html.dark .ims-footer {
+                background: #181524 !important;
+                border-top-color: #2e2a40 !important;
+            }
+            .ims-btn {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                padding: 8px 14px !important;
+                border-radius: 10px !important;
+                font-size: 12px !important;
+                font-weight: 700 !important;
+                cursor: pointer !important;
+                border: 1px solid transparent !important;
+                transition: all 0.15s ease !important;
+            }
+            .ims-btn-sec {
+                background: #f1f5f9 !important;
+                color: #334155 !important;
+                border-color: #cbd5e1 !important;
+            }
+            .ims-btn-sec:hover {
+                background: #e2e8f0 !important;
+            }
+            .ims-btn-bank {
+                background: #d97706 !important;
+                color: #ffffff !important;
+            }
+            .ims-btn-bank:hover {
+                background: #b45309 !important;
+            }
+            .ims-btn-exam {
+                background: #4f46e5 !important;
+                color: #ffffff !important;
+            }
+            .ims-btn-exam:hover {
+                background: #4338ca !important;
+            }
+
+            @media (max-width: 1024px) {
+                .ims-hdr-btn-tex { display: none !important; }
+                .ims-mobile-tabs { display: flex !important; }
+                .ims-body {
+                    grid-template-columns: 1fr !important;
+                }
+                .ims-body[data-mobile-tab="filter"] .ims-col-topics,
+                .ims-body[data-mobile-tab="filter"] .ims-col-workspace {
+                    display: none !important;
+                }
+                .ims-body[data-mobile-tab="topics"] .ims-col-filter,
+                .ims-body[data-mobile-tab="topics"] .ims-col-workspace {
+                    display: none !important;
+                }
+                .ims-body[data-mobile-tab="workspace"] .ims-col-filter,
+                .ims-body[data-mobile-tab="workspace"] .ims-col-topics {
+                    display: none !important;
+                }
+            }
+            @media (max-width: 640px) {
+                .ims-hdr-btn-pdf span { display: none !important; }
+                .ims-choices-grid { grid-template-columns: 1fr !important; }
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     // ------------------------------------------------------------------
@@ -64,11 +784,13 @@
     async function checkLocalBridge() {
         try {
             const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 900);
-            const res = await fetch(`${LOCAL_BRIDGE_URL}/api/ping`, { signal: ctrl.signal });
+            const timer = setTimeout(() => {
+                try { ctrl.abort(); } catch (_) {}
+            }, 900);
+            const res = await fetch(`${LOCAL_BRIDGE_URL}/api/ping`, { signal: ctrl.signal }).catch(() => null);
             clearTimeout(timer);
-            if (res.ok) {
-                const data = await res.json();
+            if (res && res.ok) {
+                const data = await res.json().catch(() => null);
                 state.localBridgeOnline = Boolean(data && data.ok);
             } else {
                 state.localBridgeOnline = false;
@@ -84,11 +806,11 @@
         const badge = document.getElementById('imathEngineStatusBadge');
         if (!badge) return;
         if (state.localBridgeOnline) {
-            badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-100 border border-emerald-300/40 flex items-center gap-1.5';
-            badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span><span>Engine Python Trực Tiếp (Sinh vô hạn)</span>';
+            badge.className = 'ims-status-badge ims-online';
+            badge.innerHTML = '<i class="fa-solid fa-bolt"></i><span>Engine Python Trực Tiếp (Sinh vô hạn)</span>';
         } else {
-            badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white border border-white/25 flex items-center gap-1.5';
-            badge.innerHTML = '<i class="fa-solid fa-cloud text-sky-200"></i><span>Kho Đổi Số Web Sẵn Sàng (2.423 dạng)</span>';
+            badge.className = 'ims-status-badge';
+            badge.innerHTML = '<i class="fa-solid fa-cloud"></i><span>Kho Đổi Số Web Sẵn Sàng (2.423 dạng)</span>';
         }
     }
 
@@ -117,8 +839,8 @@
                 }
             }
         } catch (err) {
-            console.error('[iMathStudio] Lỗi tải catalog_mapped.json:', err);
-            notify('Không thể tải danh mục dạng toán đổi số: ' + err.message, 'error');
+            console.warn('[iMathStudio] Lỗi tải catalog_mapped.json:', err);
+            notify('Không thể tải danh mục dạng toán đổi số: ' + (err.message || err), 'error');
         } finally {
             state.isLoadingCatalog = false;
         }
@@ -128,7 +850,7 @@
     async function ensureGradePoolLoaded(gradePrefix) {
         if (state.poolsLoaded[gradePrefix]) return state.poolsLoaded[gradePrefix];
         try {
-            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261110`);
+            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261111`);
             if (res.ok) {
                 state.poolsLoaded[gradePrefix] = await res.json();
                 return state.poolsLoaded[gradePrefix];
@@ -139,10 +861,6 @@
         return {};
     }
 
-    /**
-     * Xáo trộn nhẹ phương án \choice{A}{B}{C}{D} trên trình duyệt khi dùng kho tĩnh
-     * để tạo thêm biến thể mới ngay cả khi không bật Python Local Bridge.
-     */
     function shuffleLatexChoicesClientSide(latexStr, roundIdx) {
         if (!latexStr || roundIdx <= 1) return latexStr;
         const pos = latexStr.indexOf('\\choice');
@@ -191,7 +909,6 @@
         await ensureCatalogLoaded();
         const meta = state.byTag[tag] || { tag, map_id: '', title: tag, category: 'Trắc nghiệm', level_vi: 'Nhận biết' };
 
-        // 1. Ưu tiên gọi Local Python Bridge nếu đang bật (sinh trực tiếp từ .pyc)
         if (state.localBridgeOnline) {
             try {
                 const res = await fetch(`${LOCAL_BRIDGE_URL}/api/generate?tag=${encodeURIComponent(tag)}&count=${count}`);
@@ -220,7 +937,6 @@
             }
         }
 
-        // 2. Fallback sang Kho Đổi Số Web Tĩnh (pool_L0x.json)
         const gradePrefix = tag.split('_')[0] || 'L09';
         const pool = await ensureGradePoolLoaded(gradePrefix);
         const variants = pool[tag] || [];
@@ -257,86 +973,98 @@
     // 2. XÂY DỰNG GIAO DIỆN MODAL STUDIO (#imathStudioModal)
     // ------------------------------------------------------------------
     function ensureModalDOM() {
+        injectStudioStyles();
         let modal = document.getElementById('imathStudioModal');
         if (modal) return modal;
 
         modal = document.createElement('div');
         modal.id = 'imathStudioModal';
-        modal.className = 'fixed inset-0 z-[140] hidden items-center justify-center bg-slate-900/70 backdrop-blur-xs p-2 md:p-4';
+        modal.className = 'ims-overlay';
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) window.closeIMathStudioModal();
+        });
+
         modal.innerHTML = `
-            <div class="bg-white dark:bg-slate-900 w-full max-w-[1440px] h-[94vh] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+            <div class="ims-dialog" role="dialog" aria-modal="true">
                 <!-- Header -->
-                <div class="px-4 py-3 bg-gradient-to-r from-indigo-700 via-blue-700 to-teal-700 text-white flex items-center justify-between gap-3 shrink-0">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-10 h-10 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center text-lg shadow-inner shrink-0">
+                <div class="ims-header">
+                    <div class="ims-header-left">
+                        <div class="ims-header-icon">
                             <i class="fa-solid fa-dice"></i>
                         </div>
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h2 class="text-base md:text-lg font-black tracking-tight truncate">Xưởng Tạo Câu Hỏi Theo Dạng (Đổi Số Chuẩn MapID)</h2>
-                                <span id="imathEngineStatusBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/15 text-white border border-white/25">Đang kiểm tra...</span>
+                        <div style="min-width:0;flex:1;">
+                            <div class="ims-header-title-row">
+                                <h2 class="ims-header-title">Xưởng Tạo Câu Hỏi Đổi Số (Theo Dạng Chuẩn MapID)</h2>
+                                <span id="imathEngineStatusBadge" class="ims-status-badge">Đang kiểm tra...</span>
                             </div>
-                            <p class="text-xs text-blue-100 truncate">2.423 dạng toán THCS (Lớp 6, 7, 8, 9) • Tự động gắn MapID chuẩn QMath, làm đẹp LaTeX & vẽ hình trực tiếp bằng TikZJax</p>
+                            <p class="ims-header-sub">2.423 dạng toán THCS (Toán 6, 7, 8, 9) • Chuẩn hóa \\dfrac, \\wideparen, \\choiceTF, \\shortans & vẽ hình trực tiếp bằng TikZJax</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.pdf" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-100 border border-amber-300/40 text-xs font-bold transition cursor-pointer" title="Mở bảng PDF thống kê toàn bộ 456 câu hỏi có hình vẽ TikZ kèm mã định danh [Lxx_Cx_Bx_xx]">
-                            <i class="fa-solid fa-file-pdf text-amber-300"></i>
+                    <div class="ims-header-actions">
+                        <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.pdf" target="_blank" class="ims-hdr-btn ims-hdr-btn-pdf" title="Mở bảng PDF thống kê toàn bộ 456 câu hỏi có hình vẽ TikZ kèm mã định danh [Lxx_Cx_Bx_xx]">
+                            <i class="fa-solid fa-file-pdf"></i>
                             <span>Bảng PDF 456 Hình TikZ</span>
                         </a>
-                        <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.tex" download="Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.tex" class="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold transition cursor-pointer" title="Tải file mã nguồn .tex của 456 câu có hình TikZ">
-                            <i class="fa-solid fa-file-code text-emerald-300"></i>
+                        <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.tex" download="Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.tex" class="ims-hdr-btn ims-hdr-btn-tex" title="Tải file mã nguồn .tex của 456 câu có hình TikZ">
+                            <i class="fa-solid fa-file-code"></i>
                             <span>Mã .tex 456 Hình</span>
                         </a>
-                        <button type="button" onclick="window.closeIMathStudioModal()" class="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition cursor-pointer" title="Đóng">
+                        <button type="button" onclick="window.closeIMathStudioModal()" class="ims-close-btn" title="Đóng (ESC)">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
                 </div>
 
+                <!-- Mobile Navigation Tabs (< 1024px) -->
+                <div class="ims-mobile-tabs">
+                    <button type="button" onclick="window.setIMathMobileTab('filter')" id="imsMobileTab_filter" class="ims-mobile-tab-btn">
+                        <i class="fa-solid fa-filter"></i> Bộ lọc
+                    </button>
+                    <button type="button" onclick="window.setIMathMobileTab('topics')" id="imsMobileTab_topics" class="ims-mobile-tab-btn ims-tab-active">
+                        <i class="fa-solid fa-layer-group"></i> Dạng toán (<span id="imathMobileTopicCount">0</span>)
+                    </button>
+                    <button type="button" onclick="window.setIMathMobileTab('workspace')" id="imsMobileTab_workspace" class="ims-mobile-tab-btn">
+                        <i class="fa-solid fa-eye"></i> Bàn làm việc (<span id="imathMobileWorkspaceCount">0</span>)
+                    </button>
+                </div>
+
                 <!-- Main 3-Column Body -->
-                <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800 overflow-hidden">
-                    <!-- Cột 1: Bộ lọc Chuyên đề & MapID (3 cols) -->
-                    <div class="lg:col-span-3 flex flex-col min-h-0 bg-slate-50/70 dark:bg-slate-900/60 p-3.5 gap-3 overflow-y-auto">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                <i class="fa-solid fa-filter text-indigo-600"></i> Bộ lọc chuyên đề & MapID
-                            </span>
-                            <button type="button" onclick="window.resetIMathFilters()" class="text-[11px] font-bold text-indigo-600 hover:underline cursor-pointer">Đặt lại</button>
+                <div class="ims-body" id="imathStudioBody" data-mobile-tab="topics">
+                    <!-- Cột 1: Bộ lọc Chuyên đề & MapID -->
+                    <div class="ims-col-filter">
+                        <div class="ims-section-hdr">
+                            <span><i class="fa-solid fa-filter" style="color:#4f46e5;margin-right:5px;"></i> Bộ lọc chuyên đề & MapID</span>
+                            <button type="button" onclick="window.resetIMathFilters()" class="ims-reset-link">Đặt lại</button>
                         </div>
 
-                        <!-- Khối lớp -->
                         <div>
-                            <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Khối lớp (Sách KNTTVCS)</label>
-                            <div class="grid grid-cols-4 gap-1.5" id="imathGradeButtons">
-                                <button type="button" onclick="window.setIMathGrade('Toán 6')" data-grade="Toán 6" class="imath-grade-btn py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer">Toán 6</button>
-                                <button type="button" onclick="window.setIMathGrade('Toán 7')" data-grade="Toán 7" class="imath-grade-btn py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer">Toán 7</button>
-                                <button type="button" onclick="window.setIMathGrade('Toán 8')" data-grade="Toán 8" class="imath-grade-btn py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer">Toán 8</button>
-                                <button type="button" onclick="window.setIMathGrade('Toán 9')" data-grade="Toán 9" class="imath-grade-btn py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer">Toán 9</button>
+                            <label class="ims-label">Khối lớp (Sách KNTTVCS)</label>
+                            <div class="ims-grade-grid" id="imathGradeButtons">
+                                <button type="button" onclick="window.setIMathGrade('Toán 6')" data-grade="Toán 6" class="ims-grade-btn">Toán 6</button>
+                                <button type="button" onclick="window.setIMathGrade('Toán 7')" data-grade="Toán 7" class="ims-grade-btn">Toán 7</button>
+                                <button type="button" onclick="window.setIMathGrade('Toán 8')" data-grade="Toán 8" class="ims-grade-btn">Toán 8</button>
+                                <button type="button" onclick="window.setIMathGrade('Toán 9')" data-grade="Toán 9" class="ims-grade-btn ims-active">Toán 9</button>
                             </div>
                         </div>
 
-                        <!-- Chương -->
                         <div>
-                            <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Chương học</label>
-                            <select id="imathFilterChapter" onchange="window.onIMathFilterChange('chapter')" class="w-full h-9 px-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500">
+                            <label class="ims-label">Chương học</label>
+                            <select id="imathFilterChapter" onchange="window.onIMathFilterChange('chapter')" class="ims-select">
                                 <option value="all">Tất cả các chương</option>
                             </select>
                         </div>
 
-                        <!-- Bài học -->
                         <div>
-                            <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Bài học</label>
-                            <select id="imathFilterLesson" onchange="window.onIMathFilterChange('lesson')" class="w-full h-9 px-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500">
+                            <label class="ims-label">Bài học</label>
+                            <select id="imathFilterLesson" onchange="window.onIMathFilterChange('lesson')" class="ims-select">
                                 <option value="all">Tất cả các bài</option>
                             </select>
                         </div>
 
-                        <!-- Loại câu hỏi & Mức độ -->
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="ims-grid-2">
                             <div>
-                                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Loại câu hỏi</label>
-                                <select id="imathFilterCategory" onchange="window.onIMathFilterChange('category')" class="w-full h-9 px-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none">
+                                <label class="ims-label">Loại câu hỏi</label>
+                                <select id="imathFilterCategory" onchange="window.onIMathFilterChange('category')" class="ims-select">
                                     <option value="all">Tất cả loại</option>
                                     <option value="Trắc nghiệm">Trắc nghiệm</option>
                                     <option value="Đúng-Sai">Đúng - Sai</option>
@@ -345,8 +1073,8 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Mức độ</label>
-                                <select id="imathFilterLevel" onchange="window.onIMathFilterChange('level')" class="w-full h-9 px-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none">
+                                <label class="ims-label">Mức độ</label>
+                                <select id="imathFilterLevel" onchange="window.onIMathFilterChange('level')" class="ims-select">
                                     <option value="all">Tất cả mức</option>
                                     <option value="M1">Nhận biết (NB)</option>
                                     <option value="M2">Thông hiểu (TH)</option>
@@ -356,82 +1084,79 @@
                             </div>
                         </div>
 
-                        <!-- Tìm theo MapID / Mã câu / Từ khóa -->
                         <div>
-                            <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Tìm theo MapID / Mã câu / Tên dạng</label>
-                            <div class="relative">
-                                <input type="text" id="imathFilterKeyword" oninput="window.onIMathFilterChange('keyword')" placeholder="VD: 9H4V2-5, L09_C4_B2_57, HINH_..." class="w-full h-9 pl-8 pr-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500">
-                                <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                            <label class="ims-label">Tìm theo MapID / Mã câu / Tên dạng</label>
+                            <div class="ims-search-wrap">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="imathFilterKeyword" oninput="window.onIMathFilterChange('keyword')" placeholder="VD: 9H4V2-5, L09_C4_B2_57, HINH_..." class="ims-input">
                             </div>
                         </div>
 
-                        <!-- Lọc riêng câu có hình TikZ -->
-                        <label class="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 cursor-pointer select-none">
-                            <input type="checkbox" id="imathFilterOnlyTikz" onchange="window.onIMathFilterChange('tikz')" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500">
-                            <div class="text-xs">
-                                <div class="font-bold text-amber-900 dark:text-amber-200">🎨 Chỉ hiện dạng có hình TikZ</div>
-                                <div class="text-[10px] text-amber-700 dark:text-amber-400">Hiển thị mã câu & nhóm hình để duyệt/thay TikZ</div>
+                        <label class="ims-tikz-filter-box">
+                            <input type="checkbox" id="imathFilterOnlyTikz" onchange="window.onIMathFilterChange('tikz')" style="width:16px;height:16px;accent-color:#d97706;cursor:pointer;">
+                            <div>
+                                <div style="font-size:12px;font-weight:800;color:#92400e;">🎨 Chỉ hiện dạng có hình TikZ</div>
+                                <div style="font-size:10.5px;color:#b45309;">Hiển thị mã câu & nhóm hình để duyệt/thay TikZ</div>
                             </div>
                         </label>
 
-                        <!-- Box hướng dẫn nhanh -->
-                        <div class="mt-auto p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/50 text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5">
-                            <div class="font-bold text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5">
+                        <div class="ims-guide-box">
+                            <div style="font-weight:800;color:#4338ca;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i> Chu trình chuẩn hóa Ngân hàng:
                             </div>
-                            <p>1. Chọn dạng bài bên giữa để <b>sinh câu hỏi đổi số</b>.</p>
-                            <p>2. Xem trước công thức & hình <b>TikZJax</b> bên phải, bấm <b>🔄 Đổi số</b> hoặc <b>Sửa LaTeX/TikZ</b> nếu cần.</p>
-                            <p>3. Bấm <b>☁️ Nạp vào Ngân hàng</b> để cấp CCCD & dùng cho <i>Luyện tập, Tạo đề, Trò chơi</i>!</p>
+                            <div>1. Chọn dạng bài ở cột giữa để <b>sinh câu hỏi đổi số</b>.</div>
+                            <div>2. Xem trước công thức & hình <b>TikZJax</b> bên phải, bấm <b>Đổi số</b> hoặc sửa <b>LaTeX/MapID</b>.</div>
+                            <div>3. Bấm <b>Nạp vào Ngân hàng (R2)</b> để cấp CCCD & dùng cho <i>Luyện tập, Tạo đề, Trò chơi</i>!</div>
                         </div>
                     </div>
 
-                    <!-- Cột 2: Danh sách Dạng toán đổi số (4 cols) -->
-                    <div class="lg:col-span-4 flex flex-col min-h-0 bg-white dark:bg-slate-900">
-                        <div class="px-3.5 py-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0 bg-slate-50/50 dark:bg-slate-800/40">
-                            <div class="text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                                <i class="fa-solid fa-layer-group text-indigo-600"></i>
-                                <span>Danh sách dạng toán (<span id="imathTopicCount" class="text-indigo-600">0</span>)</span>
+                    <!-- Cột 2: Danh sách Dạng toán đổi số -->
+                    <div class="ims-col-topics">
+                        <div class="ims-col-subheader">
+                            <div class="ims-col-subheader-title">
+                                <i class="fa-solid fa-layer-group" style="color:#4f46e5;"></i>
+                                <span>Danh sách dạng toán (<span id="imathTopicCount" style="color:#4f46e5;">0</span>)</span>
                             </div>
-                            <button type="button" onclick="window.generateRandomFromFilteredTopics(5)" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-bold transition cursor-pointer flex items-center gap-1" title="Bốc ngẫu nhiên 5 dạng trong danh sách đang lọc và sinh mỗi dạng 1 câu">
+                            <button type="button" onclick="window.generateRandomFromFilteredTopics(5)" class="ims-btn-add3" title="Bốc ngẫu nhiên 5 dạng trong danh sách đang lọc và sinh mỗi dạng 1 câu">
                                 <i class="fa-solid fa-shuffle"></i> +5 câu ngẫu nhiên
                             </button>
                         </div>
-                        <div id="imathTopicList" class="flex-1 overflow-y-auto p-3 space-y-2">
+                        <div id="imathTopicList" class="ims-scroll-list">
                             <!-- Danh sách dạng toán render tại đây -->
                         </div>
                     </div>
 
-                    <!-- Cột 3: Bàn làm việc Xem trước, Đổi số & Chuẩn hóa (5 cols) -->
-                    <div class="lg:col-span-5 flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950">
-                        <div class="px-3.5 py-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0 bg-white dark:bg-slate-900">
-                            <div class="text-xs font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                                <i class="fa-solid fa-eye text-emerald-600"></i>
-                                <span>Câu hỏi đã sinh (<span id="imathWorkspaceCount" class="text-emerald-600">0</span> câu)</span>
+                    <!-- Cột 3: Bàn làm việc Xem trước, Đổi số & Chuẩn hóa -->
+                    <div class="ims-col-workspace">
+                        <div class="ims-col-subheader">
+                            <div class="ims-col-subheader-title">
+                                <i class="fa-solid fa-eye" style="color:#059669;"></i>
+                                <span>Câu hỏi đã sinh (<span id="imathWorkspaceCount" style="color:#059669;">0</span> câu)</span>
                             </div>
-                            <div class="flex items-center gap-1.5">
-                                <button type="button" onclick="window.rerollAllWorkspaceQuestions()" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-[11px] font-bold transition cursor-pointer flex items-center gap-1" title="Đổi bộ số mới cho toàn bộ câu hỏi đang có ở cột này">
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <button type="button" onclick="window.rerollAllWorkspaceQuestions()" class="ims-btn-add3" style="background:#fffbeb!important;color:#92400e!important;border-color:#fde68a!important;" title="Đổi bộ số mới cho toàn bộ câu hỏi đang có ở cột này">
                                     <i class="fa-solid fa-arrows-rotate"></i> Đổi số tất cả
                                 </button>
-                                <button type="button" onclick="window.clearIMathWorkspace()" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 text-[11px] font-bold transition cursor-pointer" title="Xóa danh sách">
-                                    <i class="fa-solid fa-trash-can"></i>
+                                <button type="button" onclick="window.clearIMathWorkspace()" class="ims-btn-add3" style="background:#fff1f2!important;color:#be123c!important;border-color:#fecdd3!important;" title="Xóa danh sách">
+                                    <i class="fa-solid fa-trash-can"></i> Xóa hết
                                 </button>
                             </div>
                         </div>
 
-                        <div id="imathWorkspaceList" class="flex-1 overflow-y-auto p-3.5 space-y-3">
+                        <div id="imathWorkspaceList" class="ims-scroll-list">
                             <!-- Các câu hỏi đã sinh render tại đây -->
                         </div>
 
                         <!-- Thanh công cụ xuất / nạp dưới cùng -->
-                        <div class="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap shrink-0">
-                            <button type="button" onclick="window.downloadIMathWorkspaceTex()" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer">
-                                <i class="fa-solid fa-file-export text-emerald-600"></i> Xuất file .tex
+                        <div class="ims-footer">
+                            <button type="button" onclick="window.downloadIMathWorkspaceTex()" class="ims-btn ims-btn-sec">
+                                <i class="fa-solid fa-file-export" style="color:#059669;"></i> Xuất file .tex
                             </button>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <button type="button" onclick="window.pushIMathWorkspaceToBank()" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer" title="Đưa toàn bộ câu hỏi đã chuẩn hóa vào Ngân hàng câu hỏi R2 để dùng cho Luyện tập, Tạo đề và Trò chơi">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <button type="button" onclick="window.pushIMathWorkspaceToBank()" class="ims-btn ims-btn-bank" title="Đưa toàn bộ câu hỏi đã chuẩn hóa vào Ngân hàng câu hỏi R2 để dùng cho Luyện tập, Tạo đề và Trò chơi">
                                     <i class="fa-solid fa-cloud-arrow-up"></i> Nạp vào Ngân hàng (R2)
                                 </button>
-                                <button type="button" id="btnIMathInsertToExam" onclick="window.insertIMathWorkspaceToExam()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer">
+                                <button type="button" id="btnIMathInsertToExam" onclick="window.insertIMathWorkspaceToExam()" class="ims-btn ims-btn-exam">
                                     <i class="fa-solid fa-plus-circle"></i> Chèn vào Đề thi
                                 </button>
                             </div>
@@ -441,24 +1166,36 @@
             </div>
         `;
         document.body.appendChild(modal);
+
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape' && modal.classList.contains('ims-open')) {
+                window.closeIMathStudioModal();
+            }
+        });
+
         return modal;
     }
+
+    window.setIMathMobileTab = function (tabName) {
+        state.mobileTab = tabName;
+        const body = document.getElementById('imathStudioBody');
+        if (body) body.setAttribute('data-mobile-tab', tabName);
+        ['filter', 'topics', 'workspace'].forEach(t => {
+            const btn = document.getElementById('imsMobileTab_' + t);
+            if (btn) btn.classList.toggle('ims-tab-active', t === tabName);
+        });
+    };
 
     // ------------------------------------------------------------------
     // 3. LOGIC LỌC & HIỂN THỊ DANH SÁCH DẠNG TOÁN (CỘT 1 & CỘT 2)
     // ------------------------------------------------------------------
     function renderFilterControls() {
-        const gradeBtns = document.querySelectorAll('.imath-grade-btn');
+        const gradeBtns = document.querySelectorAll('#imathGradeButtons .ims-grade-btn');
         gradeBtns.forEach(btn => {
             const g = btn.getAttribute('data-grade');
-            if (g === state.filters.grade) {
-                btn.className = 'imath-grade-btn py-1.5 rounded-lg text-xs font-bold border bg-indigo-600 text-white border-indigo-600 shadow-2xs cursor-pointer';
-            } else {
-                btn.className = 'imath-grade-btn py-1.5 rounded-lg text-xs font-bold border bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 cursor-pointer';
-            }
+            btn.classList.toggle('ims-active', g === state.filters.grade);
         });
 
-        // Populate chapters for current grade
         const chapSelect = document.getElementById('imathFilterChapter');
         if (chapSelect) {
             const chapters = [];
@@ -473,7 +1210,6 @@
             state.filters.chapter = chapSelect.value;
         }
 
-        // Populate lessons for current grade + chapter
         const lesSelect = document.getElementById('imathFilterLesson');
         if (lesSelect) {
             const lessons = [];
@@ -493,7 +1229,6 @@
     function getFilteredTopics() {
         const kw = (state.filters.keyword || '').trim().toLowerCase();
         return state.catalog.filter(it => {
-            // Nếu người dùng gõ mã câu cụ thể (L06..L09) hoặc HINH_ thì tìm xuyên khối
             const isDirectCodeSearch = kw && (kw.startsWith('l0') || kw.startsWith('hinh_') || /^[6-9][dhx][0-9]/i.test(kw));
             if (!isDirectCodeSearch && state.filters.grade !== 'all' && it.grade !== state.filters.grade) return false;
             if (!isDirectCodeSearch && state.filters.chapter !== 'all' && it.chapter !== state.filters.chapter) return false;
@@ -509,59 +1244,50 @@
         });
     }
 
-    function getLevelBadgeClass(level) {
-        switch (level) {
-            case 'M1': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-            case 'M2': return 'bg-sky-50 text-sky-700 border-sky-200';
-            case 'M3': return 'bg-amber-50 text-amber-700 border-amber-200';
-            case 'M4': return 'bg-rose-50 text-rose-700 border-rose-200';
-            default: return 'bg-slate-100 text-slate-700 border-slate-200';
-        }
-    }
-
     function renderTopicList() {
         const listEl = document.getElementById('imathTopicList');
         const countEl = document.getElementById('imathTopicCount');
+        const mobCountEl = document.getElementById('imathMobileTopicCount');
         if (!listEl) return;
 
         const filtered = getFilteredTopics();
         if (countEl) countEl.textContent = String(filtered.length);
+        if (mobCountEl) mobCountEl.textContent = String(filtered.length);
 
         if (filtered.length === 0) {
             listEl.innerHTML = `
-                <div class="text-center py-12 text-slate-400 text-xs">
-                    <i class="fa-solid fa-magnifying-glass text-3xl mb-2 opacity-40"></i>
-                    <p>Không tìm thấy dạng toán nào khớp bộ lọc.</p>
+                <div style="text-align:center;padding:48px 16px;color:#94a3b8;font-size:12.5px;">
+                    <i class="fa-solid fa-magnifying-glass" style="font-size:28px;margin-bottom:8px;opacity:0.4;display:block;"></i>
+                    <div>Không tìm thấy dạng toán nào khớp bộ lọc.</div>
                 </div>
             `;
             return;
         }
 
-        // Hiển thị tối đa 150 mục đầu tiên để giữ tốc độ cuộn mượt
         const shown = filtered.slice(0, 150);
         listEl.innerHTML = shown.map(it => {
             const tikzBadge = it.has_tikz
-                ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${it.is_tikz_overridden ? 'bg-teal-100 text-teal-800 border border-teal-300' : 'bg-amber-100 text-amber-800 border border-amber-300'}" title="Mã nhóm hình TikZ: ${escapeHtml(it.tikz_group_id || it.tag)}">
-                        <i class="fa-solid fa-draw-polygon mr-0.5"></i>${escapeHtml(it.tikz_group_id || 'TikZ')}${it.is_tikz_overridden ? ' ✨' : ''}
+                ? `<span class="ims-badge-tikz ${it.is_tikz_overridden ? 'ims-tikz-override' : ''}" title="Mã nhóm hình TikZ: ${escapeHtml(it.tikz_group_id || it.tag)}">
+                        <i class="fa-solid fa-draw-polygon"></i> ${escapeHtml(it.tikz_group_id || 'TikZ')}${it.is_tikz_overridden ? ' ✨' : ''}
                    </span>`
                 : '';
 
             return `
-                <div class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-white dark:bg-slate-800/90 shadow-2xs transition flex flex-col gap-1.5">
-                    <div class="flex items-center justify-between gap-1.5 flex-wrap">
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <span class="px-2 py-0.5 rounded bg-slate-900 text-white font-mono text-[10px] font-bold" title="Mã định danh câu hỏi trong iMath">${escapeHtml(it.tag)}</span>
-                            <span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono text-[10px] font-bold" title="Mã MapID chuẩn QMath">MapID: ${escapeHtml(it.map_id)}</span>
+                <div class="ims-topic-card">
+                    <div class="ims-topic-top">
+                        <div class="ims-badge-row">
+                            <span class="ims-badge-tag" title="Mã định danh câu hỏi trong iMath">${escapeHtml(it.tag)}</span>
+                            <span class="ims-badge-mapid" title="Mã MapID chuẩn QMath">MapID: ${escapeHtml(it.map_id)}</span>
                             ${tikzBadge}
                         </div>
-                        <span class="px-1.5 py-0.5 rounded border text-[10px] font-bold ${getLevelBadgeClass(it.level)}">${escapeHtml(it.category)} • ${escapeHtml(it.level_vi)}</span>
+                        <span class="ims-badge-lvl ims-lvl-${escapeHtml(it.level || 'M1')}">${escapeHtml(it.category)} • ${escapeHtml(it.level_vi)}</span>
                     </div>
-                    <div class="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug">${escapeHtml(it.title)}</div>
-                    <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-700/60">
-                        <span class="text-[10px] text-slate-500 truncate">${escapeHtml(it.lesson)}</span>
-                        <div class="flex items-center gap-1 shrink-0">
-                            <button type="button" onclick="window.addIMathQuestion('${escapeHtml(it.tag)}', 1)" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold transition cursor-pointer shadow-2xs">+1 câu</button>
-                            <button type="button" onclick="window.addIMathQuestion('${escapeHtml(it.tag)}', 3)" class="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-bold transition cursor-pointer" title="Sinh 3 câu biến thể đổi số của dạng này">+3</button>
+                    <div class="ims-topic-title">${escapeHtml(it.title)}</div>
+                    <div class="ims-topic-foot">
+                        <span class="ims-topic-lesson" title="${escapeHtml(it.lesson)}">${escapeHtml(it.lesson)}</span>
+                        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+                            <button type="button" onclick="window.addIMathQuestion('${escapeHtml(it.tag)}', 1)" class="ims-btn-add1">+1 câu</button>
+                            <button type="button" onclick="window.addIMathQuestion('${escapeHtml(it.tag)}', 3)" class="ims-btn-add3" title="Sinh 3 câu biến thể đổi số của dạng này">+3</button>
                         </div>
                     </div>
                 </div>
@@ -578,7 +1304,6 @@
             .replace(/^\\begin\{ex\}(?:\s*%\[[^\]]*\])?\s*/i, '')
             .replace(/\\end\{ex\}\s*$/i, '');
 
-        // Bóc tách \loigiai{...}
         let solutionHtml = '';
         const lgIdx = s.indexOf('\\loigiai');
         if (lgIdx !== -1) {
@@ -587,15 +1312,14 @@
                 const solContent = s.slice(openBrace + 1).replace(/\}\s*$/, '').trim();
                 s = s.slice(0, lgIdx).trim();
                 solutionHtml = `
-                    <details class="mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300">
-                        <summary class="font-bold text-emerald-700 dark:text-emerald-400 cursor-pointer select-none">💡 Xem lời giải chi tiết</summary>
-                        <div class="mt-1.5 pl-2 border-l-2 border-emerald-400 whitespace-pre-line">${solContent}</div>
+                    <details style="margin-top:10px;padding-top:8px;border-top:1px dashed #cbd5e1;font-size:12.5px;">
+                        <summary style="font-weight:700;color:#059669;cursor:pointer;user-select:none;">💡 Xem lời giải chi tiết</summary>
+                        <div style="margin-top:6px;padding-left:10px;border-left:3px solid #10b981;white-space:pre-line;">${solContent}</div>
                     </details>
                 `;
             }
         }
 
-        // Bóc tách TikZ để nhúng <script type="text/tikz"> cho TikZJax vẽ trực tiếp
         let tikzScriptHtml = '';
         const tikzRegex = /((?:\\definecolor[^\n]+\n\s*)*\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/;
         const mTikz = s.match(tikzRegex);
@@ -603,21 +1327,18 @@
             const rawTikz = mTikz[1].trim();
             s = s.replace(mTikz[0], '');
             tikzScriptHtml = `
-                <div class="my-2 flex justify-center bg-white rounded-xl p-2 border border-slate-200 overflow-x-auto tikz-container">
+                <div class="tikz-container" style="margin:10px 0;display:flex;justify-content:center;background:#ffffff;border-radius:12px;padding:10px;border:1px solid #e2e8f0;overflow-x:auto;">
                     <script type="text/tikz">${rawTikz}<\/script>
                 </div>
             `;
         }
 
-        // Gỡ vỏ \immini[thm]{STEM}{} nếu có
         s = s.replace(/^\\immini(?:\[[^\]]*\])?\{([\s\S]*?)\}\s*\{\s*\}/, '$1');
 
-        // Format \shortans{...}
         s = s.replace(/\\shortans(?:\[[^\]]*\])?\{([^{}]*)\}/g, (_, ans) => {
-            return `<div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold"><i class="fa-solid fa-key"></i> Đáp án điền số: <span class="font-mono">${escapeHtml(ans || '(Trống)')}</span></div>`;
+            return `<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;font-size:12px;font-weight:700;"><i class="fa-solid fa-key"></i> Đáp án điền số: <span style="font-family:monospace;">${escapeHtml(ans || '(Trống)')}</span></div>`;
         });
 
-        // Format \choice hoặc \choiceTF
         for (const [cmd, labels] of [['\\choiceTF', ['a)', 'b)', 'c)', 'd)']], ['\\choice', ['A.', 'B.', 'C.', 'D.']]]) {
             const pos = s.indexOf(cmd);
             if (pos === -1) continue;
@@ -646,97 +1367,96 @@
                 cursor = closeIdx + 1;
             }
             if (opts.length === 4) {
-                const gridCols = cmd === '\\choice' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1';
+                const gridClass = cmd === '\\choice' ? 'ims-choices-grid' : 'ims-choices-tf';
                 const optsHtml = opts.map((opt, idx) => {
                     const isTrue = opt.includes('\\True');
                     const cleanOpt = opt.replace(/\\True\s*/g, '').trim();
-                    const cls = isTrue
-                        ? 'bg-emerald-50/90 border-emerald-400 text-emerald-950 font-semibold'
-                        : 'bg-slate-50 border-slate-200 text-slate-700';
-                    return `<div class="p-2 rounded-lg border text-xs flex items-start gap-1.5 ${cls}">
-                        <span class="font-bold ${isTrue ? 'text-emerald-700' : 'text-slate-500'}">${labels[idx]}</span>
-                        <div class="flex-1">${cleanOpt}</div>
-                        ${isTrue ? '<i class="fa-solid fa-circle-check text-emerald-600 text-xs mt-0.5" title="Đáp án đúng"></i>' : ''}
+                    return `<div class="ims-choice-item ${isTrue ? 'ims-choice-true' : ''}">
+                        <span style="font-weight:800;${isTrue ? 'color:#047857;' : 'color:#64748b;'}">${labels[idx]}</span>
+                        <div style="flex:1;">${cleanOpt}</div>
+                        ${isTrue ? '<i class="fa-solid fa-circle-check" style="color:#059669;font-size:13px;margin-top:2px;" title="Đáp án đúng"></i>' : ''}
                     </div>`;
                 }).join('');
-                s = `<div class="whitespace-pre-line">${stem}</div><div class="grid ${gridCols} gap-1.5 mt-2">${optsHtml}</div>`;
+                s = `<div style="white-space:pre-line;">${stem}</div><div class="${gridClass}">${optsHtml}</div>`;
                 break;
             }
         }
 
-        return `<div class="text-xs text-slate-800 dark:text-slate-100 leading-relaxed">${s}${tikzScriptHtml}${solutionHtml}</div>`;
+        return `<div>${s}${tikzScriptHtml}${solutionHtml}</div>`;
     }
 
     function renderWorkspace() {
         const listEl = document.getElementById('imathWorkspaceList');
         const countEl = document.getElementById('imathWorkspaceCount');
+        const mobCountEl = document.getElementById('imathMobileWorkspaceCount');
         if (!listEl) return;
 
         if (countEl) countEl.textContent = String(state.workspaceQuestions.length);
+        if (mobCountEl) mobCountEl.textContent = String(state.workspaceQuestions.length);
 
         if (state.workspaceQuestions.length === 0) {
             listEl.innerHTML = `
-                <div class="h-full flex flex-col items-center justify-center text-center py-16 text-slate-400 text-xs">
-                    <div class="w-14 h-14 rounded-2xl bg-slate-200/70 dark:bg-slate-800 flex items-center justify-center text-2xl mb-3 text-slate-400">
+                <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 20px;color:#94a3b8;font-size:12.5px;">
+                    <div style="width:56px;height:56px;border-radius:16px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:12px;color:#64748b;">
                         <i class="fa-solid fa-dice-d20"></i>
                     </div>
-                    <p class="font-bold text-slate-600 dark:text-slate-300 text-sm mb-1">Chưa có câu hỏi nào trong bàn làm việc</p>
-                    <p class="max-w-xs">Hãy bấm <b>+1 câu</b> hoặc <b>+3</b> ở danh sách dạng toán bên trái để sinh câu hỏi đổi số mới.</p>
+                    <div style="font-weight:800;color:#475569;font-size:14px;margin-bottom:4px;">Chưa có câu hỏi nào trong bàn làm việc</div>
+                    <div style="max-width:300px;line-height:1.5;">Hãy bấm <b>+1 câu</b> hoặc <b>+3</b> ở danh sách dạng toán bên trái để sinh câu hỏi đổi số mới.</div>
                 </div>
             `;
             return;
         }
 
         listEl.innerHTML = state.workspaceQuestions.map((q, idx) => `
-            <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-                <!-- Card Top Bar -->
-                <div class="px-3 py-2 bg-slate-100/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2 flex-wrap">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <span class="px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px]">Câu ${idx + 1}</span>
-                        <span class="px-2 py-0.5 rounded bg-slate-800 text-white font-mono text-[10px] font-bold" title="Mã câu để tra cứu/thay hình TikZ">[${escapeHtml(q.tag)}]</span>
-                        ${q.tikz_group_id ? `<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 font-mono text-[10px] font-bold">🎨 ${escapeHtml(q.tikz_group_id)}</span>` : ''}
-                        <div class="flex items-center gap-1 bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700">
-                            <span class="text-[10px] font-bold text-slate-500">MapID:</span>
-                            <input type="text" value="${escapeHtml(q.map_id)}" onchange="window.updateIMathQuestionMapId(${idx}, this.value)" class="w-20 text-[11px] font-mono font-bold text-indigo-700 dark:text-indigo-400 bg-transparent outline-none" title="Chỉnh sửa mã MapID của câu hỏi này">
+            <div class="ims-q-card">
+                <div class="ims-q-card-hdr">
+                    <div class="ims-badge-row">
+                        <span style="padding:2px 8px;border-radius:6px;background:#4f46e5;color:#fff;font-weight:800;font-size:11px;">Câu ${idx + 1}</span>
+                        <span class="ims-badge-tag" title="Mã câu để tra cứu/thay hình TikZ">[${escapeHtml(q.tag)}]</span>
+                        ${q.tikz_group_id ? `<span class="ims-badge-tikz">🎨 ${escapeHtml(q.tikz_group_id)}</span>` : ''}
+                        <div style="display:inline-flex;align-items:center;gap:4px;background:#ffffff;padding:2px 8px;border-radius:6px;border:1px solid #cbd5e1;">
+                            <span style="font-size:10.5px;font-weight:700;color:#64748b;">MapID:</span>
+                            <input type="text" value="${escapeHtml(q.map_id)}" onchange="window.updateIMathQuestionMapId(${idx}, this.value)" style="width:76px;font-size:11px;font-family:monospace;font-weight:800;color:#4338ca;background:transparent;border:none;outline:none;" title="Chỉnh sửa mã MapID của câu hỏi này">
                         </div>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <button type="button" onclick="window.rerollSingleWorkspaceQuestion(${idx})" class="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-bold transition cursor-pointer flex items-center gap-1" title="Sinh bộ số ngẫu nhiên khác cho câu hỏi này">
+                    <div style="display:flex;align-items:center;gap:5px;">
+                        <button type="button" onclick="window.rerollSingleWorkspaceQuestion(${idx})" class="ims-btn-add3" style="background:#fffbeb!important;color:#92400e!important;border-color:#fcd34d!important;" title="Sinh bộ số ngẫu nhiên khác cho câu hỏi này">
                             <i class="fa-solid fa-dice"></i> Đổi số
                         </button>
-                        <button type="button" onclick="window.toggleIMathQuestionCode(${idx})" class="px-2 py-1 rounded-lg bg-slate-200/70 hover:bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold transition cursor-pointer" title="Xem / Sửa trực tiếp mã LaTeX & TikZ">
+                        <button type="button" onclick="window.toggleIMathQuestionCode(${idx})" class="ims-btn-add3" style="background:#f1f5f9!important;color:#334155!important;border-color:#cbd5e1!important;" title="Xem / Sửa trực tiếp mã LaTeX & TikZ">
                             <i class="fa-solid fa-code"></i> LaTeX
                         </button>
-                        <button type="button" onclick="window.removeIMathWorkspaceQuestion(${idx})" class="w-6 h-6 rounded-lg hover:bg-rose-100 text-slate-400 hover:text-rose-600 flex items-center justify-center transition cursor-pointer" title="Xóa câu này">
-                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        <button type="button" onclick="window.removeIMathWorkspaceQuestion(${idx})" class="ims-btn-add3" style="background:#fff1f2!important;color:#be123c!important;border-color:#fecdd3!important;" title="Xóa câu này">
+                            <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- Rendered MathJax + TikZJax Preview -->
-                <div class="p-3" id="imathPreviewCard_${idx}">
+                <div class="ims-q-body" id="imathPreviewCard_${idx}">
                     ${formatLatexPreviewHtml(q.latex_mc)}
                 </div>
 
-                <!-- Raw LaTeX / TikZ Editor Drawer -->
-                <div id="imathCodeDrawer_${idx}" class="${q.showCode ? '' : 'hidden'} p-3 bg-slate-900 text-slate-100 border-t border-slate-800 space-y-2">
-                    <div class="flex items-center justify-between text-[11px]">
-                        <span class="font-bold text-emerald-400"><i class="fa-solid fa-terminal mr-1"></i>Mã nguồn LaTeX chuẩn ex_test (${escapeHtml(q.tag)}):</span>
-                        <span class="text-slate-400">Chỉnh sửa sẽ tự động cập nhật khung xem trước</span>
+                <div id="imathCodeDrawer_${idx}" style="display:${q.showCode ? 'block' : 'none'};padding:12px;background:#0f172a;color:#f8fafc;border-top:1px solid #1e293b;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;margin-bottom:6px;">
+                        <span style="font-weight:700;color:#34d399;"><i class="fa-solid fa-terminal"></i> Mã nguồn LaTeX chuẩn ex_test (${escapeHtml(q.tag)}):</span>
+                        <span style="color:#94a3b8;">Chỉnh sửa sẽ tự động cập nhật khung xem trước</span>
                     </div>
-                    <textarea rows="7" onchange="window.updateIMathQuestionLatex(${idx}, this.value)" class="w-full p-2.5 rounded-lg bg-slate-950 text-emerald-300 font-mono text-xs border border-slate-700 outline-none focus:border-emerald-500">${escapeHtml(q.latex_mc)}</textarea>
+                    <textarea rows="7" onchange="window.updateIMathQuestionLatex(${idx}, this.value)" style="width:100%;padding:10px;border-radius:8px;background:#020617;color:#6ee7b7;font-family:monospace;font-size:12px;border:1px solid #334155;outline:none;box-sizing:border-box;">${escapeHtml(q.latex_mc)}</textarea>
                 </div>
             </div>
         `).join('');
 
-        // Trigger MathJax & TikZJax rendering
         setTimeout(() => {
-            if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
-                window.MathJax.typesetPromise([listEl]).catch(() => {});
-            }
-            if (typeof window.renderTikz === 'function') {
-                window.renderTikz(listEl);
-            }
+            try {
+                if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+                    window.MathJax.typesetPromise([listEl]).catch(() => {});
+                }
+            } catch (_) {}
+            try {
+                if (typeof window.renderTikz === 'function') {
+                    window.renderTikz(listEl);
+                }
+            } catch (_) {}
         }, 60);
     }
 
@@ -744,37 +1464,38 @@
     // 5. CÁC HÀM TƯƠNG TÁC & KẾT NỐI VỚI NGÂN HÀNG CÂU HỎI / ĐỀ THI
     // ------------------------------------------------------------------
     window.openIMathStudioModal = async function (mode = 'editor', initialMapIdOrTag = '') {
-        state.mode = mode;
-        const modal = ensureModalDOM();
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        try {
+            state.mode = mode;
+            const modal = ensureModalDOM();
+            modal.classList.add('ims-open');
 
-        // Ẩn/hiện nút "Chèn vào Đề thi" tùy theo đang mở ở dashboard hay exam-editor
-        const btnInsertExam = document.getElementById('btnIMathInsertToExam');
-        if (btnInsertExam) {
-            const isExamEditorPage = window.location.pathname.includes('exam-editor') || typeof window.parseLatexContent === 'function';
-            btnInsertExam.style.display = isExamEditorPage ? 'inline-flex' : 'none';
+            const btnInsertExam = document.getElementById('btnIMathInsertToExam');
+            if (btnInsertExam) {
+                const isExamEditorPage = window.location.pathname.includes('exam-editor') || typeof window.parseLatexContent === 'function';
+                btnInsertExam.style.display = isExamEditorPage ? 'inline-flex' : 'none';
+            }
+
+            checkLocalBridge().catch(() => {});
+            await ensureCatalogLoaded();
+
+            if (initialMapIdOrTag) {
+                state.filters.keyword = initialMapIdOrTag.trim();
+                const kwInput = document.getElementById('imathFilterKeyword');
+                if (kwInput) kwInput.value = state.filters.keyword;
+            }
+
+            renderFilterControls();
+            renderTopicList();
+            renderWorkspace();
+        } catch (err) {
+            console.warn('[iMathStudio] openIMathStudioModal error:', err);
         }
-
-        checkLocalBridge();
-        await ensureCatalogLoaded();
-
-        if (initialMapIdOrTag) {
-            state.filters.keyword = initialMapIdOrTag.trim();
-            const kwInput = document.getElementById('imathFilterKeyword');
-            if (kwInput) kwInput.value = state.filters.keyword;
-        }
-
-        renderFilterControls();
-        renderTopicList();
-        renderWorkspace();
     };
 
     window.closeIMathStudioModal = function () {
         const modal = document.getElementById('imathStudioModal');
         if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            modal.classList.remove('ims-open');
         }
     };
 
@@ -828,80 +1549,102 @@
     };
 
     window.addIMathQuestion = async function (tag, count = 1) {
-        const items = await generateVariantsForTag(tag, count);
-        if (!items || items.length === 0) {
-            notify(`Không tìm thấy dữ liệu cho dạng ${tag}`, 'warning');
-            return;
-        }
-        for (const it of items) {
-            state.workspaceQuestions.push({
-                ...it,
-                id: 'imath_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-                showCode: false
-            });
-        }
-        renderWorkspace();
-        notify(`Đã sinh ${items.length} câu hỏi đổi số cho mã [${tag}]!`, 'success');
-    };
-
-    window.generateRandomFromFilteredTopics = async function (total = 5) {
-        const filtered = getFilteredTopics();
-        if (filtered.length === 0) {
-            notify('Danh sách lọc đang trống!', 'warning');
-            return;
-        }
-        const pool = filtered.slice();
-        for (let i = 0; i < total; i++) {
-            const pick = pool[Math.floor(Math.random() * pool.length)];
-            const items = await generateVariantsForTag(pick.tag, 1);
-            if (items.length > 0) {
+        try {
+            const items = await generateVariantsForTag(tag, count);
+            if (!items || items.length === 0) {
+                notify(`Không tìm thấy dữ liệu cho dạng ${tag}`, 'warning');
+                return;
+            }
+            for (const it of items) {
                 state.workspaceQuestions.push({
-                    ...items[0],
+                    ...it,
                     id: 'imath_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
                     showCode: false
                 });
             }
+            renderWorkspace();
+            if (window.innerWidth <= 1024) {
+                window.setIMathMobileTab('workspace');
+            }
+            notify(`Đã sinh ${items.length} câu hỏi đổi số cho mã [${tag}]!`, 'success');
+        } catch (err) {
+            console.warn('[iMathStudio] addIMathQuestion error:', err);
         }
-        renderWorkspace();
-        notify(`Đã sinh ngẫu nhiên ${total} câu hỏi đổi số!`, 'success');
+    };
+
+    window.generateRandomFromFilteredTopics = async function (total = 5) {
+        try {
+            const filtered = getFilteredTopics();
+            if (filtered.length === 0) {
+                notify('Danh sách lọc đang trống!', 'warning');
+                return;
+            }
+            const pool = filtered.slice();
+            for (let i = 0; i < total; i++) {
+                const pick = pool[Math.floor(Math.random() * pool.length)];
+                const items = await generateVariantsForTag(pick.tag, 1);
+                if (items.length > 0) {
+                    state.workspaceQuestions.push({
+                        ...items[0],
+                        id: 'imath_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                        showCode: false
+                    });
+                }
+            }
+            renderWorkspace();
+            if (window.innerWidth <= 1024) {
+                window.setIMathMobileTab('workspace');
+            }
+            notify(`Đã sinh ngẫu nhiên ${total} câu hỏi đổi số!`, 'success');
+        } catch (err) {
+            console.warn('[iMathStudio] generateRandom error:', err);
+        }
     };
 
     window.rerollSingleWorkspaceQuestion = async function (idx) {
-        const cur = state.workspaceQuestions[idx];
-        if (!cur) return;
-        const items = await generateVariantsForTag(cur.tag, 1);
-        if (items.length > 0) {
-            const customMapId = cur.map_id;
-            state.workspaceQuestions[idx] = {
-                ...items[0],
-                map_id: customMapId,
-                latex_mc: items[0].latex_mc.replace(/^\\begin\{ex\}(?:\s*%\[[^\]]*\])?/, `\\begin{ex}%[${customMapId}]`),
-                id: cur.id,
-                showCode: cur.showCode
-            };
-            renderWorkspace();
-            notify(`Đã đổi bộ số mới cho Câu ${idx + 1} ([${cur.tag}])!`, 'success');
-        }
-    };
-
-    window.rerollAllWorkspaceQuestions = async function () {
-        if (state.workspaceQuestions.length === 0) return;
-        for (let i = 0; i < state.workspaceQuestions.length; i++) {
-            const cur = state.workspaceQuestions[i];
+        try {
+            const cur = state.workspaceQuestions[idx];
+            if (!cur) return;
             const items = await generateVariantsForTag(cur.tag, 1);
             if (items.length > 0) {
                 const customMapId = cur.map_id;
-                state.workspaceQuestions[i] = {
+                state.workspaceQuestions[idx] = {
                     ...items[0],
                     map_id: customMapId,
                     latex_mc: items[0].latex_mc.replace(/^\\begin\{ex\}(?:\s*%\[[^\]]*\])?/, `\\begin{ex}%[${customMapId}]`),
                     id: cur.id,
                     showCode: cur.showCode
                 };
+                renderWorkspace();
+                notify(`Đã đổi bộ số mới cho Câu ${idx + 1} ([${cur.tag}])!`, 'success');
             }
+        } catch (err) {
+            console.warn('[iMathStudio] rerollSingle error:', err);
         }
-        renderWorkspace();
-        notify(`Đã đổi bộ số mới cho toàn bộ ${state.workspaceQuestions.length} câu hỏi!`, 'success');
+    };
+
+    window.rerollAllWorkspaceQuestions = async function () {
+        try {
+            if (state.workspaceQuestions.length === 0) return;
+            for (let i = 0; i < state.workspaceQuestions.length; i++) {
+                const cur = state.workspaceQuestions[i];
+                const items = await generateVariantsForTag(cur.tag, 1);
+                if (items.length > 0) {
+                    const customMapId = cur.map_id;
+                    state.workspaceQuestions[i] = {
+                        ...items[0],
+                        map_id: customMapId,
+                        latex_mc: items[0].latex_mc.replace(/^\\begin\{ex\}(?:\s*%\[[^\]]*\])?/, `\\begin{ex}%[${customMapId}]`),
+                        id: cur.id,
+                        showCode: cur.showCode
+                    };
+                }
+            }
+            renderWorkspace();
+            notify(`Đã đổi bộ số mới cho toàn bộ ${state.workspaceQuestions.length} câu hỏi!`, 'success');
+        } catch (err) {
+            console.warn('[iMathStudio] rerollAll error:', err);
+        }
     };
 
     window.updateIMathQuestionMapId = function (idx, newMapId) {
@@ -928,7 +1671,7 @@
         if (!q) return;
         q.showCode = !q.showCode;
         const drawer = document.getElementById(`imathCodeDrawer_${idx}`);
-        if (drawer) drawer.classList.toggle('hidden', !q.showCode);
+        if (drawer) drawer.style.display = q.showCode ? 'block' : 'none';
     };
 
     window.removeIMathWorkspaceQuestion = function (idx) {
@@ -956,9 +1699,6 @@
         URL.revokeObjectURL(url);
     };
 
-    /**
-     * Chèn toàn bộ câu hỏi trong bàn làm việc vào Đề thi hiện tại (exam-editor.html)
-     */
     window.insertIMathWorkspaceToExam = function () {
         if (state.workspaceQuestions.length === 0) {
             notify('Hãy chọn ít nhất 1 dạng toán để sinh câu hỏi trước khi chèn!', 'warning');
@@ -974,9 +1714,6 @@
         }
     };
 
-    /**
-     * Đưa toàn bộ câu hỏi đã chuẩn hóa vào Ngân hàng câu hỏi R2 (dashboard.html hoặc exam-editor.html)
-     */
     window.pushIMathWorkspaceToBank = function () {
         if (state.workspaceQuestions.length === 0) {
             notify('Chưa có câu hỏi nào trong danh sách để nạp vào Ngân hàng!', 'warning');
@@ -984,10 +1721,12 @@
         }
         const combinedTex = state.workspaceQuestions.map(q => q.latex_mc).join('\n\n');
 
-        // Trường hợp 1: Đang ở trang Dashboard (có sẵn #bankDirectImportModal)
         const bankTexInput = document.getElementById('bankTexInput');
         if (bankTexInput && typeof window.openBankDirectImportModal === 'function') {
             window.closeIMathStudioModal();
+            if (typeof window.switchView === 'function') {
+                try { window.switchView('questionbank'); } catch (_) {}
+            }
             window.openBankDirectImportModal('tex');
             bankTexInput.value = combinedTex;
             if (typeof window.parseBankTexQuestions === 'function') {
@@ -997,7 +1736,6 @@
             return;
         }
 
-        // Trường hợp 2: Đang ở trang Exam Editor -> Chèn vào đề thi và mở hộp thoại Lưu Bank
         if (typeof window.parseLatexContent === 'function') {
             window.parseLatexContent(combinedTex);
             window.closeIMathStudioModal();
@@ -1009,9 +1747,6 @@
         }
     };
 
-    /**
-     * Đổi số nhanh cho câu hỏi đang chọn trong exam-editor.html dựa trên MapID của câu đó
-     */
     window.openIMathForCurrentEditorQuestion = async function () {
         const mapIdInput = document.getElementById('editMapId') || document.getElementById('editorMapId');
         const mapId = (mapIdInput?.value || '').trim();
@@ -1022,6 +1757,8 @@
     // 6. TỰ ĐỘNG GẮN NÚT VÀO GIAO DIỆN DASHBOARD & EXAM-EDITOR
     // ------------------------------------------------------------------
     function injectEntryButtons() {
+        injectStudioStyles();
+
         // 1. Trong dashboard.html (#view-questionbank)
         const bankDropdownContainer = document.getElementById('bankImportDropdownContainer');
         if (bankDropdownContainer && !document.getElementById('btnOpenIMathStudioBank')) {
@@ -1036,7 +1773,7 @@
             bankDropdownContainer.parentNode.insertBefore(btn, bankDropdownContainer.nextSibling);
         }
 
-        // 2. Trong exam-editor.html (Thanh công cụ trên + Dropzone rỗng + Ô MapID)
+        // 2. Trong exam-editor.html (Thanh công cụ trên + Dropzone rỗng)
         const dropdownImportExport = document.getElementById('dropdownImportExport');
         if (dropdownImportExport && !document.getElementById('btnOpenIMathStudioEditor')) {
             const btn = document.createElement('button');
