@@ -1038,6 +1038,23 @@ export const autoScaleTables = (root = document) => {
  */
 export const formatContent = (text) => {
     if (text === null || text === undefined) return "";
+    // Bảo vệ tuyệt đối khối <script type="text/tikz"> khỏi mọi bước biến đổi văn bản
+    // (VD: xóa dòng chỉ có "}" làm mất ngoặc đóng của \foreach/\newcommand -> TikZ lỗi "File ended")
+    const tikzShield = [];
+    const restoreTikzShield = (html) => tikzShield.length
+        ? html.replace(/QMTIKZSHIELD(\d+)QMEND/g, (_, i) => tikzShield[Number(i)] || '')
+        : html;
+    let processed = String(text).replace(/<script\s+type=["']text\/tikz["'][^>]*>[\s\S]*?<\/script>/gi, (m) => {
+        tikzShield.push(m);
+        return `QMTIKZSHIELD${tikzShield.length - 1}QMEND`;
+    });
+    if (tikzShield.length) {
+        return restoreTikzShield(formatContentCore(processed));
+    }
+    return formatContentCore(processed);
+};
+
+const formatContentCore = (text) => {
     let processed = text;
 
     // 0. Pre-process lệnh toán học custom của VN (phải làm TRƯỚC khi split)

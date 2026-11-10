@@ -14,7 +14,7 @@
  * (network-first) nhÆ°ng nÃªn tÄƒng khi Ä‘á»•i styles.css/utils.js Ä‘á»ƒ cháº¯c cháº¯n.
  */
 
-const VERSION = 'qmath-v147-tikzjax-inline-quicklatex-png';
+const VERSION = 'qmath-v148-tikz-shield';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const CDN_CACHE = `${VERSION}-cdn`;

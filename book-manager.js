@@ -1,4 +1,4 @@
-import { compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, cleanTikzCode } from "./utils.js?v=20261109-v4";
+import { compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, cleanTikzCode } from "./utils.js?v=20261110-v5";
 
 export const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
 
