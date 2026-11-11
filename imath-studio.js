@@ -1140,6 +1140,10 @@
                         </div>
                     </div>
                     <div class="ims-header-actions">
+                        <a href="data/imath/So_Sanh_Hinh_Thuc_Te_Cu_Va_Moi.pdf" target="_blank" class="ims-hdr-btn ims-hdr-btn-pdf" style="border-color:#10b981;color:#10b981;background:rgba(16,185,129,0.08);" title="Xem bảng so sánh đối chiếu hình vẽ thực tế cũ và hình TikZ chuẩn mới">
+                            <i class="fa-solid fa-file-circle-check"></i>
+                            <span>So Sánh TikZ Mới</span>
+                        </a>
                         <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.pdf" target="_blank" class="ims-hdr-btn ims-hdr-btn-pdf" title="Mở bảng PDF thống kê 456 câu hỏi có hình vẽ TikZ kèm mã định danh">
                             <i class="fa-regular fa-file-pdf"></i>
                             <span>Bảng PDF 456 Hình</span>

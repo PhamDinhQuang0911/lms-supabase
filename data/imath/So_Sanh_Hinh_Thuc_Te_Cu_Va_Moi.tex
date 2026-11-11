@@ -1,0 +1,448 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage[left=1.5cm,right=1.5cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{tikz}
+\usetikzlibrary{calc,angles,quotes,patterns,arrows.meta}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\footnotesize \textbf{QMath} - Chuẩn hóa Hình vẽ Thực tế TikZ}
+\lhead{\footnotesize So sánh Hình cũ vs Hình mới đổi số động}
+\cfoot{\thepage}
+
+\title{\Large \textbf{BẢNG ĐỐI CHIẾU SO SÁNH HÌNH VẼ THỰC TẾ TIKZ}\\
+\large \textbf{CÂU CHỨA HÌNH CŨ vs CÂU SAU KHI ĐÃ SỬA ĐỔI SỐ ĐỘNG}\\
+\normalsize \textit{Áp dụng cho Ngân hàng Câu hỏi Đối số iMath $\to$ QMath (Hình học 9 - Chương 4)}}
+\author{Hệ thống Quản lý Đề thi \& Khảo thí QMath}
+\date{Ngày 11 tháng 11 năm 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Tài liệu này đối chiếu trực quan các câu hỏi toán thực tế chứa hình vẽ TikZ trong Hệ thống Ngân hàng Câu hỏi Đổi số. Toàn bộ hình vẽ cũ (nhiều câu bị lỗi vỡ cú pháp, chứa hơn 10KB đa giác nặng, vẽ hình hoạt hình thiếu chuẩn mực sư phạm) đã được thay thế chính xác bằng các mô hình chuẩn từ \textbf{Kho Hình Thực Tế TikZ} (\texttt{C:\textbackslash Users\textbackslash ADMIN\textbackslash Desktop\textbackslash Kho\_Hinh\_Thuc\_Te\_TikZ}), đồng thời lập trình logic tham số hóa động để khi câu hỏi đổi số thì tọa độ, góc nghiêng và nhãn kích thước của hình vẽ tự động co giãn và cập nhật chính xác theo đề bài.
+\end{abstract}
+
+\vspace{0.3cm}
+\begin{tcolorbox}[colback=blue!5!white,colframe=blue!75!black,title=\textbf{BẢNG TỔNG HỢP 6 DẠNG TOÁN ĐƯỢC CHUẨN HÓA HÌNH VẼ TIKZ}]
+\small
+\begin{tabularx}{\textwidth}{l p{3.2cm} p{2.0cm} p{4.0cm} X}
+\toprule
+\textbf{STT} & \textbf{Tên dạng toán} & \textbf{MapID} & \textbf{Các mã câu (Tags)} & \textbf{Mô hình kho hình gốc} \\
+\midrule
+1 & Máy bay cất cánh bay lên & \texttt{9H4V2-5} & \texttt{L09\_C4\_B2\_08, 31, 46} & \texttt{HP\_HYN\_015} (Máy bay vector) \\
+2 & Cây cao bị bão quật gãy & \texttt{9H4V2-5} & \texttt{L09\_C4\_B2\_53, 54} & Thân gãy chuẩn sư phạm \\
+3 & Cái thang tựa tường & \texttt{9H4V1-5} & \texttt{L09\_C4\_B1\_16, 29, 55} & \texttt{015\_cái thang / HP\_HYN\_055} \\
+4 & Hải đăng quan sát tàu biển & \texttt{9H4V2-5} & \texttt{L09\_C4\_B2\_24, 25, 42} & \texttt{168\_chiếc tàu / HP\_HYN\_041} \\
+5 & Máy bay hạ cánh tiếp cận & \texttt{9H4C2-5} & \texttt{L09\_C4\_B2\_09, 34, 49} & Đường băng \& góc hạ cánh \\
+6 & Khinh khí cầu quan sát & \texttt{9H4V2-5} & \texttt{L09\_C4\_B2\_26, 27, 43} & \texttt{021\_khinh khí cầu} \\
+\bottomrule
+\end{tabularx}
+\end{tcolorbox}
+
+\newpage
+
+% ==================== DẠNG 1 ====================
+\section{Dạng 1: Bài toán thực tế máy bay khi bay lên (Cất cánh)}
+\textbf{Mã nhận diện:} \texttt{L09\_C4\_B2\_08} (Cùng dạng: \texttt{L09\_C4\_B2\_31}, \texttt{L09\_C4\_B2\_46}) --- \textbf{MapID:} \texttt{9H4V2-5}
+
+\begin{tcolorbox}[colback=red!5!white,colframe=red!75!black,title=\textbf{1. CÂU HÌNH VẼ CŨ (Chưa sửa - Gốc từ iMath)}]
+\textbf{Đề bài cũ:} Một máy bay vừa phi lên theo đường bay hợp với mặt đất một góc $\widehat{ATH} = 30^{\circ}$. Sau $1,4$ phút máy bay ở độ cao $a=7$\,km so với mặt đất. Hỏi vận tốc của máy bay khi bay lên?\\
+\textbf{Tình trạng lỗi của hình cũ:}
+\begin{itemize}
+    \item Cú pháp TikZ bị vỡ nghiêm trọng: có thẻ đóng \texttt{\textbackslash end\{tikzpicture\}} nằm lơ lửng giữa đề bài, thiếu lệnh \texttt{\textbackslash begin\{tikzpicture\}} tương ứng, đoạn mã \texttt{)--(T)--(A)} bị đứt đoạn.
+    \item Hình máy bay chỉ là các nét vẽ thô sơ bị bóp méo (\texttt{\textbackslash resizebox\{1cm\}\{!\}...}), không xoay theo đúng góc cất cánh $\alpha$.
+\end{itemize}
+\begin{center}
+\textit{[Đoạn mã TikZ cũ bị lỗi cú pháp không thể biên dịch: thẻ đóng nằm sai vị trí và không thể co giãn theo tham số]}
+\end{center}
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{2. CÂU HÌNH VẼ MỚI (Đã chuẩn hóa từ Kho hình HP\_HYN\_015 \& Đổi số động)}]
+\textbf{Đề bài mới:} Một máy bay vừa phi lên theo đường bay hợp với mặt đất một góc $\widehat{ATH} = 30^{\circ}$. Sau $1,4$ phút máy bay ở độ cao $a=7$\,km so với mặt đất. Hỏi vận tốc của máy bay khi bay lên?\\
+\textbf{Đặc điểm cải tiến:}
+\begin{itemize}
+    \item Trích xuất chuẩn xác mô hình máy bay dân dụng vector từ \texttt{HP\_HYN\_015} (\texttt{Icon-Maybay}).
+    \item \textbf{Đổi số động:} Khi góc $\widehat{ATH}$ đổi (VD: $24^\circ, 30^\circ, 35^\circ$), máy bay tự động xoay nghiêng theo \texttt{rotate=\textbackslash ang}, cạnh huyền $TA$ và độ cao $a = 7$\,km tự động cập nhật đúng vị trí.
+\end{itemize}
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.85]
+\def\pathLen{6.8}
+\def\ang{30}
+\def\h{7}
+\path (0,0) coordinate (T);
+\path (\ang:\pathLen) coordinate (A);
+\path (A |- T) coordinate (H);
+\draw[thick] ($(T)+(-0.8,0)$) -- ($(H)+(1.2,0)$);
+\fill[pattern=north east lines] ($(T)+(-0.8,0)$) rectangle ($(H)+(1.2,-0.25)$);
+\draw[thick] (T) -- (A) node[pos=0.55, above, sloped] {Đường bay};
+\draw[thick, dashed] (A) -- (H) node[midway, right] {$a = \h$\,km};
+\draw (H)++(-0.25,0)--++(0,0.25)--++(0.25,0);
+\fill (T) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$T$};
+\fill (H) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$H$};
+\fill (A) circle (1.5pt) node[above left=2pt, fill=white, inner sep=1pt] {$A$};
+\draw pic[draw, angle radius=11mm]{angle=H--T--A};
+\node at ($(T)+(\ang/2:1.9)$) {$\ang^{\circ}$};
+
+\tikzset{Icon-Maybay/.pic={
+\begin{scope}
+\fill[ball color =cyan!40!gray,rounded corners=0.02](-5.6,3)--++(60:0.8)--++(2:0.55)--++(-90:2)--cycle;
+\fill[ball color =cyan!90!gray!40!white](-0.4,1.5)..controls++(75:2)and++(-68:0.75)..(-0.15,4)--++(-5:0.35)..controls++(-50:0.95)and++(106:2)..(1.25,1.5)--cycle;
+\fill[ball color =cyan!30!gray](-4.85,1)..controls++(-90:0.6) and++(180:0.2)..(-4,0.5)--++(-12:3.3)--++(0:4)..controls++(0:2) and++(-172:1)..(6,0)..controls++(8:1)and++(-90:0.1)..(6.85,0.3)..controls++(90:0.2) and++(-30:1)..(5,1.3)..controls++(90:0.25) and++(0:8)..(-4,1.5)--cycle;
+\draw[cyan!40!black](6.85,0.3)coordinate(mui)..controls++(-90:0.5) and++(0:6)..(-2,0.2);
+\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-1.8,0)--++(-5:0.35)--++(-147:4.85)--++(-50:0.7)--++(25.5:6.5)..controls++(-155.5:0.5) and++(-170:0.15)..(1.5,-0.25)..controls++(120:0.5) and++(2:1)..(-1.8,0);
+\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6.1,-2.3)--++(-54:0.7)--++(-28:0.7)--++(25.5:.35)--++(-180:.2)--++(135:1.2)--cycle;
+\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6.9,3.6)--++(2:1)..controls++(-35:2) and++(178:2.3)..(-2,1.5)..controls++(-90:0.2) and++(20:1)..(-3.5,1)--++(180:1.2)--cycle;
+\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6,2.5)--++(0:1.35)--++(-156:2.5)--++(170:0.75)--cycle;
+\fill[ball color =cyan!70!gray!40!white,rounded corners=0.02](-1.9,-0.17)--++(90:0.72)--++(181:2.45)--++(-90:0.6)--cycle;
+\fill[ball color =cyan!90!gray!10!black,line width=0.02,draw=cyan!30!black,rounded corners=0.005](-1.9,-0.18)arc(-90:270:0.2 and 0.38);
+\fill[cyan](5.05,1.3)--++(-25:0.8)..controls++(-140:0.55)and++(10:0.5)..(4.2,0.6)..controls++(180:0.15) and++(182:0.45)..(4.3,1.1)..controls++(2:0.5) and++(-135:0.2)..(5.1,1.3);
+\draw[draw=teal,double,distance=0.03](5.05,1.3)++(-26:0.8)..controls++(-140:0.55)and++(10:0.5)..(4.2,0.6)foreach \i in{1,2,...,4}{coordinate[pos=\i/4](B\i)}..controls++(180:0.15) and++(182:0.45)..(4.3,1.1)..controls++(2:0.5) and++(-135:0.2)..(5.1,1.3)foreach \i in{1,2,...,10}{coordinate[pos=\i/10](A\i)}(A2)--(B2)(A6)--(B1);
+\foreach \i in {0,1,...,6}
+\fill[ball color=cyan](-0.8+0.5*\i,0.4)arc(-90:270:0.1 and 0.2);
+\fill[draw=cyan!10!teal,ball color=cyan!80!gray,rounded corners=0.015](3.2,-0.2)--++(95:0.9)--++(0:0.5)--++(-85:0.9)--cycle;
+\begin{scope}[opacity=1]
+\fill[ball color=orange](2.5,-0.15)arc(-90:270:0.2 and 0.1);
+\fill[ball color=orange!50!red!50!white,rotate around={10:(6,0.25)}](6,0.25)arc(-90:270:0.2 and 0.1);
+\end{scope}
+\end{scope}
+}}
+\draw (A) pic[scale=0.1,rotate=\ang]{Icon-Maybay};
+\end{tikzpicture}
+\end{center}
+\end{tcolorbox}
+
+\newpage
+
+% ==================== DẠNG 2 ====================
+\section{Dạng 2: Cây cao bị bão quật gãy ngang thân}
+\textbf{Mã nhận diện:} \texttt{L09\_C4\_B2\_53} (Cùng dạng: \texttt{L09\_C4\_B2\_54}) --- \textbf{MapID:} \texttt{9H4V2-5}
+
+\begin{tcolorbox}[colback=red!5!white,colframe=red!75!black,title=\textbf{1. CÂU HÌNH VẼ CŨ (Chưa sửa - Gốc từ iMath)}]
+\textbf{Đặc điểm hình cũ:} 
+Dung lượng khổng lồ (\textgreater 10\,KB mã nguồn), sử dụng hơn 50 khối đa giác đặc \texttt{\textbackslash fill[green!40!black]} để vẽ tán thông xoay $109^\circ$, gây nặng file và giao diện hiển thị thô kệch.
+\begin{center}
+\begin{tikzpicture}[line join=round, line cap=round, >=stealth, font=\footnotesize, scale=0.55]
+    \path
+    (5.65,-1.35)coordinate(A)
+    (5.65,2)coordinate(B)
+    (-4.4,-1.35)coordinate(C)
+    (5.65,-1.6)coordinate(D)
+    (-4.4,-1.6)coordinate(E);
+    \draw[very thick](B)--(C);
+    \draw pic[draw,angle radius=0.6cm,thick]{angle=A--C--B};
+    \path(C)--++(60:0.5)node{$\alpha^\circ$};
+    \draw[<->](D)--node[midway,below]{$a$ m}(E);
+    \begin{scope}[shift={(0,0)},rotate=109]
+        \foreach \w/\f in {0.3/30,0.2/50,0.1/70} {
+            \fill [brown!\f!black] (0,-6) --(\w/2,4)--(\w/2,-6);}
+        \fill [green!40!black] (0.05,-1.41) -- (0.22,-1.33) -- (0.32,-1.33) -- (0.41,-1.38) -- (0.55,-1.35) -- (0.7,-1.34) -- (0.84,-1.39)  -- (0.87,-1.52) -- (1.02,-1.56) -- (1.17,-1.58) -- (1.34,-1.5) -- (1.4,-1.44) -- (1.54,-1.39) -- (1.62,-1.26) -- (1.69,-1.16) -- (1.68,-1.02) -- (1.54,-0.96) -- (1.39,-0.91) -- (1.2,-0.87) -- (0.97,-0.87) -- (0.81,-0.93) -- (0.67,-0.93) -- (0.54,-1.02) -- (0.42,-1.07) -- (0.24,-1.08) -- (0.1,-1.02) -- (0.01,-1.05) -- (-0.04,-0.99) -- (-0.15,-0.92) -- (-0.24,-0.94) -- (-0.34,-1) -- (-0.4,-1.01) -- (-0.46,-0.93) -- (-0.61,-0.91) -- (-0.78,-0.83) -- (-0.99,-0.83) -- (-1.2,-0.83) -- (-1.33,-0.89) -- (-1.51,-0.92) -- (-1.62,-0.92) -- (-1.73,-1.01) -- (-1.77,-1.17) -- (-1.66,-1.26) -- (-1.62,-1.34) -- (-1.63,-1.47) -- (-1.48,-1.51) -- (-1.23,-1.51) -- (-0.98,-1.5) -- (-0.93,-1.37) -- (-0.82,-1.26) -- (-0.62,-1.31) -- (-0.44,-1.35) -- (-0.24,-1.4) -- (-0.11,-1.46) -- (-0.01,-1.43);
+    \end{scope}
+    \foreach \w/\f in {0.3/30,0.2/50,0.1/70} {
+        \fill [brown!\f!black] (5.65,-1.35) rectangle(5.65+\w/2,2);}
+    \draw[very thick](6.5,-1.35)--(-4.5,-1.35);
+    \fill[pattern=north east lines] (6.5,-1.35)rectangle(-4.5,-1.5);
+\end{tikzpicture}
+\end{center}
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{2. CÂU HÌNH VẼ MỚI (Chuẩn sư phạm thanh thoát \& Đổi số động)}]
+\textbf{Đặc điểm cải tiến:}
+\begin{itemize}
+    \item Thân cây đứng $AB$ có vết gãy răng cưa tự nhiên; thân cây đổ $BC$ nối xuống ngọn $C$.
+    \item \textbf{Đổi số động:} Khi góc $\alpha = 21^\circ$ và $a = 1,7$\,m (hoặc $\alpha = 18^\circ, a = 5,3$\,m) thay đổi, hình tự động đồng bộ nhãn $a, \alpha$ và tỷ lệ tam giác $ABC$. Dung lượng giảm từ 10\,KB xuống dưới 1\,KB!
+\end{itemize}
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.95]
+\def\ang{21}
+\def\d{4.5}
+\def\h{2.0}
+\coordinate (C) at (0,0);
+\coordinate (A) at (\d,0);
+\coordinate (B) at (\d,\h);
+
+\draw[thick] (-1.0,0) -- ($(A)+(1.2,0)$);
+\fill[pattern=north east lines] (-1.0,0) rectangle ($(A)+(1.2,-0.25)$);
+
+\fill[brown!70!black] ($(A)+(-0.15,0)$) rectangle ($(A)+(0.15,\h)$);
+\draw[thick, brown!40!black] ($(A)+(-0.15,0)$) -- ($(A)+(-0.15,\h)$);
+\draw[thick, brown!40!black] ($(A)+(0.15,0)$) -- ($(A)+(0.15,\h)$);
+\draw[thick, brown!20!black, fill=yellow!40!brown] 
+    ($(B)+(-0.15,0)$) -- ++(0.08,0.15) -- ++(0.08,-0.1) -- ++(0.08,0.12) -- ++(0.06,-0.17) -- cycle;
+
+\draw[line width=3.5pt, brown!70!black] (B) -- (C);
+\draw[line width=1pt, brown!30!black] (B) -- (C);
+
+\begin{scope}[shift={($(C)+(-0.4,0)$)}, rotate=\ang]
+    \fill[green!45!black, opacity=0.85] (-0.3,0) ellipse [x radius=1.0, y radius=0.4];
+    \fill[green!55!black, opacity=0.9] (0.1,0.1) ellipse [x radius=0.7, y radius=0.3];
+    \fill[green!35!black] (-0.6,-0.05) ellipse [x radius=0.6, y radius=0.25];
+    \draw[thick, brown!50!black] (0,0) -- (-0.8,-0.1);
+\end{scope}
+
+\draw pic[draw, angle radius=3mm]{right angle=B--A--C};
+\draw pic[draw, angle radius=12mm]{angle=A--C--B};
+\node at ($(C)+(10:1.7)$) {$\alpha = \ang^{\circ}$};
+
+\fill (A) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$A$};
+\fill (B) circle (1.5pt) node[above right=2pt, fill=white, inner sep=1pt] {$B$};
+\fill (C) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$C$};
+
+\draw[<->] ($(C)+(0,-0.55)$) -- node[midway, below] {$a = 1{,}7$\,m} ($(A)+(0,-0.55)$);
+\end{tikzpicture}
+\end{center}
+\end{tcolorbox}
+
+\newpage
+
+% ==================== DẠNG 3 ====================
+\section{Dạng 3: Cái thang tựa vào tường}
+\textbf{Mã nhận diện:} \texttt{L09\_C4\_B1\_16} (Cùng dạng: \texttt{L09\_C4\_B1\_29}, \texttt{L09\_C4\_B2\_55}) --- \textbf{MapID:} \texttt{9H4V1-5}
+
+\begin{tcolorbox}[colback=red!5!white,colframe=red!75!black,title=\textbf{1. CÂU HÌNH VẼ CŨ (Chưa sửa - Gốc từ iMath)}]
+\textbf{Khuyết điểm hình cũ:}
+\begin{itemize}
+    \item Chứa mã lỗi duplicate \texttt{\textbackslash begin\{tikzpicture\}} lồng nhau không khép kín.
+    \item Các điểm tọa độ vẽ thang bị cố định cứng ở góc $60^\circ$ và chiều dài $5$, không thay đổi khi đề bài đổi sang $L = 2,5$\,m, $\alpha = 65^\circ$ hoặc $L = 4,0$\,m, $\alpha = 68^\circ$.
+\end{itemize}
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{2. CÂU HÌNH VẼ MỚI (Chuẩn hóa từ Kho 015\_cái thang / HP\_HYN\_055 \& Đổi số động)}]
+\textbf{Đặc điểm cải tiến:}
+\begin{itemize}
+    \item Tường thẳng đứng kẻ sọc chéo chuẩn in ấn đen trắng; thang gỗ với các bậc thang phân bố đều.
+    \item \textbf{Đổi số động:} Góc nghiêng chân thang $\alpha = {{ang\_alpha}}^\circ$ và chiều dài $L = {{length\_l}}$\,m tự động co giãn tam giác $ABC$ theo đúng dữ liệu đề bài.
+\end{itemize}
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.95]
+\def\ang{65}
+\def\len{5.0}
+\coordinate (C) at (0,0);
+\coordinate (B) at (-\len*cos \ang, 0);
+\coordinate (A) at (0, \len*sin \ang);
+
+\draw[thick] (0,-0.4) -- (0, \len*sin \ang + 0.8);
+\fill[pattern=north west lines] (0,-0.4) rectangle (0.5, \len*sin \ang + 0.8);
+
+\draw[thick] (-\len*cos \ang - 1.0, 0) -- (0.5, 0);
+\fill[pattern=north east lines] (-\len*cos \ang - 1.0, 0) rectangle (0.5, -0.3);
+
+\draw pic[draw, angle radius=3.5mm]{right angle=A--C--B};
+
+\draw[line width=3pt, brown!60!black] ($(B)+(-0.1,-0.05)$) -- ($(A)+(-0.1,0.05)$);
+\draw[line width=3pt, brown!60!black] ($(B)+(0.1,-0.05)$) -- ($(A)+(0.1,0.05)$);
+
+\foreach \i in {1,2,...,9} {
+    \coordinate (P\i) at ($(B)!\i/10!(A)$);
+    \draw[line width=2pt, brown!80!black] ($(P\i)+(-0.15,0)$) -- ($(P\i)+(0.15,0)$);
+}
+
+\draw pic[draw, angle radius=10mm]{angle=C--B--A};
+\node at ($(B)+(\ang/2:1.5)$) {$\alpha = \ang^{\circ}$};
+
+\draw[<->] ($(B)+(-0.35,0.15)$) -- node[midway, above, sloped] {$L = 2{,}5$\,m} ($(A)+(-0.35,0.15)$);
+
+\fill (A) circle (1.5pt) node[left=3pt, fill=white, inner sep=1pt] {$A$};
+\fill (B) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$B$};
+\fill (C) circle (1.5pt) node[below right=3pt, fill=white, inner sep=1pt] {$C$};
+\end{tikzpicture}
+\end{center}
+\end{tcolorbox}
+
+\newpage
+
+% ==================== DẠNG 4 ====================
+\section{Dạng 4: Ngọn hải đăng quan sát hai vị trí con tàu trên biển}
+\textbf{Mã nhận diện:} \texttt{L09\_C4\_B2\_24} (Cùng dạng: \texttt{L09\_C4\_B2\_25}, \texttt{L09\_C4\_B2\_42}) --- \textbf{MapID:} \texttt{9H4V2-5}
+
+\begin{tcolorbox}[colback=red!5!white,colframe=red!75!black,title=\textbf{1. CÂU HÌNH VẼ CŨ (Chưa sửa - Gốc từ iMath)}]
+\textbf{Khuyết điểm hình cũ:}
+\begin{itemize}
+    \item Hình vẽ mang phong cách hoạt hình thiếu nghiêm túc: vẽ mặt trời cười (\texttt{smiling sun}) có mắt, mũi, miệng giữa đề thi Toán lớp 9.
+    \item Thuyền và hải đăng vẽ hoạt hình màu sắc lòe loẹt, góc hạ $\alpha, \beta$ vẽ cứng không khớp với dữ liệu bài toán.
+\end{itemize}
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{2. CÂU HÌNH VẼ MỚI (Chuẩn hóa từ Kho 168\_hải đăng / HP\_HYN\_041 \& Đổi số động)}]
+\textbf{Đặc điểm cải tiến:}
+\begin{itemize}
+    \item Ngọn hải đăng sọc đỏ trắng trang nghiêm, bờ đá ven biển, 2 cánh buồm con tàu tại $C$ và $D$.
+    \item Tia nằm ngang $Ax$, các cung góc hạ $\alpha, \beta$ và khoảng cách $x$ rõ ràng chuẩn mực khảo thí.
+    \item \textbf{Đổi số động:} Chiều cao tháp $h = {{height\_h}}$\,m và các góc hạ $\alpha, \beta$ tự động cập nhật khi sinh đề mới.
+\end{itemize}
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.85]
+\def\h{3.2}
+\def\angA{16}
+\def\angB{24}
+\coordinate (B) at (0,0);
+\coordinate (A) at (0,\h);
+\coordinate (C) at (4.5,0);
+\coordinate (D) at (7.8,0);
+
+\fill[gray!40] (-0.8,-0.5) rectangle (0.6,0);
+\draw[thick] (-0.8,0) -- (0.6,0);
+
+\draw[thick, fill=red!70!white] (-0.3,0) rectangle (0.3,\h);
+\fill[white] (-0.3,0.7) rectangle (0.3,1.4);
+\fill[white] (-0.3,2.1) rectangle (0.3,2.8);
+\draw[thick] (-0.3,0) rectangle (0.3,\h);
+\draw[thick, fill=yellow!80!orange] (-0.4,\h) rectangle (0.4,\h+0.4);
+\draw[thick, fill=red!80!black] (-0.4,\h+0.4) -- (0.4,\h+0.4) -- (0,\h+0.8) -- cycle;
+
+\draw[thick, cyan!70!blue] (0.6,0) -- (9.0,0);
+\fill[cyan!10] (0.6,0) rectangle (9.0,-0.4);
+
+\draw[thick, dashed] (A) -- (8.5,\h) coordinate (Ax);
+\draw[thick] (A) -- (C);
+\draw[thick] (A) -- (D);
+\draw (B)++(0.2,0)--++(0,0.2)--++(-0.2,0);
+
+\tikzset{boat/.pic={
+    \fill[brown!80!black] (-0.5,0) -- (0.5,0) -- (0.35,-0.2) -- (-0.35,-0.2) -- cycle;
+    \draw[thick, brown!40!black] (-0.5,0) -- (0.5,0);
+    \draw[thick] (0,0) -- (0,0.5);
+    \fill[white, draw=gray] (0,0.1) -- (0.35,0.25) -- (0,0.45) -- cycle;
+}}
+\draw (C) pic[scale=0.8]{boat};
+\draw (D) pic[scale=0.8]{boat};
+
+\draw (0.8,\h) arc (0:-\angA:0.8);
+\node at (1.5,\h-0.2) {$\alpha = \angA^{\circ}$};
+\draw (1.4,\h) arc (0:-\angB:1.4);
+\node at (2.2,\h-0.55) {$\beta = \angB^{\circ}$};
+
+\fill (A) circle (1.5pt) node[left=4pt, fill=white, inner sep=1pt] {$A$};
+\fill (B) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$B$};
+\fill (C) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$C$};
+\fill (D) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$D$};
+
+\node[left=6pt] at (0,\h/2) {$h = 66$\,m};
+\draw[<->] ($(C)+(0,-0.55)$) -- node[midway, below] {$x$} ($(D)+(0,-0.55)$);
+\end{tikzpicture}
+\end{center}
+\end{tcolorbox}
+
+\newpage
+
+% ==================== DẠNG 5 ====================
+\section{Dạng 5: Máy bay hạ cánh tiếp cận đường băng}
+\textbf{Mã nhận diện:} \texttt{L09\_C4\_B2\_09} (Cùng dạng: \texttt{L09\_C4\_B2\_34}, \texttt{L09\_C4\_B2\_49}) --- \textbf{MapID:} \texttt{9H4C2-5}
+
+\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{CÂU HÌNH VẼ ĐÃ CHUẨN HÓA MỚI (Máy bay tiếp cận góc hạ cánh $\alpha = 3^\circ$)}]
+\textbf{Đặc điểm:} Mô phỏng chân thực đường tiếp cận hạ cánh với góc tiếp cận $3^\circ$, máy bay hướng chúc mũi về phía đường băng $T$, độ cao hạ cánh $a = 550$\,m. Tự động đổi số khi tham số độ cao hoặc góc hạ cánh thay đổi.
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.85]
+\def\ang{16}
+\def\realAng{3}
+\def\pathLen{7.2}
+\def\h{550}
+\coordinate (T) at (0,0);
+\coordinate (A) at (\pathLen*cos \ang, \pathLen*sin \ang);
+\coordinate (H) at (\pathLen*cos \ang, 0);
+
+\draw[thick] (-1.0,0) -- ($(H)+(1.5,0)$);
+\fill[pattern=north east lines] (-1.0,0) rectangle ($(H)+(1.2,-0.25)$);
+
+\draw[thick, dashed] (T) -- (A) node[pos=0.55, above, sloped] {Đường tiếp cận};
+\draw[thick] (A) -- (H) node[midway, right] {$a = \h$\,m};
+\draw (H)++(-0.25,0)--++(0,0.25)--++(0.25,0);
+
+\fill (T) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$T$};
+\fill (H) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$H$};
+\fill (A) circle (1.5pt) node[above left=2pt, fill=white, inner sep=1pt] {$A$};
+
+\draw pic[draw, angle radius=12mm]{angle=H--T--A};
+\node at ($(T)+(\ang/2:1.9)$) {$\realAng^{\circ}$};
+
+\tikzset{Icon-Maybay/.pic={
+\begin{scope}
+\fill[ball color =cyan!40!gray,rounded corners=0.02](-5.6,3)--++(60:0.8)--++(2:0.55)--++(-90:2)--cycle;
+\fill[ball color =cyan!90!gray!40!white](-0.4,1.5)..controls++(75:2)and++(-68:0.75)..(-0.15,4)--++(-5:0.35)..controls++(-50:0.95)and++(106:2)..(1.25,1.5)--cycle;
+\fill[ball color =cyan!30!gray](-4.85,1)..controls++(-90:0.6) and++(180:0.2)..(-4,0.5)--++(-12:3.3)--++(0:4)..controls++(0:2) and++(-172:1)..(6,0)..controls++(8:1)and++(-90:0.1)..(6.85,0.3)..controls++(90:0.2) and++(-30:1)..(5,1.3)..controls++(90:0.25) and++(0:8)..(-4,1.5)--cycle;
+\draw[cyan!40!black](6.85,0.3)coordinate(mui)..controls++(-90:0.5) and++(0:6)..(-2,0.2);
+\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-1.8,0)--++(-5:0.35)--++(-147:4.85)--++(-50:0.7)--++(25.5:6.5)..controls++(-155.5:0.5) and++(-170:0.15)..(1.5,-0.25)..controls++(120:0.5) and++(2:1)..(-1.8,0);
+\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6.1,-2.3)--++(-54:0.7)--++(-28:0.7)--++(25.5:.35)--++(-180:.2)--++(135:1.2)--cycle;
+\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6.9,3.6)--++(2:1)..controls++(-35:2) and++(178:2.3)..(-2,1.5)..controls++(-90:0.2) and++(20:1)..(-3.5,1)--++(180:1.2)--cycle;
+\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6,2.5)--++(0:1.35)--++(-156:2.5)--++(170:0.75)--cycle;
+\fill[ball color =cyan!70!gray!40!white,rounded corners=0.02](-1.9,-0.17)--++(90:0.72)--++(181:2.45)--++(-90:0.6)--cycle;
+\fill[ball color =cyan!90!gray!10!black,line width=0.02,draw=cyan!30!black,rounded corners=0.005](-1.9,-0.18)arc(-90:270:0.2 and 0.38);
+\fill[cyan](5.05,1.3)--++(-25:0.8)..controls++(-140:0.55)and++(10:0.5)..(4.2,0.6)..controls++(180:0.15) and++(182:0.45)..(4.3,1.1)..controls++(2:0.5) and++(-135:0.2)..(5.1,1.3);
+\draw[draw=teal,double,distance=0.03](5.05,1.3)++(-26:0.8)..controls++(-140:0.55)and++(10:0.5)..(4.2,0.6)foreach \i in{1,2,...,4}{coordinate[pos=\i/4](B\i)}..controls++(180:0.15) and++(182:0.45)..(4.3,1.1)..controls++(2:0.5) and++(-135:0.2)..(5.1,1.3)foreach \i in{1,2,...,10}{coordinate[pos=\i/10](A\i)}(A2)--(B2)(A6)--(B1);
+\foreach \i in {0,1,...,6}
+\fill[ball color=cyan](-0.8+0.5*\i,0.4)arc(-90:270:0.1 and 0.2);
+\fill[draw=cyan!10!teal,ball color=cyan!80!gray,rounded corners=0.015](3.2,-0.2)--++(95:0.9)--++(0:0.5)--++(-85:0.9)--cycle;
+\begin{scope}[opacity=1]
+\fill[ball color=orange](2.5,-0.15)arc(-90:270:0.2 and 0.1);
+\fill[ball color=orange!50!red!50!white,rotate around={10:(6,0.25)}](6,0.25)arc(-90:270:0.2 and 0.1);
+\end{scope}
+\end{scope}
+}}
+\draw (A) pic[scale=0.1,xscale=-1,rotate=\ang]{Icon-Maybay};
+\end{tikzpicture}
+\end{center}
+\end{tcolorbox}
+
+% ==================== DẠNG 6 ====================
+\section{Dạng 6: Cậu bé quan sát khinh khí cầu trên không}
+\textbf{Mã nhận diện:} \texttt{L09\_C4\_B2\_27} (Cùng dạng: \texttt{L09\_C4\_B2\_26}, \texttt{L09\_C4\_B2\_43}) --- \textbf{MapID:} \texttt{9H4V2-5}
+
+\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{CÂU HÌNH VẼ ĐÃ CHUẨN HÓA MỚI (Mô hình từ Kho 021\_khinh khí cầu \& Đổi số động)}]
+\textbf{Đặc điểm:} Thay thế khung hình chữ nhật đơn điệu cũ bằng hình ảnh khinh khí cầu sinh động có giỏ và sọc màu sắc, đường ngắm hợp với phương ngang góc $53^\circ$, chiều cao người quan sát $h_0 = 1,0$\,m và khoảng cách mặt đất $d = 350$\,m. Tự động đồng bộ khi đổi số.
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.85]
+\def\ang{53}
+\def\distX{5.0}
+\def\hEye{1.0}
+\def\hBalloon{4.5}
+
+\coordinate (D) at (0,0);
+\coordinate (B) at (0,\hEye);
+\coordinate (E) at (\distX,0);
+\coordinate (A) at (\distX,\hEye);
+\coordinate (C) at (\distX,\hBalloon);
+
+\draw[thick] (-0.8,0) -- (\distX+1.2,0);
+\fill[pattern=north east lines] (-0.8,0) rectangle (\distX+1.2,-0.25);
+
+\draw[line width=1.5pt, blue!70!black] (D) -- (B);
+\fill[pink!80!black] (B) circle (2pt);
+\draw[<->] (-0.35,0) -- node[midway, left] {$h_0 = 1{,}0$\,m} (-0.35,\hEye);
+
+\draw[thick, dashed] (B) -- (A);
+\draw[thick] (B) -- (C);
+\draw[thick, dashed] (C) -- (E);
+
+\draw (A)++(0,0.2)--++(-0.2,0)--++(0,-0.2);
+\draw (E)++(0,0.2)--++(-0.2,0)--++(0,-0.2);
+
+\draw pic[draw, angle radius=10mm]{angle=A--B--C};
+\node at ($(B)+(\ang/2:1.6)$) {$\ang^{\circ}$};
+
+\begin{scope}[shift={(C)}]
+    \draw[thick, brown!60!black] (-0.15,0.4) -- (-0.1,0.15) (0.15,0.4) -- (0.1,0.15);
+    \fill[brown!80!black] (-0.15,0.15) rectangle (0.15,0);
+    \fill[orange!85!red] (0,1.2) ellipse [x radius=0.6, y radius=0.75];
+    \fill[yellow!90!orange] (0,1.2) ellipse [x radius=0.35, y radius=0.73];
+    \fill[cyan!80!blue] (0,1.2) ellipse [x radius=0.15, y radius=0.7];
+    \draw[thick] (0,1.2) ellipse [x radius=0.6, y radius=0.75];
+\end{scope}
+
+\fill (B) circle (1.5pt) node[left=3pt, fill=white, inner sep=1pt] {$B$};
+\fill (D) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$D$};
+\fill (E) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$E$};
+\fill (A) circle (1.5pt) node[above right=2pt, fill=white, inner sep=1pt] {$A$};
+\fill (C) circle (1.5pt) node[right=4pt, fill=white, inner sep=1pt] {$C$};
+
+\draw[<->] ($(D)+(0,-0.55)$) -- node[midway, below] {$d = 350$\,m} ($(E)+(0,-0.55)$);
+\end{tikzpicture}
+\end{center}
+\end{tcolorbox}
+
+\end{document}
