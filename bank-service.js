@@ -275,7 +275,7 @@ updateLocalBankCache(newQuestions) {
 try {
 const cachedBank = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
 let list = cachedBank ? JSON.parse(cachedBank) : [];
-if (!Array.isArray(list)) list = [];
+if (!Array.isArray(list) || list.length < 500) return;
 const map = new Map();
 list.forEach(q => {
 const k = String(q.id || q.cccd || '');
@@ -500,25 +500,36 @@ window.applyBankFilters();
 }
 }
 let catalogList = [];
-if (typeof window !== 'undefined' && Array.isArray(window.globalBankQuestions) && window.globalBankQuestions.length > 0) {
+let remoteCatalog = [];
+try {
+const r = await fetch("https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank_catalog.json?t=" + Date.now(), { cache: 'no-store' });
+if (r.ok) {
+const parsedRemote = await r.json();
+if (Array.isArray(parsedRemote)) remoteCatalog = parsedRemote;
+}
+} catch(e) {}
+if (typeof window !== 'undefined' && Array.isArray(window.globalBankQuestions) && window.globalBankQuestions.length >= remoteCatalog.length && window.globalBankQuestions.length >= 500) {
 catalogList = window.globalBankQuestions;
+} else if (remoteCatalog.length > 0) {
+catalogList = remoteCatalog;
 } else {
 const cachedBank = localStorage.getItem(LOCAL_BANK_CACHE_KEY);
 if (cachedBank) {
-try { catalogList = JSON.parse(cachedBank); } catch(e) {}
-}
-}
-if (!Array.isArray(catalogList) || catalogList.length === 0) {
 try {
-const r = await fetch("https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank_catalog.json?t=" + Date.now(), { cache: 'no-store' });
-if (r.ok) catalogList = await r.json();
+const parsedLocal = JSON.parse(cachedBank);
+if (Array.isArray(parsedLocal) && parsedLocal.length >= 500) catalogList = parsedLocal;
 } catch(e) {}
 }
-if (Array.isArray(catalogList) && catalogList.length > 0) {
+}
+if (Array.isArray(catalogList) && catalogList.length >= Math.max(500, remoteCatalog.length)) {
 const map = new Map();
-catalogList.forEach(item => {
+remoteCatalog.forEach(item => {
 const k = String(item.id || item.cccd || '');
 if (k) map.set(k, item);
+});
+catalogList.forEach(item => {
+const k = String(item.id || item.cccd || '');
+if (k) map.set(k, Object.assign({}, map.get(k) || {}, item));
 });
 newQuestions.forEach(nq => {
 const k = String(nq.id || nq.cccd || '');

@@ -571,7 +571,7 @@ window.switchView = switchView;
     <script src="qrcode.min.js?v=20261017_V1"></script>
     <script src="word-mathtype-exporter.js?v=20261016_V5"></script>
     <script src="exam-mixer.js?v=20261108_V4"></script>
-    <script src="imath-studio.js?v=20261111-v2" defer></script>
+    <script src="imath-studio.js?v=20261111-v3" defer></script>
     <script>
 window.MathJax = {
 loader: { load: ['[tex]/noerrors'] },
@@ -17127,7 +17127,7 @@ window.switchBankSubView('my_vault');
 }
 return;
 }
-if (window.globalBankQuestions && window.globalBankQuestions.length > 0) {
+if (window.globalBankQuestions && window.globalBankQuestions.length >= 500) {
 window.enrichBankQuestions(window.globalBankQuestions);
 window.applyBankFilters();
 return;
@@ -17136,7 +17136,7 @@ const countEl = document.getElementById('bankCount');
 const grid = document.getElementById('bankListGrid');
 const empty = document.getElementById('bankListEmpty');
 const loading = document.getElementById('bankListLoading');
-if (window.globalBankQuestions && window.globalBankQuestions.length > 0) {
+if (window.globalBankQuestions && window.globalBankQuestions.length >= 500) {
 if (loading) loading.classList.add('hidden');
 window.enrichBankQuestions(window.globalBankQuestions);
 window.applyBankFilters();
@@ -17150,16 +17150,13 @@ const cachedBank = localStorage.getItem('lms_cached_bank');
 if (cachedBank) {
 try {
 const parsedBank = JSON.parse(cachedBank);
-if (Array.isArray(parsedBank)) {
+if (Array.isArray(parsedBank) && parsedBank.length >= 500) {
 const sMap = new Map();
 parsedBank.forEach(q => {
 const k = String(q?.id || q?.cccd || '');
 if (k && !sMap.has(k)) sMap.set(k, q);
 });
 window.globalBankQuestions = Array.from(sMap.values());
-} else {
-window.globalBankQuestions = [];
-}
 window.enrichBankQuestions(window.globalBankQuestions);
 if (!window.globalIdTree || window.globalIdTree.length === 0) {
 getDoc(doc(db, "configurations", "map_id_tree")).then(snap => {
@@ -17168,6 +17165,10 @@ if(snap.exists()) window.globalIdTree = snap.data().tree || [];
 }
 if (loading) loading.classList.add('hidden');
 window.applyBankFilters();
+} else {
+window.globalBankQuestions = [];
+localStorage.removeItem('lms_cached_bank');
+}
 } catch(e) {}
 }
 const R2_CATALOG_URL = "https://pub-2efc95bbe7924897bdd0db54d0da243f.r2.dev/bank_catalog.json";

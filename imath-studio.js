@@ -8,18 +8,15 @@
  *   2. Trình soạn đề thi (exam-editor.html)
  *      -> Sinh câu hỏi theo dạng, đổi số tương tự theo MapID của câu đang chọn,
  *         vẽ hình trực tiếp bằng TikZJax và chèn thẳng vào đề thi.
- *   3. Hỗ trợ Hybrid Runtime:
- *      - Tự động kết nối Local Python Engine (http://127.0.0.1:8765) nếu đang bật
- *        để sinh vô hạn biến thể mới từ 37 module .pyc (0.004s/câu) và lưu mẫu TikZ mới.
- *      - Tự động chuyển sang Kho Đổi Số Web Tĩnh (data/imath/catalog_mapped.json + pool_L0x.json)
- *        để hoạt động 24/7 trên mọi thiết bị mà không cần cài đặt.
+ *   3. Bộ lọc Chuyên đề & Dạng toán chuẩn MapID (6, 7, 8, 9):
+ *      -> Lọc theo Khối lớp -> Phân môn -> Chương -> Bài -> Dạng của MapID (tương tự Khu luyện tập).
  */
 
 (function () {
     'use strict';
 
     const LOCAL_BRIDGE_URL = 'http://127.0.0.1:8765';
-    const CATALOG_URL = 'data/imath/catalog_mapped.json?v=20261111';
+    const CATALOG_URL = 'data/imath/catalog_mapped.json?v=20261111-v3';
 
     const state = {
         catalog: [],
@@ -32,8 +29,10 @@
         mobileTab: 'topics', // 'filter' | 'topics' | 'workspace'
         filters: {
             grade: 'Toán 9',
+            subject: 'all', // 'all' | 'D' | 'H' | 'X'
             chapter: 'all',
             lesson: 'all',
+            mapForm: 'all', // 'all' or form_name
             category: 'all',
             level: 'all',
             onlyTikz: false,
@@ -58,16 +57,34 @@
                 return;
             } catch (_) {}
         }
+        if (typeof window.showNotification === 'function') {
+            try {
+                window.showNotification(msg, type);
+                return;
+            } catch (_) {}
+        }
         console.log(`[iMathStudio][${type}]`, msg);
     }
 
+    function shortCategoryName(cat) {
+        const c = String(cat || '').trim();
+        if (c === 'Trắc nghiệm') return 'TN';
+        if (c === 'Đúng-Sai') return 'Đ/S';
+        if (c === 'Trả lời ngắn') return 'TLN';
+        if (c === 'Tự luận') return 'TL';
+        return c || 'TN';
+    }
+
     // ------------------------------------------------------------------
-    // 0. SELF-CONTAINED CSS (KHÔNG PHỤ THUỘC TAILWIND JIT)
+    // 0. SELF-CONTAINED CSS (CLEAN, MINIMAL, SYNCHRONIZED WITH QMATH)
     // ------------------------------------------------------------------
     function injectStudioStyles() {
-        if (document.getElementById('imath-studio-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'imath-studio-styles';
+        let style = document.getElementById('imath-studio-styles');
+        if (!style) {
+            style = document.createElement('style');
+            style.id = 'imath-studio-styles';
+            document.head.appendChild(style);
+        }
         style.textContent = `
             #imathStudioModal.ims-overlay {
                 position: fixed !important;
@@ -78,9 +95,9 @@
                 width: 100vw !important;
                 height: 100vh !important;
                 z-index: 9999 !important;
-                background: rgba(15, 23, 42, 0.74) !important;
-                backdrop-filter: blur(5px) !important;
-                -webkit-backdrop-filter: blur(5px) !important;
+                background: rgba(9, 11, 17, 0.72) !important;
+                backdrop-filter: blur(4px) !important;
+                -webkit-backdrop-filter: blur(4px) !important;
                 display: none !important;
                 align-items: center !important;
                 justify-content: center !important;
@@ -92,14 +109,14 @@
             }
             .ims-dialog {
                 width: 100% !important;
-                max-width: 1440px !important;
+                max-width: 1460px !important;
                 height: 92vh !important;
                 max-height: 960px !important;
                 background: #ffffff !important;
                 color: #0f172a !important;
-                border-radius: 18px !important;
-                border: 1px solid #cbd5e1 !important;
-                box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.55) !important;
+                border-radius: 16px !important;
+                border: 1px solid #e2e8f0 !important;
+                box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.45) !important;
                 display: flex !important;
                 flex-direction: column !important;
                 overflow: hidden !important;
@@ -107,20 +124,27 @@
                 box-sizing: border-box !important;
             }
             html.dark .ims-dialog {
-                background: #13111c !important;
-                color: #f1f5f9 !important;
-                border-color: #2e2a40 !important;
+                background: #141622 !important;
+                color: #e2e8f0 !important;
+                border-color: #26293d !important;
             }
+
+            /* Unified Minimal Header */
             .ims-header {
                 padding: 12px 18px !important;
-                background: linear-gradient(135deg, #312e81 0%, #1d4ed8 52%, #0f766e 100%) !important;
-                color: #ffffff !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: space-between !important;
                 gap: 12px !important;
                 flex-shrink: 0 !important;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.16) !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+            }
+            html.dark .ims-header {
+                background: #181b28 !important;
+                color: #f1f5f9 !important;
+                border-bottom-color: #26293d !important;
             }
             .ims-header-left {
                 display: flex !important;
@@ -130,17 +154,22 @@
                 flex: 1 !important;
             }
             .ims-header-icon {
-                width: 40px !important;
-                height: 40px !important;
-                border-radius: 12px !important;
-                background: rgba(255, 255, 255, 0.16) !important;
-                border: 1px solid rgba(255, 255, 255, 0.28) !important;
+                width: 36px !important;
+                height: 36px !important;
+                border-radius: 10px !important;
+                background: #f1f5f9 !important;
+                border: 1px solid #e2e8f0 !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                font-size: 18px !important;
-                color: #ffffff !important;
+                font-size: 15px !important;
+                color: #4f46e5 !important;
                 flex-shrink: 0 !important;
+            }
+            html.dark .ims-header-icon {
+                background: #222638 !important;
+                border-color: #2f344d !important;
+                color: #818cf8 !important;
             }
             .ims-header-title-row {
                 display: flex !important;
@@ -149,36 +178,47 @@
                 flex-wrap: wrap !important;
             }
             .ims-header-title {
-                font-size: 16px !important;
-                font-weight: 800 !important;
+                font-size: 15px !important;
+                font-weight: 700 !important;
                 margin: 0 !important;
-                color: #ffffff !important;
+                color: inherit !important;
                 line-height: 1.25 !important;
             }
             .ims-header-sub {
                 font-size: 11.5px !important;
-                color: #dbeafe !important;
+                color: #64748b !important;
                 margin: 2px 0 0 0 !important;
                 white-space: nowrap !important;
                 overflow: hidden !important;
                 text-overflow: ellipsis !important;
             }
+            html.dark .ims-header-sub {
+                color: #94a3b8 !important;
+            }
             .ims-status-badge {
                 display: inline-flex !important;
                 align-items: center !important;
-                gap: 6px !important;
-                padding: 3px 10px !important;
-                border-radius: 999px !important;
+                gap: 5px !important;
+                padding: 2px 9px !important;
+                border-radius: 6px !important;
                 font-size: 11px !important;
-                font-weight: 700 !important;
-                background: rgba(255, 255, 255, 0.16) !important;
-                color: #ffffff !important;
-                border: 1px solid rgba(255, 255, 255, 0.28) !important;
+                font-weight: 600 !important;
+                background: #f1f5f9 !important;
+                color: #475569 !important;
+                border: 1px solid #e2e8f0 !important;
+                cursor: pointer !important;
+            }
+            html.dark .ims-status-badge {
+                background: #222638 !important;
+                color: #94a3b8 !important;
+                border-color: #2f344d !important;
             }
             .ims-status-badge.ims-online {
-                background: rgba(16, 185, 129, 0.25) !important;
-                color: #d1fae5 !important;
-                border-color: rgba(110, 231, 183, 0.5) !important;
+                color: #059669 !important;
+                border-color: rgba(16, 185, 129, 0.35) !important;
+            }
+            html.dark .ims-status-badge.ims-online {
+                color: #34d399 !important;
             }
             .ims-header-actions {
                 display: flex !important;
@@ -191,71 +231,79 @@
                 align-items: center !important;
                 gap: 6px !important;
                 padding: 6px 11px !important;
-                border-radius: 10px !important;
+                border-radius: 8px !important;
                 font-size: 11.5px !important;
-                font-weight: 700 !important;
+                font-weight: 600 !important;
                 text-decoration: none !important;
                 transition: all 0.15s ease !important;
                 cursor: pointer !important;
                 white-space: nowrap !important;
+                background: #f8fafc !important;
+                color: #334155 !important;
+                border: 1px solid #e2e8f0 !important;
             }
-            .ims-hdr-btn-pdf {
-                background: rgba(251, 191, 36, 0.22) !important;
-                color: #fef3c7 !important;
-                border: 1px solid rgba(252, 211, 77, 0.45) !important;
+            html.dark .ims-hdr-btn {
+                background: #222638 !important;
+                color: #cbd5e1 !important;
+                border-color: #2f344d !important;
             }
-            .ims-hdr-btn-pdf:hover {
-                background: rgba(251, 191, 36, 0.35) !important;
+            .ims-hdr-btn:hover {
+                border-color: #6366f1 !important;
+                color: #4f46e5 !important;
             }
-            .ims-hdr-btn-tex {
-                background: rgba(255, 255, 255, 0.14) !important;
-                color: #ffffff !important;
-                border: 1px solid rgba(255, 255, 255, 0.25) !important;
-            }
-            .ims-hdr-btn-tex:hover {
-                background: rgba(255, 255, 255, 0.24) !important;
+            html.dark .ims-hdr-btn:hover {
+                border-color: #6366f1 !important;
+                color: #a5b4fc !important;
             }
             .ims-close-btn {
-                width: 34px !important;
-                height: 34px !important;
-                border-radius: 999px !important;
-                background: rgba(255, 255, 255, 0.16) !important;
-                border: 1px solid rgba(255, 255, 255, 0.25) !important;
-                color: #ffffff !important;
+                width: 32px !important;
+                height: 32px !important;
+                border-radius: 8px !important;
+                background: transparent !important;
+                border: 1px solid #e2e8f0 !important;
+                color: #64748b !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                font-size: 15px !important;
+                font-size: 14px !important;
                 cursor: pointer !important;
                 transition: all 0.15s ease !important;
             }
+            html.dark .ims-close-btn {
+                border-color: #2f344d !important;
+                color: #94a3b8 !important;
+            }
             .ims-close-btn:hover {
-                background: #ef4444 !important;
-                border-color: #ef4444 !important;
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+            }
+            html.dark .ims-close-btn:hover {
+                background: #26293d !important;
+                color: #ffffff !important;
             }
 
             /* Mobile tab bar */
             .ims-mobile-tabs {
                 display: none !important;
-                background: #f1f5f9 !important;
-                border-bottom: 1px solid #cbd5e1 !important;
+                background: #f8fafc !important;
+                border-bottom: 1px solid #e2e8f0 !important;
                 padding: 6px 10px !important;
                 gap: 6px !important;
                 flex-shrink: 0 !important;
             }
             html.dark .ims-mobile-tabs {
-                background: #1a1726 !important;
-                border-bottom-color: #2e2a40 !important;
+                background: #181b28 !important;
+                border-bottom-color: #26293d !important;
             }
             .ims-mobile-tab-btn {
                 flex: 1 !important;
-                padding: 7px 8px !important;
-                border-radius: 9px !important;
+                padding: 6px 8px !important;
+                border-radius: 8px !important;
                 font-size: 12px !important;
-                font-weight: 700 !important;
+                font-weight: 600 !important;
                 border: 1px solid transparent !important;
                 background: transparent !important;
-                color: #475569 !important;
+                color: #64748b !important;
                 cursor: pointer !important;
                 text-align: center !important;
             }
@@ -272,22 +320,22 @@
                 flex: 1 !important;
                 min-height: 0 !important;
                 display: grid !important;
-                grid-template-columns: 290px 400px 1fr !important;
+                grid-template-columns: 320px 410px 1fr !important;
                 overflow: hidden !important;
             }
             .ims-col-filter {
                 background: #f8fafc !important;
                 border-right: 1px solid #e2e8f0 !important;
-                padding: 14px !important;
+                padding: 12px 14px !important;
                 display: flex !important;
                 flex-direction: column !important;
-                gap: 12px !important;
+                gap: 10px !important;
                 overflow-y: auto !important;
                 min-height: 0 !important;
             }
             html.dark .ims-col-filter {
-                background: #181524 !important;
-                border-right-color: #2e2a40 !important;
+                background: #161926 !important;
+                border-right-color: #26293d !important;
             }
             .ims-col-topics {
                 background: #ffffff !important;
@@ -298,110 +346,123 @@
                 overflow: hidden !important;
             }
             html.dark .ims-col-topics {
-                background: #13111c !important;
-                border-right-color: #2e2a40 !important;
+                background: #141622 !important;
+                border-right-color: #26293d !important;
             }
             .ims-col-workspace {
-                background: #f1f5f9 !important;
+                background: #f8fafc !important;
                 display: flex !important;
                 flex-direction: column !important;
                 min-height: 0 !important;
                 overflow: hidden !important;
             }
             html.dark .ims-col-workspace {
-                background: #0d0b14 !important;
+                background: #10121c !important;
             }
 
-            /* Filter controls */
+            /* Filter Controls */
             .ims-section-hdr {
                 display: flex !important;
                 align-items: center !important;
                 justify-content: space-between !important;
-                font-size: 11.5px !important;
-                font-weight: 800 !important;
+                font-size: 11px !important;
+                font-weight: 700 !important;
                 text-transform: uppercase !important;
                 letter-spacing: 0.04em !important;
-                color: #334155 !important;
+                color: #64748b !important;
             }
             html.dark .ims-section-hdr {
-                color: #cbd5e1 !important;
+                color: #94a3b8 !important;
             }
             .ims-reset-link {
                 font-size: 11px !important;
-                font-weight: 700 !important;
-                color: #4f46e5 !important;
+                font-weight: 600 !important;
+                color: #64748b !important;
                 background: none !important;
                 border: none !important;
                 cursor: pointer !important;
                 text-transform: none !important;
             }
+            .ims-reset-link:hover {
+                color: #4f46e5 !important;
+            }
             html.dark .ims-reset-link {
-                color: #818cf8 !important;
+                color: #94a3b8 !important;
+            }
+            html.dark .ims-reset-link:hover {
+                color: #a5b4fc !important;
             }
             .ims-label {
                 display: block !important;
-                font-size: 11.5px !important;
-                font-weight: 700 !important;
-                color: #475569 !important;
-                margin-bottom: 5px !important;
+                font-size: 11px !important;
+                font-weight: 600 !important;
+                color: #64748b !important;
+                margin-bottom: 4px !important;
             }
             html.dark .ims-label {
                 color: #94a3b8 !important;
             }
-            .ims-grade-grid {
+            .ims-seg-grid {
                 display: grid !important;
                 grid-template-columns: repeat(4, 1fr) !important;
-                gap: 6px !important;
+                gap: 4px !important;
+                background: #e2e8f0 !important;
+                padding: 3px !important;
+                border-radius: 8px !important;
             }
-            .ims-grade-btn {
-                padding: 7px 4px !important;
-                border-radius: 9px !important;
-                font-size: 12px !important;
-                font-weight: 700 !important;
-                border: 1px solid #cbd5e1 !important;
-                background: #ffffff !important;
-                color: #334155 !important;
+            html.dark .ims-seg-grid {
+                background: #1e2233 !important;
+            }
+            .ims-seg-btn {
+                padding: 5px 4px !important;
+                border-radius: 6px !important;
+                font-size: 11.5px !important;
+                font-weight: 600 !important;
+                border: none !important;
+                background: transparent !important;
+                color: #475569 !important;
                 cursor: pointer !important;
-                transition: all 0.15s ease !important;
+                transition: all 0.12s ease !important;
                 text-align: center !important;
+                white-space: nowrap !important;
             }
-            html.dark .ims-grade-btn {
-                background: #1e1b2e !important;
-                border-color: #38344d !important;
-                color: #cbd5e1 !important;
+            html.dark .ims-seg-btn {
+                color: #94a3b8 !important;
             }
-            .ims-grade-btn.ims-active {
-                background: #4f46e5 !important;
-                border-color: #4f46e5 !important;
-                color: #ffffff !important;
-                box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35) !important;
+            .ims-seg-btn.ims-active {
+                background: #ffffff !important;
+                color: #0f172a !important;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+            }
+            html.dark .ims-seg-btn.ims-active {
+                background: #2d334d !important;
+                color: #f8fafc !important;
             }
             .ims-select, .ims-input {
                 width: 100% !important;
-                height: 36px !important;
-                padding: 0 10px !important;
-                border-radius: 10px !important;
+                height: 34px !important;
+                padding: 0 9px !important;
+                border-radius: 8px !important;
                 border: 1px solid #cbd5e1 !important;
                 background: #ffffff !important;
                 color: #0f172a !important;
                 font-size: 12px !important;
-                font-weight: 600 !important;
+                font-weight: 500 !important;
                 outline: none !important;
                 box-sizing: border-box !important;
             }
             html.dark .ims-select, html.dark .ims-input {
-                background: #1e1b2e !important;
-                border-color: #38344d !important;
+                background: #1e2233 !important;
+                border-color: #2f344d !important;
                 color: #f1f5f9 !important;
             }
             .ims-select:focus, .ims-input:focus {
                 border-color: #6366f1 !important;
-                box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
             }
             .ims-grid-2 {
                 display: grid !important;
                 grid-template-columns: 1fr 1fr !important;
-                gap: 8px !important;
+                gap: 6px !important;
             }
             .ims-search-wrap {
                 position: relative !important;
@@ -409,49 +470,130 @@
             .ims-search-wrap i {
                 position: absolute !important;
                 left: 10px !important;
-                top: 11px !important;
+                top: 10px !important;
                 color: #64748b !important;
-                font-size: 12px !important;
+                font-size: 11.5px !important;
                 pointer-events: none !important;
             }
             .ims-search-wrap .ims-input {
-                padding-left: 30px !important;
+                padding-left: 28px !important;
             }
-            .ims-tikz-filter-box {
+
+            /* MapID Form Tree List (giống Khu luyện tập) */
+            .ims-mapform-box {
+                flex: 1 !important;
+                min-height: 120px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 10px !important;
+                background: #ffffff !important;
+                overflow: hidden !important;
+            }
+            html.dark .ims-mapform-box {
+                background: #1a1d2d !important;
+                border-color: #2a2f45 !important;
+            }
+            .ims-mapform-hdr {
+                padding: 7px 10px !important;
+                font-size: 11px !important;
+                font-weight: 700 !important;
+                color: #475569 !important;
+                background: #f8fafc !important;
+                border-bottom: 1px solid #e2e8f0 !important;
                 display: flex !important;
                 align-items: center !important;
-                gap: 10px !important;
-                padding: 10px 12px !important;
-                border-radius: 12px !important;
-                background: #fffbeb !important;
-                border: 1px solid #fde68a !important;
+                justify-content: space-between !important;
+            }
+            html.dark .ims-mapform-hdr {
+                background: #1e2233 !important;
+                color: #94a3b8 !important;
+                border-bottom-color: #2a2f45 !important;
+            }
+            .ims-mapform-list {
+                flex: 1 !important;
+                overflow-y: auto !important;
+                padding: 6px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 3px !important;
+            }
+            .ims-mapform-item {
+                display: flex !important;
+                align-items: flex-start !important;
+                justify-content: space-between !important;
+                gap: 8px !important;
+                padding: 6px 8px !important;
+                border-radius: 7px !important;
+                border: 1px solid transparent !important;
+                background: transparent !important;
+                color: #334155 !important;
+                font-size: 11.5px !important;
+                line-height: 1.35 !important;
+                text-align: left !important;
+                cursor: pointer !important;
+                transition: all 0.12s ease !important;
+            }
+            html.dark .ims-mapform-item {
+                color: #cbd5e1 !important;
+            }
+            .ims-mapform-item:hover {
+                background: #f1f5f9 !important;
+            }
+            html.dark .ims-mapform-item:hover {
+                background: #23283c !important;
+            }
+            .ims-mapform-item.ims-active {
+                background: #eef2ff !important;
+                border-color: #c7d2fe !important;
+                color: #3730a3 !important;
+                font-weight: 600 !important;
+            }
+            html.dark .ims-mapform-item.ims-active {
+                background: rgba(99, 102, 241, 0.16) !important;
+                border-color: rgba(99, 102, 241, 0.4) !important;
+                color: #e0e7ff !important;
+            }
+            .ims-mapform-count {
+                font-size: 10px !important;
+                font-weight: 600 !important;
+                color: #64748b !important;
+                background: #f1f5f9 !important;
+                padding: 1px 6px !important;
+                border-radius: 999px !important;
+                flex-shrink: 0 !important;
+                margin-top: 1px !important;
+            }
+            html.dark .ims-mapform-count {
+                background: #262b40 !important;
+                color: #94a3b8 !important;
+            }
+
+            .ims-tikz-toggle {
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                padding: 7px 10px !important;
+                border-radius: 8px !important;
+                background: #ffffff !important;
+                border: 1px solid #e2e8f0 !important;
+                font-size: 11.5px !important;
+                font-weight: 500 !important;
+                color: #475569 !important;
                 cursor: pointer !important;
                 user-select: none !important;
+                flex-shrink: 0 !important;
             }
-            html.dark .ims-tikz-filter-box {
-                background: rgba(120, 53, 15, 0.25) !important;
-                border-color: rgba(217, 119, 6, 0.45) !important;
-            }
-            .ims-guide-box {
-                margin-top: auto !important;
-                padding: 12px !important;
-                border-radius: 12px !important;
-                background: #eef2ff !important;
-                border: 1px solid #c7d2fe !important;
-                font-size: 11.5px !important;
-                color: #334155 !important;
-                line-height: 1.5 !important;
-            }
-            html.dark .ims-guide-box {
-                background: rgba(49, 46, 129, 0.25) !important;
-                border-color: rgba(99, 102, 241, 0.35) !important;
+            html.dark .ims-tikz-toggle {
+                background: #1e2233 !important;
+                border-color: #2f344d !important;
                 color: #cbd5e1 !important;
             }
 
             /* Column Subheaders */
             .ims-col-subheader {
                 padding: 10px 14px !important;
-                background: #f8fafc !important;
+                background: #ffffff !important;
                 border-bottom: 1px solid #e2e8f0 !important;
                 display: flex !important;
                 align-items: center !important;
@@ -460,19 +602,19 @@
                 flex-shrink: 0 !important;
             }
             html.dark .ims-col-subheader {
-                background: #1a1726 !important;
-                border-bottom-color: #2e2a40 !important;
+                background: #181b28 !important;
+                border-bottom-color: #26293d !important;
             }
             .ims-col-subheader-title {
                 font-size: 12.5px !important;
-                font-weight: 800 !important;
+                font-weight: 700 !important;
                 color: #1e293b !important;
                 display: flex !important;
                 align-items: center !important;
                 gap: 6px !important;
             }
             html.dark .ims-col-subheader-title {
-                color: #f1f5f9 !important;
+                color: #e2e8f0 !important;
             }
 
             /* Scrollable Lists */
@@ -480,163 +622,150 @@
                 flex: 1 !important;
                 min-height: 0 !important;
                 overflow-y: auto !important;
-                padding: 12px !important;
+                padding: 10px 12px !important;
                 display: flex !important;
                 flex-direction: column !important;
-                gap: 10px !important;
+                gap: 6px !important;
             }
 
-            /* Topic Item Card */
+            /* Clean & Compact Topic Item Card (Ảnh 3 Redesign) */
             .ims-topic-card {
-                padding: 11px 12px !important;
-                border-radius: 12px !important;
+                padding: 10px 12px !important;
+                border-radius: 10px !important;
                 border: 1px solid #e2e8f0 !important;
                 background: #ffffff !important;
                 display: flex !important;
-                flex-direction: column !important;
-                gap: 7px !important;
-                transition: all 0.15s ease !important;
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
-            }
-            html.dark .ims-topic-card {
-                background: #1c192b !important;
-                border-color: #2e2a40 !important;
-            }
-            .ims-topic-card:hover {
-                border-color: #6366f1 !important;
-                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
-            }
-            .ims-topic-top {
-                display: flex !important;
                 align-items: center !important;
                 justify-content: space-between !important;
-                gap: 6px !important;
-                flex-wrap: wrap !important;
+                gap: 10px !important;
+                transition: border-color 0.12s ease, background 0.12s ease !important;
             }
-            .ims-badge-row {
+            html.dark .ims-topic-card {
+                background: #191c2b !important;
+                border-color: #262a3e !important;
+            }
+            .ims-topic-card:hover {
+                border-color: #94a3b8 !important;
+                background: #f8fafc !important;
+            }
+            html.dark .ims-topic-card:hover {
+                border-color: #475569 !important;
+                background: #1e2235 !important;
+            }
+            .ims-topic-main {
+                flex: 1 !important;
+                min-width: 0 !important;
                 display: flex !important;
-                align-items: center !important;
-                gap: 5px !important;
-                flex-wrap: wrap !important;
+                flex-direction: column !important;
+                gap: 4px !important;
             }
-            .ims-badge-tag {
-                padding: 2px 7px !important;
-                border-radius: 6px !important;
-                background: #0f172a !important;
-                color: #ffffff !important;
-                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
-                font-size: 10.5px !important;
-                font-weight: 700 !important;
-            }
-            html.dark .ims-badge-tag {
-                background: #312e81 !important;
-            }
-            .ims-badge-mapid {
-                padding: 2px 7px !important;
-                border-radius: 6px !important;
-                background: #eef2ff !important;
-                color: #4338ca !important;
-                border: 1px solid #c7d2fe !important;
-                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
-                font-size: 10.5px !important;
-                font-weight: 700 !important;
-            }
-            html.dark .ims-badge-mapid {
-                background: rgba(79, 70, 229, 0.2) !important;
-                color: #a5b4fc !important;
-                border-color: rgba(99, 102, 241, 0.4) !important;
-            }
-            .ims-badge-tikz {
-                padding: 2px 7px !important;
-                border-radius: 6px !important;
-                background: #fef3c7 !important;
-                color: #92400e !important;
-                border: 1px solid #fcd34d !important;
-                font-size: 10px !important;
-                font-weight: 700 !important;
-            }
-            .ims-badge-tikz.ims-tikz-override {
-                background: #ccfbf1 !important;
-                color: #115e59 !important;
-                border-color: #5eead4 !important;
-            }
-            .ims-badge-lvl {
-                padding: 2px 7px !important;
-                border-radius: 6px !important;
-                font-size: 10px !important;
-                font-weight: 700 !important;
-                border: 1px solid #e2e8f0 !important;
-            }
-            .ims-lvl-M1 { background: #ecfdf5 !important; color: #047857 !important; border-color: #a7f3d0 !important; }
-            .ims-lvl-M2 { background: #f0f9ff !important; color: #0369a1 !important; border-color: #bae6fd !important; }
-            .ims-lvl-M3 { background: #fffbeb !important; color: #b45309 !important; border-color: #fde68a !important; }
-            .ims-lvl-M4 { background: #fff1f2 !important; color: #be123c !important; border-color: #fecdd3 !important; }
             .ims-topic-title {
-                font-size: 12.5px !important;
-                font-weight: 700 !important;
-                color: #1e293b !important;
-                line-height: 1.4 !important;
+                font-size: 13px !important;
+                font-weight: 600 !important;
+                color: #0f172a !important;
+                line-height: 1.38 !important;
             }
             html.dark .ims-topic-title {
                 color: #f1f5f9 !important;
             }
-            .ims-topic-foot {
+            .ims-topic-meta {
                 display: flex !important;
                 align-items: center !important;
-                justify-content: space-between !important;
-                gap: 8px !important;
-                padding-top: 6px !important;
-                border-top: 1px solid #f1f5f9 !important;
+                gap: 6px !important;
+                flex-wrap: wrap !important;
+                font-size: 11px !important;
+                color: #64748b !important;
             }
-            html.dark .ims-topic-foot {
-                border-top-color: #2e2a40 !important;
+            html.dark .ims-topic-meta {
+                color: #94a3b8 !important;
             }
-            .ims-topic-lesson {
+            .ims-meta-mapid {
+                padding: 1px 6px !important;
+                border-radius: 4px !important;
+                background: #f1f5f9 !important;
+                color: #334155 !important;
+                border: 1px solid #e2e8f0 !important;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+                font-size: 10.5px !important;
+                font-weight: 600 !important;
+            }
+            html.dark .ims-meta-mapid {
+                background: #23273a !important;
+                color: #cbd5e1 !important;
+                border-color: #313752 !important;
+            }
+            .ims-meta-dot {
+                opacity: 0.45 !important;
+            }
+            .ims-meta-code {
+                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
                 font-size: 10.5px !important;
                 color: #64748b !important;
-                white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
+            }
+            html.dark .ims-meta-code {
+                color: #8b95a9 !important;
+            }
+            .ims-topic-actions {
+                display: flex !important;
+                align-items: center !important;
+                gap: 5px !important;
+                flex-shrink: 0 !important;
             }
             .ims-btn-add1 {
-                padding: 4px 10px !important;
-                border-radius: 7px !important;
+                height: 28px !important;
+                padding: 0 10px !important;
+                border-radius: 6px !important;
                 background: #4f46e5 !important;
                 color: #ffffff !important;
-                border: none !important;
+                border: 1px solid #4f46e5 !important;
                 font-size: 11px !important;
-                font-weight: 700 !important;
+                font-weight: 600 !important;
                 cursor: pointer !important;
+                transition: background 0.12s ease !important;
             }
             .ims-btn-add1:hover {
                 background: #4338ca !important;
             }
             .ims-btn-add3 {
-                padding: 4px 8px !important;
-                border-radius: 7px !important;
-                background: #eef2ff !important;
-                color: #4338ca !important;
-                border: 1px solid #c7d2fe !important;
+                height: 28px !important;
+                padding: 0 8px !important;
+                border-radius: 6px !important;
+                background: #f8fafc !important;
+                color: #475569 !important;
+                border: 1px solid #cbd5e1 !important;
                 font-size: 11px !important;
-                font-weight: 700 !important;
+                font-weight: 600 !important;
                 cursor: pointer !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                transition: all 0.12s ease !important;
+            }
+            html.dark .ims-btn-add3 {
+                background: #222638 !important;
+                color: #cbd5e1 !important;
+                border-color: #313752 !important;
             }
             .ims-btn-add3:hover {
-                background: #e0e7ff !important;
+                border-color: #6366f1 !important;
+                color: #4f46e5 !important;
+            }
+            html.dark .ims-btn-add3:hover {
+                border-color: #818cf8 !important;
+                color: #a5b4fc !important;
             }
 
             /* Workspace Question Card */
             .ims-q-card {
                 background: #ffffff !important;
-                border-radius: 14px !important;
-                border: 1px solid #cbd5e1 !important;
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+                border-radius: 12px !important;
+                border: 1px solid #e2e8f0 !important;
                 overflow: hidden !important;
                 flex-shrink: 0 !important;
             }
             html.dark .ims-q-card {
-                background: #181524 !important;
-                border-color: #2e2a40 !important;
+                background: #171a28 !important;
+                border-color: #26293d !important;
             }
             .ims-q-card-hdr {
                 padding: 8px 12px !important;
@@ -649,8 +778,8 @@
                 flex-wrap: wrap !important;
             }
             html.dark .ims-q-card-hdr {
-                background: #1f1b2e !important;
-                border-bottom-color: #2e2a40 !important;
+                background: #1c2030 !important;
+                border-bottom-color: #26293d !important;
             }
             .ims-q-body {
                 padding: 14px !important;
@@ -659,7 +788,7 @@
                 line-height: 1.65 !important;
             }
             html.dark .ims-q-body {
-                color: #f1f5f9 !important;
+                color: #e2e8f0 !important;
             }
             .ims-choices-grid {
                 display: grid !important;
@@ -675,7 +804,7 @@
             }
             .ims-choice-item {
                 padding: 8px 10px !important;
-                border-radius: 9px !important;
+                border-radius: 8px !important;
                 border: 1px solid #e2e8f0 !important;
                 background: #f8fafc !important;
                 font-size: 12.5px !important;
@@ -684,25 +813,25 @@
                 gap: 6px !important;
             }
             html.dark .ims-choice-item {
-                background: #13111c !important;
-                border-color: #2e2a40 !important;
-                color: #e2e8f0 !important;
+                background: #131622 !important;
+                border-color: #26293d !important;
+                color: #cbd5e1 !important;
             }
             .ims-choice-item.ims-choice-true {
-                background: #ecfdf5 !important;
-                border-color: #34d399 !important;
-                color: #064e3b !important;
+                background: rgba(16, 185, 129, 0.08) !important;
+                border-color: rgba(16, 185, 129, 0.45) !important;
+                color: #065f46 !important;
                 font-weight: 600 !important;
             }
             html.dark .ims-choice-item.ims-choice-true {
-                background: rgba(6, 78, 59, 0.35) !important;
-                border-color: #10b981 !important;
-                color: #d1fae5 !important;
+                background: rgba(16, 185, 129, 0.14) !important;
+                border-color: rgba(16, 185, 129, 0.45) !important;
+                color: #a7f3d0 !important;
             }
 
             /* Workspace Bottom Action Bar */
             .ims-footer {
-                padding: 12px 14px !important;
+                padding: 10px 14px !important;
                 background: #ffffff !important;
                 border-top: 1px solid #e2e8f0 !important;
                 display: flex !important;
@@ -713,35 +842,46 @@
                 flex-shrink: 0 !important;
             }
             html.dark .ims-footer {
-                background: #181524 !important;
-                border-top-color: #2e2a40 !important;
+                background: #181b28 !important;
+                border-top-color: #26293d !important;
             }
             .ims-btn {
                 display: inline-flex !important;
                 align-items: center !important;
                 gap: 6px !important;
-                padding: 8px 14px !important;
-                border-radius: 10px !important;
+                padding: 7px 13px !important;
+                border-radius: 8px !important;
                 font-size: 12px !important;
-                font-weight: 700 !important;
+                font-weight: 600 !important;
                 cursor: pointer !important;
                 border: 1px solid transparent !important;
                 transition: all 0.15s ease !important;
             }
             .ims-btn-sec {
-                background: #f1f5f9 !important;
+                background: #f8fafc !important;
                 color: #334155 !important;
                 border-color: #cbd5e1 !important;
             }
+            html.dark .ims-btn-sec {
+                background: #222638 !important;
+                color: #cbd5e1 !important;
+                border-color: #313752 !important;
+            }
             .ims-btn-sec:hover {
-                background: #e2e8f0 !important;
+                border-color: #6366f1 !important;
             }
             .ims-btn-bank {
-                background: #d97706 !important;
+                background: #334155 !important;
                 color: #ffffff !important;
+                border-color: #475569 !important;
+            }
+            html.dark .ims-btn-bank {
+                background: #2d334d !important;
+                color: #f8fafc !important;
+                border-color: #3f476b !important;
             }
             .ims-btn-bank:hover {
-                background: #b45309 !important;
+                background: #1e293b !important;
             }
             .ims-btn-exam {
                 background: #4f46e5 !important;
@@ -775,26 +915,25 @@
                 .ims-choices-grid { grid-template-columns: 1fr !important; }
             }
         `;
-        document.head.appendChild(style);
     }
 
     // ------------------------------------------------------------------
-    // 1. KẾT NỐI DỮ LIỆU (HYBRID: LOCAL PYTHON BRIDGE + STATIC WEB POOL)
+    // 1. KẾT NỐI DỮ LIỆU (KHÔNG DÙNG ABORTCONTROLLER ĐỂ TRÁNH ABORTERROR)
     // ------------------------------------------------------------------
-    async function checkLocalBridge() {
+    async function checkLocalBridge(forceCheck = false) {
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isLocalHost && !forceCheck) {
+            state.localBridgeOnline = false;
+            updateEngineBadge();
+            return false;
+        }
         try {
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => {
-                try { ctrl.abort(); } catch (_) {}
-            }, 900);
-            const res = await fetch(`${LOCAL_BRIDGE_URL}/api/ping`, { signal: ctrl.signal }).catch(() => null);
-            clearTimeout(timer);
-            if (res && res.ok) {
-                const data = await res.json().catch(() => null);
-                state.localBridgeOnline = Boolean(data && data.ok);
-            } else {
-                state.localBridgeOnline = false;
-            }
+            const fetchPromise = fetch(`${LOCAL_BRIDGE_URL}/api/ping`, { mode: 'cors' })
+                .then(r => (r && r.ok ? r.json() : null))
+                .catch(() => null);
+            const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 700));
+            const data = await Promise.race([fetchPromise, timeoutPromise]);
+            state.localBridgeOnline = Boolean(data && data.ok);
         } catch (_) {
             state.localBridgeOnline = false;
         }
@@ -807,10 +946,10 @@
         if (!badge) return;
         if (state.localBridgeOnline) {
             badge.className = 'ims-status-badge ims-online';
-            badge.innerHTML = '<i class="fa-solid fa-bolt"></i><span>Engine Python Trực Tiếp (Sinh vô hạn)</span>';
+            badge.innerHTML = '<i class="fa-solid fa-bolt"></i><span>Engine Python Local</span>';
         } else {
             badge.className = 'ims-status-badge';
-            badge.innerHTML = '<i class="fa-solid fa-cloud"></i><span>Kho Đổi Số Web Sẵn Sàng (2.423 dạng)</span>';
+            badge.innerHTML = '<i class="fa-solid fa-database"></i><span>2.423 mẫu chuẩn MapID</span>';
         }
     }
 
@@ -850,7 +989,7 @@
     async function ensureGradePoolLoaded(gradePrefix) {
         if (state.poolsLoaded[gradePrefix]) return state.poolsLoaded[gradePrefix];
         try {
-            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261111`);
+            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261111-v3`);
             if (res.ok) {
                 state.poolsLoaded[gradePrefix] = await res.json();
                 return state.poolsLoaded[gradePrefix];
@@ -994,20 +1133,20 @@
                         </div>
                         <div style="min-width:0;flex:1;">
                             <div class="ims-header-title-row">
-                                <h2 class="ims-header-title">Xưởng Tạo Câu Hỏi Đổi Số (Theo Dạng Chuẩn MapID)</h2>
-                                <span id="imathEngineStatusBadge" class="ims-status-badge">Đang kiểm tra...</span>
+                                <h2 class="ims-header-title">Tạo câu hỏi theo dạng (Đổi số chuẩn MapID)</h2>
+                                <span id="imathEngineStatusBadge" onclick="window.pingIMathLocalEngine()" class="ims-status-badge" title="Bấm để kiểm tra kết nối Python Local Engine">2.423 mẫu chuẩn MapID</span>
                             </div>
-                            <p class="ims-header-sub">2.423 dạng toán THCS (Toán 6, 7, 8, 9) • Chuẩn hóa \\dfrac, \\wideparen, \\choiceTF, \\shortans & vẽ hình trực tiếp bằng TikZJax</p>
+                            <p class="ims-header-sub">Lọc theo cấu trúc MapID (Khối • Phân môn • Chương • Bài • Dạng toán) & nạp thẳng vào Ngân hàng câu hỏi / Đề thi</p>
                         </div>
                     </div>
                     <div class="ims-header-actions">
-                        <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.pdf" target="_blank" class="ims-hdr-btn ims-hdr-btn-pdf" title="Mở bảng PDF thống kê toàn bộ 456 câu hỏi có hình vẽ TikZ kèm mã định danh [Lxx_Cx_Bx_xx]">
-                            <i class="fa-solid fa-file-pdf"></i>
-                            <span>Bảng PDF 456 Hình TikZ</span>
+                        <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.pdf" target="_blank" class="ims-hdr-btn ims-hdr-btn-pdf" title="Mở bảng PDF thống kê 456 câu hỏi có hình vẽ TikZ kèm mã định danh">
+                            <i class="fa-regular fa-file-pdf"></i>
+                            <span>Bảng PDF 456 Hình</span>
                         </a>
                         <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.tex" download="Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.tex" class="ims-hdr-btn ims-hdr-btn-tex" title="Tải file mã nguồn .tex của 456 câu có hình TikZ">
-                            <i class="fa-solid fa-file-code"></i>
-                            <span>Mã .tex 456 Hình</span>
+                            <i class="fa-solid fa-code"></i>
+                            <span>File .tex 456 Hình</span>
                         </a>
                         <button type="button" onclick="window.closeIMathStudioModal()" class="ims-close-btn" title="Đóng (ESC)">
                             <i class="fa-solid fa-xmark"></i>
@@ -1018,47 +1157,68 @@
                 <!-- Mobile Navigation Tabs (< 1024px) -->
                 <div class="ims-mobile-tabs">
                     <button type="button" onclick="window.setIMathMobileTab('filter')" id="imsMobileTab_filter" class="ims-mobile-tab-btn">
-                        <i class="fa-solid fa-filter"></i> Bộ lọc
+                        <i class="fa-solid fa-filter"></i> Bộ lọc MapID
                     </button>
                     <button type="button" onclick="window.setIMathMobileTab('topics')" id="imsMobileTab_topics" class="ims-mobile-tab-btn ims-tab-active">
-                        <i class="fa-solid fa-layer-group"></i> Dạng toán (<span id="imathMobileTopicCount">0</span>)
+                        <i class="fa-solid fa-layer-group"></i> Dạng câu (<span id="imathMobileTopicCount">0</span>)
                     </button>
                     <button type="button" onclick="window.setIMathMobileTab('workspace')" id="imsMobileTab_workspace" class="ims-mobile-tab-btn">
-                        <i class="fa-solid fa-eye"></i> Bàn làm việc (<span id="imathMobileWorkspaceCount">0</span>)
+                        <i class="fa-solid fa-list-check"></i> Đã sinh (<span id="imathMobileWorkspaceCount">0</span>)
                     </button>
                 </div>
 
                 <!-- Main 3-Column Body -->
                 <div class="ims-body" id="imathStudioBody" data-mobile-tab="topics">
-                    <!-- Cột 1: Bộ lọc Chuyên đề & MapID -->
+                    <!-- Cột 1: Bộ lọc Chuyên đề & Dạng của MapID -->
                     <div class="ims-col-filter">
                         <div class="ims-section-hdr">
-                            <span><i class="fa-solid fa-filter" style="color:#4f46e5;margin-right:5px;"></i> Bộ lọc chuyên đề & MapID</span>
+                            <span>Bộ lọc chuyên đề MapID</span>
                             <button type="button" onclick="window.resetIMathFilters()" class="ims-reset-link">Đặt lại</button>
                         </div>
 
                         <div>
-                            <label class="ims-label">Khối lớp (Sách KNTTVCS)</label>
-                            <div class="ims-grade-grid" id="imathGradeButtons">
-                                <button type="button" onclick="window.setIMathGrade('Toán 6')" data-grade="Toán 6" class="ims-grade-btn">Toán 6</button>
-                                <button type="button" onclick="window.setIMathGrade('Toán 7')" data-grade="Toán 7" class="ims-grade-btn">Toán 7</button>
-                                <button type="button" onclick="window.setIMathGrade('Toán 8')" data-grade="Toán 8" class="ims-grade-btn">Toán 8</button>
-                                <button type="button" onclick="window.setIMathGrade('Toán 9')" data-grade="Toán 9" class="ims-grade-btn ims-active">Toán 9</button>
+                            <label class="ims-label">1. Khối lớp</label>
+                            <div class="ims-seg-grid" id="imathGradeButtons">
+                                <button type="button" onclick="window.setIMathGrade('Toán 6')" data-grade="Toán 6" class="ims-seg-btn">Lớp 6</button>
+                                <button type="button" onclick="window.setIMathGrade('Toán 7')" data-grade="Toán 7" class="ims-seg-btn">Lớp 7</button>
+                                <button type="button" onclick="window.setIMathGrade('Toán 8')" data-grade="Toán 8" class="ims-seg-btn">Lớp 8</button>
+                                <button type="button" onclick="window.setIMathGrade('Toán 9')" data-grade="Toán 9" class="ims-seg-btn ims-active">Lớp 9</button>
                             </div>
                         </div>
 
                         <div>
-                            <label class="ims-label">Chương học</label>
+                            <label class="ims-label">2. Phân môn (MapID)</label>
+                            <div class="ims-seg-grid" id="imathSubjectButtons">
+                                <button type="button" onclick="window.setIMathSubject('all')" data-subject="all" class="ims-seg-btn ims-active">Tất cả</button>
+                                <button type="button" onclick="window.setIMathSubject('D')" data-subject="D" class="ims-seg-btn">Đại số</button>
+                                <button type="button" onclick="window.setIMathSubject('H')" data-subject="H" class="ims-seg-btn">Hình học</button>
+                                <button type="button" onclick="window.setIMathSubject('X')" data-subject="X" class="ims-seg-btn">XS - TK</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="ims-label">3. Chương học</label>
                             <select id="imathFilterChapter" onchange="window.onIMathFilterChange('chapter')" class="ims-select">
                                 <option value="all">Tất cả các chương</option>
                             </select>
                         </div>
 
                         <div>
-                            <label class="ims-label">Bài học</label>
+                            <label class="ims-label">4. Bài / Chủ đề</label>
                             <select id="imathFilterLesson" onchange="window.onIMathFilterChange('lesson')" class="ims-select">
                                 <option value="all">Tất cả các bài</option>
                             </select>
+                        </div>
+
+                        <!-- Danh sách Dạng của MapID (giống Khu luyện tập) -->
+                        <div class="ims-mapform-box">
+                            <div class="ims-mapform-hdr">
+                                <span>5. Dạng toán theo MapID</span>
+                                <span id="imathMapFormCountBadge" style="font-weight:600;font-size:10.5px;">0 dạng</span>
+                            </div>
+                            <div id="imathMapFormList" class="ims-mapform-list">
+                                <!-- Các dạng của MapID render tại đây -->
+                            </div>
                         </div>
 
                         <div class="ims-grid-2">
@@ -1076,49 +1236,35 @@
                                 <label class="ims-label">Mức độ</label>
                                 <select id="imathFilterLevel" onchange="window.onIMathFilterChange('level')" class="ims-select">
                                     <option value="all">Tất cả mức</option>
-                                    <option value="M1">Nhận biết (NB)</option>
-                                    <option value="M2">Thông hiểu (TH)</option>
-                                    <option value="M3">Vận dụng (VD)</option>
-                                    <option value="M4">Vận dụng cao (VDC)</option>
+                                    <option value="M1">Nhận biết</option>
+                                    <option value="M2">Thông hiểu</option>
+                                    <option value="M3">Vận dụng</option>
+                                    <option value="M4">Vận dụng cao</option>
                                 </select>
                             </div>
                         </div>
 
                         <div>
-                            <label class="ims-label">Tìm theo MapID / Mã câu / Tên dạng</label>
                             <div class="ims-search-wrap">
                                 <i class="fa-solid fa-magnifying-glass"></i>
-                                <input type="text" id="imathFilterKeyword" oninput="window.onIMathFilterChange('keyword')" placeholder="VD: 9H4V2-5, L09_C4_B2_57, HINH_..." class="ims-input">
+                                <input type="text" id="imathFilterKeyword" oninput="window.onIMathFilterChange('keyword')" placeholder="Tìm MapID, mã câu, từ khóa..." class="ims-input">
                             </div>
                         </div>
 
-                        <label class="ims-tikz-filter-box">
-                            <input type="checkbox" id="imathFilterOnlyTikz" onchange="window.onIMathFilterChange('tikz')" style="width:16px;height:16px;accent-color:#d97706;cursor:pointer;">
-                            <div>
-                                <div style="font-size:12px;font-weight:800;color:#92400e;">🎨 Chỉ hiện dạng có hình TikZ</div>
-                                <div style="font-size:10.5px;color:#b45309;">Hiển thị mã câu & nhóm hình để duyệt/thay TikZ</div>
-                            </div>
+                        <label class="ims-tikz-toggle">
+                            <input type="checkbox" id="imathFilterOnlyTikz" onchange="window.onIMathFilterChange('tikz')" style="width:14px;height:14px;accent-color:#4f46e5;cursor:pointer;">
+                            <span>Chỉ hiện câu có hình vẽ TikZ</span>
                         </label>
-
-                        <div class="ims-guide-box">
-                            <div style="font-weight:800;color:#4338ca;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i> Chu trình chuẩn hóa Ngân hàng:
-                            </div>
-                            <div>1. Chọn dạng bài ở cột giữa để <b>sinh câu hỏi đổi số</b>.</div>
-                            <div>2. Xem trước công thức & hình <b>TikZJax</b> bên phải, bấm <b>Đổi số</b> hoặc sửa <b>LaTeX/MapID</b>.</div>
-                            <div>3. Bấm <b>Nạp vào Ngân hàng (R2)</b> để cấp CCCD & dùng cho <i>Luyện tập, Tạo đề, Trò chơi</i>!</div>
-                        </div>
                     </div>
 
-                    <!-- Cột 2: Danh sách Dạng toán đổi số -->
+                    <!-- Cột 2: Danh sách mẫu câu đổi số (Đã làm gọn & đồng bộ) -->
                     <div class="ims-col-topics">
                         <div class="ims-col-subheader">
                             <div class="ims-col-subheader-title">
-                                <i class="fa-solid fa-layer-group" style="color:#4f46e5;"></i>
-                                <span>Danh sách dạng toán (<span id="imathTopicCount" style="color:#4f46e5;">0</span>)</span>
+                                <span>Danh sách mẫu câu (<span id="imathTopicCount">0</span>)</span>
                             </div>
-                            <button type="button" onclick="window.generateRandomFromFilteredTopics(5)" class="ims-btn-add3" title="Bốc ngẫu nhiên 5 dạng trong danh sách đang lọc và sinh mỗi dạng 1 câu">
-                                <i class="fa-solid fa-shuffle"></i> +5 câu ngẫu nhiên
+                            <button type="button" onclick="window.generateRandomFromFilteredTopics(5)" class="ims-btn-add3" title="Sinh ngẫu nhiên 5 câu từ danh sách đang lọc">
+                                <i class="fa-solid fa-shuffle"></i> +5 ngẫu nhiên
                             </button>
                         </div>
                         <div id="imathTopicList" class="ims-scroll-list">
@@ -1130,15 +1276,14 @@
                     <div class="ims-col-workspace">
                         <div class="ims-col-subheader">
                             <div class="ims-col-subheader-title">
-                                <i class="fa-solid fa-eye" style="color:#059669;"></i>
-                                <span>Câu hỏi đã sinh (<span id="imathWorkspaceCount" style="color:#059669;">0</span> câu)</span>
+                                <span>Câu hỏi đã sinh (<span id="imathWorkspaceCount">0</span>)</span>
                             </div>
                             <div style="display:flex;align-items:center;gap:6px;">
-                                <button type="button" onclick="window.rerollAllWorkspaceQuestions()" class="ims-btn-add3" style="background:#fffbeb!important;color:#92400e!important;border-color:#fde68a!important;" title="Đổi bộ số mới cho toàn bộ câu hỏi đang có ở cột này">
+                                <button type="button" onclick="window.rerollAllWorkspaceQuestions()" class="ims-btn-add3" title="Đổi bộ số mới cho toàn bộ câu hỏi đang có">
                                     <i class="fa-solid fa-arrows-rotate"></i> Đổi số tất cả
                                 </button>
-                                <button type="button" onclick="window.clearIMathWorkspace()" class="ims-btn-add3" style="background:#fff1f2!important;color:#be123c!important;border-color:#fecdd3!important;" title="Xóa danh sách">
-                                    <i class="fa-solid fa-trash-can"></i> Xóa hết
+                                <button type="button" onclick="window.clearIMathWorkspace()" class="ims-btn-add3" title="Xóa toàn bộ câu đang có">
+                                    <i class="fa-regular fa-trash-can"></i> Xóa hết
                                 </button>
                             </div>
                         </div>
@@ -1150,14 +1295,14 @@
                         <!-- Thanh công cụ xuất / nạp dưới cùng -->
                         <div class="ims-footer">
                             <button type="button" onclick="window.downloadIMathWorkspaceTex()" class="ims-btn ims-btn-sec">
-                                <i class="fa-solid fa-file-export" style="color:#059669;"></i> Xuất file .tex
+                                <i class="fa-solid fa-download"></i> Tải file .tex
                             </button>
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                <button type="button" onclick="window.pushIMathWorkspaceToBank()" class="ims-btn ims-btn-bank" title="Đưa toàn bộ câu hỏi đã chuẩn hóa vào Ngân hàng câu hỏi R2 để dùng cho Luyện tập, Tạo đề và Trò chơi">
-                                    <i class="fa-solid fa-cloud-arrow-up"></i> Nạp vào Ngân hàng (R2)
+                                <button type="button" onclick="window.pushIMathWorkspaceToBank()" class="ims-btn ims-btn-bank" title="Đưa toàn bộ câu hỏi vào Ngân hàng câu hỏi R2">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Nạp vào Ngân hàng
                                 </button>
                                 <button type="button" id="btnIMathInsertToExam" onclick="window.insertIMathWorkspaceToExam()" class="ims-btn ims-btn-exam">
-                                    <i class="fa-solid fa-plus-circle"></i> Chèn vào Đề thi
+                                    <i class="fa-solid fa-plus"></i> Chèn vào Đề thi
                                 </button>
                             </div>
                         </div>
@@ -1176,6 +1321,13 @@
         return modal;
     }
 
+    window.pingIMathLocalEngine = function () {
+        checkLocalBridge(true).then(online => {
+            if (online) notify('Đã kết nối Engine Python Local (http://127.0.0.1:8765)!', 'success');
+            else notify('Đang sử dụng Kho dữ liệu chuẩn MapID trên Web (2.423 mẫu).', 'info');
+        });
+    };
+
     window.setIMathMobileTab = function (tabName) {
         state.mobileTab = tabName;
         const body = document.getElementById('imathStudioBody');
@@ -1187,20 +1339,33 @@
     };
 
     // ------------------------------------------------------------------
-    // 3. LOGIC LỌC & HIỂN THỊ DANH SÁCH DẠNG TOÁN (CỘT 1 & CỘT 2)
+    // 3. LOGIC LỌC THEO DẠNG MAPID & HIỂN THỊ DANH SÁCH (CỘT 1 & CỘT 2)
     // ------------------------------------------------------------------
+    function matchesBaseScope(it) {
+        if (state.filters.grade !== 'all' && it.grade !== state.filters.grade) return false;
+        if (state.filters.subject !== 'all' && (it.subj_code || 'D') !== state.filters.subject) return false;
+        return true;
+    }
+
     function renderFilterControls() {
-        const gradeBtns = document.querySelectorAll('#imathGradeButtons .ims-grade-btn');
+        const gradeBtns = document.querySelectorAll('#imathGradeButtons .ims-seg-btn');
         gradeBtns.forEach(btn => {
             const g = btn.getAttribute('data-grade');
             btn.classList.toggle('ims-active', g === state.filters.grade);
         });
 
+        const subjBtns = document.querySelectorAll('#imathSubjectButtons .ims-seg-btn');
+        subjBtns.forEach(btn => {
+            const s = btn.getAttribute('data-subject');
+            btn.classList.toggle('ims-active', s === state.filters.subject);
+        });
+
+        // 3. Chương học
         const chapSelect = document.getElementById('imathFilterChapter');
         if (chapSelect) {
             const chapters = [];
             for (const it of state.catalog) {
-                if (state.filters.grade === 'all' || it.grade === state.filters.grade) {
+                if (matchesBaseScope(it)) {
                     if (!chapters.includes(it.chapter)) chapters.push(it.chapter);
                 }
             }
@@ -1210,12 +1375,12 @@
             state.filters.chapter = chapSelect.value;
         }
 
+        // 4. Bài học
         const lesSelect = document.getElementById('imathFilterLesson');
         if (lesSelect) {
             const lessons = [];
             for (const it of state.catalog) {
-                if ((state.filters.grade === 'all' || it.grade === state.filters.grade) &&
-                    (state.filters.chapter === 'all' || it.chapter === state.filters.chapter)) {
+                if (matchesBaseScope(it) && (state.filters.chapter === 'all' || it.chapter === state.filters.chapter)) {
                     if (!lessons.includes(it.lesson)) lessons.push(it.lesson);
                 }
             }
@@ -1224,20 +1389,71 @@
             lesSelect.value = lessons.includes(state.filters.lesson) ? state.filters.lesson : 'all';
             state.filters.lesson = lesSelect.value;
         }
+
+        // 5. Danh sách Dạng toán theo MapID
+        renderMapFormList();
+    }
+
+    function renderMapFormList() {
+        const listEl = document.getElementById('imathMapFormList');
+        const badgeEl = document.getElementById('imathMapFormCountBadge');
+        if (!listEl) return;
+
+        const formMap = new Map();
+        let totalInScope = 0;
+
+        for (const it of state.catalog) {
+            if (!matchesBaseScope(it)) continue;
+            if (state.filters.chapter !== 'all' && it.chapter !== state.filters.chapter) continue;
+            if (state.filters.lesson !== 'all' && it.lesson !== state.filters.lesson) continue;
+            totalInScope++;
+            const fname = (it.form_name || '').trim();
+            if (!fname) continue;
+            formMap.set(fname, (formMap.get(fname) || 0) + 1);
+        }
+
+        const forms = Array.from(formMap.entries());
+        if (badgeEl) badgeEl.textContent = `${forms.length} dạng`;
+
+        if (!forms.some(([fname]) => fname === state.filters.mapForm)) {
+            state.filters.mapForm = 'all';
+        }
+
+        let html = `
+            <button type="button" onclick="window.setIMathMapForm('all')" class="ims-mapform-item ${state.filters.mapForm === 'all' ? 'ims-active' : ''}">
+                <span>Tất cả các dạng trong mục đang chọn</span>
+                <span class="ims-mapform-count">${totalInScope}</span>
+            </button>
+        `;
+
+        html += forms.map(([fname, cnt]) => {
+            const isActive = state.filters.mapForm === fname;
+            return `
+                <button type="button" data-mapform="${escapeHtml(fname)}" onclick="window.setIMathMapForm(this.getAttribute('data-mapform'))" class="ims-mapform-item ${isActive ? 'ims-active' : ''}">
+                    <span style="flex:1;min-width:0;">${escapeHtml(fname)}</span>
+                    <span class="ims-mapform-count">${cnt}</span>
+                </button>
+            `;
+        }).join('');
+
+        listEl.innerHTML = html;
     }
 
     function getFilteredTopics() {
         const kw = (state.filters.keyword || '').trim().toLowerCase();
         return state.catalog.filter(it => {
             const isDirectCodeSearch = kw && (kw.startsWith('l0') || kw.startsWith('hinh_') || /^[6-9][dhx][0-9]/i.test(kw));
-            if (!isDirectCodeSearch && state.filters.grade !== 'all' && it.grade !== state.filters.grade) return false;
-            if (!isDirectCodeSearch && state.filters.chapter !== 'all' && it.chapter !== state.filters.chapter) return false;
-            if (!isDirectCodeSearch && state.filters.lesson !== 'all' && it.lesson !== state.filters.lesson) return false;
+            if (!isDirectCodeSearch) {
+                if (!matchesBaseScope(it)) return false;
+                if (state.filters.chapter !== 'all' && it.chapter !== state.filters.chapter) return false;
+                if (state.filters.lesson !== 'all' && it.lesson !== state.filters.lesson) return false;
+                if (state.filters.mapForm !== 'all' && it.form_name !== state.filters.mapForm) return false;
+            }
             if (state.filters.category !== 'all' && it.category !== state.filters.category) return false;
             if (state.filters.level !== 'all' && it.level !== state.filters.level) return false;
             if (state.filters.onlyTikz && !it.has_tikz) return false;
             if (kw) {
-                const hay = `${it.tag} ${it.map_id} ${it.tikz_group_id || ''} ${it.title} ${it.lesson}`.toLowerCase();
+                const hay = `${it.tag} ${it.map_id} ${it.tikz_group_id || ''} ${it.title} ${it.lesson} ${it.form_name || ''}`.toLowerCase();
                 if (!hay.includes(kw)) return false;
             }
             return true;
@@ -1257,8 +1473,8 @@
         if (filtered.length === 0) {
             listEl.innerHTML = `
                 <div style="text-align:center;padding:48px 16px;color:#94a3b8;font-size:12.5px;">
-                    <i class="fa-solid fa-magnifying-glass" style="font-size:28px;margin-bottom:8px;opacity:0.4;display:block;"></i>
-                    <div>Không tìm thấy dạng toán nào khớp bộ lọc.</div>
+                    <i class="fa-solid fa-magnifying-glass" style="font-size:24px;margin-bottom:8px;opacity:0.4;display:block;"></i>
+                    <div>Không tìm thấy mẫu câu hỏi nào khớp bộ lọc.</div>
                 </div>
             `;
             return;
@@ -1266,29 +1482,26 @@
 
         const shown = filtered.slice(0, 150);
         listEl.innerHTML = shown.map(it => {
-            const tikzBadge = it.has_tikz
-                ? `<span class="ims-badge-tikz ${it.is_tikz_overridden ? 'ims-tikz-override' : ''}" title="Mã nhóm hình TikZ: ${escapeHtml(it.tikz_group_id || it.tag)}">
-                        <i class="fa-solid fa-draw-polygon"></i> ${escapeHtml(it.tikz_group_id || 'TikZ')}${it.is_tikz_overridden ? ' ✨' : ''}
-                   </span>`
+            const catShort = shortCategoryName(it.category);
+            const tikzMeta = it.has_tikz
+                ? `<span class="ims-meta-dot">•</span><span class="ims-meta-code" title="Nhóm hình TikZ"><i class="fa-solid fa-draw-polygon" style="font-size:9.5px;margin-right:2px;"></i>${escapeHtml(it.tikz_group_id || 'TikZ')}</span>`
                 : '';
 
             return `
                 <div class="ims-topic-card">
-                    <div class="ims-topic-top">
-                        <div class="ims-badge-row">
-                            <span class="ims-badge-tag" title="Mã định danh câu hỏi trong iMath">${escapeHtml(it.tag)}</span>
-                            <span class="ims-badge-mapid" title="Mã MapID chuẩn QMath">MapID: ${escapeHtml(it.map_id)}</span>
-                            ${tikzBadge}
+                    <div class="ims-topic-main">
+                        <div class="ims-topic-title">${escapeHtml(it.title)}</div>
+                        <div class="ims-topic-meta">
+                            <span class="ims-meta-mapid" title="Mã MapID">${escapeHtml(it.map_id)}</span>
+                            <span>${escapeHtml(catShort)} • ${escapeHtml(it.level_vi)}</span>
+                            <span class="ims-meta-dot">•</span>
+                            <span class="ims-meta-code" title="${escapeHtml(it.lesson)}">${escapeHtml(it.tag)}</span>
+                            ${tikzMeta}
                         </div>
-                        <span class="ims-badge-lvl ims-lvl-${escapeHtml(it.level || 'M1')}">${escapeHtml(it.category)} • ${escapeHtml(it.level_vi)}</span>
                     </div>
-                    <div class="ims-topic-title">${escapeHtml(it.title)}</div>
-                    <div class="ims-topic-foot">
-                        <span class="ims-topic-lesson" title="${escapeHtml(it.lesson)}">${escapeHtml(it.lesson)}</span>
-                        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
-                            <button type="button" onclick="window.addIMathQuestion('${escapeHtml(it.tag)}', 1)" class="ims-btn-add1">+1 câu</button>
-                            <button type="button" onclick="window.addIMathQuestion('${escapeHtml(it.tag)}', 3)" class="ims-btn-add3" title="Sinh 3 câu biến thể đổi số của dạng này">+3</button>
-                        </div>
+                    <div class="ims-topic-actions">
+                        <button type="button" onclick="window.addIMathQuestion('${escapeHtml(it.tag)}', 1)" class="ims-btn-add1">+1</button>
+                        <button type="button" onclick="window.addIMathQuestion('${escapeHtml(it.tag)}', 3)" class="ims-btn-add3" title="Sinh 3 câu đổi số">+3</button>
                     </div>
                 </div>
             `;
@@ -1312,9 +1525,9 @@
                 const solContent = s.slice(openBrace + 1).replace(/\}\s*$/, '').trim();
                 s = s.slice(0, lgIdx).trim();
                 solutionHtml = `
-                    <details style="margin-top:10px;padding-top:8px;border-top:1px dashed #cbd5e1;font-size:12.5px;">
-                        <summary style="font-weight:700;color:#059669;cursor:pointer;user-select:none;">💡 Xem lời giải chi tiết</summary>
-                        <div style="margin-top:6px;padding-left:10px;border-left:3px solid #10b981;white-space:pre-line;">${solContent}</div>
+                    <details style="margin-top:10px;padding-top:8px;border-top:1px dashed rgba(148,163,184,0.3);font-size:12.5px;">
+                        <summary style="font-weight:600;color:#64748b;cursor:pointer;user-select:none;">Xem lời giải chi tiết</summary>
+                        <div style="margin-top:6px;padding-left:10px;border-left:2px solid #6366f1;white-space:pre-line;">${solContent}</div>
                     </details>
                 `;
             }
@@ -1327,7 +1540,7 @@
             const rawTikz = mTikz[1].trim();
             s = s.replace(mTikz[0], '');
             tikzScriptHtml = `
-                <div class="tikz-container" style="margin:10px 0;display:flex;justify-content:center;background:#ffffff;border-radius:12px;padding:10px;border:1px solid #e2e8f0;overflow-x:auto;">
+                <div class="tikz-container" style="margin:10px 0;display:flex;justify-content:center;background:#ffffff;border-radius:10px;padding:10px;border:1px solid #e2e8f0;overflow-x:auto;">
                     <script type="text/tikz">${rawTikz}<\/script>
                 </div>
             `;
@@ -1336,7 +1549,7 @@
         s = s.replace(/^\\immini(?:\[[^\]]*\])?\{([\s\S]*?)\}\s*\{\s*\}/, '$1');
 
         s = s.replace(/\\shortans(?:\[[^\]]*\])?\{([^{}]*)\}/g, (_, ans) => {
-            return `<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;font-size:12px;font-weight:700;"><i class="fa-solid fa-key"></i> Đáp án điền số: <span style="font-family:monospace;">${escapeHtml(ans || '(Trống)')}</span></div>`;
+            return `<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-size:12px;font-weight:600;">Đáp án: <span style="font-family:monospace;">${escapeHtml(ans || '(Trống)')}</span></div>`;
         });
 
         for (const [cmd, labels] of [['\\choiceTF', ['a)', 'b)', 'c)', 'd)']], ['\\choice', ['A.', 'B.', 'C.', 'D.']]]) {
@@ -1372,9 +1585,9 @@
                     const isTrue = opt.includes('\\True');
                     const cleanOpt = opt.replace(/\\True\s*/g, '').trim();
                     return `<div class="ims-choice-item ${isTrue ? 'ims-choice-true' : ''}">
-                        <span style="font-weight:800;${isTrue ? 'color:#047857;' : 'color:#64748b;'}">${labels[idx]}</span>
+                        <span style="font-weight:700;opacity:0.75;">${labels[idx]}</span>
                         <div style="flex:1;">${cleanOpt}</div>
-                        ${isTrue ? '<i class="fa-solid fa-circle-check" style="color:#059669;font-size:13px;margin-top:2px;" title="Đáp án đúng"></i>' : ''}
+                        ${isTrue ? '<i class="fa-solid fa-check" style="color:#10b981;font-size:12px;margin-top:3px;" title="Đáp án đúng"></i>' : ''}
                     </div>`;
                 }).join('');
                 s = `<div style="white-space:pre-line;">${stem}</div><div class="${gridClass}">${optsHtml}</div>`;
@@ -1397,11 +1610,11 @@
         if (state.workspaceQuestions.length === 0) {
             listEl.innerHTML = `
                 <div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 20px;color:#94a3b8;font-size:12.5px;">
-                    <div style="width:56px;height:56px;border-radius:16px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:12px;color:#64748b;">
-                        <i class="fa-solid fa-dice-d20"></i>
+                    <div style="width:48px;height:48px;border-radius:12px;background:rgba(148,163,184,0.12);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:10px;color:#64748b;">
+                        <i class="fa-solid fa-layer-group"></i>
                     </div>
-                    <div style="font-weight:800;color:#475569;font-size:14px;margin-bottom:4px;">Chưa có câu hỏi nào trong bàn làm việc</div>
-                    <div style="max-width:300px;line-height:1.5;">Hãy bấm <b>+1 câu</b> hoặc <b>+3</b> ở danh sách dạng toán bên trái để sinh câu hỏi đổi số mới.</div>
+                    <div style="font-weight:600;color:#64748b;font-size:13.5px;margin-bottom:4px;">Chưa có câu hỏi nào được sinh</div>
+                    <div style="max-width:280px;line-height:1.5;opacity:0.85;">Chọn dạng toán theo MapID ở cột trái rồi bấm <b>+1</b> hoặc <b>+3</b> để tạo câu hỏi đổi số.</div>
                 </div>
             `;
             return;
@@ -1410,24 +1623,24 @@
         listEl.innerHTML = state.workspaceQuestions.map((q, idx) => `
             <div class="ims-q-card">
                 <div class="ims-q-card-hdr">
-                    <div class="ims-badge-row">
-                        <span style="padding:2px 8px;border-radius:6px;background:#4f46e5;color:#fff;font-weight:800;font-size:11px;">Câu ${idx + 1}</span>
-                        <span class="ims-badge-tag" title="Mã câu để tra cứu/thay hình TikZ">[${escapeHtml(q.tag)}]</span>
-                        ${q.tikz_group_id ? `<span class="ims-badge-tikz">🎨 ${escapeHtml(q.tikz_group_id)}</span>` : ''}
-                        <div style="display:inline-flex;align-items:center;gap:4px;background:#ffffff;padding:2px 8px;border-radius:6px;border:1px solid #cbd5e1;">
-                            <span style="font-size:10.5px;font-weight:700;color:#64748b;">MapID:</span>
-                            <input type="text" value="${escapeHtml(q.map_id)}" onchange="window.updateIMathQuestionMapId(${idx}, this.value)" style="width:76px;font-size:11px;font-family:monospace;font-weight:800;color:#4338ca;background:transparent;border:none;outline:none;" title="Chỉnh sửa mã MapID của câu hỏi này">
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <span style="padding:2px 8px;border-radius:5px;background:#4f46e5;color:#fff;font-weight:700;font-size:11px;">Câu ${idx + 1}</span>
+                        <span class="ims-meta-mapid" title="Mã câu iMath">${escapeHtml(q.tag)}</span>
+                        ${q.tikz_group_id ? `<span class="ims-meta-mapid" title="Mã hình TikZ">${escapeHtml(q.tikz_group_id)}</span>` : ''}
+                        <div style="display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:5px;border:1px solid rgba(148,163,184,0.35);">
+                            <span style="font-size:10.5px;color:#64748b;">MapID:</span>
+                            <input type="text" value="${escapeHtml(q.map_id)}" onchange="window.updateIMathQuestionMapId(${idx}, this.value)" style="width:74px;font-size:11px;font-family:monospace;font-weight:700;color:inherit;background:transparent;border:none;outline:none;" title="Chỉnh sửa mã MapID">
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:5px;">
-                        <button type="button" onclick="window.rerollSingleWorkspaceQuestion(${idx})" class="ims-btn-add3" style="background:#fffbeb!important;color:#92400e!important;border-color:#fcd34d!important;" title="Sinh bộ số ngẫu nhiên khác cho câu hỏi này">
-                            <i class="fa-solid fa-dice"></i> Đổi số
+                        <button type="button" onclick="window.rerollSingleWorkspaceQuestion(${idx})" class="ims-btn-add3" title="Sinh bộ số khác cho câu này">
+                            <i class="fa-solid fa-arrows-rotate"></i> Đổi số
                         </button>
-                        <button type="button" onclick="window.toggleIMathQuestionCode(${idx})" class="ims-btn-add3" style="background:#f1f5f9!important;color:#334155!important;border-color:#cbd5e1!important;" title="Xem / Sửa trực tiếp mã LaTeX & TikZ">
+                        <button type="button" onclick="window.toggleIMathQuestionCode(${idx})" class="ims-btn-add3" title="Xem / Sửa mã LaTeX">
                             <i class="fa-solid fa-code"></i> LaTeX
                         </button>
-                        <button type="button" onclick="window.removeIMathWorkspaceQuestion(${idx})" class="ims-btn-add3" style="background:#fff1f2!important;color:#be123c!important;border-color:#fecdd3!important;" title="Xóa câu này">
-                            <i class="fa-solid fa-trash-can"></i>
+                        <button type="button" onclick="window.removeIMathWorkspaceQuestion(${idx})" class="ims-btn-add3" title="Xóa câu này">
+                            <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
                 </div>
@@ -1438,10 +1651,10 @@
 
                 <div id="imathCodeDrawer_${idx}" style="display:${q.showCode ? 'block' : 'none'};padding:12px;background:#0f172a;color:#f8fafc;border-top:1px solid #1e293b;">
                     <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;margin-bottom:6px;">
-                        <span style="font-weight:700;color:#34d399;"><i class="fa-solid fa-terminal"></i> Mã nguồn LaTeX chuẩn ex_test (${escapeHtml(q.tag)}):</span>
-                        <span style="color:#94a3b8;">Chỉnh sửa sẽ tự động cập nhật khung xem trước</span>
+                        <span style="font-weight:600;color:#94a3b8;">Mã LaTeX ex_test (${escapeHtml(q.tag)}):</span>
+                        <span style="color:#64748b;">Tự động cập nhật khi sửa</span>
                     </div>
-                    <textarea rows="7" onchange="window.updateIMathQuestionLatex(${idx}, this.value)" style="width:100%;padding:10px;border-radius:8px;background:#020617;color:#6ee7b7;font-family:monospace;font-size:12px;border:1px solid #334155;outline:none;box-sizing:border-box;">${escapeHtml(q.latex_mc)}</textarea>
+                    <textarea rows="7" onchange="window.updateIMathQuestionLatex(${idx}, this.value)" style="width:100%;padding:10px;border-radius:8px;background:#020617;color:#e2e8f0;font-family:monospace;font-size:12px;border:1px solid #334155;outline:none;box-sizing:border-box;">${escapeHtml(q.latex_mc)}</textarea>
                 </div>
             </div>
         `).join('');
@@ -1475,7 +1688,7 @@
                 btnInsertExam.style.display = isExamEditorPage ? 'inline-flex' : 'none';
             }
 
-            checkLocalBridge().catch(() => {});
+            checkLocalBridge(false).catch(() => {});
             await ensureCatalogLoaded();
 
             if (initialMapIdOrTag) {
@@ -1503,7 +1716,23 @@
         state.filters.grade = grade;
         state.filters.chapter = 'all';
         state.filters.lesson = 'all';
+        state.filters.mapForm = 'all';
         renderFilterControls();
+        renderTopicList();
+    };
+
+    window.setIMathSubject = function (subj) {
+        state.filters.subject = subj;
+        state.filters.chapter = 'all';
+        state.filters.lesson = 'all';
+        state.filters.mapForm = 'all';
+        renderFilterControls();
+        renderTopicList();
+    };
+
+    window.setIMathMapForm = function (formName) {
+        state.filters.mapForm = formName || 'all';
+        renderMapFormList();
         renderTopicList();
     };
 
@@ -1511,9 +1740,12 @@
         if (field === 'chapter') {
             state.filters.chapter = document.getElementById('imathFilterChapter')?.value || 'all';
             state.filters.lesson = 'all';
+            state.filters.mapForm = 'all';
             renderFilterControls();
         } else if (field === 'lesson') {
             state.filters.lesson = document.getElementById('imathFilterLesson')?.value || 'all';
+            state.filters.mapForm = 'all';
+            renderMapFormList();
         } else if (field === 'category') {
             state.filters.category = document.getElementById('imathFilterCategory')?.value || 'all';
         } else if (field === 'level') {
@@ -1529,8 +1761,10 @@
     window.resetIMathFilters = function () {
         state.filters = {
             grade: 'Toán 9',
+            subject: 'all',
             chapter: 'all',
             lesson: 'all',
+            mapForm: 'all',
             category: 'all',
             level: 'all',
             onlyTikz: false,
@@ -1566,7 +1800,7 @@
             if (window.innerWidth <= 1024) {
                 window.setIMathMobileTab('workspace');
             }
-            notify(`Đã sinh ${items.length} câu hỏi đổi số cho mã [${tag}]!`, 'success');
+            notify(`Đã sinh ${items.length} câu hỏi đổi số ([${tag}])`, 'success');
         } catch (err) {
             console.warn('[iMathStudio] addIMathQuestion error:', err);
         }
@@ -1616,7 +1850,7 @@
                     showCode: cur.showCode
                 };
                 renderWorkspace();
-                notify(`Đã đổi bộ số mới cho Câu ${idx + 1} ([${cur.tag}])!`, 'success');
+                notify(`Đã đổi bộ số mới cho Câu ${idx + 1}`, 'success');
             }
         } catch (err) {
             console.warn('[iMathStudio] rerollSingle error:', err);
@@ -1641,7 +1875,7 @@
                 }
             }
             renderWorkspace();
-            notify(`Đã đổi bộ số mới cho toàn bộ ${state.workspaceQuestions.length} câu hỏi!`, 'success');
+            notify(`Đã đổi bộ số mới cho ${state.workspaceQuestions.length} câu hỏi!`, 'success');
         } catch (err) {
             console.warn('[iMathStudio] rerollAll error:', err);
         }
@@ -1732,7 +1966,7 @@
             if (typeof window.parseBankTexQuestions === 'function') {
                 window.parseBankTexQuestions();
             }
-            notify(`Đã chuyển ${state.workspaceQuestions.length} câu hỏi đổi số sang Hàng đợi Nạp Ngân hàng (tự động cấp CCCD & MapID)!`, 'success');
+            notify(`Đã chuyển ${state.workspaceQuestions.length} câu hỏi đổi số sang Hàng đợi Nạp Ngân hàng!`, 'success');
             return;
         }
 
@@ -1742,7 +1976,7 @@
             if (typeof window.saveCurrentQuestionsToBank === 'function') {
                 setTimeout(() => window.saveCurrentQuestionsToBank(), 300);
             } else {
-                notify(`Đã chèn ${state.workspaceQuestions.length} câu vào đề thi. Bấm "Lưu Bank" trên thanh công cụ để đồng bộ lên R2!`, 'success');
+                notify(`Đã chèn ${state.workspaceQuestions.length} câu vào đề thi. Bấm "Lưu Bank" để đồng bộ lên R2!`, 'success');
             }
         }
     };
@@ -1767,8 +2001,7 @@
             btn.id = 'btnOpenIMathStudioBank';
             btn.onclick = () => window.openIMathStudioModal('bank');
             btn.className = 'btn-season-primary h-9 md:h-10 px-3 md:px-3.5 rounded-xl text-white font-bold text-xs flex items-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer shadow-2xs';
-            btn.style.background = 'linear-gradient(135deg, #4f46e5, #0d9488)';
-            btn.title = 'Mở Xưởng Tạo Câu Hỏi Theo Dạng (Đổi số thông minh chuẩn MapID) để nạp vào Ngân hàng';
+            btn.title = 'Mở Xưởng Tạo Câu Hỏi Theo Dạng (Đổi số chuẩn MapID)';
             btn.innerHTML = '<i class="fa-solid fa-dice text-sm"></i> <span>Tạo câu đổi số (iMath)</span>';
             bankDropdownContainer.parentNode.insertBefore(btn, bankDropdownContainer.nextSibling);
         }
