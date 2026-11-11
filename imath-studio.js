@@ -1511,47 +1511,144 @@
     // ------------------------------------------------------------------
     // 4. HIỂN THỊ PREVIEW TRỰC TIẾP (MATHJAX + TIKZJAX) Ở CỘT 3
     // ------------------------------------------------------------------
+    function cleanLineBreaksOutsideMath(str) {
+        if (!str) return '';
+        // Bảo vệ các khối công thức toán học $...$ và $$...$$
+        const mathBlocks = [];
+        const protectedStr = str.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (m) => {
+            const token = `___MATH_BLOCK_${mathBlocks.length}___`;
+            mathBlocks.push(m);
+            return token;
+        });
+        // Dọn dẹp dấu xuống dòng \\ ở cuối dòng (tránh lộ dấu gạch chéo ngược trên web)
+        let cleaned = protectedStr
+            .replace(/\\\\+\s*(\n|$)/g, '$1')
+            .replace(/\\\\+/g, '<br>');
+        // Khôi phục công thức toán
+        for (let i = 0; i < mathBlocks.length; i++) {
+            cleaned = cleaned.replace(`___MATH_BLOCK_${i}___`, mathBlocks[i]);
+        }
+        return cleaned;
+    }
+
+    function renderTikzContainersInHtml(htmlText) {
+        if (!htmlText) return '';
+        let res = htmlText;
+        // 1. Gỡ wrapper \begin{center} quanh TikZ trước để tránh bị bọc 2 lần
+        res = res.replace(/\\begin\{center\}\s*((?:\\definecolor[^\n]+\n\s*)*\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})\s*\\end\{center\s*\}/g, '$1');
+        // 2. Bọc khối TikZ duy nhất 1 lần vào thẻ <script type="text/tikz">
+        res = res.replace(/((?:\\definecolor[^\n]+\n\s*)*\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/g, (tikz) => {
+            return `<div class="tikz-container" style="margin:10px 0;display:flex;justify-content:center;background:#ffffff;border-radius:10px;padding:10px;border:1px solid #e2e8f0;overflow-x:auto;"><script type="text/tikz">${tikz.trim()}<\/script></div>`;
+        });
+        // 3. Gỡ các thẻ \begin{center} và \end{center} rỗng hoặc bao quanh nội dung khác
+        res = res.replace(/\\begin\{center\}\s*(\\\\)?/g, '<div style="text-align:center;">').replace(/\\end\{center\s*\}/g, '</div>');
+        return res;
+    }
+
+    function unwrapImminiJs(str) {
+        if (!str || !str.includes('\\immini')) return str;
+        let s = str;
+        let guard = 0;
+        while (s.includes('\\immini') && guard < 10) {
+            guard++;
+            const m = s.match(/\\immini(?:\[[^\]]*\])?\s*\{/);
+            if (!m) break;
+            const open1 = m.index + m[0].length - 1;
+            let depth = 0;
+            let close1 = -1;
+            for (let i = open1; i < s.length; i++) {
+                if (s[i] === '{' && (i === 0 || s[i - 1] !== '\\')) depth++;
+                else if (s[i] === '}' && (i === 0 || s[i - 1] !== '\\')) {
+                    depth--;
+                    if (depth === 0) {
+                        close1 = i;
+                        break;
+                    }
+                }
+            }
+            if (close1 === -1) break;
+            const open2 = s.indexOf('{', close1);
+            if (open2 === -1) break;
+            let close2 = -1;
+            depth = 0;
+            for (let i = open2; i < s.length; i++) {
+                if (s[i] === '{' && (i === 0 || s[i - 1] !== '\\')) depth++;
+                else if (s[i] === '}' && (i === 0 || s[i - 1] !== '\\')) {
+                    depth--;
+                    if (depth === 0) {
+                        close2 = i;
+                        break;
+                    }
+                }
+            }
+            if (close2 === -1) break;
+            const stemPart = s.slice(open1 + 1, close1).trim();
+            const tikzPart = s.slice(open2 + 1, close2).trim();
+            s = s.slice(0, m.index) + stemPart + '\n' + tikzPart + '\n' + s.slice(close2 + 1);
+        }
+        return s;
+    }
+
     function formatLatexPreviewHtml(latexBlock) {
         if (!latexBlock) return '';
         let s = String(latexBlock)
             .replace(/^\\begin\{ex\}(?:\s*%\[[^\]]*\])?\s*/i, '')
             .replace(/\\end\{ex\}\s*$/i, '');
 
+        // 1. Bóc tách và xử lý khối Lời giải chi tiết \loigiai{...}
         let solutionHtml = '';
         const lgIdx = s.indexOf('\\loigiai');
         if (lgIdx !== -1) {
             const openBrace = s.indexOf('{', lgIdx);
             if (openBrace !== -1) {
-                const solContent = s.slice(openBrace + 1).replace(/\}\s*$/, '').trim();
+                let depth = 0;
+                let closeBrace = -1;
+                for (let i = openBrace; i < s.length; i++) {
+                    if (s[i] === '{' && (i === 0 || s[i - 1] !== '\\')) depth++;
+                    else if (s[i] === '}' && (i === 0 || s[i - 1] !== '\\')) {
+                        depth--;
+                        if (depth === 0) {
+                            closeBrace = i;
+                            break;
+                        }
+                    }
+                }
+                let solContent = closeBrace !== -1 ? s.slice(openBrace + 1, closeBrace) : s.slice(openBrace + 1);
+                // Bổ sung các nội dung (hình vẽ TikZ, bảng biểu) bị đặt sau \loigiai nếu có
+                if (closeBrace !== -1) {
+                    const extra = s.slice(closeBrace + 1).trim();
+                    if (extra) {
+                        solContent += '\n' + extra.replace(/^\\\\+\s*/, '').replace(/\}\s*$/, '');
+                    }
+                }
                 s = s.slice(0, lgIdx).trim();
+
+                // Dọn dẹp hình TikZ và ký hiệu xuống dòng trong lời giải
+                let cleanSol = renderTikzContainersInHtml(solContent);
+                cleanSol = cleanLineBreaksOutsideMath(cleanSol);
+
                 solutionHtml = `
                     <details style="margin-top:10px;padding-top:8px;border-top:1px dashed rgba(148,163,184,0.3);font-size:12.5px;">
                         <summary style="font-weight:600;color:#64748b;cursor:pointer;user-select:none;">Xem lời giải chi tiết</summary>
-                        <div style="margin-top:6px;padding-left:10px;border-left:2px solid #6366f1;white-space:pre-line;">${solContent}</div>
+                        <div style="margin-top:6px;padding-left:10px;border-left:2px solid #6366f1;white-space:pre-line;">${cleanSol}</div>
                     </details>
                 `;
             }
         }
 
-        let tikzScriptHtml = '';
-        const tikzRegex = /((?:\\definecolor[^\n]+\n\s*)*\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/;
-        const mTikz = s.match(tikzRegex);
-        if (mTikz) {
-            const rawTikz = mTikz[1].trim();
-            s = s.replace(mTikz[0], '');
-            tikzScriptHtml = `
-                <div class="tikz-container" style="margin:10px 0;display:flex;justify-content:center;background:#ffffff;border-radius:10px;padding:10px;border:1px solid #e2e8f0;overflow-x:auto;">
-                    <script type="text/tikz">${rawTikz}<\/script>
-                </div>
-            `;
-        }
+        // 2. Mở gói \immini[thm]{stem}{tikz} ở phần đề bài nếu có
+        s = unwrapImminiJs(s);
 
-        s = s.replace(/^\\immini(?:\[[^\]]*\])?\{([\s\S]*?)\}\s*\{\s*\}/, '$1');
+        // 3. Render các hình vẽ TikZ còn lại ở phần đề bài
+        s = renderTikzContainersInHtml(s);
 
+        // 4. Chuẩn hóa hiển thị \shortans
         s = s.replace(/\\shortans(?:\[[^\]]*\])?\{([^{}]*)\}/g, (_, ans) => {
             return `<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-size:12px;font-weight:600;">Đáp án: <span style="font-family:monospace;">${escapeHtml(ans || '(Trống)')}</span></div>`;
         });
 
+        // 5. Chuẩn hóa hiển thị lựa chọn \choice hoặc \choiceTF
+        let hasChoices = false;
         for (const [cmd, labels] of [['\\choiceTF', ['a)', 'b)', 'c)', 'd)']], ['\\choice', ['A.', 'B.', 'C.', 'D.']]]) {
             const pos = s.indexOf(cmd);
             if (pos === -1) continue;
@@ -1580,22 +1677,29 @@
                 cursor = closeIdx + 1;
             }
             if (opts.length === 4) {
+                hasChoices = true;
                 const gridClass = cmd === '\\choice' ? 'ims-choices-grid' : 'ims-choices-tf';
                 const optsHtml = opts.map((opt, idx) => {
                     const isTrue = opt.includes('\\True');
-                    const cleanOpt = opt.replace(/\\True\s*/g, '').trim();
+                    const cleanOpt = cleanLineBreaksOutsideMath(opt.replace(/\\True\s*/g, '').trim());
                     return `<div class="ims-choice-item ${isTrue ? 'ims-choice-true' : ''}">
                         <span style="font-weight:700;opacity:0.75;">${labels[idx]}</span>
                         <div style="flex:1;">${cleanOpt}</div>
                         ${isTrue ? '<i class="fa-solid fa-check" style="color:#10b981;font-size:12px;margin-top:3px;" title="Đáp án đúng"></i>' : ''}
                     </div>`;
                 }).join('');
-                s = `<div style="white-space:pre-line;">${stem}</div><div class="${gridClass}">${optsHtml}</div>`;
+                const cleanStem = cleanLineBreaksOutsideMath(stem);
+                s = `<div style="white-space:pre-line;">${cleanStem}</div><div class="${gridClass}">${optsHtml}</div>`;
                 break;
             }
         }
 
-        return `<div>${s}${tikzScriptHtml}${solutionHtml}</div>`;
+        if (!hasChoices) {
+            s = cleanLineBreaksOutsideMath(s);
+            s = `<div style="white-space:pre-line;">${s}</div>`;
+        }
+
+        return `<div>${s}${solutionHtml}</div>`;
     }
 
     function renderWorkspace() {

@@ -14,7 +14,7 @@
  * (network-first) nhÆ°ng nÃªn tÄƒng khi Ä‘á»•i styles.css/utils.js Ä‘á»ƒ cháº¯c cháº¯n.
  */
 
-const VERSION = 'qmath-v154-imath-clean-mapid';
+const VERSION = 'qmath-v155-imath-clean-tikz-breaks';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const CDN_CACHE = `${VERSION}-cdn`;
