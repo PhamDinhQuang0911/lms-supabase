@@ -1271,7 +1271,7 @@ if (ov) ov.classList.add('hidden');
                                             <i class="fa-regular fa-square-check"></i> Tích ô vuông cạnh câu để luôn cho điểm (phòng khi đề sai/lỗi)
                                         </span>
                                     </h3>
-                                    <span class="text-slate-400 text-xs font-normal">Mỗi câu 0.25đ</span>
+                                    <span id="keysTabP1PointInfo" class="text-slate-400 text-xs font-normal">Mỗi câu 0.25đ</span>
                                 </div>
                                 <div id="part1KeyGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 text-xs"></div>
                             </div>
@@ -1280,7 +1280,7 @@ if (ov) ov.classList.add('hidden');
                             <div class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                                 <h3 class="text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center justify-between flex-wrap gap-1">
                                     <span>Phần II: Câu hỏi Đúng / Sai (a, b, c, d)</span>
-                                    <span class="text-slate-500 dark:text-slate-400 font-semibold">Barem lũy tiến BGD: 1 ý = 0.1đ · 2 ý = 0.25đ · 3 ý = 0.5đ · 4 ý = 1.0đ</span>
+                                    <span id="keysTabP2PointInfo" class="text-slate-500 dark:text-slate-400 font-semibold">Barem lũy tiến BGD: 1 ý = 0.1đ · 2 ý = 0.25đ · 3 ý = 0.5đ · 4 ý = 1.0đ</span>
                                 </h3>
                                 <div id="part2KeyGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs"></div>
                             </div>
@@ -1289,7 +1289,7 @@ if (ov) ov.classList.add('hidden');
                             <div class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                                 <h3 class="text-xs font-extrabold text-slate-700 dark:text-slate-200 flex items-center justify-between flex-wrap gap-1">
                                     <span>Phần III: Câu hỏi Trả lời ngắn</span>
-                                    <span class="text-slate-400 font-normal">Mỗi câu 0.5đ (Nhập số thập phân hoặc số nguyên, VD: -4,5 hoặc 12)</span>
+                                    <span id="keysTabP3PointInfo" class="text-slate-400 font-normal">Mỗi câu 0.5đ (Nhập số thập phân hoặc số nguyên, VD: -4,5 hoặc 12)</span>
                                 </h3>
                                 <div id="part3KeyGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-xs"></div>
                             </div>
@@ -1495,15 +1495,68 @@ if (ov) ov.classList.add('hidden');
                     </div>
 
                     
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phần II (Đúng/Sai) - Số câu:</label>
-                            <input type="number" id="newExamCountP2" value="4" oninput="window.calcExamScorePreview('create')" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-bold">
+                    <div class="space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phần II (Đúng/Sai) - Số câu:</label>
+                                <input type="number" id="newExamCountP2" value="4" oninput="window.calcExamScorePreview('create')" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-bold">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Thang điểm Đúng/Sai:</label>
+                                <select id="newExamP2Mode" onchange="window.onPart2ModeChange('create')" class="w-full px-2.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] text-emerald-700 dark:text-emerald-400 font-bold outline-none text-xs cursor-pointer">
+                                    <option value="bgd">Chuẩn BGD (0.1 · 0.25 · 0.5 · 1)</option>
+                                    <option value="even">Chia đều 4 ý (VD: 0.25 đ/ý)</option>
+                                    <option value="custom">Tùy chỉnh 4 mốc điểm</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Thang điểm Đúng/Sai:</label>
-                            <div class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-[#1E1B29] font-mono text-xs text-slate-600 dark:text-slate-300 truncate" title="1 ý: 0.1đ | 2 ý: 0.25đ | 3 ý: 0.5đ | 4 ý: 1.0đ">
-                                Tối đa 1.0 đ/câu (BGD)
+
+                        <div id="newExamP2InfoBgd" class="px-3 py-1.5 rounded-xl bg-slate-100/80 dark:bg-[#1E1B29] border-slate-200 dark:border-slate-700 border text-[11px] font-mono text-slate-600 dark:text-slate-300">
+                            Lũy tiến BGD: 1ý = <b>0.1đ</b> · 2ý = <b>0.25đ</b> · 3ý = <b>0.5đ</b> · 4ý = <b>1.0đ</b>
+                        </div>
+
+                        <div id="newExamP2BoxEven" class="hidden p-2.5 rounded-xl bg-white dark:bg-[#262335] border border-emerald-200 dark:border-emerald-800/60 space-y-1.5">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Điểm / 1 ý đúng:</label>
+                                    <input type="number" step="any" min="0" id="newExamP2SubPoint" value="0.25" oninput="window.onPart2EvenInput('create', 'sub')" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#1E1B29] font-mono font-bold text-emerald-600 dark:text-emerald-400 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Tối đa / 1 câu Đ/S:</label>
+                                    <input type="number" step="any" min="0" id="newExamP2MaxPoint" value="1" oninput="window.onPart2EvenInput('create', 'max')" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#1E1B29] font-mono font-bold text-slate-800 dark:text-white outline-none">
+                                </div>
+                            </div>
+                            <div id="newExamP2EvenPreview" class="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                                1 ý = 0.25đ · 2 ý = 0.5đ · 3 ý = 0.75đ · 4 ý = 1đ
+                            </div>
+                        </div>
+
+                        <div id="newExamP2BoxCustom" class="hidden p-2.5 rounded-xl bg-white dark:bg-[#262335] border border-slate-300 dark:border-slate-700 space-y-1.5">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300">Điểm theo số ý đúng:</span>
+                                <div class="flex items-center gap-1 text-[10px]">
+                                    <button type="button" onclick="window.applyPart2CustomPreset('create', [0.1, 0.25, 0.5, 1.0])" class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold cursor-pointer">BGD</button>
+                                    <button type="button" onclick="window.applyPart2CustomPreset('create', [0.25, 0.5, 0.75, 1.0])" class="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-semibold cursor-pointer">Đều 0.25/ý</button>
+                                    <button type="button" onclick="window.applyPart2CustomPreset('create', [0, 0, 0, 0.25])" class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold cursor-pointer" title="Đúng đủ 4 ý mới tính 0.25đ">Đủ 4ý=0.25</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1.5">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">1 ý đúng:</label>
+                                    <input type="number" step="any" min="0" id="newExamP2Pt1" value="0.1" oninput="window.calcExamScorePreview('create')" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#1E1B29] font-mono font-bold text-center text-emerald-600 dark:text-emerald-400 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">2 ý đúng:</label>
+                                    <input type="number" step="any" min="0" id="newExamP2Pt2" value="0.25" oninput="window.calcExamScorePreview('create')" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#1E1B29] font-mono font-bold text-center text-emerald-600 dark:text-emerald-400 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">3 ý đúng:</label>
+                                    <input type="number" step="any" min="0" id="newExamP2Pt3" value="0.5" oninput="window.calcExamScorePreview('create')" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#1E1B29] font-mono font-bold text-center text-emerald-600 dark:text-emerald-400 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">4 ý đúng:</label>
+                                    <input type="number" step="any" min="0" id="newExamP2Pt4" value="1.0" oninput="window.calcExamScorePreview('create')" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#1E1B29] font-mono font-bold text-center text-emerald-700 dark:text-emerald-300 outline-none">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1924,15 +1977,68 @@ if (ov) ov.classList.add('hidden');
                     </div>
 
                     
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phần II (Đúng/Sai) - Số câu:</label>
-                            <input type="number" id="editExamCountP2" oninput="window.calcExamScorePreview('edit')" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] font-bold text-slate-800 dark:text-white">
+                    <div class="space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phần II (Đúng/Sai) - Số câu:</label>
+                                <input type="number" id="editExamCountP2" oninput="window.calcExamScorePreview('edit')" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] text-slate-800 dark:text-white font-bold">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Thang điểm Đúng/Sai:</label>
+                                <select id="editExamP2Mode" onchange="window.onPart2ModeChange('edit')" class="w-full px-2.5 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] text-emerald-700 dark:text-emerald-400 font-bold outline-none text-xs cursor-pointer">
+                                    <option value="bgd">Chuẩn BGD (0.1 · 0.25 · 0.5 · 1)</option>
+                                    <option value="even">Chia đều 4 ý (VD: 0.25 đ/ý)</option>
+                                    <option value="custom">Tùy chỉnh 4 mốc điểm</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Thang điểm Đúng/Sai:</label>
-                            <div class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-slate-100 dark:bg-[#1E1B29] font-mono text-xs text-slate-600 dark:text-slate-300 truncate">
-                                0.1 | 0.25 | 0.5 | 1.0 đ
+
+                        <div id="editExamP2InfoBgd" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#1E1B29] border-gray-200 dark:border-[#38344D] border text-[11px] font-mono text-slate-600 dark:text-slate-300">
+                            Lũy tiến BGD: 1ý = <b>0.1đ</b> · 2ý = <b>0.25đ</b> · 3ý = <b>0.5đ</b> · 4ý = <b>1.0đ</b>
+                        </div>
+
+                        <div id="editExamP2BoxEven" class="hidden p-2.5 rounded-xl bg-white dark:bg-[#1E1B29] border border-emerald-200 dark:border-emerald-800/60 space-y-1.5">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Điểm / 1 ý đúng:</label>
+                                    <input type="number" step="any" min="0" id="editExamP2SubPoint" value="0.25" oninput="window.onPart2EvenInput('edit', 'sub')" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-[#38344D] bg-gray-50 dark:bg-[#262335] font-mono font-bold text-emerald-600 dark:text-emerald-400 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">Tối đa / 1 câu Đ/S:</label>
+                                    <input type="number" step="any" min="0" id="editExamP2MaxPoint" value="1" oninput="window.onPart2EvenInput('edit', 'max')" class="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-[#38344D] bg-gray-50 dark:bg-[#262335] font-mono font-bold text-slate-800 dark:text-white outline-none">
+                                </div>
+                            </div>
+                            <div id="editExamP2EvenPreview" class="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                                1 ý = 0.25đ · 2 ý = 0.5đ · 3 ý = 0.75đ · 4 ý = 1đ
+                            </div>
+                        </div>
+
+                        <div id="editExamP2BoxCustom" class="hidden p-2.5 rounded-xl bg-white dark:bg-[#1E1B29] border border-gray-200 dark:border-[#38344D] space-y-1.5">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300">Điểm theo số ý đúng:</span>
+                                <div class="flex items-center gap-1 text-[10px]">
+                                    <button type="button" onclick="window.applyPart2CustomPreset('edit', [0.1, 0.25, 0.5, 1.0])" class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold cursor-pointer">BGD</button>
+                                    <button type="button" onclick="window.applyPart2CustomPreset('edit', [0.25, 0.5, 0.75, 1.0])" class="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-semibold cursor-pointer">Đều 0.25/ý</button>
+                                    <button type="button" onclick="window.applyPart2CustomPreset('edit', [0, 0, 0, 0.25])" class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold cursor-pointer" title="Đúng đủ 4 ý mới tính 0.25đ">Đủ 4ý=0.25</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1.5">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">1 ý đúng:</label>
+                                    <input type="number" step="any" min="0" id="editExamP2Pt1" value="0.1" oninput="window.calcExamScorePreview('edit')" class="w-full px-2 py-1.5 rounded-lg border border-gray-200 dark:border-[#38344D] bg-gray-50 dark:bg-[#262335] font-mono font-bold text-center text-emerald-600 dark:text-emerald-400 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">2 ý đúng:</label>
+                                    <input type="number" step="any" min="0" id="editExamP2Pt2" value="0.25" oninput="window.calcExamScorePreview('edit')" class="w-full px-2 py-1.5 rounded-lg border border-gray-200 dark:border-[#38344D] bg-gray-50 dark:bg-[#262335] font-mono font-bold text-center text-emerald-600 dark:text-emerald-400 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">3 ý đúng:</label>
+                                    <input type="number" step="any" min="0" id="editExamP2Pt3" value="0.5" oninput="window.calcExamScorePreview('edit')" class="w-full px-2 py-1.5 rounded-lg border border-gray-200 dark:border-[#38344D] bg-gray-50 dark:bg-[#262335] font-mono font-bold text-center text-emerald-600 dark:text-emerald-400 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 mb-0.5">4 ý đúng:</label>
+                                    <input type="number" step="any" min="0" id="editExamP2Pt4" value="1.0" oninput="window.calcExamScorePreview('edit')" class="w-full px-2 py-1.5 rounded-lg border border-gray-200 dark:border-[#38344D] bg-gray-50 dark:bg-[#262335] font-mono font-bold text-center text-emerald-700 dark:text-emerald-300 outline-none">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2855,7 +2961,7 @@ if (ov) ov.classList.add('hidden');
     <script src="./omr/answer-import.js?v=20261108_v149"></script>
 
     
-    <script type="module" src="./omr-grader.js?v=20261108_v149"></script>
+    <script type="module" src="./omr-grader.js?v=20261112_v157"></script>
 
     
     <div id="importExamCandidatesModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">

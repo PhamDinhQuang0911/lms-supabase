@@ -382,6 +382,79 @@ const num = parseFloat(str);
 return isNaN(num) ? defaultVal : num;
 }
 window.parseSafeScorePoint = parseSafeScorePoint;
+function normalizePart2Points(rawPts) {
+const def = [0.1, 0.25, 0.5, 1.0];
+if (!Array.isArray(rawPts) || rawPts.length < 4) return [...def];
+return [0, 1, 2, 3].map(idx => {
+const v = parseSafeScorePoint(rawPts[idx], def[idx]);
+return (Number.isFinite(v) && v >= 0) ? Math.round(v * 10000) / 10000 : def[idx];
+});
+}
+window.normalizePart2Points = normalizePart2Points;
+function formatCleanScoreNum(n) {
+const rounded = Math.round((Number(n) || 0) * 10000) / 10000;
+return String(rounded);
+}
+function detectPart2Mode(pts, savedMode) {
+const clean = normalizePart2Points(pts);
+const isBgd = Math.abs(clean[0] - 0.1) < 1e-6 && Math.abs(clean[1] - 0.25) < 1e-6 && Math.abs(clean[2] - 0.5) < 1e-6 && Math.abs(clean[3] - 1.0) < 1e-6;
+const isEven = clean[0] >= 0 && Math.abs(clean[1] - clean[0] * 2) < 1e-4 && Math.abs(clean[2] - clean[0] * 3) < 1e-4 && Math.abs(clean[3] - clean[0] * 4) < 1e-4 && (clean[0] > 0 || clean[3] === 0);
+if (savedMode === 'bgd' && isBgd) return 'bgd';
+if (savedMode === 'even' && isEven) return 'even';
+if (savedMode === 'custom') return 'custom';
+if (isBgd) return 'bgd';
+if (isEven && clean[0] > 0) return 'even';
+return 'custom';
+}
+function getPart2MaxPointPerQuestion(rawPts) {
+const pts = normalizePart2Points(rawPts);
+return Math.max(pts[3], ...pts);
+}
+function formatPart2SummaryLabel(rawPts, modeHint) {
+const pts = normalizePart2Points(rawPts);
+const mode = detectPart2Mode(pts, modeHint);
+if (mode === 'bgd') return 'Lũy tiến BGD';
+if (mode === 'even') return `${formatCleanScoreNum(pts[0])}đ/ý · Đều`;
+return `${pts.map(formatCleanScoreNum).join('/')}đ`;
+}
+function saveExamBaremMeta(exam) {
+if (!exam || !exam.id) return;
+try {
+localStorage.setItem('omr_exam_barem_' + exam.id, JSON.stringify({
+question_count: exam.question_count,
+part2_count: exam.part2_count,
+part3_count: exam.part3_count,
+part1_point: exam.part1_point,
+part2_points: normalizePart2Points(exam.part2_points),
+part2_mode: detectPart2Mode(exam.part2_points, exam.part2_mode),
+part3_point: exam.part3_point,
+updatedAt: new Date().toISOString()
+}));
+} catch (_) {}
+}
+function applyExamBaremMeta(exam) {
+if (!exam || !exam.id) return;
+try {
+const raw = localStorage.getItem('omr_exam_barem_' + exam.id);
+if (raw) {
+const m = JSON.parse(raw);
+if (m && typeof m === 'object') {
+if (m.question_count !== undefined) exam.question_count = m.question_count;
+if (m.part2_count !== undefined) exam.part2_count = m.part2_count;
+if (m.part3_count !== undefined) exam.part3_count = m.part3_count;
+if (m.part1_point !== undefined) exam.part1_point = parseSafeScorePoint(m.part1_point, 0.25);
+if (Array.isArray(m.part2_points)) exam.part2_points = normalizePart2Points(m.part2_points);
+if (m.part2_mode) exam.part2_mode = m.part2_mode;
+if (m.part3_point !== undefined) exam.part3_point = parseSafeScorePoint(m.part3_point, 0.5);
+exam._hasOmrBaremOverride = true;
+}
+}
+} catch (_) {}
+exam.part1_point = parseSafeScorePoint(exam.part1_point, 0.25);
+exam.part2_points = normalizePart2Points(exam.part2_points);
+exam.part2_mode = detectPart2Mode(exam.part2_points, exam.part2_mode);
+exam.part3_point = parseSafeScorePoint(exam.part3_point, 0.5);
+}
 function normalizeLmsExam(raw) {
 const qList = Array.isArray(raw.questions) ? raw.questions : [];
 const mcCount = qList.filter(q => q && (q.type === 'mc' || !q.type)).length;
@@ -414,7 +487,8 @@ question_count: mcCount > 0 ? mcCount : (raw.question_count || 12),
 part2_count: tfCount > 0 ? tfCount : (raw.part2_count || 4),
 part3_count: shortCount > 0 ? shortCount : (raw.part3_count || 6),
 part1_point: parseSafeScorePoint(raw.part1_point, 0.25),
-part2_points: raw.part2_points || [0.1, 0.25, 0.5, 1.0],
+part2_points: normalizePart2Points(raw.part2_points),
+part2_mode: detectPart2Mode(raw.part2_points, raw.part2_mode),
 part3_point: parseSafeScorePoint(raw.part3_point, 0.5),
 folderId: normFolderId,
 examType: raw.type || raw.examType || 'exam',
@@ -741,6 +815,7 @@ ex.className = parsedMeta.className;
 if (parsedMeta.sheet_template) ex.sheet_template = parsedMeta.sheet_template;
 }
 } catch (_) {}
+applyExamBaremMeta(ex);
 });
 if (combined.length === 0) {
 const sampleExam = createSampleExamObj();
@@ -891,6 +966,16 @@ if (exam.isLmsExam && (!Array.isArray(exam.questions) || exam.questions.length =
 try {
 const prevClassIds = Array.isArray(exam.classIds) ? [...exam.classIds] : null;
 const prevFolderId = exam.folderId;
+const prevBarem = {
+question_count: exam.question_count,
+part2_count: exam.part2_count,
+part3_count: exam.part3_count,
+part1_point: exam.part1_point,
+part2_points: Array.isArray(exam.part2_points) ? [...exam.part2_points] : null,
+part2_mode: exam.part2_mode,
+part3_point: exam.part3_point,
+_hasOmrBaremOverride: exam._hasOmrBaremOverride
+};
 const fullDoc = await getDoc(doc(db, "exams", exam.id));
 if (fullDoc.exists()) {
 const fullData = { id: fullDoc.id, ...fullDoc.data() };
@@ -902,6 +987,18 @@ classIds: prevClassIds || fullData.classIds,
 className: exam.className || fullData.className || ''
 });
 Object.assign(exam, normalized);
+if (prevBarem._hasOmrBaremOverride || (!fullData.part2_points && prevBarem.part2_points)) {
+if (prevBarem.part1_point !== undefined) exam.part1_point = prevBarem.part1_point;
+if (prevBarem.part2_points) exam.part2_points = prevBarem.part2_points;
+if (prevBarem.part2_mode) exam.part2_mode = prevBarem.part2_mode;
+if (prevBarem.part3_point !== undefined) exam.part3_point = prevBarem.part3_point;
+if (prevBarem._hasOmrBaremOverride) {
+exam.question_count = prevBarem.question_count;
+exam.part2_count = prevBarem.part2_count;
+exam.part3_count = prevBarem.part3_count;
+exam._hasOmrBaremOverride = true;
+}
+}
 if (prevFolderId !== undefined && normalized.folderId === undefined) exam.folderId = prevFolderId;
 }
 } catch(e) {
@@ -919,7 +1016,10 @@ if (parsedMeta.sheet_template) exam.sheet_template = parsedMeta.sheet_template;
 } catch(e) {}
 }
 exam.part1_point = parseSafeScorePoint(exam.part1_point, 0.25);
+exam.part2_points = normalizePart2Points(exam.part2_points);
+exam.part2_mode = detectPart2Mode(exam.part2_points, exam.part2_mode);
 exam.part3_point = parseSafeScorePoint(exam.part3_point, 0.5);
+applyExamBaremMeta(exam);
 state.exam = exam;
 localStorage.setItem('omr_last_exam_id_' + state.teacherUid, exam.id);
 try {
@@ -1015,6 +1115,39 @@ classBadgeEl.classList.add('hidden');
 if (typeof renderExamAssignedClassesUI === 'function') {
 renderExamAssignedClassesUI();
 }
+updateExamScoringLabelsUI();
+}
+function updateExamScoringLabelsUI() {
+const exam = state.exam;
+const p1Pt = parseSafeScorePoint(exam?.part1_point, 0.25);
+const p2Pts = normalizePart2Points(exam?.part2_points);
+const p2Mode = detectPart2Mode(p2Pts, exam?.part2_mode);
+const p3Pt = parseSafeScorePoint(exam?.part3_point, 0.5);
+const p1Clean = formatCleanScoreNum(p1Pt);
+const p3Clean = formatCleanScoreNum(p3Pt);
+
+const resP1Detail = document.getElementById('resP1Detail');
+if (resP1Detail) resP1Detail.textContent = `${p1Clean}đ/câu`;
+const resP2Detail = document.getElementById('resP2Detail');
+if (resP2Detail) resP2Detail.textContent = formatPart2SummaryLabel(p2Pts, p2Mode);
+const resP3Detail = document.getElementById('resP3Detail');
+if (resP3Detail) resP3Detail.textContent = `${p3Clean}đ/câu`;
+
+const keysP1Info = document.getElementById('keysTabP1PointInfo');
+if (keysP1Info) keysP1Info.textContent = `Mỗi câu ${p1Clean}đ`;
+const keysP2Info = document.getElementById('keysTabP2PointInfo');
+if (keysP2Info) {
+const fmtPts = p2Pts.map(formatCleanScoreNum);
+if (p2Mode === 'bgd') {
+keysP2Info.textContent = `Barem lũy tiến BGD: 1 ý = ${fmtPts[0]}đ · 2 ý = ${fmtPts[1]}đ · 3 ý = ${fmtPts[2]}đ · 4 ý = ${fmtPts[3]}đ`;
+} else if (p2Mode === 'even') {
+keysP2Info.textContent = `Chia đều ${formatCleanScoreNum(p2Pts[0])}đ/ý: 1 ý = ${fmtPts[0]}đ · 2 ý = ${fmtPts[1]}đ · 3 ý = ${fmtPts[2]}đ · 4 ý = ${fmtPts[3]}đ`;
+} else {
+keysP2Info.textContent = `Tùy chỉnh: 1 ý = ${fmtPts[0]}đ · 2 ý = ${fmtPts[1]}đ · 3 ý = ${fmtPts[2]}đ · 4 ý = ${fmtPts[3]}đ`;
+}
+}
+const keysP3Info = document.getElementById('keysTabP3PointInfo');
+if (keysP3Info) keysP3Info.textContent = `Mỗi câu ${p3Clean}đ (Nhập số thập phân hoặc số nguyên, VD: -4,5 hoặc 12)`;
 }
 async function loadExamKeys(examId) {
 let keys = [];
@@ -4979,7 +5112,8 @@ isUnknownCode: true
 };
 }
 const p1Pt = parseSafeScorePoint(state.exam?.part1_point, 0.25);
-const p2Pts = state.exam?.part2_points || [0.1, 0.25, 0.5, 1.0];
+const p2Pts = normalizePart2Points(state.exam?.part2_points);
+const p2MaxQ = getPart2MaxPointPerQuestion(p2Pts);
 const p3Pt = parseSafeScorePoint(state.exam?.part3_point, 0.5);
 let p1Correct = 0;
 const keyP1 = key.answers || '';
@@ -4998,7 +5132,7 @@ const qCount2 = state.exam?.part2_count ?? 4;
 for (let q = 0; q < qCount2; q++) {
 const isQBonus = key.bonus_p2 && (key.bonus_p2[q] === true || key.bonus_p2[String(q)] === true);
 if (isQBonus) {
-part2Score += p2Pts[3] || 1.0;
+part2Score += p2MaxQ;
 continue;
 }
 const sChunk = (studentP2 && studentP2[q]) ? studentP2[q] : '----';
@@ -5011,10 +5145,7 @@ if (sc && kc && sc === kc && sc !== '-' && sc !== '?') {
 matchCount++;
 }
 }
-if (matchCount === 1) part2Score += p2Pts[0] || 0.1;
-else if (matchCount === 2) part2Score += p2Pts[1] || 0.25;
-else if (matchCount === 3) part2Score += p2Pts[2] || 0.5;
-else if (matchCount === 4) part2Score += p2Pts[3] || 1.0;
+if (matchCount >= 1 && matchCount <= 4) part2Score += p2Pts[matchCount - 1];
 }
 let p3Correct = 0;
 const qCount3 = state.exam?.part3_count ?? 6;
@@ -5071,6 +5202,7 @@ document.getElementById('resP1Score').textContent = (sub.part1_score ?? 0).toFix
 document.getElementById('resP2Score').textContent = (sub.part2_score ?? 0).toFixed(2);
 document.getElementById('resP3Score').textContent = (sub.part3_score ?? 0).toFixed(2);
 document.getElementById('resTotalScore').textContent = (sub.score ?? 0).toFixed(2);
+updateExamScoringLabelsUI();
 const unknownCodeBox = document.getElementById('resUnknownCodeNoticeBox');
 const unknownCodeText = document.getElementById('resUnknownCodeNoticeText');
 if (unknownCodeBox) {
@@ -10721,6 +10853,120 @@ window.renderExamsListTab();
 updateOverviewStats();
 Swal.fire('Đã làm sạch', `Đã xóa sạch kết quả chấm của đề "${targetExam.name}". Bạn có thể bắt đầu đợt chấm mới!`, 'success');
 };
+function syncPart2ModePanels(mode = 'create') {
+const prefix = mode === 'create' ? 'newExam' : 'editExam';
+const selMode = document.getElementById(`${prefix}P2Mode`)?.value || 'bgd';
+const bgdEl = document.getElementById(`${prefix}P2InfoBgd`);
+const evenEl = document.getElementById(`${prefix}P2BoxEven`);
+const customEl = document.getElementById(`${prefix}P2BoxCustom`);
+if (bgdEl) bgdEl.classList.toggle('hidden', selMode !== 'bgd');
+if (evenEl) evenEl.classList.toggle('hidden', selMode !== 'even');
+if (customEl) customEl.classList.toggle('hidden', selMode !== 'custom');
+}
+function updatePart2EvenPreviewUI(mode = 'create', subPt = 0.25) {
+const prefix = mode === 'create' ? 'newExam' : 'editExam';
+const previewEl = document.getElementById(`${prefix}P2EvenPreview`);
+if (!previewEl) return;
+const safeSub = (Number.isFinite(subPt) && subPt >= 0) ? subPt : 0;
+const pts = normalizePart2Points([safeSub, safeSub * 2, safeSub * 3, safeSub * 4]);
+previewEl.textContent = `1 ý = ${formatCleanScoreNum(pts[0])}đ · 2 ý = ${formatCleanScoreNum(pts[1])}đ · 3 ý = ${formatCleanScoreNum(pts[2])}đ · 4 ý = ${formatCleanScoreNum(pts[3])}đ`;
+}
+function populatePart2ModalControls(mode = 'create', rawPts, modeHint) {
+const prefix = mode === 'create' ? 'newExam' : 'editExam';
+const pts = normalizePart2Points(rawPts);
+const detected = detectPart2Mode(pts, modeHint);
+const modeEl = document.getElementById(`${prefix}P2Mode`);
+if (modeEl) modeEl.value = detected;
+let subVal = 0.25;
+let maxVal = 1;
+if (detected === 'even') {
+subVal = pts[0];
+maxVal = pts[3];
+} else if (pts[3] > 0) {
+maxVal = pts[3];
+subVal = Math.round((pts[3] / 4) * 10000) / 10000;
+}
+const subEl = document.getElementById(`${prefix}P2SubPoint`);
+const maxEl = document.getElementById(`${prefix}P2MaxPoint`);
+if (subEl) subEl.value = formatCleanScoreNum(subVal);
+if (maxEl) maxEl.value = formatCleanScoreNum(maxVal);
+[1, 2, 3, 4].forEach((n, idx) => {
+const el = document.getElementById(`${prefix}P2Pt${n}`);
+if (el) el.value = formatCleanScoreNum(pts[idx]);
+});
+updatePart2EvenPreviewUI(mode, subVal);
+syncPart2ModePanels(mode);
+}
+function readPart2ConfigFromModal(mode = 'create') {
+const prefix = mode === 'create' ? 'newExam' : 'editExam';
+const selMode = document.getElementById(`${prefix}P2Mode`)?.value || 'bgd';
+if (selMode === 'bgd') {
+return { mode: 'bgd', points: [0.1, 0.25, 0.5, 1.0], maxPerQ: 1.0 };
+}
+if (selMode === 'even') {
+const subRaw = parseSafeScorePoint(document.getElementById(`${prefix}P2SubPoint`)?.value, NaN);
+const maxRaw = parseSafeScorePoint(document.getElementById(`${prefix}P2MaxPoint`)?.value, NaN);
+let sub = 0.25;
+if (Number.isFinite(subRaw) && subRaw >= 0) sub = subRaw;
+else if (Number.isFinite(maxRaw) && maxRaw >= 0) sub = maxRaw / 4;
+const pts = normalizePart2Points([sub, sub * 2, sub * 3, sub * 4]);
+return { mode: 'even', points: pts, maxPerQ: getPart2MaxPointPerQuestion(pts) };
+}
+const pts = normalizePart2Points([
+Math.max(0, parseSafeScorePoint(document.getElementById(`${prefix}P2Pt1`)?.value, 0.1)),
+Math.max(0, parseSafeScorePoint(document.getElementById(`${prefix}P2Pt2`)?.value, 0.25)),
+Math.max(0, parseSafeScorePoint(document.getElementById(`${prefix}P2Pt3`)?.value, 0.5)),
+Math.max(0, parseSafeScorePoint(document.getElementById(`${prefix}P2Pt4`)?.value, 1.0))
+]);
+return { mode: 'custom', points: pts, maxPerQ: getPart2MaxPointPerQuestion(pts) };
+}
+window.onPart2ModeChange = (mode = 'create') => {
+syncPart2ModePanels(mode);
+const prefix = mode === 'create' ? 'newExam' : 'editExam';
+const selMode = document.getElementById(`${prefix}P2Mode`)?.value || 'bgd';
+if (selMode === 'even') {
+const sub = parseSafeScorePoint(document.getElementById(`${prefix}P2SubPoint`)?.value, 0.25);
+updatePart2EvenPreviewUI(mode, Math.max(0, sub));
+}
+window.calcExamScorePreview(mode);
+};
+window.onPart2EvenInput = (mode = 'create', source = 'sub') => {
+const prefix = mode === 'create' ? 'newExam' : 'editExam';
+const subEl = document.getElementById(`${prefix}P2SubPoint`);
+const maxEl = document.getElementById(`${prefix}P2MaxPoint`);
+let sub = NaN;
+if (source === 'sub') {
+const rawSub = parseSafeScorePoint(subEl?.value, NaN);
+if (Number.isFinite(rawSub) && rawSub >= 0) {
+sub = rawSub;
+if (maxEl) maxEl.value = formatCleanScoreNum(Math.round(sub * 4 * 10000) / 10000);
+}
+} else {
+const rawMax = parseSafeScorePoint(maxEl?.value, NaN);
+if (Number.isFinite(rawMax) && rawMax >= 0) {
+sub = Math.round((rawMax / 4) * 10000) / 10000;
+if (subEl) subEl.value = formatCleanScoreNum(sub);
+}
+}
+if (Number.isFinite(sub) && sub >= 0) {
+updatePart2EvenPreviewUI(mode, sub);
+const pts = normalizePart2Points([sub, sub * 2, sub * 3, sub * 4]);
+[1, 2, 3, 4].forEach((n, idx) => {
+const el = document.getElementById(`${prefix}P2Pt${n}`);
+if (el) el.value = formatCleanScoreNum(pts[idx]);
+});
+}
+window.calcExamScorePreview(mode);
+};
+window.applyPart2CustomPreset = (mode = 'create', presetArr) => {
+const prefix = mode === 'create' ? 'newExam' : 'editExam';
+const pts = normalizePart2Points(presetArr);
+[1, 2, 3, 4].forEach((n, idx) => {
+const el = document.getElementById(`${prefix}P2Pt${n}`);
+if (el) el.value = formatCleanScoreNum(pts[idx]);
+});
+window.calcExamScorePreview(mode);
+};
 window.openCreateExamModal = () => {
 document.getElementById('createExamModal').classList.remove('hidden');
 const folderSelect = document.getElementById('newExamFolderSelect');
@@ -10728,6 +10974,7 @@ if (folderSelect) {
 folderSelect.innerHTML = `<option value="">📁 [Thư mục gốc]</option>` +
 (state.folders || []).map(f => `<option value="${f.id}" ${state.currentFolderId === f.id ? 'selected' : ''}>📁 ${f.name}</option>`).join('');
 }
+populatePart2ModalControls('create', [0.1, 0.25, 0.5, 1.0], 'bgd');
 window.calcExamScorePreview('create');
 };
 window.closeCreateExamModal = () => {
@@ -10787,7 +11034,8 @@ const p3Count = parseSafeIntCount(document.getElementById('newExamCountP3')?.val
 const p3Point = parseSafeScorePoint(document.getElementById('newExamPointP3')?.value, 0.5);
 const omrClassId = document.getElementById('newExamOmrClassId')?.value || '';
 const folderId = document.getElementById('newExamFolderSelect')?.value || state.currentFolderId || null;
-const totalScore = (p1Count * p1Point) + (p2Count * 1.0) + (p3Count * p3Point);
+const p2Cfg = readPart2ConfigFromModal('create');
+const totalScore = (p1Count * p1Point) + (p2Count * p2Cfg.maxPerQ) + (p3Count * p3Point);
 if (totalScore > 10.001) {
 const warnRes = await Swal.fire({
 title: 'Tổng điểm vượt quá 10 điểm!',
@@ -10832,7 +11080,8 @@ question_count: p1Count,
 part2_count: p2Count,
 part3_count: p3Count,
 part1_point: p1Point,
-part2_points: [0.1, 0.25, 0.5, 1.0],
+part2_points: p2Cfg.points,
+part2_mode: p2Cfg.mode,
 part3_point: p3Point,
 codes,
 folderId: folderId || null,
@@ -10842,6 +11091,7 @@ className: attachedClass ? attachedClass.name : null,
 createdAt: new Date().toISOString()
 };
 state.exams.unshift(newExam);
+saveExamBaremMeta(newExam);
 saveLocalExams(state.exams);
 if (typeof window.updateSidebarExamsCountBadges === 'function') window.updateSidebarExamsCountBadges();
 if (state.teacherUid) {
@@ -10889,7 +11139,8 @@ const prefix = mode === 'create' ? 'newExam' : 'editExam';
 const p1Count = parseInt(document.getElementById(`${prefix}CountP1`)?.value) || 0;
 const p1Pt = parseSafeScorePoint(document.getElementById(`${prefix}PointP1`)?.value, 0.25);
 const p2Count = parseInt(document.getElementById(`${prefix}CountP2`)?.value) || 0;
-const p2MaxPt = 1.0;
+const p2Cfg = readPart2ConfigFromModal(mode);
+const p2MaxPt = p2Cfg.maxPerQ;
 const p3Count = parseInt(document.getElementById(`${prefix}CountP3`)?.value) || 0;
 const p3Pt = parseSafeScorePoint(document.getElementById(`${prefix}PointP3`)?.value, 0.5);
 const p1Total = Math.round(p1Count * p1Pt * 100) / 100;
@@ -11150,6 +11401,7 @@ classTextEl.textContent = 'Chưa gán lớp (Bài thi tự do)';
 }
 }
 window.switchExamSettingsTab('info');
+populatePart2ModalControls('edit', state.exam.part2_points, state.exam.part2_mode);
 window.calcExamScorePreview('edit');
 window.renderEditExamModalKeys(editExamCurrentCode);
 };
@@ -11343,6 +11595,7 @@ const oldSheetTemplate = state.exam.sheet_template;
 const oldP1Count = state.exam.question_count;
 const oldP1Pt = state.exam.part1_point;
 const oldP2Count = state.exam.part2_count;
+const oldP2PointsStr = JSON.stringify(normalizePart2Points(state.exam.part2_points));
 const oldP3Count = state.exam.part3_count;
 const oldP3Pt = state.exam.part3_point;
 const oldCodes = (state.exam.codes || []).join(',');
@@ -11369,35 +11622,55 @@ if (codeSelect && codeSelect.value) {
 window.saveCurrentEditModalKey(codeSelect.value);
 }
 const newSheetTemplate = document.getElementById('editExamTemplate')?.value || state.exam.sheet_template;
+const p2Cfg = readPart2ConfigFromModal('edit');
 state.exam.name = name;
 state.exam.sheet_template = newSheetTemplate;
 state.exam.codes = (document.getElementById('editExamCodes')?.value || '101').split(',').map(s => s.trim()).filter(Boolean);
 state.exam.question_count = parseSafeIntCount(document.getElementById('editExamCountP1')?.value, 12);
 state.exam.part1_point = parseSafeScorePoint(document.getElementById('editExamPointP1')?.value, 0.25);
 state.exam.part2_count = parseSafeIntCount(document.getElementById('editExamCountP2')?.value, 4);
+state.exam.part2_points = p2Cfg.points;
+state.exam.part2_mode = p2Cfg.mode;
 state.exam.part3_count = parseSafeIntCount(document.getElementById('editExamCountP3')?.value, 6);
 state.exam.part3_point = parseSafeScorePoint(document.getElementById('editExamPointP3')?.value, 0.5);
 state.exam.folderId = document.getElementById('editExamFolderSelect')?.value || null;
+state.exam._hasOmrBaremOverride = true;
+saveExamBaremMeta(state.exam);
 saveLocalExams(state.exams);
 if (typeof storage !== 'undefined' && storage.saveExams) {
 await storage.saveExams(state.exams);
 }
 if (state.teacherUid && typeof db !== 'undefined') {
-try { await setDoc(doc(db, "omr_exams", state.exam.id), state.exam, { merge: true }); } catch (_) {}
+try {
+const firestorePayload = state.exam.isLmsExam
+? (() => { const { questions, mixedExams, ...rest } = state.exam; return rest; })()
+: state.exam;
+await setDoc(doc(db, "omr_exams", state.exam.id), firestorePayload, { merge: true });
+} catch (_) {}
 }
 document.getElementById('editExamSettingsModal').classList.add('hidden');
 updateActiveExamBanner();
 window.renderExamsListTab();
 window.renderExamPickerList();
+if (typeof window.renderKeysTab === 'function') {
+const keysSec = document.getElementById('view-keys');
+if (keysSec && !keysSec.classList.contains('hidden')) {
+window.renderKeysTab();
+}
+}
+if (state.lastSubmission && typeof displayLastResultInspector === 'function') {
+displayLastResultInspector(state.lastSubmission);
+}
 const newP1Count = state.exam.question_count;
 const newP1Pt = state.exam.part1_point;
 const newP2Count = state.exam.part2_count;
+const newP2PointsStr = JSON.stringify(normalizePart2Points(state.exam.part2_points));
 const newP3Count = state.exam.part3_count;
 const newP3Pt = state.exam.part3_point;
 const newCodes = (state.exam.codes || []).join(',');
 const templateChanged = (oldSheetTemplate !== newSheetTemplate);
 const baremChanged = (oldP1Count !== newP1Count) || (oldP1Pt !== newP1Pt) ||
-(oldP2Count !== newP2Count) || (oldP3Count !== newP3Count) || (oldP3Pt !== newP3Pt) ||
+(oldP2Count !== newP2Count) || (oldP2PointsStr !== newP2PointsStr) || (oldP3Count !== newP3Count) || (oldP3Pt !== newP3Pt) ||
 (oldCodes !== newCodes) || (state._keysModifiedInModal === true);
 state._keysModifiedInModal = false;
 if ((templateChanged || baremChanged) && state.submissions && state.submissions.length > 0) {
