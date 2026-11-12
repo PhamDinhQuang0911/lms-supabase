@@ -16,13 +16,17 @@
     'use strict';
 
     const LOCAL_BRIDGE_URL = 'http://127.0.0.1:8765';
-    const CATALOG_URL = 'data/imath/catalog_mapped.json?v=20261112-v13';
+    const DATA_VERSION = '20261112-v14';
+    const CATALOG_URL = `data/imath/catalog_mapped.json?v=${DATA_VERSION}`;
 
     const state = {
         catalog: [],
         byTag: {},
         byMapId: {},
         poolsLoaded: {}, // { L06: {...}, L09: {...} }
+        gradePoolPromises: {},
+        tagPools: {}, // { tag: [{latex, ans}, ...] }
+        tagPoolPromises: {},
         variantCounters: {}, // { tag: idx }
         localBridgeOnline: false,
         mode: 'editor', // 'editor' | 'bank'
@@ -949,7 +953,7 @@
             badge.innerHTML = '<i class="fa-solid fa-bolt"></i><span>Engine Python Local</span>';
         } else {
             badge.className = 'ims-status-badge';
-            badge.innerHTML = '<i class="fa-solid fa-database"></i><span>2.473 mẫu chuẩn MapID</span>';
+            badge.innerHTML = '<i class="fa-solid fa-database"></i><span>2.476 mẫu × 150 biến thể</span>';
         }
     }
 
@@ -986,18 +990,57 @@
         return state.catalog;
     }
 
+    function shuffleArrayInPlace(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = tmp;
+        }
+        return arr;
+    }
+
     async function ensureGradePoolLoaded(gradePrefix) {
         if (state.poolsLoaded[gradePrefix]) return state.poolsLoaded[gradePrefix];
-        try {
-            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261112-v13`);
-            if (res.ok) {
-                state.poolsLoaded[gradePrefix] = await res.json();
-                return state.poolsLoaded[gradePrefix];
+        if (state.gradePoolPromises[gradePrefix]) return state.gradePoolPromises[gradePrefix];
+        state.gradePoolPromises[gradePrefix] = (async () => {
+            try {
+                const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=${DATA_VERSION}`);
+                if (res.ok) {
+                    state.poolsLoaded[gradePrefix] = await res.json();
+                    return state.poolsLoaded[gradePrefix];
+                }
+            } catch (err) {
+                console.warn(`[iMathStudio] Không tải được pool_${gradePrefix}.json:`, err);
             }
-        } catch (err) {
-            console.warn(`[iMathStudio] Không tải được pool_${gradePrefix}.json:`, err);
-        }
-        return {};
+            return {};
+        })();
+        return state.gradePoolPromises[gradePrefix];
+    }
+
+    async function ensureTagVariantsLoaded(tag) {
+        if (state.tagPools[tag]) return state.tagPools[tag];
+        if (state.tagPoolPromises[tag]) return state.tagPoolPromises[tag];
+        state.tagPoolPromises[tag] = (async () => {
+            try {
+                const res = await fetch(`data/imath/tags/${encodeURIComponent(tag)}.json?v=${DATA_VERSION}`);
+                if (res.ok) {
+                    const arr = await res.json();
+                    if (Array.isArray(arr) && arr.length > 0) {
+                        state.tagPools[tag] = shuffleArrayInPlace(arr.slice());
+                        return state.tagPools[tag];
+                    }
+                }
+            } catch (err) {
+                console.warn(`[iMathStudio] Fallback pool cho ${tag}:`, err);
+            }
+            const gradePrefix = tag.split('_')[0] || 'L09';
+            const pool = await ensureGradePoolLoaded(gradePrefix);
+            const fallbackArr = Array.isArray(pool[tag]) ? shuffleArrayInPlace(pool[tag].slice()) : [];
+            if (fallbackArr.length > 0) state.tagPools[tag] = fallbackArr;
+            return fallbackArr;
+        })();
+        return state.tagPoolPromises[tag];
     }
 
     function shuffleLatexChoicesClientSide(latexStr, roundIdx) {
@@ -1076,10 +1119,8 @@
             }
         }
 
-        const gradePrefix = tag.split('_')[0] || 'L09';
-        const pool = await ensureGradePoolLoaded(gradePrefix);
-        const variants = pool[tag] || [];
-        if (variants.length === 0) {
+        const variants = await ensureTagVariantsLoaded(tag);
+        if (!variants || variants.length === 0) {
             return [];
         }
 
@@ -1328,7 +1369,7 @@
     window.pingIMathLocalEngine = function () {
         checkLocalBridge(true).then(online => {
             if (online) notify('Đã kết nối Engine Python Local (http://127.0.0.1:8765)!', 'success');
-            else notify('Đang sử dụng Kho dữ liệu chuẩn MapID trên Web (2.473 mẫu).', 'info');
+            else notify('Đang sử dụng Kho dữ liệu chuẩn MapID trên Web (2.476 mẫu × 150 biến thể).', 'info');
         });
     };
 
