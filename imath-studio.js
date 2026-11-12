@@ -989,7 +989,7 @@
     async function ensureGradePoolLoaded(gradePrefix) {
         if (state.poolsLoaded[gradePrefix]) return state.poolsLoaded[gradePrefix];
         try {
-            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261111-v3`);
+            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261112-v5`);
             if (res.ok) {
                 state.poolsLoaded[gradePrefix] = await res.json();
                 return state.poolsLoaded[gradePrefix];

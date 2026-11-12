@@ -1,282 +1,49 @@
-\documentclass[11pt,a4paper]{article}
+\documentclass[10pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
 \usepackage[vietnamese]{babel}
-\usepackage{amsmath,amssymb}
-\usepackage[left=1.5cm,right=1.5cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{amsmath,amssymb,tkz-euclide}
+\usepackage{geometry}
+\geometry{left=1.2cm,right=1.2cm,top=1.4cm,bottom=1.4cm}
 \usepackage{tikz}
-\usetikzlibrary{calc,angles,quotes,patterns,arrows.meta}
+\usepackage{adjustbox}
 \usepackage{tcolorbox}
-\tcbuselibrary{skins,breakable}
-\usepackage{tabularx}
-\usepackage{booktabs}
-\usepackage{fancyhdr}
-\pagestyle{fancy}
-\fancyhf{}
-\rhead{\footnotesize \textbf{QMath} - Chuẩn hóa Hình vẽ Thực tế TikZ}
-\lhead{\footnotesize So sánh Hình cũ vs Hình mới đổi số động}
-\cfoot{\thepage}
+\usetikzlibrary{calc,arrows,arrows.meta,angles,quotes,intersections,patterns,positioning,shapes,shapes.geometric,shapes.misc,decorations,decorations.markings,decorations.pathmorphing,backgrounds,3d}
 
-\title{\Large \textbf{BẢNG ĐỐI CHIẾU SO SÁNH HÌNH VẼ THỰC TẾ TIKZ}\\
-\large \textbf{CÂU CHỨA HÌNH CŨ vs CÂU SAU KHI ĐÃ SỬA ĐỔI SỐ ĐỘNG}\\
-\normalsize \textit{Áp dụng cho Ngân hàng Câu hỏi Đối số iMath $\to$ QMath (Hình học 9 - Chương 4)}}
-\author{Hệ thống Quản lý Đề thi \& Khảo thí QMath}
-\date{Ngày 11 tháng 11 năm 2026}
+\title{\textbf{BÁO CÁO ĐỐI CHIẾU HÌNH VẼ TIKZ THỰC TẾ (CŨ VS MỚI)}\\ \large Kèm kiểm chứng Đổi Số Động \& Chuẩn hóa \texttt{qmath.io.vn (Beta)}}
+\date{Ngày cập nhật: 12/11/2026}
 
 \begin{document}
 \maketitle
+\thispagestyle{empty}
 
-\begin{abstract}
-Tài liệu này đối chiếu trực quan các câu hỏi toán thực tế chứa hình vẽ TikZ trong Hệ thống Ngân hàng Câu hỏi Đổi số. Toàn bộ hình vẽ cũ (nhiều câu bị lỗi vỡ cú pháp, chứa hơn 10KB đa giác nặng, vẽ hình hoạt hình thiếu chuẩn mực sư phạm) đã được thay thế chính xác bằng các mô hình chuẩn từ \textbf{Kho Hình Thực Tế TikZ} (\texttt{C:\textbackslash Users\textbackslash ADMIN\textbackslash Desktop\textbackslash Kho\_Hinh\_Thuc\_Te\_TikZ}), đồng thời lập trình logic tham số hóa động để khi câu hỏi đổi số thì tọa độ, góc nghiêng và nhãn kích thước của hình vẽ tự động co giãn và cập nhật chính xác theo đề bài.
-\end{abstract}
-
-\vspace{0.3cm}
-\begin{tcolorbox}[colback=blue!5!white,colframe=blue!75!black,title=\textbf{BẢNG TỔNG HỢP 6 DẠNG TOÁN ĐƯỢC CHUẨN HÓA HÌNH VẼ TIKZ}]
+\begin{tcolorbox}[colback=blue!5!white,colframe=blue!65!black,title=\textbf{TÓM TẮT CÁC DẠNG ĐÃ NÂNG CẤP TRONG ĐỢT NÀY (21 MÃ CÂU HỎI)}]
 \small
-\begin{tabularx}{\textwidth}{l p{3.2cm} p{2.0cm} p{4.0cm} X}
-\toprule
-\textbf{STT} & \textbf{Tên dạng toán} & \textbf{MapID} & \textbf{Các mã câu (Tags)} & \textbf{Mô hình kho hình gốc} \\
-\midrule
-1 & Máy bay cất cánh bay lên & \texttt{9H4V2-5} & \texttt{L09\_C4\_B2\_08, 31, 46} & \texttt{HP\_HYN\_015} (Máy bay vector) \\
-2 & Cây cao bị bão quật gãy & \texttt{9H4V2-5} & \texttt{L09\_C4\_B2\_53, 54} & Thân gãy chuẩn sư phạm \\
-3 & Cái thang tựa tường & \texttt{9H4V1-5} & \texttt{L09\_C4\_B1\_16, 29, 55} & \texttt{015\_cái thang / HP\_HYN\_055} \\
-4 & Hải đăng quan sát tàu biển & \texttt{9H4V2-5} & \texttt{L09\_C4\_B2\_24, 25, 42} & \texttt{168\_chiếc tàu / HP\_HYN\_041} \\
-5 & Máy bay hạ cánh tiếp cận & \texttt{9H4C2-5} & \texttt{L09\_C4\_B2\_09, 34, 49} & Đường băng \& góc hạ cánh \\
-6 & Khinh khí cầu quan sát & \texttt{9H4V2-5} & \texttt{L09\_C4\_B2\_26, 27, 43} & \texttt{021\_khinh khí cầu} \\
-\bottomrule
-\end{tabularx}
+\begin{tabular}{p{3.0cm} p{4.6cm} p{7.7cm}}
+\textbf{Nhóm hình} & \textbf{Mã câu hỏi áp dụng} & \textbf{Nội dung cải tiến chính}\\
+\hline
+1. Hải đăng + 2 tàu & \texttt{L09\_C4\_B2\_24, 25, 42} & Dùng mẫu \texttt{HP\_HYN\_002}, giữ đủ đỉnh $A, B, C, D$, đổi số $h, \alpha, \beta$.\\
+2. Cây thông gãy & \texttt{L09\_C4\_B2\_53, 54} & Khôi phục cây thông chi tiết, xoay theo $\alpha$, nhãn nền trắng không bị lá che, sửa \texttt{\textbackslash loigiai}.\\
+3. Hải đăng (2 vị trí) & \texttt{L09\_C4\_B2\_12, 35, 38, 52} & Hải đăng + bờ đá + tia ngắm $A, B$, đổi số $AB$ và 2 góc.\\
+4. Hải đăng (1 tàu) & \texttt{L08\_C9\_B3\_14, 15} & Hải đăng + thuyền buồm đồng bộ, đổi số khoảng cách $d$ và $h$.\\
+5. Tòa nhà + bóng nắng & \texttt{L09\_C4\_B1\_17, B2\_10, 32, 47} & Tòa nhà 3D kính xanh + mặt trời + tia nắng, đổi số $\alpha, b$.\\
+6. Lâu đài + giác kế & \texttt{L09\_C4\_B2\_16, 23, 41} & Lâu đài tháp đá + 2 chân giác kế, đổi số $\alpha, \beta, CD$, cao giác kế.\\
+7. Tòa nhà + 2 xe máy & \texttt{L09\_C4\_B2\_15, 51} & Tòa nhà 3D + 2 xe máy vector, dẫn nhãn góc thoáng không đè tường.\\
+8. Tòa nhà + ô tô & \texttt{L09\_C4\_B1\_20} & Tòa nhà 3D + người + xe ô tô, đổi số $1{,}8$ m, $79$ m, góc hạ.\\
+\end{tabular}
 \end{tcolorbox}
 
 \newpage
 
-% ==================== DẠNG 1 ====================
-\section{Dạng 1: Bài toán thực tế máy bay khi bay lên (Cất cánh)}
-\textbf{Mã nhận diện:} \texttt{L09\_C4\_B2\_08} (Cùng dạng: \texttt{L09\_C4\_B2\_31}, \texttt{L09\_C4\_B2\_46}) --- \textbf{MapID:} \texttt{9H4V2-5}
-
-\begin{tcolorbox}[colback=red!5!white,colframe=red!75!black,title=\textbf{1. CÂU HÌNH VẼ CŨ (Chưa sửa - Gốc từ iMath)}]
-\textbf{Đề bài cũ:} Một máy bay vừa phi lên theo đường bay hợp với mặt đất một góc $\widehat{ATH} = 30^{\circ}$. Sau $1,4$ phút máy bay ở độ cao $a=7$\,km so với mặt đất. Hỏi vận tốc của máy bay khi bay lên?\\
-\textbf{Tình trạng lỗi của hình cũ:}
-\begin{itemize}
-    \item Cú pháp TikZ bị vỡ nghiêm trọng: có thẻ đóng \texttt{\textbackslash end\{tikzpicture\}} nằm lơ lửng giữa đề bài, thiếu lệnh \texttt{\textbackslash begin\{tikzpicture\}} tương ứng, đoạn mã \texttt{)--(T)--(A)} bị đứt đoạn.
-    \item Hình máy bay chỉ là các nét vẽ thô sơ bị bóp méo (\texttt{\textbackslash resizebox\{1cm\}\{!\}...}), không xoay theo đúng góc cất cánh $\alpha$.
-\end{itemize}
+\section{Dạng 1: Ngọn hải đăng quan sát hai lần con tàu trên biển}
+\noindent\textbf{Mã câu:} \texttt{L09\_C4\_B2\_24, L09\_C4\_B2\_25, L09\_C4\_B2\_42} \quad---\quad \textbf{MapID:} \texttt{9H4V2-5}\\[2mm]
+\textbf{Cải tiến kỹ thuật:} Thay thế mẫu đơn giản trước đó bằng mô hình \texttt{HP\_HYN\_002} sắc nét (\texttt{\textbackslash drawlighthouse}, \texttt{\textbackslash drawboat}); tự động đổi góc hạ $\alpha, \beta$ và chiều cao $h$ kèm đỉnh $A, B, C, D$, tia ngang $Ax$.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.44\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=red!4!white,colframe=red!70!black,title={\textbf{HÌNH CŨ (Bản trước khi điều chỉnh)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
 \begin{center}
-\textit{[Đoạn mã TikZ cũ bị lỗi cú pháp không thể biên dịch: thẻ đóng nằm sai vị trí và không thể co giãn theo tham số]}
-\end{center}
-\end{tcolorbox}
-
-\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{2. CÂU HÌNH VẼ MỚI (Đã chuẩn hóa từ Kho hình HP\_HYN\_015 \& Đổi số động)}]
-\textbf{Đề bài mới:} Một máy bay vừa phi lên theo đường bay hợp với mặt đất một góc $\widehat{ATH} = 30^{\circ}$. Sau $1,4$ phút máy bay ở độ cao $a=7$\,km so với mặt đất. Hỏi vận tốc của máy bay khi bay lên?\\
-\textbf{Đặc điểm cải tiến:}
-\begin{itemize}
-    \item Trích xuất chuẩn xác mô hình máy bay dân dụng vector từ \texttt{HP\_HYN\_015} (\texttt{Icon-Maybay}).
-    \item \textbf{Đổi số động:} Khi góc $\widehat{ATH}$ đổi (VD: $24^\circ, 30^\circ, 35^\circ$), máy bay tự động xoay nghiêng theo \texttt{rotate=\textbackslash ang}, cạnh huyền $TA$ và độ cao $a = 7$\,km tự động cập nhật đúng vị trí.
-\end{itemize}
-\begin{center}
-\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.85]
-\def\pathLen{6.8}
-\def\ang{30}
-\def\h{7}
-\path (0,0) coordinate (T);
-\path (\ang:\pathLen) coordinate (A);
-\path (A |- T) coordinate (H);
-\draw[thick] ($(T)+(-0.8,0)$) -- ($(H)+(1.2,0)$);
-\fill[pattern=north east lines] ($(T)+(-0.8,0)$) rectangle ($(H)+(1.2,-0.25)$);
-\draw[thick] (T) -- (A) node[pos=0.55, above, sloped] {Đường bay};
-\draw[thick, dashed] (A) -- (H) node[midway, right] {$a = \h$\,km};
-\draw (H)++(-0.25,0)--++(0,0.25)--++(0.25,0);
-\fill (T) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$T$};
-\fill (H) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$H$};
-\fill (A) circle (1.5pt) node[above left=2pt, fill=white, inner sep=1pt] {$A$};
-\draw pic[draw, angle radius=11mm]{angle=H--T--A};
-\node at ($(T)+(\ang/2:1.9)$) {$\ang^{\circ}$};
-
-\tikzset{Icon-Maybay/.pic={
-\begin{scope}
-\fill[ball color =cyan!40!gray,rounded corners=0.02](-5.6,3)--++(60:0.8)--++(2:0.55)--++(-90:2)--cycle;
-\fill[ball color =cyan!90!gray!40!white](-0.4,1.5)..controls++(75:2)and++(-68:0.75)..(-0.15,4)--++(-5:0.35)..controls++(-50:0.95)and++(106:2)..(1.25,1.5)--cycle;
-\fill[ball color =cyan!30!gray](-4.85,1)..controls++(-90:0.6) and++(180:0.2)..(-4,0.5)--++(-12:3.3)--++(0:4)..controls++(0:2) and++(-172:1)..(6,0)..controls++(8:1)and++(-90:0.1)..(6.85,0.3)..controls++(90:0.2) and++(-30:1)..(5,1.3)..controls++(90:0.25) and++(0:8)..(-4,1.5)--cycle;
-\draw[cyan!40!black](6.85,0.3)coordinate(mui)..controls++(-90:0.5) and++(0:6)..(-2,0.2);
-\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-1.8,0)--++(-5:0.35)--++(-147:4.85)--++(-50:0.7)--++(25.5:6.5)..controls++(-155.5:0.5) and++(-170:0.15)..(1.5,-0.25)..controls++(120:0.5) and++(2:1)..(-1.8,0);
-\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6.1,-2.3)--++(-54:0.7)--++(-28:0.7)--++(25.5:.35)--++(-180:.2)--++(135:1.2)--cycle;
-\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6.9,3.6)--++(2:1)..controls++(-35:2) and++(178:2.3)..(-2,1.5)..controls++(-90:0.2) and++(20:1)..(-3.5,1)--++(180:1.2)--cycle;
-\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6,2.5)--++(0:1.35)--++(-156:2.5)--++(170:0.75)--cycle;
-\fill[ball color =cyan!70!gray!40!white,rounded corners=0.02](-1.9,-0.17)--++(90:0.72)--++(181:2.45)--++(-90:0.6)--cycle;
-\fill[ball color =cyan!90!gray!10!black,line width=0.02,draw=cyan!30!black,rounded corners=0.005](-1.9,-0.18)arc(-90:270:0.2 and 0.38);
-\fill[cyan](5.05,1.3)--++(-25:0.8)..controls++(-140:0.55)and++(10:0.5)..(4.2,0.6)..controls++(180:0.15) and++(182:0.45)..(4.3,1.1)..controls++(2:0.5) and++(-135:0.2)..(5.1,1.3);
-\draw[draw=teal,double,distance=0.03](5.05,1.3)++(-26:0.8)..controls++(-140:0.55)and++(10:0.5)..(4.2,0.6)foreach \i in{1,2,...,4}{coordinate[pos=\i/4](B\i)}..controls++(180:0.15) and++(182:0.45)..(4.3,1.1)..controls++(2:0.5) and++(-135:0.2)..(5.1,1.3)foreach \i in{1,2,...,10}{coordinate[pos=\i/10](A\i)}(A2)--(B2)(A6)--(B1);
-\foreach \i in {0,1,...,6}
-\fill[ball color=cyan](-0.8+0.5*\i,0.4)arc(-90:270:0.1 and 0.2);
-\fill[draw=cyan!10!teal,ball color=cyan!80!gray,rounded corners=0.015](3.2,-0.2)--++(95:0.9)--++(0:0.5)--++(-85:0.9)--cycle;
-\begin{scope}[opacity=1]
-\fill[ball color=orange](2.5,-0.15)arc(-90:270:0.2 and 0.1);
-\fill[ball color=orange!50!red!50!white,rotate around={10:(6,0.25)}](6,0.25)arc(-90:270:0.2 and 0.1);
-\end{scope}
-\end{scope}
-}}
-\draw (A) pic[scale=0.1,rotate=\ang]{Icon-Maybay};
-\end{tikzpicture}
-\end{center}
-\end{tcolorbox}
-
-\newpage
-
-% ==================== DẠNG 2 ====================
-\section{Dạng 2: Cây cao bị bão quật gãy ngang thân}
-\textbf{Mã nhận diện:} \texttt{L09\_C4\_B2\_53} (Cùng dạng: \texttt{L09\_C4\_B2\_54}) --- \textbf{MapID:} \texttt{9H4V2-5}
-
-\begin{tcolorbox}[colback=red!5!white,colframe=red!75!black,title=\textbf{1. CÂU HÌNH VẼ CŨ (Chưa sửa - Gốc từ iMath)}]
-\textbf{Đặc điểm hình cũ:} 
-Dung lượng khổng lồ (\textgreater 10\,KB mã nguồn), sử dụng hơn 50 khối đa giác đặc \texttt{\textbackslash fill[green!40!black]} để vẽ tán thông xoay $109^\circ$, gây nặng file và giao diện hiển thị thô kệch.
-\begin{center}
-\begin{tikzpicture}[line join=round, line cap=round, >=stealth, font=\footnotesize, scale=0.55]
-    \path
-    (5.65,-1.35)coordinate(A)
-    (5.65,2)coordinate(B)
-    (-4.4,-1.35)coordinate(C)
-    (5.65,-1.6)coordinate(D)
-    (-4.4,-1.6)coordinate(E);
-    \draw[very thick](B)--(C);
-    \draw pic[draw,angle radius=0.6cm,thick]{angle=A--C--B};
-    \path(C)--++(60:0.5)node{$\alpha^\circ$};
-    \draw[<->](D)--node[midway,below]{$a$ m}(E);
-    \begin{scope}[shift={(0,0)},rotate=109]
-        \foreach \w/\f in {0.3/30,0.2/50,0.1/70} {
-            \fill [brown!\f!black] (0,-6) --(\w/2,4)--(\w/2,-6);}
-        \fill [green!40!black] (0.05,-1.41) -- (0.22,-1.33) -- (0.32,-1.33) -- (0.41,-1.38) -- (0.55,-1.35) -- (0.7,-1.34) -- (0.84,-1.39)  -- (0.87,-1.52) -- (1.02,-1.56) -- (1.17,-1.58) -- (1.34,-1.5) -- (1.4,-1.44) -- (1.54,-1.39) -- (1.62,-1.26) -- (1.69,-1.16) -- (1.68,-1.02) -- (1.54,-0.96) -- (1.39,-0.91) -- (1.2,-0.87) -- (0.97,-0.87) -- (0.81,-0.93) -- (0.67,-0.93) -- (0.54,-1.02) -- (0.42,-1.07) -- (0.24,-1.08) -- (0.1,-1.02) -- (0.01,-1.05) -- (-0.04,-0.99) -- (-0.15,-0.92) -- (-0.24,-0.94) -- (-0.34,-1) -- (-0.4,-1.01) -- (-0.46,-0.93) -- (-0.61,-0.91) -- (-0.78,-0.83) -- (-0.99,-0.83) -- (-1.2,-0.83) -- (-1.33,-0.89) -- (-1.51,-0.92) -- (-1.62,-0.92) -- (-1.73,-1.01) -- (-1.77,-1.17) -- (-1.66,-1.26) -- (-1.62,-1.34) -- (-1.63,-1.47) -- (-1.48,-1.51) -- (-1.23,-1.51) -- (-0.98,-1.5) -- (-0.93,-1.37) -- (-0.82,-1.26) -- (-0.62,-1.31) -- (-0.44,-1.35) -- (-0.24,-1.4) -- (-0.11,-1.46) -- (-0.01,-1.43);
-    \end{scope}
-    \foreach \w/\f in {0.3/30,0.2/50,0.1/70} {
-        \fill [brown!\f!black] (5.65,-1.35) rectangle(5.65+\w/2,2);}
-    \draw[very thick](6.5,-1.35)--(-4.5,-1.35);
-    \fill[pattern=north east lines] (6.5,-1.35)rectangle(-4.5,-1.5);
-\end{tikzpicture}
-\end{center}
-\end{tcolorbox}
-
-\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{2. CÂU HÌNH VẼ MỚI (Chuẩn sư phạm thanh thoát \& Đổi số động)}]
-\textbf{Đặc điểm cải tiến:}
-\begin{itemize}
-    \item Thân cây đứng $AB$ có vết gãy răng cưa tự nhiên; thân cây đổ $BC$ nối xuống ngọn $C$.
-    \item \textbf{Đổi số động:} Khi góc $\alpha = 21^\circ$ và $a = 1,7$\,m (hoặc $\alpha = 18^\circ, a = 5,3$\,m) thay đổi, hình tự động đồng bộ nhãn $a, \alpha$ và tỷ lệ tam giác $ABC$. Dung lượng giảm từ 10\,KB xuống dưới 1\,KB!
-\end{itemize}
-\begin{center}
-\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.95]
-\def\ang{21}
-\def\d{4.5}
-\def\h{2.0}
-\coordinate (C) at (0,0);
-\coordinate (A) at (\d,0);
-\coordinate (B) at (\d,\h);
-
-\draw[thick] (-1.0,0) -- ($(A)+(1.2,0)$);
-\fill[pattern=north east lines] (-1.0,0) rectangle ($(A)+(1.2,-0.25)$);
-
-\fill[brown!70!black] ($(A)+(-0.15,0)$) rectangle ($(A)+(0.15,\h)$);
-\draw[thick, brown!40!black] ($(A)+(-0.15,0)$) -- ($(A)+(-0.15,\h)$);
-\draw[thick, brown!40!black] ($(A)+(0.15,0)$) -- ($(A)+(0.15,\h)$);
-\draw[thick, brown!20!black, fill=yellow!40!brown] 
-    ($(B)+(-0.15,0)$) -- ++(0.08,0.15) -- ++(0.08,-0.1) -- ++(0.08,0.12) -- ++(0.06,-0.17) -- cycle;
-
-\draw[line width=3.5pt, brown!70!black] (B) -- (C);
-\draw[line width=1pt, brown!30!black] (B) -- (C);
-
-\begin{scope}[shift={($(C)+(-0.4,0)$)}, rotate=\ang]
-    \fill[green!45!black, opacity=0.85] (-0.3,0) ellipse [x radius=1.0, y radius=0.4];
-    \fill[green!55!black, opacity=0.9] (0.1,0.1) ellipse [x radius=0.7, y radius=0.3];
-    \fill[green!35!black] (-0.6,-0.05) ellipse [x radius=0.6, y radius=0.25];
-    \draw[thick, brown!50!black] (0,0) -- (-0.8,-0.1);
-\end{scope}
-
-\draw pic[draw, angle radius=3mm]{right angle=B--A--C};
-\draw pic[draw, angle radius=12mm]{angle=A--C--B};
-\node at ($(C)+(10:1.7)$) {$\alpha = \ang^{\circ}$};
-
-\fill (A) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$A$};
-\fill (B) circle (1.5pt) node[above right=2pt, fill=white, inner sep=1pt] {$B$};
-\fill (C) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$C$};
-
-\draw[<->] ($(C)+(0,-0.55)$) -- node[midway, below] {$a = 1{,}7$\,m} ($(A)+(0,-0.55)$);
-\end{tikzpicture}
-\end{center}
-\end{tcolorbox}
-
-\newpage
-
-% ==================== DẠNG 3 ====================
-\section{Dạng 3: Cái thang tựa vào tường}
-\textbf{Mã nhận diện:} \texttt{L09\_C4\_B1\_16} (Cùng dạng: \texttt{L09\_C4\_B1\_29}, \texttt{L09\_C4\_B2\_55}) --- \textbf{MapID:} \texttt{9H4V1-5}
-
-\begin{tcolorbox}[colback=red!5!white,colframe=red!75!black,title=\textbf{1. CÂU HÌNH VẼ CŨ (Chưa sửa - Gốc từ iMath)}]
-\textbf{Khuyết điểm hình cũ:}
-\begin{itemize}
-    \item Chứa mã lỗi duplicate \texttt{\textbackslash begin\{tikzpicture\}} lồng nhau không khép kín.
-    \item Các điểm tọa độ vẽ thang bị cố định cứng ở góc $60^\circ$ và chiều dài $5$, không thay đổi khi đề bài đổi sang $L = 2,5$\,m, $\alpha = 65^\circ$ hoặc $L = 4,0$\,m, $\alpha = 68^\circ$.
-\end{itemize}
-\end{tcolorbox}
-
-\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{2. CÂU HÌNH VẼ MỚI (Chuẩn hóa từ Kho 015\_cái thang / HP\_HYN\_055 \& Đổi số động)}]
-\textbf{Đặc điểm cải tiến:}
-\begin{itemize}
-    \item Tường thẳng đứng kẻ sọc chéo chuẩn in ấn đen trắng; thang gỗ với các bậc thang phân bố đều.
-    \item \textbf{Đổi số động:} Góc nghiêng chân thang $\alpha = {{ang\_alpha}}^\circ$ và chiều dài $L = {{length\_l}}$\,m tự động co giãn tam giác $ABC$ theo đúng dữ liệu đề bài.
-\end{itemize}
-\begin{center}
-\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.95]
-\def\ang{65}
-\def\len{5.0}
-\coordinate (C) at (0,0);
-\coordinate (B) at (-\len*cos \ang, 0);
-\coordinate (A) at (0, \len*sin \ang);
-
-\draw[thick] (0,-0.4) -- (0, \len*sin \ang + 0.8);
-\fill[pattern=north west lines] (0,-0.4) rectangle (0.5, \len*sin \ang + 0.8);
-
-\draw[thick] (-\len*cos \ang - 1.0, 0) -- (0.5, 0);
-\fill[pattern=north east lines] (-\len*cos \ang - 1.0, 0) rectangle (0.5, -0.3);
-
-\draw pic[draw, angle radius=3.5mm]{right angle=A--C--B};
-
-\draw[line width=3pt, brown!60!black] ($(B)+(-0.1,-0.05)$) -- ($(A)+(-0.1,0.05)$);
-\draw[line width=3pt, brown!60!black] ($(B)+(0.1,-0.05)$) -- ($(A)+(0.1,0.05)$);
-
-\foreach \i in {1,2,...,9} {
-    \coordinate (P\i) at ($(B)!\i/10!(A)$);
-    \draw[line width=2pt, brown!80!black] ($(P\i)+(-0.15,0)$) -- ($(P\i)+(0.15,0)$);
-}
-
-\draw pic[draw, angle radius=10mm]{angle=C--B--A};
-\node at ($(B)+(\ang/2:1.5)$) {$\alpha = \ang^{\circ}$};
-
-\draw[<->] ($(B)+(-0.35,0.15)$) -- node[midway, above, sloped] {$L = 2{,}5$\,m} ($(A)+(-0.35,0.15)$);
-
-\fill (A) circle (1.5pt) node[left=3pt, fill=white, inner sep=1pt] {$A$};
-\fill (B) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$B$};
-\fill (C) circle (1.5pt) node[below right=3pt, fill=white, inner sep=1pt] {$C$};
-\end{tikzpicture}
-\end{center}
-\end{tcolorbox}
-
-\newpage
-
-% ==================== DẠNG 4 ====================
-\section{Dạng 4: Ngọn hải đăng quan sát hai vị trí con tàu trên biển}
-\textbf{Mã nhận diện:} \texttt{L09\_C4\_B2\_24} (Cùng dạng: \texttt{L09\_C4\_B2\_25}, \texttt{L09\_C4\_B2\_42}) --- \textbf{MapID:} \texttt{9H4V2-5}
-
-\begin{tcolorbox}[colback=red!5!white,colframe=red!75!black,title=\textbf{1. CÂU HÌNH VẼ CŨ (Chưa sửa - Gốc từ iMath)}]
-\textbf{Khuyết điểm hình cũ:}
-\begin{itemize}
-    \item Hình vẽ mang phong cách hoạt hình thiếu nghiêm túc: vẽ mặt trời cười (\texttt{smiling sun}) có mắt, mũi, miệng giữa đề thi Toán lớp 9.
-    \item Thuyền và hải đăng vẽ hoạt hình màu sắc lòe loẹt, góc hạ $\alpha, \beta$ vẽ cứng không khớp với dữ liệu bài toán.
-\end{itemize}
-\end{tcolorbox}
-
-\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{2. CÂU HÌNH VẼ MỚI (Chuẩn hóa từ Kho 168\_hải đăng / HP\_HYN\_041 \& Đổi số động)}]
-\textbf{Đặc điểm cải tiến:}
-\begin{itemize}
-    \item Ngọn hải đăng sọc đỏ trắng trang nghiêm, bờ đá ven biển, 2 cánh buồm con tàu tại $C$ và $D$.
-    \item Tia nằm ngang $Ax$, các cung góc hạ $\alpha, \beta$ và khoảng cách $x$ rõ ràng chuẩn mực khảo thí.
-    \item \textbf{Đổi số động:} Chiều cao tháp $h = {{height\_h}}$\,m và các góc hạ $\alpha, \beta$ tự động cập nhật khi sinh đề mới.
-\end{itemize}
-\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
 \begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.85]
 \def\h{3.2}
 \def\angA{16}
@@ -326,76 +93,1778 @@ Dung lượng khổng lồ (\textgreater 10\,KB mã nguồn), sử dụng hơn 5
 \node[left=6pt] at (0,\h/2) {$h = 66$\,m};
 \draw[<->] ($(C)+(0,-0.55)$) -- node[midway, below] {$x$} ($(D)+(0,-0.55)$);
 \end{tikzpicture}
+\end{adjustbox}
 \end{center}
 \end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.54\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=green!4!white,colframe=green!60!black,title={\textbf{HÌNH MỚI (Chuẩn hóa \& Đổi số động)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
 
+\textbf{Mẫu L09\_C4\_B2\_24 (Biến thể 1: $h=66$ m, $\alpha=16^\circ, \beta=24^\circ$):} {\small Một người đứng trên tháp tại ${A}$ của ngọn hải đăng cao $66$ m quan sát hai lần một con tàu đang hướng về ngọn hải đăng. Lần thứ nhất người đó nhìn thấy  tàu tại ${D}$ với góc hạ $\alpha= 16^{\circ}$, lần thứ hai người đó nhìn thấy tàu tại ${C}$ với góc hạ $\beta=24^{\circ}$.  Hỏi con tàu đã đi được bao nhiêu mét giữa hai lần quan sát.( Kết quả làm tròn đến hàng đơn vị).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.34, font=\footnotesize]
+\definecolor{lhRed}{HTML}{E95267}
+\definecolor{seaB}{HTML}{1475BC}
+\definecolor{lhWhite}{HTML}{F6F8FB}
+\definecolor{lhRoof}{HTML}{E53F52}
+\definecolor{cliffTop}{HTML}{E89B48}
+\definecolor{skyB}{HTML}{89D9F8}
+\definecolor{boatHull}{HTML}{FFA500}
+\definecolor{boatSail}{HTML}{FFFACD}
+\newcommand{\drawboat}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\draw[gray!80, thick] (0, -0.2) -- (0, 1.2);
+\fill[boatSail, draw=black, thin] (-0.05, -0.1) .. controls (-0.8, 0.2) and (-0.6, 0.8) .. (-0.05, 1.0) -- cycle;
+\fill[boatSail!80!gray, draw=black, thin] (0.05, -0.1) -- (0.8, -0.1) -- (0.05, 0.8) -- cycle;
+\fill[lhRed] (0, 1.2) -- (0.5, 1.0) -- (0, 0.8) -- cycle;
+\fill[boatHull, draw=black, thick] (-0.9, -0.2) -- (0.9, -0.2) -- (0.6, -0.5) -- (-0.6, -0.5) -- cycle;
+\fill[yellow!60!white] (-0.9, -0.2) -- (0.9, -0.2) -- (0.85, -0.25) -- (-0.85, -0.25) -- cycle;
+\fill[seaB] (-0.3, -0.35) circle (0.04);
+\fill[seaB] (0, -0.35) circle (0.04);
+\fill[seaB] (0.3, -0.35) circle (0.04);
+\end{scope}
+}
+\newcommand{\drawlighthouse}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\fill[cliffTop] (-1.2, 0) .. controls (-0.8, 0.2) and (0.8, 0.2) .. (1.2, 0) -- (1.5, -0.5) -- (-1.5, -0.5) -- cycle;
+\fill[lhRed] (-0.7, 0) -- (0.7, 0) -- (0.625, 0.8) -- (-0.625, 0.8) -- cycle;
+\fill[lhWhite] (-0.625, 0.8) -- (0.625, 0.8) -- (0.55, 1.6) -- (-0.55, 1.6) -- cycle;
+\fill[lhRed] (-0.55, 1.6) -- (0.55, 1.6) -- (0.475, 2.4) -- (-0.475, 2.4) -- cycle;
+\fill[lhWhite] (-0.475, 2.4) -- (0.475, 2.4) -- (0.4, 3.2) -- (-0.4, 3.2) -- cycle;
+\fill[black, opacity=0.15] (0, 0) -- (0.7, 0) -- (0.4, 3.2) -- (0, 3.2) -- cycle;
+\fill[gray!60!black] (-0.2, 0) rectangle (0.2, 0.5);
+\fill[gray!60!black] (-0.08, 1.1) rectangle (0.08, 1.3);
+\fill[gray!60!black] (-0.08, 1.9) rectangle (0.08, 2.1);
+\fill[gray!60!black] (-0.08, 2.7) rectangle (0.08, 2.9);
+\fill[cliffTop] (-0.6, 3.2) rectangle (0.6, 3.35);
+\draw[gray!80!black, thick] (-0.55, 3.35) -- (-0.55, 3.6);
+\draw[gray!80!black, thick] (-0.2, 3.35) -- (-0.2, 3.6);
+\draw[gray!80!black, thick] (0.2, 3.35) -- (0.2, 3.6);
+\draw[gray!80!black, thick] (0.55, 3.35) -- (0.55, 3.6);
+\draw[gray!80!black, thick] (-0.6, 3.6) -- (0.6, 3.6);
+\fill[lhWhite] (-0.35, 3.35) rectangle (0.35, 4.0);
+\fill[black, opacity=0.15] (0, 3.35) rectangle (0.35, 4.0);
+\fill[skyB] (-0.25, 3.45) rectangle (-0.05, 3.9);
+\fill[skyB] (0.05, 3.45) rectangle (0.25, 3.9);
+\fill[lhRoof] (-0.45, 4.0) -- (0.45, 4.0) -- (0, 4.6) -- cycle;
+\fill[black, opacity=0.15] (0, 4.0) -- (0.45, 4.0) -- (0, 4.6) -- cycle;
+\draw[gray!80!black, thick] (0, 4.6) -- (0, 5.0);
+\end{scope}
+}
+\pgfmathsetmacro{\h}{6}
+\pgfmathsetmacro{\angA}{max(8, 16)}
+\pgfmathsetmacro{\angB}{max(\angA+3, 24)}
+\pgfmathsetmacro{\rawD}{\h/tan(\angA)}
+\pgfmathsetmacro{\kX}{min(1, 16.5/\rawD)}
+\pgfmathsetmacro{\xC}{-\kX*\h/tan(\angB)}
+\pgfmathsetmacro{\xD}{min(-\kX*\rawD, \xC-3.8)}
+\pgfmathsetmacro{\visA}{atan2(\h, -\xD)}
+\pgfmathsetmacro{\visB}{atan2(\h, -\xC)}
+\coordinate (B) at (0,0);
+\coordinate (A) at (0,\h);
+\coordinate (C) at (\xC,0);
+\coordinate (D) at (\xD,0);
+\coordinate (Ax) at (\xD - 1.5,\h);
+\fill[cyan!10] (\xD - 2.6, -1.05) rectangle (3.6, 0);
+\draw[thick, seaB] (\xD - 2.6, 0) -- (3.6, 0);
+\pgfmathsetmacro{\lhscale}{\h/5}
+\drawlighthouse{0,0}{\lhscale}
+\drawboat{\xD, 0.15}{1.15}
+\drawboat{\xC, 0.15}{1.15}
+\draw[thick, blue!70!black] (D) -- (A);
+\draw[thick, blue!70!black] (C) -- (A);
+\draw[dashed, thick, blue!70!black] (A) -- (Ax) node[above left] {$x$};
+\draw[dashed, thick, blue!70!black] (D) -- (B);
+\draw[dashed, thick, blue!70!black] (A) -- (B);
+\draw[blue!70!black, thick] (-0.45, 0) -- (-0.45, 0.45) -- (0, 0.45);
+\draw[blue!70!black, thick] (A) ++(180:4.2) arc (180:{180+\visA}:4.2);
+\node[blue!70!black, left, fill=white, inner sep=1pt] at ($(A) + ({180 + 0.5*\visA}:4.6)$) {$16^\circ$};
+\draw[blue!70!black, thick] (A) ++(180:2.2) arc (180:{180+\visB}:2.2);
+\draw[->, thin, blue!70!black] ($(A) + ({180 + \visB + 14}:3.2)$) to[bend right=18] ($(A) + ({180 + 0.5*(\visA+\visB)}:2.2)$);
+\node[blue!70!black, below, fill=white, inner sep=1pt] at ($(A) + ({180 + \visB + 14}:3.2)$) {$24^\circ$};
+\draw[gray!70, thin] (0,0) -- (2.5,0) (0,\h) -- (2.5,\h);
+\draw[<->, thick, blue!70!black] (2.2, 0) -- (2.2, \h) node[midway, right, fill=white, inner sep=1.5pt] {$66\text{ m}$};
+\fill[blue!70!black] (D) circle (3.5pt) node[below=2pt] {$D$};
+\fill[blue!70!black] (C) circle (3.5pt) node[below=2pt] {$C$};
+\fill[blue!70!black] (B) circle (3.5pt) node[below right] {$B$};
+\fill[blue!70!black] (A) circle (3.5pt) node[above=2pt] {$A$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\vspace{2mm}\hrule\vspace{2mm}
+
+\textbf{Đổi số L09\_C4\_B2\_42 (Biến thể 2: $h=82$ m, $\alpha=10^\circ, \beta=19^\circ$):} {\small Một người đứng trên tháp tại ${A}$ của ngọn hải đăng cao $82$ m quan sát hai lần một con tàu đang hướng về ngọn hải đăng. Lần thứ nhất người đó nhìn thấy  tàu tại ${D}$ với góc hạ $\alpha= 10^{\circ}$, lần thứ hai người đó nhìn thấy tàu tại ${C}$ với góc hạ $\beta=19^{\circ}$.  Hỏi con tàu đã đi được bao nhiêu mét giữa hai lần quan sát.( Kết quả làm tròn đến hàng đơn vị).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.34, font=\footnotesize]
+\definecolor{lhRed}{HTML}{E95267}
+\definecolor{seaB}{HTML}{1475BC}
+\definecolor{lhWhite}{HTML}{F6F8FB}
+\definecolor{lhRoof}{HTML}{E53F52}
+\definecolor{cliffTop}{HTML}{E89B48}
+\definecolor{skyB}{HTML}{89D9F8}
+\definecolor{boatHull}{HTML}{FFA500}
+\definecolor{boatSail}{HTML}{FFFACD}
+\newcommand{\drawboat}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\draw[gray!80, thick] (0, -0.2) -- (0, 1.2);
+\fill[boatSail, draw=black, thin] (-0.05, -0.1) .. controls (-0.8, 0.2) and (-0.6, 0.8) .. (-0.05, 1.0) -- cycle;
+\fill[boatSail!80!gray, draw=black, thin] (0.05, -0.1) -- (0.8, -0.1) -- (0.05, 0.8) -- cycle;
+\fill[lhRed] (0, 1.2) -- (0.5, 1.0) -- (0, 0.8) -- cycle;
+\fill[boatHull, draw=black, thick] (-0.9, -0.2) -- (0.9, -0.2) -- (0.6, -0.5) -- (-0.6, -0.5) -- cycle;
+\fill[yellow!60!white] (-0.9, -0.2) -- (0.9, -0.2) -- (0.85, -0.25) -- (-0.85, -0.25) -- cycle;
+\fill[seaB] (-0.3, -0.35) circle (0.04);
+\fill[seaB] (0, -0.35) circle (0.04);
+\fill[seaB] (0.3, -0.35) circle (0.04);
+\end{scope}
+}
+\newcommand{\drawlighthouse}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\fill[cliffTop] (-1.2, 0) .. controls (-0.8, 0.2) and (0.8, 0.2) .. (1.2, 0) -- (1.5, -0.5) -- (-1.5, -0.5) -- cycle;
+\fill[lhRed] (-0.7, 0) -- (0.7, 0) -- (0.625, 0.8) -- (-0.625, 0.8) -- cycle;
+\fill[lhWhite] (-0.625, 0.8) -- (0.625, 0.8) -- (0.55, 1.6) -- (-0.55, 1.6) -- cycle;
+\fill[lhRed] (-0.55, 1.6) -- (0.55, 1.6) -- (0.475, 2.4) -- (-0.475, 2.4) -- cycle;
+\fill[lhWhite] (-0.475, 2.4) -- (0.475, 2.4) -- (0.4, 3.2) -- (-0.4, 3.2) -- cycle;
+\fill[black, opacity=0.15] (0, 0) -- (0.7, 0) -- (0.4, 3.2) -- (0, 3.2) -- cycle;
+\fill[gray!60!black] (-0.2, 0) rectangle (0.2, 0.5);
+\fill[gray!60!black] (-0.08, 1.1) rectangle (0.08, 1.3);
+\fill[gray!60!black] (-0.08, 1.9) rectangle (0.08, 2.1);
+\fill[gray!60!black] (-0.08, 2.7) rectangle (0.08, 2.9);
+\fill[cliffTop] (-0.6, 3.2) rectangle (0.6, 3.35);
+\draw[gray!80!black, thick] (-0.55, 3.35) -- (-0.55, 3.6);
+\draw[gray!80!black, thick] (-0.2, 3.35) -- (-0.2, 3.6);
+\draw[gray!80!black, thick] (0.2, 3.35) -- (0.2, 3.6);
+\draw[gray!80!black, thick] (0.55, 3.35) -- (0.55, 3.6);
+\draw[gray!80!black, thick] (-0.6, 3.6) -- (0.6, 3.6);
+\fill[lhWhite] (-0.35, 3.35) rectangle (0.35, 4.0);
+\fill[black, opacity=0.15] (0, 3.35) rectangle (0.35, 4.0);
+\fill[skyB] (-0.25, 3.45) rectangle (-0.05, 3.9);
+\fill[skyB] (0.05, 3.45) rectangle (0.25, 3.9);
+\fill[lhRoof] (-0.45, 4.0) -- (0.45, 4.0) -- (0, 4.6) -- cycle;
+\fill[black, opacity=0.15] (0, 4.0) -- (0.45, 4.0) -- (0, 4.6) -- cycle;
+\draw[gray!80!black, thick] (0, 4.6) -- (0, 5.0);
+\end{scope}
+}
+\pgfmathsetmacro{\h}{6}
+\pgfmathsetmacro{\angA}{max(8, 10)}
+\pgfmathsetmacro{\angB}{max(\angA+3, 19)}
+\pgfmathsetmacro{\rawD}{\h/tan(\angA)}
+\pgfmathsetmacro{\kX}{min(1, 16.5/\rawD)}
+\pgfmathsetmacro{\xC}{-\kX*\h/tan(\angB)}
+\pgfmathsetmacro{\xD}{min(-\kX*\rawD, \xC-3.8)}
+\pgfmathsetmacro{\visA}{atan2(\h, -\xD)}
+\pgfmathsetmacro{\visB}{atan2(\h, -\xC)}
+\coordinate (B) at (0,0);
+\coordinate (A) at (0,\h);
+\coordinate (C) at (\xC,0);
+\coordinate (D) at (\xD,0);
+\coordinate (Ax) at (\xD - 1.5,\h);
+\fill[cyan!10] (\xD - 2.6, -1.05) rectangle (3.6, 0);
+\draw[thick, seaB] (\xD - 2.6, 0) -- (3.6, 0);
+\pgfmathsetmacro{\lhscale}{\h/5}
+\drawlighthouse{0,0}{\lhscale}
+\drawboat{\xD, 0.15}{1.15}
+\drawboat{\xC, 0.15}{1.15}
+\draw[thick, blue!70!black] (D) -- (A);
+\draw[thick, blue!70!black] (C) -- (A);
+\draw[dashed, thick, blue!70!black] (A) -- (Ax) node[above left] {$x$};
+\draw[dashed, thick, blue!70!black] (D) -- (B);
+\draw[dashed, thick, blue!70!black] (A) -- (B);
+\draw[blue!70!black, thick] (-0.45, 0) -- (-0.45, 0.45) -- (0, 0.45);
+\draw[blue!70!black, thick] (A) ++(180:4.2) arc (180:{180+\visA}:4.2);
+\node[blue!70!black, left, fill=white, inner sep=1pt] at ($(A) + ({180 + 0.5*\visA}:4.6)$) {$10^\circ$};
+\draw[blue!70!black, thick] (A) ++(180:2.2) arc (180:{180+\visB}:2.2);
+\draw[->, thin, blue!70!black] ($(A) + ({180 + \visB + 14}:3.2)$) to[bend right=18] ($(A) + ({180 + 0.5*(\visA+\visB)}:2.2)$);
+\node[blue!70!black, below, fill=white, inner sep=1pt] at ($(A) + ({180 + \visB + 14}:3.2)$) {$19^\circ$};
+\draw[gray!70, thin] (0,0) -- (2.5,0) (0,\h) -- (2.5,\h);
+\draw[<->, thick, blue!70!black] (2.2, 0) -- (2.2, \h) node[midway, right, fill=white, inner sep=1.5pt] {$82\text{ m}$};
+\fill[blue!70!black] (D) circle (3.5pt) node[below=2pt] {$D$};
+\fill[blue!70!black] (C) circle (3.5pt) node[below=2pt] {$C$};
+\fill[blue!70!black] (B) circle (3.5pt) node[below right] {$B$};
+\fill[blue!70!black] (A) circle (3.5pt) node[above=2pt] {$A$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
 \newpage
 
-% ==================== DẠNG 5 ====================
-\section{Dạng 5: Máy bay hạ cánh tiếp cận đường băng}
-\textbf{Mã nhận diện:} \texttt{L09\_C4\_B2\_09} (Cùng dạng: \texttt{L09\_C4\_B2\_34}, \texttt{L09\_C4\_B2\_49}) --- \textbf{MapID:} \texttt{9H4C2-5}
 
-\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{CÂU HÌNH VẼ ĐÃ CHUẨN HÓA MỚI (Máy bay tiếp cận góc hạ cánh $\alpha = 3^\circ$)}]
-\textbf{Đặc điểm:} Mô phỏng chân thực đường tiếp cận hạ cánh với góc tiếp cận $3^\circ$, máy bay hướng chúc mũi về phía đường băng $T$, độ cao hạ cánh $a = 550$\,m. Tự động đổi số khi tham số độ cao hoặc góc hạ cánh thay đổi.
+\section{Dạng 2: Cây thông bị bão quật gãy}
+\noindent\textbf{Mã câu:} \texttt{L09\_C4\_B2\_53, L09\_C4\_B2\_54} \quad---\quad \textbf{MapID:} \texttt{9H4V2-5}\\[2mm]
+\textbf{Cải tiến kỹ thuật:} Khôi phục lại hình cây thông chi tiết cũ (\texttt{\textbackslash foreach \textbackslash w/\textbackslash f}, cành \texttt{smooth}, tán lá \texttt{green!40!black}) đồng thời khắc phục lỗi: xoay động theo góc $\alpha$ quanh đỉnh ngọn $C$, đưa cung góc + nhãn nền trắng lên sau tán cây để không bị che khuất, tách số thập phân $a$ chuẩn \texttt{1\{,\}7} và giữ \texttt{\textbackslash begin\{center\}} nằm gọn trong \texttt{\textbackslash loigiai}.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.44\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=red!4!white,colframe=red!70!black,title={\textbf{HÌNH CŨ (Bản oval trước đó)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
 \begin{center}
-\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.85]
-\def\ang{16}
-\def\realAng{3}
-\def\pathLen{7.2}
-\def\h{550}
-\coordinate (T) at (0,0);
-\coordinate (A) at (\pathLen*cos \ang, \pathLen*sin \ang);
-\coordinate (H) at (\pathLen*cos \ang, 0);
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.9]
+\def\ang{21}
+\def\d{4.5}
+\def\h{2.0}
+\coordinate (C) at (0,0);
+\coordinate (A) at (\d,0);
+\coordinate (B) at (\d,\h);
 
-\draw[thick] (-1.0,0) -- ($(H)+(1.5,0)$);
-\fill[pattern=north east lines] (-1.0,0) rectangle ($(H)+(1.2,-0.25)$);
+\draw[thick] (-1.0,0) -- ($(A)+(1.2,0)$);
+\fill[pattern=north east lines] (-1.0,0) rectangle ($(A)+(1.2,-0.25)$);
 
-\draw[thick, dashed] (T) -- (A) node[pos=0.55, above, sloped] {Đường tiếp cận};
-\draw[thick] (A) -- (H) node[midway, right] {$a = \h$\,m};
-\draw (H)++(-0.25,0)--++(0,0.25)--++(0.25,0);
+\fill[brown!70!black] ($(A)+(-0.15,0)$) rectangle ($(A)+(0.15,\h)$);
+\draw[thick, brown!40!black] ($(A)+(-0.15,0)$) -- ($(A)+(-0.15,\h)$);
+\draw[thick, brown!40!black] ($(A)+(0.15,0)$) -- ($(A)+(0.15,\h)$);
+\draw[thick, brown!20!black, fill=yellow!40!brown] 
+    ($(B)+(-0.15,0)$) -- ++(0.08,0.15) -- ++(0.08,-0.1) -- ++(0.08,0.12) -- ++(0.06,-0.17) -- cycle;
 
-\fill (T) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$T$};
-\fill (H) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$H$};
-\fill (A) circle (1.5pt) node[above left=2pt, fill=white, inner sep=1pt] {$A$};
+\draw[line width=3.5pt, brown!70!black] (B) -- (C);
+\draw[line width=1pt, brown!30!black] (B) -- (C);
 
-\draw pic[draw, angle radius=12mm]{angle=H--T--A};
-\node at ($(T)+(\ang/2:1.9)$) {$\realAng^{\circ}$};
-
-\tikzset{Icon-Maybay/.pic={
-\begin{scope}
-\fill[ball color =cyan!40!gray,rounded corners=0.02](-5.6,3)--++(60:0.8)--++(2:0.55)--++(-90:2)--cycle;
-\fill[ball color =cyan!90!gray!40!white](-0.4,1.5)..controls++(75:2)and++(-68:0.75)..(-0.15,4)--++(-5:0.35)..controls++(-50:0.95)and++(106:2)..(1.25,1.5)--cycle;
-\fill[ball color =cyan!30!gray](-4.85,1)..controls++(-90:0.6) and++(180:0.2)..(-4,0.5)--++(-12:3.3)--++(0:4)..controls++(0:2) and++(-172:1)..(6,0)..controls++(8:1)and++(-90:0.1)..(6.85,0.3)..controls++(90:0.2) and++(-30:1)..(5,1.3)..controls++(90:0.25) and++(0:8)..(-4,1.5)--cycle;
-\draw[cyan!40!black](6.85,0.3)coordinate(mui)..controls++(-90:0.5) and++(0:6)..(-2,0.2);
-\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-1.8,0)--++(-5:0.35)--++(-147:4.85)--++(-50:0.7)--++(25.5:6.5)..controls++(-155.5:0.5) and++(-170:0.15)..(1.5,-0.25)..controls++(120:0.5) and++(2:1)..(-1.8,0);
-\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6.1,-2.3)--++(-54:0.7)--++(-28:0.7)--++(25.5:.35)--++(-180:.2)--++(135:1.2)--cycle;
-\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6.9,3.6)--++(2:1)..controls++(-35:2) and++(178:2.3)..(-2,1.5)..controls++(-90:0.2) and++(20:1)..(-3.5,1)--++(180:1.2)--cycle;
-\fill[ball color =cyan!90!gray!40!white,rounded corners=0.02](-6,2.5)--++(0:1.35)--++(-156:2.5)--++(170:0.75)--cycle;
-\fill[ball color =cyan!70!gray!40!white,rounded corners=0.02](-1.9,-0.17)--++(90:0.72)--++(181:2.45)--++(-90:0.6)--cycle;
-\fill[ball color =cyan!90!gray!10!black,line width=0.02,draw=cyan!30!black,rounded corners=0.005](-1.9,-0.18)arc(-90:270:0.2 and 0.38);
-\fill[cyan](5.05,1.3)--++(-25:0.8)..controls++(-140:0.55)and++(10:0.5)..(4.2,0.6)..controls++(180:0.15) and++(182:0.45)..(4.3,1.1)..controls++(2:0.5) and++(-135:0.2)..(5.1,1.3);
-\draw[draw=teal,double,distance=0.03](5.05,1.3)++(-26:0.8)..controls++(-140:0.55)and++(10:0.5)..(4.2,0.6)foreach \i in{1,2,...,4}{coordinate[pos=\i/4](B\i)}..controls++(180:0.15) and++(182:0.45)..(4.3,1.1)..controls++(2:0.5) and++(-135:0.2)..(5.1,1.3)foreach \i in{1,2,...,10}{coordinate[pos=\i/10](A\i)}(A2)--(B2)(A6)--(B1);
-\foreach \i in {0,1,...,6}
-\fill[ball color=cyan](-0.8+0.5*\i,0.4)arc(-90:270:0.1 and 0.2);
-\fill[draw=cyan!10!teal,ball color=cyan!80!gray,rounded corners=0.015](3.2,-0.2)--++(95:0.9)--++(0:0.5)--++(-85:0.9)--cycle;
-\begin{scope}[opacity=1]
-\fill[ball color=orange](2.5,-0.15)arc(-90:270:0.2 and 0.1);
-\fill[ball color=orange!50!red!50!white,rotate around={10:(6,0.25)}](6,0.25)arc(-90:270:0.2 and 0.1);
+\begin{scope}[shift={($(C)+(-0.4,0)$)}, rotate=\ang]
+    \fill[green!45!black, opacity=0.85] (-0.3,0) ellipse [x radius=1.0, y radius=0.4];
+    \fill[green!55!black, opacity=0.9] (0.1,0.1) ellipse [x radius=0.7, y radius=0.3];
+    \fill[green!35!black] (-0.6,-0.05) ellipse [x radius=0.6, y radius=0.25];
+    \draw[thick, brown!50!black] (0,0) -- (-0.8,-0.1);
 \end{scope}
-\end{scope}
-}}
-\draw (A) pic[scale=0.1,xscale=-1,rotate=\ang]{Icon-Maybay};
+
+\draw pic[draw, angle radius=3mm]{right angle=B--A--C};
+\draw pic[draw, angle radius=12mm]{angle=A--C--B};
+\node at ($(C)+(10:1.7)$) {$\alpha = \ang^{\circ}$};
+
+\fill (A) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$A$};
+\fill (B) circle (1.5pt) node[above right=2pt, fill=white, inner sep=1pt] {$B$};
+\fill (C) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$C$};
+
+\draw[<->] ($(C)+(0,-0.55)$) -- node[midway, below] {$a = 1,7$\,m} ($(A)+(0,-0.55)$);
 \end{tikzpicture}
+\end{adjustbox}
 \end{center}
 \end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.54\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=green!4!white,colframe=green!60!black,title={\textbf{HÌNH MỚI (Chuẩn hóa \& Đổi số động)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
 
-% ==================== DẠNG 6 ====================
-\section{Dạng 6: Cậu bé quan sát khinh khí cầu trên không}
-\textbf{Mã nhận diện:} \texttt{L09\_C4\_B2\_27} (Cùng dạng: \texttt{L09\_C4\_B2\_26}, \texttt{L09\_C4\_B2\_43}) --- \textbf{MapID:} \texttt{9H4V2-5}
-
-\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=\textbf{CÂU HÌNH VẼ ĐÃ CHUẨN HÓA MỚI (Mô hình từ Kho 021\_khinh khí cầu \& Đổi số động)}]
-\textbf{Đặc điểm:} Thay thế khung hình chữ nhật đơn điệu cũ bằng hình ảnh khinh khí cầu sinh động có giỏ và sọc màu sắc, đường ngắm hợp với phương ngang góc $53^\circ$, chiều cao người quan sát $h_0 = 1,0$\,m và khoảng cách mặt đất $d = 350$\,m. Tự động đồng bộ khi đổi số.
+\textbf{Mẫu L09\_C4\_B2\_53 (Biến thể 1: $\alpha=21^\circ, a=1{,}7$ m):} {\small Một cây cao bị bão quật gãy, ngọn cây đổ xuống mặt đất. Gốc cây, điểm gãy và ngọn cây tạo thành một tam giác vuông. Đoạn cây gãy tạo với mặt đất một góc $\alpha = 21^{\circ} $ và chắn ngang lối đi một đoạn ${a=1,7} $ m (hình vẽ). Hãy tính chiều cao của cây trước khi bị gãy (với độ chính xác $0,05$).}\par\vspace{2mm}
 \begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line join=round, line cap=round, >=stealth, font=\footnotesize, scale=0.68]
+    \pgfmathsetmacro{\visA}{max(14, min(32, 21))}
+    \pgfmathsetmacro{\dRot}{\visA - 18.435}
+    \pgfmathsetmacro{\Bx}{-4.4 + 10.5936*cos(\visA)}
+    \pgfmathsetmacro{\By}{-1.35 + 10.5936*sin(\visA)}
+    \path
+    (\Bx,-1.35)coordinate(A)
+    (\Bx,\By)coordinate(B)
+    (-4.4,-1.35)coordinate(C)
+    (\Bx,-1.65)coordinate(D)
+    (-4.4,-1.65)coordinate(E);
+    \begin{scope}[rotate around={\dRot:(-4.4,-1.35)}]
+    \begin{scope}[shift={(0,0)},rotate=109]
+        \foreach \w/\f in {0.3/30,0.2/50,0.1/70} {
+            \fill [brown!\f!black] (0,-6) --(\w/2,4)--(\w/2,-6);}
+        %Cành to
+        \draw [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.1,-1.77) (0.3,-1.65) (0.41,-1.55) (0.6,-1.48) (0.72,-1.45) (0.84,-1.34)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.1,-1.8) (-0.13,-1.7) (-0.26,-1.62) (-0.4,-1.51) (-0.54,-1.46) (-0.67,-1.45) (-0.88,-1.52) (-1.05,-1.48)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.18,-0.84) (0.26,-0.76) (0.4,-0.68) (0.55,-0.59) (0.75,-0.5)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.02,-0.83) (-0.11,-0.71) (-0.23,-0.65) (-0.47,-0.56)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates { (0.27,-0.11) (0.42,-0.01) (0.7,0.08)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.05,-0.33)  (-0.37,0.02) (-0.58,0.04) (-0.69,0.15)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.16,0.48) (0.3,0.56) (0.44,0.68) (0.59,0.73)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.03,0.51) (-0.07,0.58) (-0.2,0.65) (-0.43,0.75)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.19,1.18) (0.29,1.25) (0.39,1.3) (0.51,1.44)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.05,1.21) (-0.02,1.31) (-0.15,1.44)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.21,1.76) (0.31,1.86) (0.41,1.92) (0.55,2.01) (0.69,2.05)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.08,1.8) (-0.03,1.89) (-0.14,1.96) (-0.34,2.06)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.2,2.35) (0.3,2.4) (0.4,2.49) (0.49,2.53) (0.56,2.62)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.1,2.41) (0.02,2.47) (-0.07,2.52) (-0.2,2.61)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.2,3.06) (0.28,3.21) (0.39,3.25) (0.51,3.29)};
+        %Tán lá
+        \fill [green!40!black] (0.05,-1.41) -- (0.22,-1.33) -- (0.32,-1.33) -- (0.41,-1.38) -- (0.55,-1.35) -- (0.7,-1.34) -- (0.84,-1.39)  -- (0.87,-1.52) -- (1.02,-1.56) -- (1.17,-1.58) -- (1.34,-1.5) -- (1.4,-1.44) -- (1.54,-1.39) -- (1.62,-1.26) -- (1.69,-1.16) -- (1.68,-1.02) -- (1.54,-0.96) -- (1.39,-0.91) -- (1.2,-0.87) -- (0.97,-0.87) -- (0.81,-0.93) -- (0.67,-0.93) -- (0.54,-1.02) -- (0.42,-1.07) -- (0.24,-1.08) -- (0.1,-1.02) -- (0.01,-1.05) -- (-0.04,-0.99) -- (-0.15,-0.92) -- (-0.24,-0.94) -- (-0.34,-1) -- (-0.4,-1.01) -- (-0.46,-0.93) -- (-0.61,-0.91) -- (-0.78,-0.83) -- (-0.99,-0.83) -- (-1.2,-0.83) -- (-1.33,-0.89) -- (-1.51,-0.92) -- (-1.62,-0.92) -- (-1.73,-1.01) -- (-1.77,-1.17) -- (-1.66,-1.26) -- (-1.62,-1.34) -- (-1.63,-1.47) -- (-1.48,-1.51) -- (-1.23,-1.51) -- (-0.98,-1.5) -- (-0.93,-1.37) -- (-0.82,-1.26) -- (-0.62,-1.31) -- (-0.44,-1.35) -- (-0.24,-1.4) -- (-0.11,-1.46) -- (-0.01,-1.43);
+        \fill [green!40!black] (0.12,3.52) -- (0.2,3.58) -- (0.29,3.59) -- (0.39,3.59) -- (0.46,3.63) -- (0.48,3.73) -- (0.48,3.83) -- (0.4,3.85) -- (0.36,3.9) -- (0.3,3.89) -- (0.22,3.9) -- (0.1,3.9) -- (-0.01,3.9) -- (-0.1,3.83) -- (-0.1,3.7) -- (-0.02,3.58) -- (0.06,3.55);
+        \fill [green!40!black] (0.08,3.23) -- (0.19,3.23) -- (0.26,3.32) -- (0.36,3.38) -- (0.45,3.33) -- (0.5,3.22) -- (0.61,3.21) -- (0.67,3.27) -- (0.72,3.33) -- (0.67,3.42) -- (0.59,3.44) -- (0.52,3.48) -- (0.41,3.5) -- (0.3,3.49) -- (0.17,3.41) -- (0.05,3.41) -- (-0.03,3.43) -- (-0.19,3.46) -- (-0.25,3.47) -- (-0.26,3.35) -- (-0.2,3.28) -- (-0.06,3.26) -- (0.03,3.25);
+        \fill [green!40!black]  (0.1,2.84) -- (0.26,2.84) -- (0.31,2.91) -- (0.42,2.82) -- (0.6,2.78) -- (0.66,2.85) -- (0.67,2.98) -- (0.59,3.07) -- (0.42,3.11) -- (0.3,3.13) -- (0.14,3.13) -- (-0.01,3.13) -- (-0.08,3.1) -- (-0.12,3.11) -- (-0.23,3.13) -- (-0.27,3.02) -- (-0.29,2.9) -- (-0.13,2.84) -- (-0.01,2.84);
+        \fill [green!40!black] (0.13,2.5) -- (0.24,2.5) -- (0.33,2.54) -- (0.39,2.59) -- (0.51,2.6) -- (0.6,2.53) -- (0.71,2.49) -- (0.79,2.52) -- (0.86,2.6) -- (0.81,2.69) -- (0.67,2.71) -- (0.53,2.79) -- (0.37,2.75) -- (0.28,2.71) -- (0.19,2.69) -- (0.04,2.69) -- (-0.06,2.71) -- (-0.18,2.71) -- (-0.26,2.74) -- (-0.36,2.73) -- (-0.4,2.64) -- (-0.34,2.53) -- (-0.2,2.54) -- (-0.12,2.57) -- (-0.02,2.56) -- (0.07,2.51);
+        \fill [green!40!black] (0.15,1.9) -- (0.27,1.94) -- (0.35,2) -- (0.47,2.06) -- (0.61,2.06) -- (0.62,1.96) -- (0.68,1.88) -- (0.8,1.87) -- (0.93,1.89) -- (1.03,1.93) -- (1.12,2) -- (1.14,2.11) -- (1.07,2.17) -- (0.93,2.22) -- (0.8,2.21) -- (0.73,2.24) -- (0.52,2.25) -- (0.38,2.26) -- (0.27,2.25) -- (0.2,2.18) -- (0.06,2.18) -- (-0.05,2.21) -- (-0.16,2.26) -- (-0.28,2.29) -- (-0.41,2.29) -- (-0.49,2.26) -- (-0.54,2.21) -- (-0.56,2.08) -- (-0.53,1.97) -- (-0.46,1.93) -- (-0.33,1.99) -- (-0.21,2.02) -- (-0.08,2.03) -- (0.03,2) -- (0.1,1.94);
+        \fill [green!40!black] (0.1,1.32) -- (0.23,1.34) -- (0.32,1.39) -- (0.43,1.39) -- (0.49,1.29) -- (0.61,1.25) -- (0.77,1.23) -- (0.88,1.23) -- (1.05,1.29) -- (1.11,1.35) -- (1.18,1.4) -- (1.22,1.47) -- (1.19,1.6) -- (1.1,1.66) -- (0.91,1.71) -- (0.77,1.71) -- (0.66,1.66) -- (0.55,1.68) -- (0.44,1.64) -- (0.31,1.63) -- (0.15,1.64) -- (0.02,1.63) -- (-0.1,1.61) -- (-0.25,1.68) -- (-0.37,1.75) -- (-0.49,1.78) -- (-0.61,1.79) -- (-0.71,1.78) -- (-0.8,1.7) -- (-0.84,1.58) -- (-0.83,1.46) -- (-0.8,1.34) -- (-0.68,1.3) -- (-0.62,1.25) -- (-0.54,1.28) -- (-0.47,1.3) -- (-0.35,1.3) -- (-0.25,1.3) -- (-0.16,1.31) -- (-0.09,1.4) -- (0.03,1.35);
+        \fill [green!40!black] (0.09,0.65) -- (0.28,0.66) -- (0.38,0.74) -- (0.48,0.77) -- (0.5,0.64) -- (0.53,0.55) -- (0.66,0.52) -- (0.83,0.54) -- (0.95,0.57) -- (1.05,0.59) -- (1.12,0.66) -- (1.2,0.67) -- (1.26,0.77) -- (1.33,0.91) -- (1.22,0.99) -- (1.09,0.98) -- (0.96,0.97) -- (0.89,1.01) -- (0.79,0.98) -- (0.65,1.01) -- (0.52,1.02) -- (0.36,1.02) -- (0.25,1.02) -- (0.13,0.98) -- (0.11,0.89) -- (0.05,0.83) -- (-0.03,0.86) -- (-0.01,0.97) -- (-0.03,1.05) -- (-0.15,1.05) -- (-0.24,1.02) -- (-0.33,1.04) -- (-0.5,1.03) -- (-0.65,1.05) -- (-0.79,1.05) -- (-0.9,1.04) -- (-0.97,0.91) -- (-1.05,0.75) -- (-1.02,0.64) -- (-0.86,0.62) -- (-0.72,0.65) -- (-0.61,0.63) -- (-0.46,0.63) -- (-0.35,0.69) -- (-0.21,0.76) -- (-0.1,0.72) -- (0.03,0.67);
+        \fill [green!40!black] (0.1,0.02) -- (0.25,0.06) -- (0.34,0.07) -- (0.45,0.1) -- (0.55,0.08) -- (0.66,0.01) -- (0.75,-0.05) -- (0.86,-0.08) -- (0.98,-0.06) -- (1.07,0.01) -- (1.16,0.05) -- (1.24,0.11) -- (1.29,0.19) -- (1.33,0.24) -- (1.3,0.3) -- (1.31,0.36) -- (1.19,0.43) -- (0.97,0.48) -- (0.75,0.45) -- (0.58,0.42) -- (0.44,0.4) -- (0.29,0.33) -- (0.11,0.35) -- (0.03,0.32) -- (-0.07,0.41) -- (-0.15,0.45) -- (-0.27,0.43) -- (-0.43,0.44) -- (-0.65,0.5) -- (-0.86,0.5) -- (-1.05,0.45) -- (-1.18,0.37) -- (-1.26,0.24) -- (-1.25,0.11) -- (-1.17,-0.03) -- (-1.01,-0.06) -- (-0.81,-0.02) -- (-0.73,0.1) -- (-0.63,0.19) -- (-0.51,0.15) -- (-0.37,0.13) -- (-0.26,0.07) -- (-0.13,0.07);
+        \fill [green!40!black] (0.06,-0.67)  -- (0.23,-0.64) -- (0.38,-0.6) -- (0.48,-0.66) -- (0.57,-0.75) -- (0.8,-0.8) -- (1.02,-0.8) -- (1.18,-0.76) -- (1.31,-0.71) -- (1.4,-0.6) -- (1.53,-0.6) -- (1.57,-0.5) -- (1.62,-0.38) -- (1.63,-0.25) -- (1.45,-0.23) -- (1.32,-0.23) -- (1.07,-0.17) -- (0.96,-0.19) -- (0.77,-0.19) -- (0.62,-0.15) -- (0.43,-0.15) -- (0.31,-0.16) -- (0.15,-0.23) -- (0.05,-0.27) -- (-0.06,-0.17)  -- (-0.18,-0.11)  -- (-0.3,-0.14) -- (-0.35,-0.19) -- (-0.52,-0.15) -- (-0.61,-0.17) -- (-0.75,-0.17) -- (-0.88,-0.15) -- (-1.05,-0.12) -- (-1.19,-0.14) -- (-1.3,-0.15) -- (-1.43,-0.2) -- (-1.48,-0.31) -- (-1.53,-0.46) -- (-1.46,-0.59) -- (-1.3,-0.68) -- (-1.1,-0.68) -- (-0.94,-0.59) -- (-0.85,-0.66) -- (-0.64,-0.66) -- (-0.52,-0.63) -- (-0.32,-0.56) -- (-0.2,-0.56);
+    \end{scope}
+    \end{scope}
+    \foreach \w/\f in {0.3/30,0.2/50,0.1/70} {
+        \fill [brown!\f!black] (\Bx-\w/4,-1.35) rectangle(\Bx+\w/4,\By);}
+    \draw[very thick](B)--(C);
+    \draw[very thick]({\Bx+0.85},-1.35)--(-4.8,-1.35);
+    \fill[pattern=north east lines] ({\Bx+0.85},-1.35)rectangle(-4.8,-1.52);
+    \draw pic[draw,angle radius=0.95cm,thick]{angle=A--C--B};
+    \node[fill=white,inner sep=1.2pt,rounded corners=1pt] at ($(C)+({\visA/2}:1.85)$) {$21^\circ$};
+    \draw[<->](D)--node[midway,below,fill=white,inner sep=1pt]{$1{,}7\text{ m}$}(E);
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\vspace{2mm}\hrule\vspace{2mm}
+
+\textbf{Đổi số L09\_C4\_B2\_53 (Biến thể 2: $\alpha=18^\circ, a=5{,}3$ m):} {\small Một cây cao bị bão quật gãy, ngọn cây đổ xuống mặt đất. Gốc cây, điểm gãy và ngọn cây tạo thành một tam giác vuông. Đoạn cây gãy tạo với mặt đất một góc $\alpha = 18^{\circ} $ và chắn ngang lối đi một đoạn ${a=5,3} $ m (hình vẽ). Hãy tính chiều cao của cây trước khi bị gãy (với độ chính xác $0,05$).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line join=round, line cap=round, >=stealth, font=\footnotesize, scale=0.68]
+    \pgfmathsetmacro{\visA}{max(14, min(32, 18))}
+    \pgfmathsetmacro{\dRot}{\visA - 18.435}
+    \pgfmathsetmacro{\Bx}{-4.4 + 10.5936*cos(\visA)}
+    \pgfmathsetmacro{\By}{-1.35 + 10.5936*sin(\visA)}
+    \path
+    (\Bx,-1.35)coordinate(A)
+    (\Bx,\By)coordinate(B)
+    (-4.4,-1.35)coordinate(C)
+    (\Bx,-1.65)coordinate(D)
+    (-4.4,-1.65)coordinate(E);
+    \begin{scope}[rotate around={\dRot:(-4.4,-1.35)}]
+    \begin{scope}[shift={(0,0)},rotate=109]
+        \foreach \w/\f in {0.3/30,0.2/50,0.1/70} {
+            \fill [brown!\f!black] (0,-6) --(\w/2,4)--(\w/2,-6);}
+        %Cành to
+        \draw [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.1,-1.77) (0.3,-1.65) (0.41,-1.55) (0.6,-1.48) (0.72,-1.45) (0.84,-1.34)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.1,-1.8) (-0.13,-1.7) (-0.26,-1.62) (-0.4,-1.51) (-0.54,-1.46) (-0.67,-1.45) (-0.88,-1.52) (-1.05,-1.48)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.18,-0.84) (0.26,-0.76) (0.4,-0.68) (0.55,-0.59) (0.75,-0.5)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.02,-0.83) (-0.11,-0.71) (-0.23,-0.65) (-0.47,-0.56)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates { (0.27,-0.11) (0.42,-0.01) (0.7,0.08)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.05,-0.33)  (-0.37,0.02) (-0.58,0.04) (-0.69,0.15)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.16,0.48) (0.3,0.56) (0.44,0.68) (0.59,0.73)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.03,0.51) (-0.07,0.58) (-0.2,0.65) (-0.43,0.75)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.19,1.18) (0.29,1.25) (0.39,1.3) (0.51,1.44)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.05,1.21) (-0.02,1.31) (-0.15,1.44)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.21,1.76) (0.31,1.86) (0.41,1.92) (0.55,2.01) (0.69,2.05)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.08,1.8) (-0.03,1.89) (-0.14,1.96) (-0.34,2.06)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.2,2.35) (0.3,2.4) (0.4,2.49) (0.49,2.53) (0.56,2.62)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.1,2.41) (0.02,2.47) (-0.07,2.52) (-0.2,2.61)};
+        \draw  [line width=1.5pt,brown!50!black] plot[smooth, tension=.7] coordinates {(0.2,3.06) (0.28,3.21) (0.39,3.25) (0.51,3.29)};
+        %Tán lá
+        \fill [green!40!black] (0.05,-1.41) -- (0.22,-1.33) -- (0.32,-1.33) -- (0.41,-1.38) -- (0.55,-1.35) -- (0.7,-1.34) -- (0.84,-1.39)  -- (0.87,-1.52) -- (1.02,-1.56) -- (1.17,-1.58) -- (1.34,-1.5) -- (1.4,-1.44) -- (1.54,-1.39) -- (1.62,-1.26) -- (1.69,-1.16) -- (1.68,-1.02) -- (1.54,-0.96) -- (1.39,-0.91) -- (1.2,-0.87) -- (0.97,-0.87) -- (0.81,-0.93) -- (0.67,-0.93) -- (0.54,-1.02) -- (0.42,-1.07) -- (0.24,-1.08) -- (0.1,-1.02) -- (0.01,-1.05) -- (-0.04,-0.99) -- (-0.15,-0.92) -- (-0.24,-0.94) -- (-0.34,-1) -- (-0.4,-1.01) -- (-0.46,-0.93) -- (-0.61,-0.91) -- (-0.78,-0.83) -- (-0.99,-0.83) -- (-1.2,-0.83) -- (-1.33,-0.89) -- (-1.51,-0.92) -- (-1.62,-0.92) -- (-1.73,-1.01) -- (-1.77,-1.17) -- (-1.66,-1.26) -- (-1.62,-1.34) -- (-1.63,-1.47) -- (-1.48,-1.51) -- (-1.23,-1.51) -- (-0.98,-1.5) -- (-0.93,-1.37) -- (-0.82,-1.26) -- (-0.62,-1.31) -- (-0.44,-1.35) -- (-0.24,-1.4) -- (-0.11,-1.46) -- (-0.01,-1.43);
+        \fill [green!40!black] (0.12,3.52) -- (0.2,3.58) -- (0.29,3.59) -- (0.39,3.59) -- (0.46,3.63) -- (0.48,3.73) -- (0.48,3.83) -- (0.4,3.85) -- (0.36,3.9) -- (0.3,3.89) -- (0.22,3.9) -- (0.1,3.9) -- (-0.01,3.9) -- (-0.1,3.83) -- (-0.1,3.7) -- (-0.02,3.58) -- (0.06,3.55);
+        \fill [green!40!black] (0.08,3.23) -- (0.19,3.23) -- (0.26,3.32) -- (0.36,3.38) -- (0.45,3.33) -- (0.5,3.22) -- (0.61,3.21) -- (0.67,3.27) -- (0.72,3.33) -- (0.67,3.42) -- (0.59,3.44) -- (0.52,3.48) -- (0.41,3.5) -- (0.3,3.49) -- (0.17,3.41) -- (0.05,3.41) -- (-0.03,3.43) -- (-0.19,3.46) -- (-0.25,3.47) -- (-0.26,3.35) -- (-0.2,3.28) -- (-0.06,3.26) -- (0.03,3.25);
+        \fill [green!40!black]  (0.1,2.84) -- (0.26,2.84) -- (0.31,2.91) -- (0.42,2.82) -- (0.6,2.78) -- (0.66,2.85) -- (0.67,2.98) -- (0.59,3.07) -- (0.42,3.11) -- (0.3,3.13) -- (0.14,3.13) -- (-0.01,3.13) -- (-0.08,3.1) -- (-0.12,3.11) -- (-0.23,3.13) -- (-0.27,3.02) -- (-0.29,2.9) -- (-0.13,2.84) -- (-0.01,2.84);
+        \fill [green!40!black] (0.13,2.5) -- (0.24,2.5) -- (0.33,2.54) -- (0.39,2.59) -- (0.51,2.6) -- (0.6,2.53) -- (0.71,2.49) -- (0.79,2.52) -- (0.86,2.6) -- (0.81,2.69) -- (0.67,2.71) -- (0.53,2.79) -- (0.37,2.75) -- (0.28,2.71) -- (0.19,2.69) -- (0.04,2.69) -- (-0.06,2.71) -- (-0.18,2.71) -- (-0.26,2.74) -- (-0.36,2.73) -- (-0.4,2.64) -- (-0.34,2.53) -- (-0.2,2.54) -- (-0.12,2.57) -- (-0.02,2.56) -- (0.07,2.51);
+        \fill [green!40!black] (0.15,1.9) -- (0.27,1.94) -- (0.35,2) -- (0.47,2.06) -- (0.61,2.06) -- (0.62,1.96) -- (0.68,1.88) -- (0.8,1.87) -- (0.93,1.89) -- (1.03,1.93) -- (1.12,2) -- (1.14,2.11) -- (1.07,2.17) -- (0.93,2.22) -- (0.8,2.21) -- (0.73,2.24) -- (0.52,2.25) -- (0.38,2.26) -- (0.27,2.25) -- (0.2,2.18) -- (0.06,2.18) -- (-0.05,2.21) -- (-0.16,2.26) -- (-0.28,2.29) -- (-0.41,2.29) -- (-0.49,2.26) -- (-0.54,2.21) -- (-0.56,2.08) -- (-0.53,1.97) -- (-0.46,1.93) -- (-0.33,1.99) -- (-0.21,2.02) -- (-0.08,2.03) -- (0.03,2) -- (0.1,1.94);
+        \fill [green!40!black] (0.1,1.32) -- (0.23,1.34) -- (0.32,1.39) -- (0.43,1.39) -- (0.49,1.29) -- (0.61,1.25) -- (0.77,1.23) -- (0.88,1.23) -- (1.05,1.29) -- (1.11,1.35) -- (1.18,1.4) -- (1.22,1.47) -- (1.19,1.6) -- (1.1,1.66) -- (0.91,1.71) -- (0.77,1.71) -- (0.66,1.66) -- (0.55,1.68) -- (0.44,1.64) -- (0.31,1.63) -- (0.15,1.64) -- (0.02,1.63) -- (-0.1,1.61) -- (-0.25,1.68) -- (-0.37,1.75) -- (-0.49,1.78) -- (-0.61,1.79) -- (-0.71,1.78) -- (-0.8,1.7) -- (-0.84,1.58) -- (-0.83,1.46) -- (-0.8,1.34) -- (-0.68,1.3) -- (-0.62,1.25) -- (-0.54,1.28) -- (-0.47,1.3) -- (-0.35,1.3) -- (-0.25,1.3) -- (-0.16,1.31) -- (-0.09,1.4) -- (0.03,1.35);
+        \fill [green!40!black] (0.09,0.65) -- (0.28,0.66) -- (0.38,0.74) -- (0.48,0.77) -- (0.5,0.64) -- (0.53,0.55) -- (0.66,0.52) -- (0.83,0.54) -- (0.95,0.57) -- (1.05,0.59) -- (1.12,0.66) -- (1.2,0.67) -- (1.26,0.77) -- (1.33,0.91) -- (1.22,0.99) -- (1.09,0.98) -- (0.96,0.97) -- (0.89,1.01) -- (0.79,0.98) -- (0.65,1.01) -- (0.52,1.02) -- (0.36,1.02) -- (0.25,1.02) -- (0.13,0.98) -- (0.11,0.89) -- (0.05,0.83) -- (-0.03,0.86) -- (-0.01,0.97) -- (-0.03,1.05) -- (-0.15,1.05) -- (-0.24,1.02) -- (-0.33,1.04) -- (-0.5,1.03) -- (-0.65,1.05) -- (-0.79,1.05) -- (-0.9,1.04) -- (-0.97,0.91) -- (-1.05,0.75) -- (-1.02,0.64) -- (-0.86,0.62) -- (-0.72,0.65) -- (-0.61,0.63) -- (-0.46,0.63) -- (-0.35,0.69) -- (-0.21,0.76) -- (-0.1,0.72) -- (0.03,0.67);
+        \fill [green!40!black] (0.1,0.02) -- (0.25,0.06) -- (0.34,0.07) -- (0.45,0.1) -- (0.55,0.08) -- (0.66,0.01) -- (0.75,-0.05) -- (0.86,-0.08) -- (0.98,-0.06) -- (1.07,0.01) -- (1.16,0.05) -- (1.24,0.11) -- (1.29,0.19) -- (1.33,0.24) -- (1.3,0.3) -- (1.31,0.36) -- (1.19,0.43) -- (0.97,0.48) -- (0.75,0.45) -- (0.58,0.42) -- (0.44,0.4) -- (0.29,0.33) -- (0.11,0.35) -- (0.03,0.32) -- (-0.07,0.41) -- (-0.15,0.45) -- (-0.27,0.43) -- (-0.43,0.44) -- (-0.65,0.5) -- (-0.86,0.5) -- (-1.05,0.45) -- (-1.18,0.37) -- (-1.26,0.24) -- (-1.25,0.11) -- (-1.17,-0.03) -- (-1.01,-0.06) -- (-0.81,-0.02) -- (-0.73,0.1) -- (-0.63,0.19) -- (-0.51,0.15) -- (-0.37,0.13) -- (-0.26,0.07) -- (-0.13,0.07);
+        \fill [green!40!black] (0.06,-0.67)  -- (0.23,-0.64) -- (0.38,-0.6) -- (0.48,-0.66) -- (0.57,-0.75) -- (0.8,-0.8) -- (1.02,-0.8) -- (1.18,-0.76) -- (1.31,-0.71) -- (1.4,-0.6) -- (1.53,-0.6) -- (1.57,-0.5) -- (1.62,-0.38) -- (1.63,-0.25) -- (1.45,-0.23) -- (1.32,-0.23) -- (1.07,-0.17) -- (0.96,-0.19) -- (0.77,-0.19) -- (0.62,-0.15) -- (0.43,-0.15) -- (0.31,-0.16) -- (0.15,-0.23) -- (0.05,-0.27) -- (-0.06,-0.17)  -- (-0.18,-0.11)  -- (-0.3,-0.14) -- (-0.35,-0.19) -- (-0.52,-0.15) -- (-0.61,-0.17) -- (-0.75,-0.17) -- (-0.88,-0.15) -- (-1.05,-0.12) -- (-1.19,-0.14) -- (-1.3,-0.15) -- (-1.43,-0.2) -- (-1.48,-0.31) -- (-1.53,-0.46) -- (-1.46,-0.59) -- (-1.3,-0.68) -- (-1.1,-0.68) -- (-0.94,-0.59) -- (-0.85,-0.66) -- (-0.64,-0.66) -- (-0.52,-0.63) -- (-0.32,-0.56) -- (-0.2,-0.56);
+    \end{scope}
+    \end{scope}
+    \foreach \w/\f in {0.3/30,0.2/50,0.1/70} {
+        \fill [brown!\f!black] (\Bx-\w/4,-1.35) rectangle(\Bx+\w/4,\By);}
+    \draw[very thick](B)--(C);
+    \draw[very thick]({\Bx+0.85},-1.35)--(-4.8,-1.35);
+    \fill[pattern=north east lines] ({\Bx+0.85},-1.35)rectangle(-4.8,-1.52);
+    \draw pic[draw,angle radius=0.95cm,thick]{angle=A--C--B};
+    \node[fill=white,inner sep=1.2pt,rounded corners=1pt] at ($(C)+({\visA/2}:1.85)$) {$18^\circ$};
+    \draw[<->](D)--node[midway,below,fill=white,inner sep=1pt]{$5{,}3\text{ m}$}(E);
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+
+\section{Dạng 3: Đo chiều cao ngọn hải đăng từ hai địa điểm A và B}
+\noindent\textbf{Mã câu:} \texttt{L09\_C4\_B2\_12, L09\_C4\_B2\_35, L09\_C4\_B2\_38, L09\_C4\_B2\_52} \quad---\quad \textbf{MapID:} \texttt{9H4C2-5}\\[2mm]
+\textbf{Cải tiến kỹ thuật:} Loại bỏ khối vẽ thô sơ cũ, thay bằng ngọn hải đăng chi tiết + ghềnh đá; hai tia ngắm từ $A, B$ tới đỉnh $D$ phân tách góc rõ ràng, mũi tên kích thước $AB$ hạ thấp xuống $y=-1{,}3$ không đè nhãn đỉnh.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.44\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=red!4!white,colframe=red!70!black,title={\textbf{HÌNH CŨ (Gốc iMath)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[scale=.5,declare function={h=13.4;a=h/tan(63);b=h/tan(48);}]
+        \fill[brown] (0,0) -- (-5,0) 
+        to[out=20,in=180] (-4.3,.15)
+        to[out=40,in=180] (-3.05,.65)
+        to[out=80,in=200] (-2.8,.85)
+        to[out=70,in=160] (-2.3,1.25)
+        to[out=50,in=190] (-2,1.45)
+        --(-1.6,1.45)--(-1.35,3.2)--(-1.3,2.15)
+        to[out=50,in=210] (0,3.2)
+        to[out=28,in=222] (1.25,4.05)
+        --(1.5,1.5)--(1.7,1.5)
+        to[out=-40,in=180] (2,1.33)
+        to[out=-10,in=110] (2.45,1)
+        to[out=-40,in=160] (3,.8)
+        to[out=-40,in=150] (3.2,.6)
+        to[out=10,in=130] (4.4,.1)
+        to[out=0,in=160] (5,0)
+        --cycle;
+        \fill[brown] (-.85,3.6) rectangle (-.53,4.1);
+        \fill[brown] (-1.3,4.2)
+        to[out=50,in=208] (0,5.15)
+        to[out=25,in=225] (1,5.75)
+        to[out=50,in=275] (1.15,6.3)
+        --(1.08,8)
+        to[out=-130,in=37] (-1,6.6)
+        to[out=-135,in=88] (-1.25,5.5)
+        --cycle;
+        \fill[brown] (.25,8.45) rectangle (.55,9);
+        \fill[brown] (-1.1,8.3)
+        to[out=55,in=245] (1.05,9.85)--(1.2,9.85)
+        to[out=10,in=263] (1.45,10.1)
+        to[out=100,in=-10] (.96,10.35)--(.93,11.1)--(1.05,11.15)
+        to[out=155,in=20] (-1.07,11.2)--(-1.07,10.3)
+        to[out=-175,in=135] (-1.4,10)
+        to[out=-55,in=190] (-1.08,9.85)--cycle;
+        \draw[brown,line width= 2pt] (.9,11.2)--(.9,11.7)
+        (.25,11.2)--(.25,11.9)
+        (-.35,11.2)--(-.35,11.9)
+        (-1.03,11.2)--(-1.03,11.7)
+        to[out=20,in=160] (0.94,11.7)
+        (.55,11.8)--(.54,12.7)
+        (-.6,11.8)--(-.59,12.7)
+        (-.04,11.9)--(-.04,12.7);
+        \draw[brown,line width=4pt] (.6,11.2)--(.6,11.8)
+        (-.75,11.2)--(-.75,11.8);
+        \fill[brown] (-.04,12.15) circle (7pt)
+        (.6,12.7) arc (0:180:.65 and .7) -- cycle
+        (-.04,13.4) circle (5pt);
+        \path 
+        (0,0) coordinate (C)
+        (a,0) coordinate (A)
+        (b,0) coordinate (B)
+        (0,h) coordinate (D);
+        \foreach \i/\g in {C/-90, A/-90, B/-90, D/90} \fill (\i)circle(.1) node[shift={(\g:.25)}] {$\i$};
+        \draw (C)--(B)node[pos=.8, below]{$23m$}--(D)--cycle (A)--(D)
+        (A)+(-1,0) arc (180:117:1)node[pos=.7, left]{$\alpha=59^\circ$};
+        \draw[double] (B)+(-1,0) arc (180:132:1)node[pos=.7, left]{$\beta=41^\circ$};
+        \draw[dashed] (-5,h)--(D);
+        \draw[<->,-stealth] (-4,0) -- (-4,h)node[pos=.5, left]{$h$};
+    \end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.54\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=green!4!white,colframe=green!60!black,title={\textbf{HÌNH MỚI (Chuẩn hóa \& Đổi số động)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+
+\textbf{Mẫu L09\_C4\_B2\_12 ($AB=23$ m, $59^\circ, 41^\circ$):} {\small Ở hai địa điểm ${A}$ và ${B}$ trên mặt đất cách nhau $23$m, người ta đặt ống nhòm nhìn thấy vị trí ${D}$ cao nhất của ngọn hải đăng, góc đặt ống nhóm tại ${B}$ hợp với mặt đất là $41^{\circ}$, góc đặt ống nhòm tại vị trí ${A}$ hợp với mặt đất là $59^{\circ}$. Chiều cao của hải đăng (làm tròn đến hàng đơn vị) là:}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.45, font=\footnotesize]
+\definecolor{lhRed}{HTML}{E95267}
+\definecolor{seaB}{HTML}{1475BC}
+\definecolor{lhWhite}{HTML}{F6F8FB}
+\definecolor{lhRoof}{HTML}{E53F52}
+\definecolor{cliffTop}{HTML}{E89B48}
+\definecolor{skyB}{HTML}{89D9F8}
+\newcommand{\drawlighthouse}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\fill[cliffTop] (-1.2, 0) .. controls (-0.8, 0.2) and (0.8, 0.2) .. (1.2, 0) -- (1.5, -0.4) -- (-1.5, -0.4) -- cycle;
+\fill[lhRed] (-0.7, 0) -- (0.7, 0) -- (0.625, 0.8) -- (-0.625, 0.8) -- cycle;
+\fill[lhWhite] (-0.625, 0.8) -- (0.625, 0.8) -- (0.55, 1.6) -- (-0.55, 1.6) -- cycle;
+\fill[lhRed] (-0.55, 1.6) -- (0.55, 1.6) -- (0.475, 2.4) -- (-0.475, 2.4) -- cycle;
+\fill[lhWhite] (-0.475, 2.4) -- (0.475, 2.4) -- (0.4, 3.2) -- (-0.4, 3.2) -- cycle;
+\fill[black, opacity=0.15] (0, 0) -- (0.7, 0) -- (0.4, 3.2) -- (0, 3.2) -- cycle;
+\fill[gray!60!black] (-0.2, 0) rectangle (0.2, 0.5);
+\fill[gray!60!black] (-0.08, 1.1) rectangle (0.08, 1.3);
+\fill[gray!60!black] (-0.08, 1.9) rectangle (0.08, 2.1);
+\fill[gray!60!black] (-0.08, 2.7) rectangle (0.08, 2.9);
+\fill[cliffTop] (-0.6, 3.2) rectangle (0.6, 3.35);
+\draw[gray!80!black, thick] (-0.55, 3.35) -- (-0.55, 3.6);
+\draw[gray!80!black, thick] (-0.2, 3.35) -- (-0.2, 3.6);
+\draw[gray!80!black, thick] (0.2, 3.35) -- (0.2, 3.6);
+\draw[gray!80!black, thick] (0.55, 3.35) -- (0.55, 3.6);
+\draw[gray!80!black, thick] (-0.6, 3.6) -- (0.6, 3.6);
+\fill[lhWhite] (-0.35, 3.35) rectangle (0.35, 4.0);
+\fill[black, opacity=0.15] (0, 3.35) rectangle (0.35, 4.0);
+\fill[skyB] (-0.25, 3.45) rectangle (-0.05, 3.9);
+\fill[skyB] (0.05, 3.45) rectangle (0.25, 3.9);
+\fill[lhRoof] (-0.45, 4.0) -- (0.45, 4.0) -- (0, 4.6) -- cycle;
+\fill[black, opacity=0.15] (0, 4.0) -- (0.45, 4.0) -- (0, 4.6) -- cycle;
+\draw[gray!80!black, thick] (0, 4.6) -- (0, 5.0);
+\end{scope}
+}
+\pgfmathsetmacro{\h}{5.6}
+\pgfmathsetmacro{\angA}{min(75, max(25, 59))}
+\pgfmathsetmacro{\angB}{min(\angA-5, max(18, 41))}
+\pgfmathsetmacro{\rawXA}{\h/tan(\angA)}
+\pgfmathsetmacro{\rawXB}{\h/tan(\angB)}
+\pgfmathsetmacro{\kX}{min(1, 8.6/\rawXB)}
+\pgfmathsetmacro{\xA}{max(2.7, \kX*\rawXA)}
+\pgfmathsetmacro{\xB}{max(\xA+3.1, \kX*\rawXB)}
+\pgfmathsetmacro{\visA}{atan2(\h, \xA)}
+\pgfmathsetmacro{\visB}{atan2(\h, \xB)}
+\coordinate (C) at (0,0);
+\coordinate (D) at (0,\h);
+\coordinate (A) at (\xA,0);
+\coordinate (B) at (\xB,0);
+\fill[cliffTop!20] (-2.2, -0.45) rectangle (\xB + 1.4, 0);
+\draw[thick, gray!80!black] (-2.2, 0) -- (\xB + 1.4, 0);
+\pgfmathsetmacro{\lhscale}{\h/5}
+\drawlighthouse{0,0}{\lhscale}
+\draw[thick, blue!70!black] (A) -- (D);
+\draw[thick, blue!70!black] (B) -- (D);
+\draw[dashed, thick, blue!70!black] (C) -- (D);
+\draw[thick, blue!70!black] (C) -- (B);
+\draw[blue!70!black, thick] (0.35, 0) -- (0.35, 0.35) -- (0, 0.35);
+\draw[blue!70!black, thick] (A) ++(180:0.95) arc (180:{180-\visA}:0.95);
+\node[blue!70!black, fill=white, inner sep=1pt] at ($(A) + ({180 - 0.5*\visA}:1.6)$) {$59^\circ$};
+\draw[blue!70!black, thick] (B) ++(180:1.2) arc (180:{180-\visB}:1.2);
+\node[blue!70!black, fill=white, inner sep=1pt] at ($(B) + ({180 - 0.5*\visB}:2.0)$) {$41^\circ$};
+\draw[gray!70, thin] (0,0) -- (-2.3,0) (0,\h) -- (-2.3,\h);
+\draw[<->, thick, blue!70!black] (-2.05, 0) -- (-2.05, \h) node[midway, fill=white, inner sep=1.5pt] {$h$};
+\draw[gray!70, thin] (A) -- ($(A)+(0,-1.55)$) (B) -- ($(B)+(0,-1.55)$);
+\draw[<->, thick, blue!70!black] ($(A)+(0,-1.3)$) -- ($(B)+(0,-1.3)$) node[midway, fill=white, inner sep=1.5pt] {$23\text{ m}$};
+\fill[blue!70!black] (C) circle (2.5pt) node[below left=1pt] {$C$};
+\fill[blue!70!black] (A) circle (2.5pt) node[below right=1pt] {$A$};
+\fill[blue!70!black] (B) circle (2.5pt) node[below right=1pt] {$B$};
+\fill[blue!70!black] (D) circle (2.5pt) node[above=2pt] {$D$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\vspace{2mm}\hrule\vspace{2mm}
+
+\textbf{Đổi số L09\_C4\_B2\_52 ($AB=25$ m, $55^\circ, 42^\circ$):} {\small Ở hai địa điểm ${A}$ và ${B}$ trên mặt đất cách nhau $25$m, người ta đặt ống nhòm nhìn thấy vị trí ${D}$ cao nhất của ngọn hải đăng, góc đặt ống nhóm tại ${B}$ hợp với mặt đất là $42^{\circ}$, góc đặt ống nhòm tại vị trí ${A}$ hợp với mặt đất là $55^{\circ}$. Tính chiều cao của hải đăng theo đơn vị mét (làm tròn đến hàng đơn vị).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.45, font=\footnotesize]
+\definecolor{lhRed}{HTML}{E95267}
+\definecolor{seaB}{HTML}{1475BC}
+\definecolor{lhWhite}{HTML}{F6F8FB}
+\definecolor{lhRoof}{HTML}{E53F52}
+\definecolor{cliffTop}{HTML}{E89B48}
+\definecolor{skyB}{HTML}{89D9F8}
+\newcommand{\drawlighthouse}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\fill[cliffTop] (-1.2, 0) .. controls (-0.8, 0.2) and (0.8, 0.2) .. (1.2, 0) -- (1.5, -0.4) -- (-1.5, -0.4) -- cycle;
+\fill[lhRed] (-0.7, 0) -- (0.7, 0) -- (0.625, 0.8) -- (-0.625, 0.8) -- cycle;
+\fill[lhWhite] (-0.625, 0.8) -- (0.625, 0.8) -- (0.55, 1.6) -- (-0.55, 1.6) -- cycle;
+\fill[lhRed] (-0.55, 1.6) -- (0.55, 1.6) -- (0.475, 2.4) -- (-0.475, 2.4) -- cycle;
+\fill[lhWhite] (-0.475, 2.4) -- (0.475, 2.4) -- (0.4, 3.2) -- (-0.4, 3.2) -- cycle;
+\fill[black, opacity=0.15] (0, 0) -- (0.7, 0) -- (0.4, 3.2) -- (0, 3.2) -- cycle;
+\fill[gray!60!black] (-0.2, 0) rectangle (0.2, 0.5);
+\fill[gray!60!black] (-0.08, 1.1) rectangle (0.08, 1.3);
+\fill[gray!60!black] (-0.08, 1.9) rectangle (0.08, 2.1);
+\fill[gray!60!black] (-0.08, 2.7) rectangle (0.08, 2.9);
+\fill[cliffTop] (-0.6, 3.2) rectangle (0.6, 3.35);
+\draw[gray!80!black, thick] (-0.55, 3.35) -- (-0.55, 3.6);
+\draw[gray!80!black, thick] (-0.2, 3.35) -- (-0.2, 3.6);
+\draw[gray!80!black, thick] (0.2, 3.35) -- (0.2, 3.6);
+\draw[gray!80!black, thick] (0.55, 3.35) -- (0.55, 3.6);
+\draw[gray!80!black, thick] (-0.6, 3.6) -- (0.6, 3.6);
+\fill[lhWhite] (-0.35, 3.35) rectangle (0.35, 4.0);
+\fill[black, opacity=0.15] (0, 3.35) rectangle (0.35, 4.0);
+\fill[skyB] (-0.25, 3.45) rectangle (-0.05, 3.9);
+\fill[skyB] (0.05, 3.45) rectangle (0.25, 3.9);
+\fill[lhRoof] (-0.45, 4.0) -- (0.45, 4.0) -- (0, 4.6) -- cycle;
+\fill[black, opacity=0.15] (0, 4.0) -- (0.45, 4.0) -- (0, 4.6) -- cycle;
+\draw[gray!80!black, thick] (0, 4.6) -- (0, 5.0);
+\end{scope}
+}
+\pgfmathsetmacro{\h}{5.6}
+\pgfmathsetmacro{\angA}{min(75, max(25, 55))}
+\pgfmathsetmacro{\angB}{min(\angA-5, max(18, 42))}
+\pgfmathsetmacro{\rawXA}{\h/tan(\angA)}
+\pgfmathsetmacro{\rawXB}{\h/tan(\angB)}
+\pgfmathsetmacro{\kX}{min(1, 8.6/\rawXB)}
+\pgfmathsetmacro{\xA}{max(2.7, \kX*\rawXA)}
+\pgfmathsetmacro{\xB}{max(\xA+3.1, \kX*\rawXB)}
+\pgfmathsetmacro{\visA}{atan2(\h, \xA)}
+\pgfmathsetmacro{\visB}{atan2(\h, \xB)}
+\coordinate (C) at (0,0);
+\coordinate (D) at (0,\h);
+\coordinate (A) at (\xA,0);
+\coordinate (B) at (\xB,0);
+\fill[cliffTop!20] (-2.2, -0.45) rectangle (\xB + 1.4, 0);
+\draw[thick, gray!80!black] (-2.2, 0) -- (\xB + 1.4, 0);
+\pgfmathsetmacro{\lhscale}{\h/5}
+\drawlighthouse{0,0}{\lhscale}
+\draw[thick, blue!70!black] (A) -- (D);
+\draw[thick, blue!70!black] (B) -- (D);
+\draw[dashed, thick, blue!70!black] (C) -- (D);
+\draw[thick, blue!70!black] (C) -- (B);
+\draw[blue!70!black, thick] (0.35, 0) -- (0.35, 0.35) -- (0, 0.35);
+\draw[blue!70!black, thick] (A) ++(180:0.95) arc (180:{180-\visA}:0.95);
+\node[blue!70!black, fill=white, inner sep=1pt] at ($(A) + ({180 - 0.5*\visA}:1.6)$) {$55^\circ$};
+\draw[blue!70!black, thick] (B) ++(180:1.2) arc (180:{180-\visB}:1.2);
+\node[blue!70!black, fill=white, inner sep=1pt] at ($(B) + ({180 - 0.5*\visB}:2.0)$) {$42^\circ$};
+\draw[gray!70, thin] (0,0) -- (-2.3,0) (0,\h) -- (-2.3,\h);
+\draw[<->, thick, blue!70!black] (-2.05, 0) -- (-2.05, \h) node[midway, fill=white, inner sep=1.5pt] {$h$};
+\draw[gray!70, thin] (A) -- ($(A)+(0,-1.55)$) (B) -- ($(B)+(0,-1.55)$);
+\draw[<->, thick, blue!70!black] ($(A)+(0,-1.3)$) -- ($(B)+(0,-1.3)$) node[midway, fill=white, inner sep=1.5pt] {$25\text{ m}$};
+\fill[blue!70!black] (C) circle (2.5pt) node[below left=1pt] {$C$};
+\fill[blue!70!black] (A) circle (2.5pt) node[below right=1pt] {$A$};
+\fill[blue!70!black] (B) circle (2.5pt) node[below right=1pt] {$B$};
+\fill[blue!70!black] (D) circle (2.5pt) node[above=2pt] {$D$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+
+\section{Dạng 4: Khoảng cách từ con tàu đến đỉnh ngọn hải đăng (Pythagore)}
+\noindent\textbf{Mã câu:} \texttt{L08\_C9\_B3\_14, L08\_C9\_B3\_15} \quad---\quad \textbf{MapID:} \texttt{8H9H3}\\[2mm]
+\textbf{Cải tiến kỹ thuật:} Thay thế hình tàu + tháp thô lệch cũ bằng ngọn hải đăng và thuyền buồm đồng bộ phong cách \texttt{HP\_HYN\_002}, gắn đỉnh $A, B, C$ và kích thước $d, h$ tự co giãn theo tỉ lệ đề.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.44\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=red!4!white,colframe=red!70!black,title={\textbf{HÌNH CŨ (Gốc iMath)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}
+    % Sea (slightly wavy line)
+    \fill[blue!30] (0,0) rectangle (10,-2);
+    \draw[blue, thick] (0,-0.1) .. controls (1,-0.3) and (2,0.1) .. (3,-0.2)
+    .. controls (4,-0.5) and (5,-0.1) .. (6,-0.3)
+    .. controls (7,-0.1) and (8,-0.3) .. (9,-0.2)
+    .. controls (10,-0.5) and (11,0.1) .. (12,-0.2);
+    
+    % Enhanced lighthouse (cartoonish style with more details)
+    
+    % Lighthouse base (stone)
+    \fill[gray!50] (0.7,-0.5) rectangle (1.3,0.3);
+    \draw[thick] (0.7,-0.5) -- (0.7,0.3) -- (1.3,0.3) -- (1.3,-0.5) -- cycle;
+    
+    % Lighthouse body (stripes for a more lively look)
+    \fill[white] (0.7,0.3) rectangle (1.3,1);
+    \fill[red!80] (0.7,1) rectangle (1.3,1.5);
+    \fill[white] (0.7,1.5) rectangle (1.3,2);
+    \fill[red!80] (0.7,2) rectangle (1.3,2.5);
+    \fill[white] (0.7,2.5) rectangle (1.3,3);
+    
+    \draw[thick] (0.7,0.3) -- (0.7,3) -- (1.3,3) -- (1.3,0.3) -- cycle;
+    
+    % Windows on the lighthouse
+    \fill[black!70] (0.9,1.2) rectangle (1.1,1.4); % first window
+    \fill[black!70] (0.9,2.2) rectangle (1.1,2.4); % second window
+    
+    % Lighthouse top (lantern room)
+    \fill[gray!70] (0.6,3) rectangle (1.4,3.3);
+    \draw[thick] (0.6,3) -- (1.4,3);
+    \draw[thick] (0.6,3.3) -- (1.4,3.3);
+    
+    % Lighthouse roof (dome-shaped top)
+    \fill[red!80] (0.65,3.3) -- (1.35,3.3) -- (1,3.8) -- cycle;
+    
+    % Lighthouse light
+    \fill[yellow] (1,3.15) circle (0.1);
+    
+    % Lighthouse light beams (enhanced beams with glow effect)
+    \draw[yellow!80, thick] (1,3.15) -- (0,4);
+    \draw[yellow!80, thick] (1,3.15) -- (2,4);
+    
+    % Lighthouse door
+    \fill[brown!80] (0.9,-0.5) rectangle (1.1,-0.2);
+    \draw[thick] (0.9,-0.5) -- (0.9,-0.2) -- (1.1,-0.2) -- (1.1,-0.5) -- cycle;
+    
+    \foreach \x in {3.5, 5.5, 7.5} {
+        \draw[blue!60,thick] (\x,-0.5) .. controls (\x+0.3,-0.6) and (\x+0.7,-0.4) .. (\x+1,-0.5);
+    }
+    
+    % Second boat (smaller and farther away)
+    \fill[brown!70] (7,-0.5) .. controls (7.1,-0.9) and (7.9,-0.9) .. (8,-0.5) -- cycle; % hull
+    \draw[thick] (7,-0.5) .. controls (7.1,-0.9) and (7.9,-0.9) .. (8,-0.5) -- cycle;
+    
+    \draw[thick] (7.5,-0.5) -- (7.5,0.2); % mast
+    \fill[white] (7.5,-0.1) .. controls (8,0) and (8,0.1) .. (7.5,0.2) -- cycle; % sail
+    \draw[thick] (7.5,-0.1) .. controls (8,0) and (8,0.1) .. (7.5,0.2) -- cycle;
+    
+    % Flag for the second boat
+    \fill[red] (7.5,0.2) -- (7.7,0.3) -- (7.5,0.4) -- cycle;
+    
+    % Marking points A (top of lighthouse), B (bottom of lighthouse), C (first boat), D (second boat)
+    \fill[black] (1,3.5) circle (0.05) node[above] {A};  % Point A (top of lighthouse)
+    \fill[black] (1,-0.5) circle (0.05) node[below] {B}; % Point B (bottom of lighthouse)
+ % Point C (position of boat 1)
+    \fill[black] (7.5,-0.5) circle (0.05) node[below] {D}; % Point D (position of boat 2)
+    
+    % Draw lines connecting A-B, A-C, A-D
+    \draw[thick] (1,3.5) -- (1,-0.5);  % Line AB% Line AC
+    \draw[thick] (1,3.5) -- (7.5,-0.5); % Line AD
+    
+    % Draw line B-C-D
+    \draw[thick] (1,-0.5) -- (5,-0.5) -- (7.5,-0.5);  % Line BCD
+    
+    % Add a line x parallel to BC through A
+% Dashed line x, parallel to BC
+    
+    % Add a smiling sun in the sky
+    \fill[yellow] (9,3.5) circle (0.5); % sun body
+    \draw (9,3.7) arc[start angle=45, end angle=135, radius=0.2]; % smiling face
+    \fill[black] (8.8,3.6) circle (0.05); % left eye
+    \fill[black] (9.2,3.6) circle (0.05); % right eye
+    \foreach \angle in {0,45,...,315} {
+        \draw[thick, yellow] (9,3.5) -- ++(\angle:0.8);
+    }
+    
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.54\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=green!4!white,colframe=green!60!black,title={\textbf{HÌNH MỚI (Chuẩn hóa \& Đổi số động)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+
+\textbf{Mẫu L08\_C9\_B3\_14 ($d=207$ m, $h=32$ m):} {\small Một con tàu cách chân ngọn hải đăng $207$ m, biết hải đăng cao $32$ m. Tính khoảng cách từ con tàu đến đỉnh ngọn hải đăng. (Làm tròn kết quả đến hàng đơn vị)}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.42, font=\footnotesize]
+\definecolor{lhRed}{HTML}{E95267}
+\definecolor{seaB}{HTML}{1475BC}
+\definecolor{lhWhite}{HTML}{F6F8FB}
+\definecolor{lhRoof}{HTML}{E53F52}
+\definecolor{cliffTop}{HTML}{E89B48}
+\definecolor{skyB}{HTML}{89D9F8}
+\definecolor{boatHull}{HTML}{FFA500}
+\definecolor{boatSail}{HTML}{FFFACD}
+\newcommand{\drawboat}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\draw[gray!80, thick] (0, -0.2) -- (0, 1.2);
+\fill[boatSail, draw=black, thin] (-0.05, -0.1) .. controls (-0.8, 0.2) and (-0.6, 0.8) .. (-0.05, 1.0) -- cycle;
+\fill[boatSail!80!gray, draw=black, thin] (0.05, -0.1) -- (0.8, -0.1) -- (0.05, 0.8) -- cycle;
+\fill[lhRed] (0, 1.2) -- (0.5, 1.0) -- (0, 0.8) -- cycle;
+\fill[boatHull, draw=black, thick] (-0.9, -0.2) -- (0.9, -0.2) -- (0.6, -0.5) -- (-0.6, -0.5) -- cycle;
+\fill[yellow!60!white] (-0.9, -0.2) -- (0.9, -0.2) -- (0.85, -0.25) -- (-0.85, -0.25) -- cycle;
+\end{scope}
+}
+\newcommand{\drawlighthouse}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\fill[cliffTop] (-1.2, 0) .. controls (-0.8, 0.2) and (0.8, 0.2) .. (1.2, 0) -- (1.5, -0.45) -- (-1.5, -0.45) -- cycle;
+\fill[lhRed] (-0.7, 0) -- (0.7, 0) -- (0.625, 0.8) -- (-0.625, 0.8) -- cycle;
+\fill[lhWhite] (-0.625, 0.8) -- (0.625, 0.8) -- (0.55, 1.6) -- (-0.55, 1.6) -- cycle;
+\fill[lhRed] (-0.55, 1.6) -- (0.55, 1.6) -- (0.475, 2.4) -- (-0.475, 2.4) -- cycle;
+\fill[lhWhite] (-0.475, 2.4) -- (0.475, 2.4) -- (0.4, 3.2) -- (-0.4, 3.2) -- cycle;
+\fill[black, opacity=0.15] (0, 0) -- (0.7, 0) -- (0.4, 3.2) -- (0, 3.2) -- cycle;
+\fill[gray!60!black] (-0.2, 0) rectangle (0.2, 0.5);
+\fill[gray!60!black] (-0.08, 1.1) rectangle (0.08, 1.3);
+\fill[gray!60!black] (-0.08, 1.9) rectangle (0.08, 2.1);
+\fill[gray!60!black] (-0.08, 2.7) rectangle (0.08, 2.9);
+\fill[cliffTop] (-0.6, 3.2) rectangle (0.6, 3.35);
+\fill[lhWhite] (-0.35, 3.35) rectangle (0.35, 4.0);
+\fill[skyB] (-0.25, 3.45) rectangle (-0.05, 3.9);
+\fill[skyB] (0.05, 3.45) rectangle (0.25, 3.9);
+\fill[lhRoof] (-0.45, 4.0) -- (0.45, 4.0) -- (0, 4.6) -- cycle;
+\draw[gray!80!black, thick] (0, 4.6) -- (0, 5.0);
+\end{scope}
+}
+\pgfmathsetmacro{\h}{max(2.8, min(5.4, 2.2 + 7.5*(32/max(207, 1))))}
+\pgfmathsetmacro{\xC}{7.4}
+\coordinate (B) at (0,0);
+\coordinate (A) at (0,\h);
+\coordinate (C) at (\xC,0);
+\fill[cyan!10] (-2.6, -0.7) rectangle (\xC + 2.2, 0);
+\draw[thick, seaB] (-2.6, 0) -- (\xC + 2.2, 0);
+\pgfmathsetmacro{\lhscale}{\h/5}
+\drawlighthouse{0,0}{\lhscale}
+\drawboat{\xC, 0.15}{1.15}
+\draw[thick, blue!70!black] (C) -- (A);
+\draw[dashed, thick, blue!70!black] (A) -- (B) -- (C);
+\draw[blue!70!black, thick] (0.35, 0) -- (0.35, 0.35) -- (0, 0.35);
+\draw[gray!70, thin] (0,0) -- (-2.4,0) (0,\h) -- (-2.4,\h);
+\draw[<->, thick, blue!70!black] (-2.1, 0) -- (-2.1, \h) node[midway, fill=white, inner sep=1.5pt] {$32\text{ m}$};
+\draw[gray!70, thin] (B) -- (0,-1.55) (C) -- (\xC,-1.55);
+\draw[<->, thick, blue!70!black] (0,-1.3) -- (\xC,-1.3) node[midway, fill=white, inner sep=1.5pt] {$207\text{ m}$};
+\fill[blue!70!black] (A) circle (2.8pt) node[above=2pt] {$A$};
+\fill[blue!70!black] (B) circle (2.8pt) node[below left=1pt] {$B$};
+\fill[blue!70!black] (C) circle (2.8pt) node[below right=1pt] {$C$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\vspace{2mm}\hrule\vspace{2mm}
+
+\textbf{Đổi số L08\_C9\_B3\_14 (Biến thể 2: $d=163$ m, $h=71$ m):} {\small Một con tàu cách chân ngọn hải đăng $163$ m, biết hải đăng cao $71$ m. Tính khoảng cách từ con tàu đến đỉnh ngọn hải đăng. (Làm tròn kết quả đến hàng đơn vị)}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.42, font=\footnotesize]
+\definecolor{lhRed}{HTML}{E95267}
+\definecolor{seaB}{HTML}{1475BC}
+\definecolor{lhWhite}{HTML}{F6F8FB}
+\definecolor{lhRoof}{HTML}{E53F52}
+\definecolor{cliffTop}{HTML}{E89B48}
+\definecolor{skyB}{HTML}{89D9F8}
+\definecolor{boatHull}{HTML}{FFA500}
+\definecolor{boatSail}{HTML}{FFFACD}
+\newcommand{\drawboat}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\draw[gray!80, thick] (0, -0.2) -- (0, 1.2);
+\fill[boatSail, draw=black, thin] (-0.05, -0.1) .. controls (-0.8, 0.2) and (-0.6, 0.8) .. (-0.05, 1.0) -- cycle;
+\fill[boatSail!80!gray, draw=black, thin] (0.05, -0.1) -- (0.8, -0.1) -- (0.05, 0.8) -- cycle;
+\fill[lhRed] (0, 1.2) -- (0.5, 1.0) -- (0, 0.8) -- cycle;
+\fill[boatHull, draw=black, thick] (-0.9, -0.2) -- (0.9, -0.2) -- (0.6, -0.5) -- (-0.6, -0.5) -- cycle;
+\fill[yellow!60!white] (-0.9, -0.2) -- (0.9, -0.2) -- (0.85, -0.25) -- (-0.85, -0.25) -- cycle;
+\end{scope}
+}
+\newcommand{\drawlighthouse}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\fill[cliffTop] (-1.2, 0) .. controls (-0.8, 0.2) and (0.8, 0.2) .. (1.2, 0) -- (1.5, -0.45) -- (-1.5, -0.45) -- cycle;
+\fill[lhRed] (-0.7, 0) -- (0.7, 0) -- (0.625, 0.8) -- (-0.625, 0.8) -- cycle;
+\fill[lhWhite] (-0.625, 0.8) -- (0.625, 0.8) -- (0.55, 1.6) -- (-0.55, 1.6) -- cycle;
+\fill[lhRed] (-0.55, 1.6) -- (0.55, 1.6) -- (0.475, 2.4) -- (-0.475, 2.4) -- cycle;
+\fill[lhWhite] (-0.475, 2.4) -- (0.475, 2.4) -- (0.4, 3.2) -- (-0.4, 3.2) -- cycle;
+\fill[black, opacity=0.15] (0, 0) -- (0.7, 0) -- (0.4, 3.2) -- (0, 3.2) -- cycle;
+\fill[gray!60!black] (-0.2, 0) rectangle (0.2, 0.5);
+\fill[gray!60!black] (-0.08, 1.1) rectangle (0.08, 1.3);
+\fill[gray!60!black] (-0.08, 1.9) rectangle (0.08, 2.1);
+\fill[gray!60!black] (-0.08, 2.7) rectangle (0.08, 2.9);
+\fill[cliffTop] (-0.6, 3.2) rectangle (0.6, 3.35);
+\fill[lhWhite] (-0.35, 3.35) rectangle (0.35, 4.0);
+\fill[skyB] (-0.25, 3.45) rectangle (-0.05, 3.9);
+\fill[skyB] (0.05, 3.45) rectangle (0.25, 3.9);
+\fill[lhRoof] (-0.45, 4.0) -- (0.45, 4.0) -- (0, 4.6) -- cycle;
+\draw[gray!80!black, thick] (0, 4.6) -- (0, 5.0);
+\end{scope}
+}
+\pgfmathsetmacro{\h}{max(2.8, min(5.4, 2.2 + 7.5*(71/max(163, 1))))}
+\pgfmathsetmacro{\xC}{7.4}
+\coordinate (B) at (0,0);
+\coordinate (A) at (0,\h);
+\coordinate (C) at (\xC,0);
+\fill[cyan!10] (-2.6, -0.7) rectangle (\xC + 2.2, 0);
+\draw[thick, seaB] (-2.6, 0) -- (\xC + 2.2, 0);
+\pgfmathsetmacro{\lhscale}{\h/5}
+\drawlighthouse{0,0}{\lhscale}
+\drawboat{\xC, 0.15}{1.15}
+\draw[thick, blue!70!black] (C) -- (A);
+\draw[dashed, thick, blue!70!black] (A) -- (B) -- (C);
+\draw[blue!70!black, thick] (0.35, 0) -- (0.35, 0.35) -- (0, 0.35);
+\draw[gray!70, thin] (0,0) -- (-2.4,0) (0,\h) -- (-2.4,\h);
+\draw[<->, thick, blue!70!black] (-2.1, 0) -- (-2.1, \h) node[midway, fill=white, inner sep=1.5pt] {$71\text{ m}$};
+\draw[gray!70, thin] (B) -- (0,-1.55) (C) -- (\xC,-1.55);
+\draw[<->, thick, blue!70!black] (0,-1.3) -- (\xC,-1.3) node[midway, fill=white, inner sep=1.5pt] {$163\text{ m}$};
+\fill[blue!70!black] (A) circle (2.8pt) node[above=2pt] {$A$};
+\fill[blue!70!black] (B) circle (2.8pt) node[below left=1pt] {$B$};
+\fill[blue!70!black] (C) circle (2.8pt) node[below right=1pt] {$C$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+
+\section{Dạng 5: Tia nắng mặt trời và bóng tòa nhà trên mặt đất}
+\noindent\textbf{Mã câu:} \texttt{L09\_C4\_B1\_17, L09\_C4\_B2\_10, L09\_C4\_B2\_32, L09\_C4\_B2\_47} \quad---\quad \textbf{MapID:} \texttt{9H4V1-5 / 9H4V2-5}\\[2mm]
+\textbf{Cải tiến kỹ thuật:} Nâng cấp hình tam giác trơ hoặc mặt trời đơn điệu thành tòa nhà 3D cửa sổ kính xanh (theo kho kiến trúc \texttt{076\_tòa nhà}), mặt trời + tia nắng chiếu qua đỉnh $B$ xuống điểm $C$, dải bóng đổ $AC$.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.44\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=red!4!white,colframe=red!70!black,title={\textbf{HÌNH CŨ (Gốc iMath)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[scale=1,font=\footnotesize,line cap=round,line join=round]
+    % Tòa nhà ----------------------------------------------
+    \path
+    (3,0) coordinate (A)
+    (3,5) coordinate (B)
+    (8,0) coordinate (C)
+    ($(A)!.5!(C)$) node[below] {$32$ m}
+    ($(C)+(162:1)$) node {$64^{\circ}$}
+    ;
+    \foreach \i in {0,0.5,1,1.5,2,2.5}{\foreach \j in {0,0.8,1.6,2.4,3.2,4.0}
+        \draw[fill=yellow!50!white] (\i,\j) rectangle +(0.5,0.8);
+    } 
+    % Ban công 
+    \foreach \i in {0.1,0.6,1.1,1.6,2.1,2.6}{\foreach \j in {0,0.8,1.6,2.4,3.2,4.0}
+        \draw[fill=orange!60!white] (\i,\j) rectangle +(0.3,0.6);
+    }
+    \foreach \j in {0,0.8,1.6,2.4,3.2,4.0,4.8}
+        \draw[fill=cyan!30!white] (0,\j) rectangle +(3,0.3);
+    
+    \draw (A)--(B)--(C)--cycle;    %       \tkzMarkRightAngles(B,A,C)
+    %       \tkzMarkAngles[size=.7](B,C,A)
+    
+    \foreach \i/\p in {A/-90,B/90,C/0}  
+        \fill[black] (\i) circle (1.5pt)  % Điểm đánh dấu màu đen
+        node[shift={(\p:3mm)},black] {$\i$}; % Chữ cái màu đen
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.54\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=green!4!white,colframe=green!60!black,title={\textbf{HÌNH MỚI (Chuẩn hóa \& Đổi số động)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+
+\textbf{Mẫu L09\_C4\_B2\_10 ($\alpha=64^\circ, b=32$ m):} {\small Khi tia sáng mặt trời tạo với mặt đất một góc ${64}^{\circ}$ thì bóng của một tòa nhà trên mặt đất có độ dài $b={32}$m. Chiều cao của tòa nhà (kết quả làm tròn đến mét) là}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.60, font=\footnotesize]
+\definecolor{bldSide}{HTML}{475569}
+\definecolor{bldFront}{HTML}{CBD5E1}
+\definecolor{bldWin}{HTML}{38BDF8}
+\definecolor{sunGold}{HTML}{F59E0B}
+\pgfmathsetmacro{\angC}{max(30, min(72, 64))}
+\pgfmathsetmacro{\h}{5.0}
+\pgfmathsetmacro{\w}{max(2.3, min(5.8, \h/tan(\angC)))}
+\pgfmathsetmacro{\visC}{atan2(\h, \w)}
+\pgfmathsetmacro{\bw}{1.6}
+\pgfmathsetmacro{\dxx}{-0.45}
+\pgfmathsetmacro{\dyy}{0.32}
+\coordinate (A) at (0,0);
+\coordinate (B) at (0,\h);
+\coordinate (C) at (\w,0);
+\fill[gray!18] (-\bw-0.6, -0.3) rectangle (\w+1.0, 0);
+\draw[thick, gray!80!black] (-\bw-0.6, 0) -- (\w+1.0, 0);
+\fill[bldFront] (-\bw, 0) rectangle (0, \h);
+\fill[bldSide] (-\bw, 0) -- (-\bw+\dxx, \dyy) -- (-\bw+\dxx, \h+\dyy) -- (-\bw, \h) -- cycle;
+\fill[gray!12] (-\bw, \h) -- (-\bw+\dxx, \h+\dyy) -- (\dxx, \h+\dyy) -- (0, \h) -- cycle;
+\draw[bldSide, thick] (-\bw, 0) rectangle (0, \h);
+\draw[bldSide, thick] (-\bw, 0) -- (-\bw+\dxx, \dyy) -- (-\bw+\dxx, \h+\dyy) -- (-\bw, \h);
+\draw[bldSide, thick] (-\bw+\dxx, \h+\dyy) -- (\dxx, \h+\dyy) -- (0, \h);
+\foreach \yy in {0.45, 1.25, 2.05, 2.85, 3.65, 4.30} {
+    \fill[bldWin!55, draw=bldSide!60, thin] (-\bw+0.2, \yy) rectangle (-0.88, \yy+0.42);
+    \fill[bldWin!55, draw=bldSide!60, thin] (-0.72, \yy) rectangle (-0.18, \yy+0.42);
+}
+\draw[line width=3.5pt, gray!65] (A) -- (C);
+\coordinate (Sun) at ({-0.45*\w}, {\h + 0.45*\h});
+\fill[sunGold!85] (Sun) circle (0.36);
+\foreach \a in {0,30,...,330} {
+    \draw[sunGold, thick] (Sun) ++(\a:0.44) -- ++(\a:0.22);
+}
+\draw[dashed, sunGold!90!orange, thick] (Sun) -- (B);
+\draw[thick, blue!75!black] (B) -- (C) (A) -- (B) (A) -- (C);
+\draw[blue!75!black, thick] (0.28,0) -- (0.28,0.28) -- (0,0.28);
+\draw[blue!75!black, thick] (C) ++(180:0.85) arc (180:{180-\visC}:0.85);
+\node[blue!75!black, left, fill=white, inner sep=1pt] at ($(C)+({180-0.38*\visC}:1.05)$) {$64^\circ$};
+\draw[gray!70, thin] (A) -- (0,-1.2) (C) -- (\w,-1.2);
+\draw[<->, thick, blue!75!black] (0,-0.98) -- (\w,-0.98) node[midway, fill=white, inner sep=1.5pt] {$32\text{ m}$};
+\fill[blue!75!black] (A) circle (2pt) node[below left=1pt] {$A$};
+\fill[blue!75!black] (B) circle (2pt) node[above right] {$B$};
+\fill[blue!75!black] (C) circle (2pt) node[below right=1pt] {$C$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\vspace{2mm}\hrule\vspace{2mm}
+
+\textbf{Đổi số L09\_C4\_B1\_17 ($\alpha=68^\circ, b=45$ m):} {\small Khi tia nắng mặt trời tạo với mặt đất một góc $68^{\circ}$ thì bóng của một tòa nhà cao tầng trên mặt đất dài $45$ m (hình vẽ). Chiều cao của tòa nhà (làm tròn đến hàng đơn vị) là bao nhiêu?}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.60, font=\footnotesize]
+\definecolor{bldSide}{HTML}{475569}
+\definecolor{bldFront}{HTML}{CBD5E1}
+\definecolor{bldWin}{HTML}{38BDF8}
+\definecolor{sunGold}{HTML}{F59E0B}
+\pgfmathsetmacro{\angC}{max(30, min(72, 68))}
+\pgfmathsetmacro{\h}{5.0}
+\pgfmathsetmacro{\w}{max(2.3, min(5.8, \h/tan(\angC)))}
+\pgfmathsetmacro{\visC}{atan2(\h, \w)}
+\pgfmathsetmacro{\bw}{1.6}
+\pgfmathsetmacro{\dxx}{-0.45}
+\pgfmathsetmacro{\dyy}{0.32}
+\coordinate (A) at (0,0);
+\coordinate (B) at (0,\h);
+\coordinate (C) at (\w,0);
+\fill[gray!18] (-\bw-0.6, -0.3) rectangle (\w+1.0, 0);
+\draw[thick, gray!80!black] (-\bw-0.6, 0) -- (\w+1.0, 0);
+\fill[bldFront] (-\bw, 0) rectangle (0, \h);
+\fill[bldSide] (-\bw, 0) -- (-\bw+\dxx, \dyy) -- (-\bw+\dxx, \h+\dyy) -- (-\bw, \h) -- cycle;
+\fill[gray!12] (-\bw, \h) -- (-\bw+\dxx, \h+\dyy) -- (\dxx, \h+\dyy) -- (0, \h) -- cycle;
+\draw[bldSide, thick] (-\bw, 0) rectangle (0, \h);
+\draw[bldSide, thick] (-\bw, 0) -- (-\bw+\dxx, \dyy) -- (-\bw+\dxx, \h+\dyy) -- (-\bw, \h);
+\draw[bldSide, thick] (-\bw+\dxx, \h+\dyy) -- (\dxx, \h+\dyy) -- (0, \h);
+\foreach \yy in {0.45, 1.25, 2.05, 2.85, 3.65, 4.30} {
+    \fill[bldWin!55, draw=bldSide!60, thin] (-\bw+0.2, \yy) rectangle (-0.88, \yy+0.42);
+    \fill[bldWin!55, draw=bldSide!60, thin] (-0.72, \yy) rectangle (-0.18, \yy+0.42);
+}
+\draw[line width=3.5pt, gray!65] (A) -- (C);
+\coordinate (Sun) at ({-0.45*\w}, {\h + 0.45*\h});
+\fill[sunGold!85] (Sun) circle (0.36);
+\foreach \a in {0,30,...,330} {
+    \draw[sunGold, thick] (Sun) ++(\a:0.44) -- ++(\a:0.22);
+}
+\draw[dashed, sunGold!90!orange, thick] (Sun) -- (B);
+\draw[thick, blue!75!black] (B) -- (C) (A) -- (B) (A) -- (C);
+\draw[blue!75!black, thick] (0.28,0) -- (0.28,0.28) -- (0,0.28);
+\draw[blue!75!black, thick] (C) ++(180:0.85) arc (180:{180-\visC}:0.85);
+\node[blue!75!black, left, fill=white, inner sep=1pt] at ($(C)+({180-0.38*\visC}:1.05)$) {$68^\circ$};
+\draw[gray!70, thin] (A) -- (0,-1.2) (C) -- (\w,-1.2);
+\draw[<->, thick, blue!75!black] (0,-0.98) -- (\w,-0.98) node[midway, fill=white, inner sep=1.5pt] {$45\text{ m}$};
+\fill[blue!75!black] (A) circle (2pt) node[below left=1pt] {$A$};
+\fill[blue!75!black] (B) circle (2pt) node[above right] {$B$};
+\fill[blue!75!black] (C) circle (2pt) node[below right=1pt] {$C$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+
+\section{Dạng 6: Đo chiều cao tòa lâu đài bằng hai vị trí đặt giác kế}
+\noindent\textbf{Mã câu:} \texttt{L09\_C4\_B2\_16, L09\_C4\_B2\_23, L09\_C4\_B2\_41} \quad---\quad \textbf{MapID:} \texttt{9H4C2-5}\\[2mm]
+\textbf{Cải tiến kỹ thuật:} Vẽ lâu đài tường đá răng cưa mái nhọn, hai chân giác kế tại $E, F$ tách đủ rộng, tự động co giãn góc $\alpha, \beta$, khoảng cách $CD$ và chiều cao giác kế $1{,}2$ m.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.44\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=red!4!white,colframe=red!70!black,title={\textbf{HÌNH CŨ (Gốc iMath)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[scale=1]
+    
+    % Định nghĩa các điểm
+    \path
+    (1,5) coordinate (A)
+    (1,0) coordinate (B)
+    (8,0) coordinate (C)
+    (6,1) coordinate (E)
+    (8,1) coordinate (F)
+    (6,0) coordinate (D)
+    (1,1) coordinate (H);
+    
+    % Vẽ tháp
+    \fill[pink!50] (0,0) rectangle (2,4);
+    \fill[red!30] (0,4) -- (1,5) -- (2,4) -- cycle;
+    
+    % Cửa sổ
+    \fill[blue!30] (0.5,1) rectangle (1.5,2.5);
+    
+    % Điểm A trên đỉnh tháp
+    \node[circle, fill=red, inner sep=2pt] at (1,5) {};
+    \node[above] at (1,5) {A};
+    
+    % Điểm B dưới chân tháp
+    \node[circle, fill=blue, inner sep=2pt] at (1,0) {};
+    \node[below] at (1,0) {B};
+    
+    % Điểm C dưới chân tháp
+    \node[circle, fill=blue, inner sep=2pt] at (8,0) {};
+    \node[below] at (8,0) {C};
+    
+    % Điểm D dưới chân tháp
+    \node[circle, fill=blue, inner sep=2pt] at (6,0) {};
+    \node[below] at (6,0) {D};
+    
+    % Điểm F dưới chân tháp
+    \node[circle, fill=blue, inner sep=2pt] at (8,1) {};
+    \node[below left] at (8,1) {F};
+    
+    % Điểm E dưới chân tháp
+    \node[circle, fill=blue, inner sep=2pt] at (6,1) {};
+    \node[below left] at (6,1) {E};
+    
+    % Điểm H dưới chân tháp
+    \node[circle, fill=blue, inner sep=2pt] at (1,1) {};
+    \node[below left] at (1,1) {H};
+    
+    % Vẽ đường viền của tháp
+    \draw[black, thick] (0,0) rectangle (2,4);
+    \draw[black, thick] (0,4) -- (1,5) -- (2,4) -- cycle;
+    \draw[black, thick] (0.5,1) rectangle (1.5,2.5);
+    
+    % Nối các điểm bằng nét liền
+        \draw[black, thick] (A) -- (F) -- (C) --(B)-- cycle;
+    \draw[black, thick] (A) -- (E) -- (D) -- (C) -- (B) -- cycle;
+    \draw[black, thick] (A) -- (E) -- (F) -- (H) -- cycle;
+        \path (E) pic[draw=black,fill=gray!25, angle radius = 7] {angle =A--E--H}
+    node[shift={(-0.5,2.9pt)},scale=0.8](GA){$\alpha $};
+        \path (F) pic[draw=black,fill=gray!25, angle radius = 7] {angle =A--F--H}
+    node[shift={(-0.6,2.9pt)},scale=0.8](GA){$\beta $};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.54\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=green!4!white,colframe=green!60!black,title={\textbf{HÌNH MỚI (Chuẩn hóa \& Đổi số động)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+
+\textbf{Mẫu L09\_C4\_B2\_16 ($26^\circ, 20^\circ, CD=25$ m, $1{,}2$ m):} {\small Để đo chiều cao của một toà lâu đài người ta đặt giác kế thẳng đứng tại vị trí ${D}$. Quay ống ngắm của giác kế sao cho nhìn thấy đỉnh ${A}$ của toà lâu đài dưới góc nhọn $\alpha=26^{\circ}$.  Sau đó đặt giác kế thẳng đứng tại điểm ${C}$, biết $CD=25m$ thì nhìn thấy đỉnh ${A}$ dưới góc $\beta={20^{\circ}}$. Biết chiều cao của giác kế là ${1,2}m$. Hãy tính chiều cao của lâu đài.}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.46, font=\footnotesize]
+\definecolor{stoneMain}{HTML}{E2D4C0}
+\definecolor{stoneDark}{HTML}{B8A58E}
+\definecolor{roofRed}{HTML}{B91C1C}
+\definecolor{roofLight}{HTML}{DC2626}
+\pgfmathsetmacro{\H}{6.4}
+\pgfmathsetmacro{\hInst}{1.15}
+\pgfmathsetmacro{\angA}{max(18, min(60, 26))}
+\pgfmathsetmacro{\angB}{max(12, min(\angA-4, 20))}
+\pgfmathsetmacro{\rawD}{(\H-\hInst)/tan(\angA)}
+\pgfmathsetmacro{\rawC}{(\H-\hInst)/tan(\angB)}
+\pgfmathsetmacro{\kX}{min(1, 10.4/\rawC)}
+\pgfmathsetmacro{\xD}{max(3.3, \kX*\rawD)}
+\pgfmathsetmacro{\xC}{max(\xD+4.0, \kX*\rawC)}
+\pgfmathsetmacro{\visA}{atan2(\H-\hInst, \xD)}
+\pgfmathsetmacro{\visB}{atan2(\H-\hInst, \xC)}
+\coordinate (B) at (0,0);
+\coordinate (H) at (0,\hInst);
+\coordinate (A) at (0,\H);
+\coordinate (D) at (\xD,0);
+\coordinate (E) at (\xD,\hInst);
+\coordinate (C) at (\xC,0);
+\coordinate (F) at (\xC,\hInst);
+\draw[thick, gray!70!black] (-2.2, 0) -- (\xC + 1.4, 0);
+\fill[stoneMain] (-1.2, 0) rectangle (1.2, 3.6);
+\fill[stoneDark!50] (0, 0) rectangle (1.2, 3.6);
+\fill[stoneMain] (-1.4, 3.6) rectangle (1.4, 4.05);
+\fill[stoneDark] (-1.35, 4.05) rectangle (-0.9, 4.35) (-0.45, 4.05) rectangle (0, 4.35) (0.45, 4.05) rectangle (0.9, 4.35) (1.1, 4.05) rectangle (1.4, 4.35);
+\fill[stoneMain] (-0.75, 4.05) rectangle (0.75, 5.1);
+\fill[roofLight] (-0.95, 5.1) -- (0, \H) -- (0.95, 5.1) -- cycle;
+\fill[roofRed] (0, 5.1) -- (0, \H) -- (0.95, 5.1) -- cycle;
+\fill[gray!50!black] (-0.65, 0) -- (-0.65, 0.9) arc (180:0:0.28) -- (-0.09, 0) -- cycle;
+\fill[cyan!25!gray, draw=stoneDark, thin] (-0.3, 4.35) rectangle (0.3, 4.85);
+\draw[stoneDark!80!black, thick] (-1.2, 0) rectangle (1.2, 3.6) (-1.4, 3.6) rectangle (1.4, 4.05) (-0.75, 4.05) rectangle (0.75, 5.1) (-0.95, 5.1) -- (0, \H) -- (0.95, 5.1) -- cycle;
+\draw[very thick, gray!60!black] (\xD-0.25, 0) -- (E) -- (\xD+0.25, 0) (D)--(E);
+\draw[very thick, gray!60!black] (\xC-0.25, 0) -- (F) -- (\xC+0.25, 0) (C)--(F);
+\draw[thick, blue!70!black] (E) -- (A) -- (F);
+\draw[dashed, thick, blue!70!black] (H) -- (F);
+\draw[dashed, thick, blue!70!black] (B) -- (A);
+\draw[blue!70!black, thick] (0.32, \hInst) -- (0.32, \hInst+0.32) -- (0, \hInst+0.32);
+\draw[blue!70!black, thick] (E) ++(180:1.0) arc (180:{180-\visA}:1.0);
+\node[blue!70!black, fill=white, inner sep=1pt] at ($(E)+({180-0.5*\visA}:1.7)$) {$26^\circ$};
+\draw[blue!70!black, thick] (F) ++(180:1.25) arc (180:{180-\visB}:1.25);
+\node[blue!70!black, fill=white, inner sep=1pt] at ($(F)+({180-0.5*\visB}:2.05)$) {$20^\circ$};
+\draw[gray!70, thin] (D) -- (D|-0,-1.55) (C) -- (C|-0,-1.55);
+\draw[<->, thick, blue!70!black] (\xD, -1.3) -- (\xC, -1.3) node[midway, fill=white, inner sep=1.5pt] {$25\text{ m}$};
+\draw[gray!70, thin] (C) -- (\xC+0.9, 0) (F) -- (\xC+0.9, \hInst);
+\draw[<->, thick, blue!70!black] (\xC+0.7, 0) -- (\xC+0.7, \hInst) node[midway, right, fill=white, inner sep=1pt] {$1{,}2\text{ m}$};
+\fill[blue!70!black] (A) circle (2.5pt) node[above=2pt] {$A$};
+\fill[blue!70!black] (B) circle (2.5pt) node[below=1pt] {$B$};
+\fill[blue!70!black] (D) circle (2.5pt) node[below left=1pt] {$D$};
+\fill[blue!70!black] (C) circle (2.5pt) node[below right=1pt] {$C$};
+\fill[blue!70!black] (H) circle (2.5pt) node[above left=1pt, fill=white, inner sep=1pt] {$H$};
+\fill[blue!70!black] (E) circle (2.5pt) node[above right=1pt] {$E$};
+\fill[blue!70!black] (F) circle (2.5pt) node[above right=1pt] {$F$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\vspace{2mm}\hrule\vspace{2mm}
+
+\textbf{Đổi số L09\_C4\_B2\_23 (Biến thể 2: $29^\circ, 16^\circ, CD=21$ m, $1{,}3$ m):} {\small Để đo chiều cao của một toà lâu đài người ta đặt giác kế thẳng đứng tại vị trí ${D}$. Quay ống ngắm của giác kế sao cho nhìn thấy đỉnh ${A}$ của toà lâu đài dưới góc nhọn $\alpha=29^{\circ}$.  Sau đó đặt giác kế thẳng đứng tại điểm ${C}$, biết $CD=21m$ thì nhìn thấy đỉnh ${A}$ dưới góc $\beta={16^{\circ}}$. Biết chiều cao của giác kế là ${1,3}m$. Hãy tính chiều cao của lâu đài.}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.46, font=\footnotesize]
+\definecolor{stoneMain}{HTML}{E2D4C0}
+\definecolor{stoneDark}{HTML}{B8A58E}
+\definecolor{roofRed}{HTML}{B91C1C}
+\definecolor{roofLight}{HTML}{DC2626}
+\pgfmathsetmacro{\H}{6.4}
+\pgfmathsetmacro{\hInst}{1.15}
+\pgfmathsetmacro{\angA}{max(18, min(60, 29))}
+\pgfmathsetmacro{\angB}{max(12, min(\angA-4, 16))}
+\pgfmathsetmacro{\rawD}{(\H-\hInst)/tan(\angA)}
+\pgfmathsetmacro{\rawC}{(\H-\hInst)/tan(\angB)}
+\pgfmathsetmacro{\kX}{min(1, 10.4/\rawC)}
+\pgfmathsetmacro{\xD}{max(3.3, \kX*\rawD)}
+\pgfmathsetmacro{\xC}{max(\xD+4.0, \kX*\rawC)}
+\pgfmathsetmacro{\visA}{atan2(\H-\hInst, \xD)}
+\pgfmathsetmacro{\visB}{atan2(\H-\hInst, \xC)}
+\coordinate (B) at (0,0);
+\coordinate (H) at (0,\hInst);
+\coordinate (A) at (0,\H);
+\coordinate (D) at (\xD,0);
+\coordinate (E) at (\xD,\hInst);
+\coordinate (C) at (\xC,0);
+\coordinate (F) at (\xC,\hInst);
+\draw[thick, gray!70!black] (-2.2, 0) -- (\xC + 1.4, 0);
+\fill[stoneMain] (-1.2, 0) rectangle (1.2, 3.6);
+\fill[stoneDark!50] (0, 0) rectangle (1.2, 3.6);
+\fill[stoneMain] (-1.4, 3.6) rectangle (1.4, 4.05);
+\fill[stoneDark] (-1.35, 4.05) rectangle (-0.9, 4.35) (-0.45, 4.05) rectangle (0, 4.35) (0.45, 4.05) rectangle (0.9, 4.35) (1.1, 4.05) rectangle (1.4, 4.35);
+\fill[stoneMain] (-0.75, 4.05) rectangle (0.75, 5.1);
+\fill[roofLight] (-0.95, 5.1) -- (0, \H) -- (0.95, 5.1) -- cycle;
+\fill[roofRed] (0, 5.1) -- (0, \H) -- (0.95, 5.1) -- cycle;
+\fill[gray!50!black] (-0.65, 0) -- (-0.65, 0.9) arc (180:0:0.28) -- (-0.09, 0) -- cycle;
+\fill[cyan!25!gray, draw=stoneDark, thin] (-0.3, 4.35) rectangle (0.3, 4.85);
+\draw[stoneDark!80!black, thick] (-1.2, 0) rectangle (1.2, 3.6) (-1.4, 3.6) rectangle (1.4, 4.05) (-0.75, 4.05) rectangle (0.75, 5.1) (-0.95, 5.1) -- (0, \H) -- (0.95, 5.1) -- cycle;
+\draw[very thick, gray!60!black] (\xD-0.25, 0) -- (E) -- (\xD+0.25, 0) (D)--(E);
+\draw[very thick, gray!60!black] (\xC-0.25, 0) -- (F) -- (\xC+0.25, 0) (C)--(F);
+\draw[thick, blue!70!black] (E) -- (A) -- (F);
+\draw[dashed, thick, blue!70!black] (H) -- (F);
+\draw[dashed, thick, blue!70!black] (B) -- (A);
+\draw[blue!70!black, thick] (0.32, \hInst) -- (0.32, \hInst+0.32) -- (0, \hInst+0.32);
+\draw[blue!70!black, thick] (E) ++(180:1.0) arc (180:{180-\visA}:1.0);
+\node[blue!70!black, fill=white, inner sep=1pt] at ($(E)+({180-0.5*\visA}:1.7)$) {$29^\circ$};
+\draw[blue!70!black, thick] (F) ++(180:1.25) arc (180:{180-\visB}:1.25);
+\node[blue!70!black, fill=white, inner sep=1pt] at ($(F)+({180-0.5*\visB}:2.05)$) {$16^\circ$};
+\draw[gray!70, thin] (D) -- (D|-0,-1.55) (C) -- (C|-0,-1.55);
+\draw[<->, thick, blue!70!black] (\xD, -1.3) -- (\xC, -1.3) node[midway, fill=white, inner sep=1.5pt] {$21\text{ m}$};
+\draw[gray!70, thin] (C) -- (\xC+0.9, 0) (F) -- (\xC+0.9, \hInst);
+\draw[<->, thick, blue!70!black] (\xC+0.7, 0) -- (\xC+0.7, \hInst) node[midway, right, fill=white, inner sep=1pt] {$1{,}3\text{ m}$};
+\fill[blue!70!black] (A) circle (2.5pt) node[above=2pt] {$A$};
+\fill[blue!70!black] (B) circle (2.5pt) node[below=1pt] {$B$};
+\fill[blue!70!black] (D) circle (2.5pt) node[below left=1pt] {$D$};
+\fill[blue!70!black] (C) circle (2.5pt) node[below right=1pt] {$C$};
+\fill[blue!70!black] (H) circle (2.5pt) node[above left=1pt, fill=white, inner sep=1pt] {$H$};
+\fill[blue!70!black] (E) circle (2.5pt) node[above right=1pt] {$E$};
+\fill[blue!70!black] (F) circle (2.5pt) node[above right=1pt] {$F$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+
+\section{Dạng 7: Người đứng trên sân thượng quan sát xe máy tiến về chân tường}
+\noindent\textbf{Mã câu:} \texttt{L09\_C4\_B2\_15, L09\_C4\_B2\_51} \quad---\quad \textbf{MapID:} \texttt{9H4C2-5}\\[2mm]
+\textbf{Cải tiến kỹ thuật:} Thay thế hình khối khô cứng bằng tòa nhà 3D kèm 2 xe máy vector tại $D$ và $C$; góc lớn phía trong dẫn nhãn ra khoảng trống bên phải tránh đè tường tòa nhà.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.44\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=red!4!white,colframe=red!70!black,title={\textbf{HÌNH CŨ (Gốc iMath)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}
+    \def\hh{6cm}
+    \def\aa{5cm}
+    \path (0,0) coordinate (B) (0,\hh) coordinate (A) (\aa,0) coordinate (C)
+    (3*\aa/5,0) coordinate (D)      (3*\aa/5,\hh) coordinate (x);
+        \draw[->] (0,\hh) -- (3*\aa/5,\hh) node[above] {$x$};
+    \draw 
+(A) pic[draw,angle radius = 6mm] {angle =D--A--x} 
+(A) pic[draw,angle radius = 5mm] {angle =C--A--x}   ;
+        % Hiển thị nhãn cho các điểm
+    \draw (A) node [above] {$A$};
+    \draw (B) node [below] {$B$};
+    \draw (C) node [below] {$C$};
+    \draw (D) node [below right] {$D$};
+    % Vẽ tia Ax song song với BC
+
+    
+    
+    % Vẽ hình tứ giác với các điểm A, B, C, D
+    \draw (A) -- (B) -- (C) -- (D) -- cycle;
+    
+    % Vẽ đường nối A và C bằng nét liền
+    \draw (A) -- (C);
+    
+    % Vẽ tường mô phòng
+    \path[fill=red!30] (B) -- ++(180:5) 
+    to[out=100,in=-90] (-4.2,1.5) 
+    to[out=100,in=-90] (-3.7,3.5) 
+    to[out=100,in=-90] (-2.8,4.8) 
+    to[out=120,in=-110] (-2,6) -- (A) -- cycle;
+    
+    % Cắt vùng mô phỏng bức tường
+    \clip (B) -- ++(180:5) 
+    to[out=100,in=-90] (-4.2,1.5) 
+    to[out=100,in=-90] (-3.7,3.5) 
+    to[out=100,in=-90] (-2.8,4.8) 
+    to[out=120,in=-110] (-2,6) -- (A) -- cycle;
+    
+    % Tô màu các viên gạch hình chữ nhật
+    \fill[pattern=bricks, pattern color=red] (B) -- ++(180:5) 
+    to[out=100,in=-90] (-4.2,1.5) 
+    to[out=100,in=-90] (-3.7,3.5) 
+    to[out=100,in=-90] (-2.8,4.8) 
+    to[out=120,in=-110] (-2,6) -- (A) -- cycle;
+    
+    % Vẽ lại hình tứ giác và đường nối
+    \draw (A)--(B)--(C)--(D)--cycle;
+    \draw[dashed] (B)--(A);
+    \draw (B)--++(180:5) to[out=100,in=-90](-4.2,1.5) to[out=100,in=-90](-3.7,3.5) to[out=100,in=-90](-2.8,4.8) to[out=120,in=-110](-2,6)--(A)--cycle;
+    
+
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.54\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=green!4!white,colframe=green!60!black,title={\textbf{HÌNH MỚI (Chuẩn hóa \& Đổi số động)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+
+\textbf{Mẫu L09\_C4\_B2\_15 ($34^\circ, 67^\circ$):} {\small Một người đang ở trên sân thượng ${A}$ của một cái toà nhà nhìn xuống thấy một con đường chạy thẳng đến chân tường. Anh ta nhìn thấy một chiếc xe máy với góc hạ $\widehat{xAC}=34^{\circ}$. Sau $10$ phút lại nhìn thấy xe đó với góc hạ $\widehat{xAD}=67^{\circ}$. Hỏi sau bao nhiêu phút thì xe máy chạy đến chân tường biết vận tốc của xe máy không đổi (làm tròn kết quả đến hàng phần mười).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.52, font=\footnotesize]
+\definecolor{bldWall}{HTML}{E2E8F0}
+\definecolor{bldSide}{HTML}{64748B}
+\definecolor{bldGlass}{HTML}{38BDF8}
+\definecolor{motoRed}{HTML}{EF4444}
+\newcommand{\drawmoto}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\draw[fill=black!80] (-0.55,0.22) circle (0.22) (0.55,0.22) circle (0.22);
+\draw[fill=white] (-0.55,0.22) circle (0.1) (0.55,0.22) circle (0.1);
+\draw[fill=motoRed, draw=black, thin] (-0.45,0.28) -- (0.35,0.28) -- (0.5,0.55) -- (0.15,0.58) -- (-0.25,0.45) -- (-0.55,0.52) -- cycle;
+\draw[very thick, black] (-0.48,0.45) -- (-0.65,0.82) (-0.65,0.82) -- (-0.48,0.85);
+\fill[cyan!60!white, draw=black, thin] (-0.55,0.72) rectangle (-0.42,0.85);
+\end{scope}
+}
+\pgfmathsetmacro{\h}{5.0}
+\pgfmathsetmacro{\angC}{max(18, min(55, 34))}
+\pgfmathsetmacro{\angD}{max(\angC+8, min(74, 67))}
+\pgfmathsetmacro{\xD}{max(2.2, min(4.5, \h/tan(\angD)))}
+\pgfmathsetmacro{\xC}{max(\xD+2.9, min(8.2, \h/tan(\angC)))}
+\pgfmathsetmacro{\visC}{atan2(\h, \xC)}
+\pgfmathsetmacro{\visD}{atan2(\h, \xD)}
+\coordinate (B) at (0,0);
+\coordinate (A) at (0,\h);
+\coordinate (D) at (\xD,0);
+\coordinate (C) at (\xC,0);
+\coordinate (X) at (\xC+0.6,\h);
+\fill[gray!20] (-2.2,-0.32) rectangle (\xC+1.5, 0);
+\draw[thick, gray!80!black] (-2.2,0) -- (\xC+1.5, 0);
+\fill[bldWall] (-1.8,0) rectangle (0,\h);
+\fill[bldSide] (-1.8,0) -- (-2.2,0.35) -- (-2.2,\h+0.35) -- (-1.8,\h) -- cycle;
+\fill[gray!20] (-1.8,\h) -- (-2.2,\h+0.35) -- (-0.4,\h+0.35) -- (0,\h) -- cycle;
+\draw[bldSide, thick] (-1.8,0) rectangle (0,\h);
+\draw[bldSide, thick] (-1.8,0) -- (-2.2,0.35) -- (-2.2,\h+0.35) -- (-1.8,\h);
+\draw[bldSide, thick] (-2.2,\h+0.35) -- (-0.4,\h+0.35) -- (0,\h);
+\foreach \y in {0.45, 1.25, 2.05, 2.85, 3.65, 4.3} {
+    \fill[bldGlass!55, draw=bldSide!60, thin] (-1.55,\y) rectangle (-0.98,\y+0.42);
+    \fill[bldGlass!55, draw=bldSide!60, thin] (-0.78,\y) rectangle (-0.2,\y+0.42);
+}
+\drawmoto{\xD, 0}{0.85}
+\drawmoto{\xC, 0}{0.85}
+\draw[thick, blue!75!black] (D) -- (A) -- (C);
+\draw[dashed, thick, blue!75!black] (A) -- (X) node[right] {$x$};
+\draw[dashed, thick, blue!75!black] (A) -- (B);
+\draw[blue!75!black, thick] (0.3,0) -- (0.3,0.3) -- (0,0.3);
+\draw[blue!75!black, thick] (A) ++(0:2.6) arc (0:{-\visC}:2.6);
+\node[blue!75!black, fill=white, inner sep=1pt] at ($(A)+({-0.5*\visC}:3.35)$) {$34^\circ$};
+\draw[blue!75!black, thick] (A) ++(0:1.35) arc (0:{-\visD}:1.35);
+\draw[->, thin, blue!75!black] (0.65, \h-2.35) to[bend right=18] ($(A)+({-0.5*(\visC+\visD)}:1.35)$);
+\node[blue!75!black, right, fill=white, inner sep=1pt] at (0.55, \h-2.5) {$67^\circ$};
+\fill[blue!75!black] (A) circle (2.2pt) node[above=2pt] {$A$};
+\fill[blue!75!black] (B) circle (2.2pt) node[below] {$B$};
+\fill[blue!75!black] (D) circle (2.2pt) node[below] {$D$};
+\fill[blue!75!black] (C) circle (2.2pt) node[below] {$C$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\vspace{2mm}\hrule\vspace{2mm}
+
+\textbf{Đổi số L09\_C4\_B2\_51 (Biến thể 2: $30^\circ, 60^\circ$):} {\small Một người đang ở trên sân thượng ${A}$ của một cái toà nhà nhìn xuống thấy một con đường chạy thẳng đến chân tường. Anh ta nhìn thấy một chiếc xe máy với góc hạ $\widehat{xAC}=30^{\circ}$. Sau $9$ phút lại nhìn thấy xe đó với góc hạ $\widehat{xAD}=60^{\circ}$. Hỏi sau bao nhiêu phút thì xe máy chạy đến chân tường biết vận tốc của xe máy không đổi (làm tròn kết quả đến hàng phần mười).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.52, font=\footnotesize]
+\definecolor{bldWall}{HTML}{E2E8F0}
+\definecolor{bldSide}{HTML}{64748B}
+\definecolor{bldGlass}{HTML}{38BDF8}
+\definecolor{motoRed}{HTML}{EF4444}
+\newcommand{\drawmoto}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\draw[fill=black!80] (-0.55,0.22) circle (0.22) (0.55,0.22) circle (0.22);
+\draw[fill=white] (-0.55,0.22) circle (0.1) (0.55,0.22) circle (0.1);
+\draw[fill=motoRed, draw=black, thin] (-0.45,0.28) -- (0.35,0.28) -- (0.5,0.55) -- (0.15,0.58) -- (-0.25,0.45) -- (-0.55,0.52) -- cycle;
+\draw[very thick, black] (-0.48,0.45) -- (-0.65,0.82) (-0.65,0.82) -- (-0.48,0.85);
+\fill[cyan!60!white, draw=black, thin] (-0.55,0.72) rectangle (-0.42,0.85);
+\end{scope}
+}
+\pgfmathsetmacro{\h}{5.0}
+\pgfmathsetmacro{\angC}{max(18, min(55, 30))}
+\pgfmathsetmacro{\angD}{max(\angC+8, min(74, 60))}
+\pgfmathsetmacro{\xD}{max(2.2, min(4.5, \h/tan(\angD)))}
+\pgfmathsetmacro{\xC}{max(\xD+2.9, min(8.2, \h/tan(\angC)))}
+\pgfmathsetmacro{\visC}{atan2(\h, \xC)}
+\pgfmathsetmacro{\visD}{atan2(\h, \xD)}
+\coordinate (B) at (0,0);
+\coordinate (A) at (0,\h);
+\coordinate (D) at (\xD,0);
+\coordinate (C) at (\xC,0);
+\coordinate (X) at (\xC+0.6,\h);
+\fill[gray!20] (-2.2,-0.32) rectangle (\xC+1.5, 0);
+\draw[thick, gray!80!black] (-2.2,0) -- (\xC+1.5, 0);
+\fill[bldWall] (-1.8,0) rectangle (0,\h);
+\fill[bldSide] (-1.8,0) -- (-2.2,0.35) -- (-2.2,\h+0.35) -- (-1.8,\h) -- cycle;
+\fill[gray!20] (-1.8,\h) -- (-2.2,\h+0.35) -- (-0.4,\h+0.35) -- (0,\h) -- cycle;
+\draw[bldSide, thick] (-1.8,0) rectangle (0,\h);
+\draw[bldSide, thick] (-1.8,0) -- (-2.2,0.35) -- (-2.2,\h+0.35) -- (-1.8,\h);
+\draw[bldSide, thick] (-2.2,\h+0.35) -- (-0.4,\h+0.35) -- (0,\h);
+\foreach \y in {0.45, 1.25, 2.05, 2.85, 3.65, 4.3} {
+    \fill[bldGlass!55, draw=bldSide!60, thin] (-1.55,\y) rectangle (-0.98,\y+0.42);
+    \fill[bldGlass!55, draw=bldSide!60, thin] (-0.78,\y) rectangle (-0.2,\y+0.42);
+}
+\drawmoto{\xD, 0}{0.85}
+\drawmoto{\xC, 0}{0.85}
+\draw[thick, blue!75!black] (D) -- (A) -- (C);
+\draw[dashed, thick, blue!75!black] (A) -- (X) node[right] {$x$};
+\draw[dashed, thick, blue!75!black] (A) -- (B);
+\draw[blue!75!black, thick] (0.3,0) -- (0.3,0.3) -- (0,0.3);
+\draw[blue!75!black, thick] (A) ++(0:2.6) arc (0:{-\visC}:2.6);
+\node[blue!75!black, fill=white, inner sep=1pt] at ($(A)+({-0.5*\visC}:3.35)$) {$30^\circ$};
+\draw[blue!75!black, thick] (A) ++(0:1.35) arc (0:{-\visD}:1.35);
+\draw[->, thin, blue!75!black] (0.65, \h-2.35) to[bend right=18] ($(A)+({-0.5*(\visC+\visD)}:1.35)$);
+\node[blue!75!black, right, fill=white, inner sep=1pt] at (0.55, \h-2.5) {$60^\circ$};
+\fill[blue!75!black] (A) circle (2.2pt) node[above=2pt] {$A$};
+\fill[blue!75!black] (B) circle (2.2pt) node[below] {$B$};
+\fill[blue!75!black] (D) circle (2.2pt) node[below] {$D$};
+\fill[blue!75!black] (C) circle (2.2pt) node[below] {$C$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+
+\section{Dạng 8: Người đứng trên sân thượng quan sát ô tô chạy vào cổng}
+\noindent\textbf{Mã câu:} \texttt{L09\_C4\_B1\_20} \quad---\quad \textbf{MapID:} \texttt{9H4V1-5}\\[2mm]
+\textbf{Cải tiến kỹ thuật:} Thay khung vẽ thô bằng tòa nhà 3D, người quan sát tại $A$ trên sân thượng, xe ô tô tại $C$ và cặp mũi tên kích thước chiều cao người/tòa nhà tách gọn bên trái.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.44\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=red!4!white,colframe=red!70!black,title={\textbf{HÌNH CŨ (Gốc iMath)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[scale=1,font=\footnotesize,line cap=round,line join=round]
+    %Tòa nhà
+    \path
+    (3,0) coordinate (B)
+    (-1,0) coordinate (B')
+    (3,4) coordinate (A')
+    (3,4.4) coordinate (A)
+    (15,0) coordinate (C)
+    (-1,4.4) coordinate (O)
+    (7,4.4) coordinate (D)
+    (-0.1,4) coordinate (D')
+    (-1,4) coordinate (O')
+    (-0.5,4) coordinate (C')
+    (-0.5,0) coordinate (E)
+    (2.7,4) coordinate (E')
+    (2.7,4.4) coordinate (F)
+    ;
+    
+    \foreach \i in {0,0.5,1,1.5,2,2.5} {
+        \foreach \j in {0,0.8,1.6,2.4,3.2} {
+            \draw[fill=magenta!10!white] (\i,\j) rectangle +(0.5,0.8);
+        }
+    }
+    
+    %ban công 
+    \foreach \i in {0.1,0.6,1.1,1.6,2.1,2.6} {
+        \foreach \j in {0,0.8,1.6,2.4,3.2} {
+            \draw[fill=gray] (\i,\j) rectangle +(0.3,0.6);
+        }
+    }
+    
+    \foreach \j in {0,0.8,1.6,2.4,3.2} 
+        \draw[fill=cyan!10!white] (0,\j) rectangle +(3,0.3);
+    
+    \draw[ultra thick,cyan](-0.1,4)--(3.1,4);
+    \draw (A)--(B)--(C)--cycle (O)--(D) node[above]{$x$}
+          (B)--(B') (D')--(O') (C')--(E) node[pos=.5,left]{$79m$ } 
+          (E')--(F) node[pos=.5,left]{$1,8m$ } 
+          (15.1,.4) node{Xe};
+    
+    \foreach \i/\p in {A/90,B/-90,C/0}  
+        \fill[black] (\i) circle (1.5pt) node[shift={(\p:3mm)}]{$\i$};
+        \draw 
+
+    (A) pic[draw,angle radius = 15] {angle = C--A--D} node[shift={(-25:-25pt)}]{$ 4^\circ $}   
+    ;
+    %\path pic[draw,angle radius=4mm,opacity=.6,"$4^{\circ}$",angle eccentricity=1.7] {angle = C--A--D};
+    \newcommand{\gocv}[4][black]{\draw[#1] ($(#3)!5pt!(#2)$)--($(#3)!2!($($(#3)!5pt!(#2)$)!.5!($(#3)!5pt!(#4)$)$)$)--($(#3)!5pt!(#4)$);}
+    \gocv{C}{B}{A}  
+    \end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.54\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=green!4!white,colframe=green!60!black,title={\textbf{HÌNH MỚI (Chuẩn hóa \& Đổi số động)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+
+\textbf{Mẫu L09\_C4\_B1\_20 (Biến thể 1: $1{,}8$ m, $79$ m, $4^\circ$):} {\small Một người cao ${1,8}m$ đứng trên sân thượng của một toà nhà cao ${79}m$ đặt ống nhòm hạ xuống dưới hợp với phương ngang một góc $4^{\circ}$ thì nhìn thấy một chiếc xe đang tiến lại gần toà nhà. Sau $5$ phút thì xe đó đến cổng toà nhà, hỏi xe đã đi với vận tốc bao nhiêu? (làm tròn một chữ số thập phân sau dấu phẩy).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.52, font=\footnotesize]
+\definecolor{bldWall}{HTML}{E2E8F0}
+\definecolor{bldSide}{HTML}{64748B}
+\definecolor{bldGlass}{HTML}{38BDF8}
+\definecolor{carRed}{HTML}{DC2626}
+\newcommand{\drawcar}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\fill[carRed, draw=black, thin] (-0.95,0.22) -- (-0.95,0.52) -- (-0.45,0.58) -- (-0.2,0.92) -- (0.48,0.92) -- (0.78,0.55) -- (0.98,0.48) -- (0.98,0.22) -- cycle;
+\fill[cyan!35, draw=black, thin] (-0.38,0.56) -- (-0.18,0.84) -- (0.14,0.84) -- (0.14,0.56) -- cycle;
+\fill[cyan!35, draw=black, thin] (0.20,0.56) -- (0.20,0.84) -- (0.44,0.84) -- (0.68,0.56) -- cycle;
+\fill[black!85] (-0.52,0.22) circle (0.21) (0.52,0.22) circle (0.21);
+\fill[gray!35] (-0.52,0.22) circle (0.10) (0.52,0.22) circle (0.10);
+\end{scope}
+}
+\pgfmathsetmacro{\hb}{4.15}
+\pgfmathsetmacro{\hp}{1.10}
+\pgfmathsetmacro{\htot}{\hb+\hp}
+\pgfmathsetmacro{\visA}{max(18, min(38, 16 + 1.5*4))}
+\pgfmathsetmacro{\xC}{min(8.2, max(4.2, \htot/tan(\visA)))}
+\pgfmathsetmacro{\trueVis}{atan2(\htot, \xC)}
+\coordinate (B) at (0,0);
+\coordinate (E) at (0,\hb);
+\coordinate (A) at (0,\htot);
+\coordinate (C) at (\xC,0);
+\coordinate (X) at (\xC-0.8,\htot);
+\fill[gray!20] (-2.6,-0.32) rectangle (\xC+1.9, 0);
+\draw[thick, gray!80!black] (-2.6,0) -- (\xC+1.9, 0);
+\fill[bldWall] (-1.8,0) rectangle (0,\hb);
+\fill[bldSide] (-1.8,0) -- (-2.2,0.35) -- (-2.2,\hb+0.35) -- (-1.8,\hb) -- cycle;
+\fill[gray!20] (-1.8,\hb) -- (-2.2,\hb+0.35) -- (-0.4,\hb+0.35) -- (0,\hb) -- cycle;
+\draw[bldSide, thick] (-1.8,0) rectangle (0,\hb);
+\draw[bldSide, thick] (-1.8,0) -- (-2.2,0.35) -- (-2.2,\hb+0.35) -- (-1.8,\hb);
+\draw[bldSide, thick] (-2.2,\hb+0.35) -- (-0.4,\hb+0.35) -- (0,\hb);
+\foreach \y in {0.42, 1.18, 1.94, 2.70, 3.45} {
+    \fill[bldGlass!55, draw=bldSide!60, thin] (-1.55,\y) rectangle (-0.98,\y+0.42);
+    \fill[bldGlass!55, draw=bldSide!60, thin] (-0.78,\y) rectangle (-0.2,\y+0.42);
+}
+\fill[blue!70!black] (0,\htot-0.14) circle (0.14);
+\draw[very thick, blue!70!black] (0,\hb) -- (0,\htot-0.28);
+\draw[thick, blue!70!black] (-0.18,\hb+0.35) -- (0,\htot-0.35) -- (0.24,\htot-0.42);
+\drawcar{\xC+0.9, 0}{0.95}
+\draw[thick, blue!75!black] (C) -- (A);
+\draw[dashed, thick, blue!75!black] (A) -- (X) node[above] {$x$};
+\draw[dashed, thick, blue!75!black] (A) -- (B);
+\draw[blue!75!black, thick] (0.3,0) -- (0.3,0.3) -- (0,0.3);
+\draw[blue!75!black, thick] (A) ++(0:2.0) arc (0:{-\trueVis}:2.0);
+\node[blue!75!black, fill=white, inner sep=1pt] at ($(A)+({-0.5*\trueVis}:2.85)$) {$4^\circ$};
+\draw[gray!70, thin] (-1.8,0) -- (-3.05,0) (-1.8,\hb) -- (-3.05,\hb) (0,\htot) -- (-3.05,\htot);
+\draw[<->, thick, blue!75!black] (-2.85, 0) -- (-2.85, \hb) node[midway, left=1pt, fill=white, inner sep=1pt] {$79\text{ m}$};
+\draw[<->, thick, blue!75!black] (-2.85, \hb) -- (-2.85, \htot) node[midway, left=1pt, fill=white, inner sep=1pt] {$1{,}8\text{ m}$};
+\fill[blue!75!black] (A) circle (2.2pt) node[above=2pt] {$A$};
+\fill[blue!75!black] (B) circle (2.2pt) node[below] {$B$};
+\fill[blue!75!black] (C) circle (2.2pt) node[below] {$C$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\vspace{2mm}\hrule\vspace{2mm}
+
+\textbf{Đổi số L09\_C4\_B1\_20 (Biến thể 2: $1{,}7$ m, $77$ m, $3^\circ$):} {\small Một người cao ${1,7}m$ đứng trên sân thượng của một toà nhà cao ${77}m$ đặt ống nhòm hạ xuống dưới hợp với phương ngang một góc $3^{\circ}$ thì nhìn thấy một chiếc xe đang tiến lại gần toà nhà. Sau $5$ phút thì xe đó đến cổng toà nhà, hỏi xe đã đi với vận tốc bao nhiêu? (làm tròn một chữ số thập phân sau dấu phẩy).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=5.6cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.52, font=\footnotesize]
+\definecolor{bldWall}{HTML}{E2E8F0}
+\definecolor{bldSide}{HTML}{64748B}
+\definecolor{bldGlass}{HTML}{38BDF8}
+\definecolor{carRed}{HTML}{DC2626}
+\newcommand{\drawcar}[2]{
+\begin{scope}[shift={(#1)}, scale=#2]
+\fill[carRed, draw=black, thin] (-0.95,0.22) -- (-0.95,0.52) -- (-0.45,0.58) -- (-0.2,0.92) -- (0.48,0.92) -- (0.78,0.55) -- (0.98,0.48) -- (0.98,0.22) -- cycle;
+\fill[cyan!35, draw=black, thin] (-0.38,0.56) -- (-0.18,0.84) -- (0.14,0.84) -- (0.14,0.56) -- cycle;
+\fill[cyan!35, draw=black, thin] (0.20,0.56) -- (0.20,0.84) -- (0.44,0.84) -- (0.68,0.56) -- cycle;
+\fill[black!85] (-0.52,0.22) circle (0.21) (0.52,0.22) circle (0.21);
+\fill[gray!35] (-0.52,0.22) circle (0.10) (0.52,0.22) circle (0.10);
+\end{scope}
+}
+\pgfmathsetmacro{\hb}{4.15}
+\pgfmathsetmacro{\hp}{1.10}
+\pgfmathsetmacro{\htot}{\hb+\hp}
+\pgfmathsetmacro{\visA}{max(18, min(38, 16 + 1.5*3))}
+\pgfmathsetmacro{\xC}{min(8.2, max(4.2, \htot/tan(\visA)))}
+\pgfmathsetmacro{\trueVis}{atan2(\htot, \xC)}
+\coordinate (B) at (0,0);
+\coordinate (E) at (0,\hb);
+\coordinate (A) at (0,\htot);
+\coordinate (C) at (\xC,0);
+\coordinate (X) at (\xC-0.8,\htot);
+\fill[gray!20] (-2.6,-0.32) rectangle (\xC+1.9, 0);
+\draw[thick, gray!80!black] (-2.6,0) -- (\xC+1.9, 0);
+\fill[bldWall] (-1.8,0) rectangle (0,\hb);
+\fill[bldSide] (-1.8,0) -- (-2.2,0.35) -- (-2.2,\hb+0.35) -- (-1.8,\hb) -- cycle;
+\fill[gray!20] (-1.8,\hb) -- (-2.2,\hb+0.35) -- (-0.4,\hb+0.35) -- (0,\hb) -- cycle;
+\draw[bldSide, thick] (-1.8,0) rectangle (0,\hb);
+\draw[bldSide, thick] (-1.8,0) -- (-2.2,0.35) -- (-2.2,\hb+0.35) -- (-1.8,\hb);
+\draw[bldSide, thick] (-2.2,\hb+0.35) -- (-0.4,\hb+0.35) -- (0,\hb);
+\foreach \y in {0.42, 1.18, 1.94, 2.70, 3.45} {
+    \fill[bldGlass!55, draw=bldSide!60, thin] (-1.55,\y) rectangle (-0.98,\y+0.42);
+    \fill[bldGlass!55, draw=bldSide!60, thin] (-0.78,\y) rectangle (-0.2,\y+0.42);
+}
+\fill[blue!70!black] (0,\htot-0.14) circle (0.14);
+\draw[very thick, blue!70!black] (0,\hb) -- (0,\htot-0.28);
+\draw[thick, blue!70!black] (-0.18,\hb+0.35) -- (0,\htot-0.35) -- (0.24,\htot-0.42);
+\drawcar{\xC+0.9, 0}{0.95}
+\draw[thick, blue!75!black] (C) -- (A);
+\draw[dashed, thick, blue!75!black] (A) -- (X) node[above] {$x$};
+\draw[dashed, thick, blue!75!black] (A) -- (B);
+\draw[blue!75!black, thick] (0.3,0) -- (0.3,0.3) -- (0,0.3);
+\draw[blue!75!black, thick] (A) ++(0:2.0) arc (0:{-\trueVis}:2.0);
+\node[blue!75!black, fill=white, inner sep=1pt] at ($(A)+({-0.5*\trueVis}:2.85)$) {$3^\circ$};
+\draw[gray!70, thin] (-1.8,0) -- (-3.05,0) (-1.8,\hb) -- (-3.05,\hb) (0,\htot) -- (-3.05,\htot);
+\draw[<->, thick, blue!75!black] (-2.85, 0) -- (-2.85, \hb) node[midway, left=1pt, fill=white, inner sep=1pt] {$77\text{ m}$};
+\draw[<->, thick, blue!75!black] (-2.85, \hb) -- (-2.85, \htot) node[midway, left=1pt, fill=white, inner sep=1pt] {$1{,}7\text{ m}$};
+\fill[blue!75!black] (A) circle (2.2pt) node[above=2pt] {$A$};
+\fill[blue!75!black] (B) circle (2.2pt) node[below] {$B$};
+\fill[blue!75!black] (C) circle (2.2pt) node[below] {$C$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+\section*{Phụ lục: Các dạng hình thực tế đã chuẩn hóa ổn định trước đó (giữ nguyên)}
+\noindent Ngoài 8 nhóm được nâng cấp ở trên (gồm 21 mã câu hỏi), 5 nhóm đã chuẩn hóa từ kho \texttt{Kho\_Hinh\_Thuc\_Te\_TikZ} ở đợt trước vẫn hoạt động ổn định và được giữ nguyên:
+\begin{itemize}
+    \item \texttt{L09\_C4\_B2\_56, 57} (Tòa nhà + cột ăng-ten)
+    \item \texttt{L09\_C4\_B1\_16, 29} và \texttt{L09\_C4\_B2\_55} (Cái thang tựa tường)
+    \item \texttt{L09\_C4\_B2\_07, 08, 09, 34, 49} (Máy bay cất cánh / hạ cánh)
+    \item \texttt{L09\_C4\_B2\_26, 27, 43} (Khinh khí cầu)
+\end{itemize}
+\begin{center}
+\begin{minipage}[c]{0.31\textwidth}\centering
+\begin{adjustbox}{max width=\linewidth, max totalheight=4.5cm, keepaspectratio}
+\definecolor{skyb}{RGB}{102, 178, 240}
+\definecolor{buildblue}{RGB}{30, 115, 230}
+\definecolor{gridblue}{RGB}{185, 225, 255}
+\definecolor{roofblue}{RGB}{15, 75, 170}
+\definecolor{grassgreen}{RGB}{125, 185, 45}
+\begin{tikzpicture}[
+    >=stealth, 
+    line join=round, 
+    line cap=round, 
+    every node/.style={font=\normalsize},
+    declare function={
+        w1 = 2.4;
+        h1 = 3.6;
+        d_space = 4.2;
+        w2 = 2.6;
+        ang_C = 41;
+        ang_B = 46;
+        dist_AD = d_space + 0.5*w2; 
+        yC = h1 + dist_AD * tan(ang_C);
+        yB = h1 + dist_AD * tan(ang_B);
+        h_ant = yB - yC;
+        r_pt = 0.4pt;
+    },scale=0.55
+]
+    \draw[line width=0.8pt] (-0.8,0) -- (w1 + d_space + w2 + 0.8, 0);
+    \draw[fill=grassgreen!85, draw=grassgreen!60!black, rounded corners=5pt, line width=0.6pt] 
+        (-0.3,-0.05) rectangle (w1 + 0.3, 0.25);
+    \draw[fill=grassgreen!85, draw=grassgreen!60!black, rounded corners=5pt, line width=0.6pt] 
+        (w1 + d_space - 0.3, -0.05) rectangle (w1 + d_space + w2 + 0.3, 0.25);
+    \begin{scope}
+        \draw[fill=buildblue!70, draw=white, line width=0.8pt] 
+            (0.1, 0.2) rectangle ($(w1-0.1, 0.9)$);
+        \draw[fill=buildblue, draw=white, line width=1pt] 
+            (0.2, 0.9) rectangle ($(w1-0.2, {h1-0.4})$);
+        \foreach \i in {1,...,10} {
+            \draw[gridblue!60, line width=0.3pt] 
+                (0.2, {0.9 + \i*(h1-1.3)/11}) -- ($(w1-0.2, {0.9 + \i*(h1-1.3)/11})$);
+        }
+        \foreach \j in {1,...,4} {
+            \draw[gridblue!60, line width=0.3pt] 
+                ({0.2 + \j*(w1-0.4)/5}, 0.9) -- ({0.2 + \j*(w1-0.4)/5}, {h1-0.4});
+        }
+        \draw[fill=roofblue, draw=white, line width=0.8pt] 
+            (0.4, {h1-0.4}) rectangle ($(w1-0.4, {h1-0.15})$);
+        \draw[fill=roofblue!90, draw=white, line width=0.8pt] 
+            (0.6, {h1-0.15}) rectangle ($(w1-0.6, h1)$);
+        \draw[line width=1pt, roofblue!50!black] (0.3, h1) -- ($(w1-0.3, h1)$);
+    \end{scope}
+    \begin{scope}[shift={(w1 + d_space, 0)}]
+        \draw[fill=white, draw=gray!40, line width=0.6pt] 
+            (0.1, 0.2) rectangle ($(w2-0.1, 1.3)$);
+        \foreach \k in {0,1,2} {
+            \draw[fill=buildblue!90, draw=white, line width=0.6pt] 
+                ({0.3 + \k*0.75}, 0.3) rectangle ({0.85 + \k*0.75}, 1.15);
+        }
+        \draw[fill=buildblue, draw=white, line width=1.2pt] 
+            (0.2, 1.3) rectangle ($(w2-0.2, {yC-2.2})$);
+        \foreach \i in {1,...,6} {
+            \draw[gridblue!60, line width=0.3pt] 
+                (0.2, {1.3 + \i*(yC-3.5)/7}) -- ($(w2-0.2, {1.3 + \i*(yC-3.5)/7})$);
+        }
+        \foreach \j in {1,...,5} {
+            \draw[gridblue!60, line width=0.3pt] 
+                ({0.2 + \j*(w2-0.4)/6}, 1.3) -- ({0.2 + \j*(w2-0.4)/6}, {yC-2.2});
+        }
+        \draw[fill=buildblue, draw=white, line width=1.2pt] 
+            (0.45, {yC-2.2}) rectangle ($(w2-0.45, {yC-0.5})$);
+        \foreach \i in {1,...,4} {
+            \draw[gridblue!60, line width=0.3pt] 
+                (0.45, {yC-2.2 + \i*1.7/5}) -- ($(w2-0.45, {yC-2.2 + \i*1.7/5})$);
+        }
+        \foreach \j in {1,...,3} {
+            \draw[gridblue!60, line width=0.3pt] 
+                ({0.45 + \j*(w2-0.9)/4}, {yC-2.2}) -- ({0.45 + \j*(w2-0.9)/4}, {yC-0.5});
+        }
+        \draw[fill=buildblue!90, draw=white, line width=1pt] 
+            (0.75, {yC-0.5}) rectangle ($(w2-0.75, yC)$);
+        \draw[line width=1.2pt, roofblue] (0.15, {yC-2.2}) -- ($(w2-0.15, {yC-2.2})$);
+        \draw[line width=1.2pt, roofblue] (0.4, {yC-0.5}) -- ($(w2-0.4, {yC-0.5})$);
+        \draw[line width=1.2pt, roofblue] (0.7, yC) -- ($(w2-0.7, yC)$);
+        \draw[line width=1.3pt, roofblue!90!black] (0.5*w2, yC) -- (0.5*w2, yB);
+        \foreach \h in {0.25, 0.5, 0.75} {
+            \draw[line width=0.7pt, roofblue!90!black] 
+                ({0.5*w2 - 0.35*(1-\h*0.5)}, {yC + \h*h_ant}) -- ({0.5*w2 + 0.35*(1-\h*0.5)}, {yC + \h*h_ant});
+        }
+        \fill[roofblue!90!black] (0.5*w2, yB) circle (1.5pt);
+    \end{scope}
+    \coordinate (A) at (w1, h1);
+    \coordinate (D) at (w1 + d_space + 0.5*w2, h1);
+    \coordinate (C) at (w1 + d_space + 0.5*w2, yC);
+    \coordinate (B) at (w1 + d_space + 0.5*w2, yB);
+    \coordinate (H1) at (w1, 0);
+    \coordinate (H2) at (w1 + d_space + 0.5*w2, 0);
+    \draw[dashed, line width=0.6pt, black!70] (A) -- (D);
+    \draw[dashed, line width=0.6pt, black!70] (B) -- (H2);
+    \draw[line width=0.7pt, black!85] (A) -- (C);
+    \draw[line width=0.7pt, black!85] (A) -- (B);
+    \draw (D) ++(-0.25, 0) -- ++(0, 0.25) -- ++(0.25, 0);
+    \draw[line width=0.5pt] (A) ++(0:1.25) arc (0:ang_C:1.25);
+    \node at ($(A) + ({0.5*ang_C}:1.75)$) {$ 41^\circ $};
+    \draw[line width=0.5pt] (A) ++(0:2.35) arc (0:ang_B:2.35);
+    \draw[->, >=stealth, line width=0.4pt, black!80] 
+        ($(A) + ({ang_B + 9}:2.85)$) to[bend left=20] ($(A) + ({0.5*(ang_C + ang_B)}:2.25)$);
+    \node[above left, inner sep=1pt] at ($(A) + ({ang_B + 9}:2.85)$) {$ 46^\circ $};
+    \draw[<->, >=stealth, line width=0.6pt, black!80] (0.65, 0) -- (0.65, h1) 
+        node[midway, fill=buildblue!90, text=white, inner sep=1.5pt, rounded corners=1pt] {$ 11\,\text{m} $};
+    \draw[line width=0.4pt, gray!80] (C) -- ++(0.65, 0);
+    \draw[line width=0.4pt, gray!80] (B) -- ++(0.65, 0);
+    \draw[<->, >=stealth, line width=0.6pt, black!80] ($(C)+(0.5,0)$) -- ($(B)+(0.5,0)$)
+        node[midway, right, inner sep=2pt] {$ 1\,\text{m} $};
+    \foreach \pt in {A, B, C, D} {
+        \fill[black] (\pt) circle (1.2pt);
+    }
+    \node[above left, inner sep=2pt] at (A) {$ A $};
+    \node[above left, inner sep=2pt] at (B) {$ B $};
+    \node[above left, inner sep=2pt] at (C) {$ C $};
+    \node[below right, inner sep=2pt, fill=buildblue!85, text=white, rounded corners=1pt] at ($(D)+(0.05,-0.05)$) {$ D $};
+    \node[below, font=\bfseries\small] at (0.5*w1, -0.1) {Tòa nhà 1};
+    \node[below, font=\bfseries\small] at (w1 + d_space + 0.5*w2, -0.1) {Tòa nhà 2};
+\end{tikzpicture}
+\end{adjustbox}\\
+\scriptsize\texttt{L09\_C4\_B2\_56}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.31\textwidth}\centering
+\begin{adjustbox}{max width=\linewidth, max totalheight=4.5cm, keepaspectratio}
+\begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.95]
+\def\ang{65}
+\def\len{5.0}
+\coordinate (C) at (0,0);
+\coordinate (B) at (-\len*cos \ang, 0);
+\coordinate (A) at (0, \len*sin \ang);
+
+\draw[thick] (0,-0.4) -- (0, \len*sin \ang + 0.8);
+\fill[pattern=north west lines] (0,-0.4) rectangle (0.5, \len*sin \ang + 0.8);
+
+\draw[thick] (-\len*cos \ang - 1.0, 0) -- (0.5, 0);
+\fill[pattern=north east lines] (-\len*cos \ang - 1.0, 0) rectangle (0.5, -0.3);
+
+\draw pic[draw, angle radius=3.5mm]{right angle=A--C--B};
+
+\draw[line width=3pt, brown!60!black] ($(B)+(-0.1,-0.05)$) -- ($(A)+(-0.1,0.05)$);
+\draw[line width=3pt, brown!60!black] ($(B)+(0.1,-0.05)$) -- ($(A)+(0.1,0.05)$);
+
+\foreach \i in {1,2,...,9} {
+    \coordinate (P\i) at ($(B)!\i/10!(A)$);
+    \draw[line width=2pt, brown!80!black] ($(P\i)+(-0.15,0)$) -- ($(P\i)+(0.15,0)$);
+}
+
+\draw pic[draw, angle radius=10mm]{angle=C--B--A};
+\node at ($(B)+(\ang/2:1.5)$) {$\alpha = \ang^{\circ}$};
+
+\draw[<->] ($(B)+(-0.35,0.15)$) -- node[midway, above, sloped] {$L = 2,5$\,m} ($(A)+(-0.35,0.15)$);
+
+\fill (A) circle (1.5pt) node[left=3pt, fill=white, inner sep=1pt] {$A$};
+\fill (B) circle (1.5pt) node[below=4pt, fill=white, inner sep=1pt] {$B$};
+\fill (C) circle (1.5pt) node[below right=3pt, fill=white, inner sep=1pt] {$C$};
+\end{tikzpicture}
+\end{adjustbox}\\
+\scriptsize\texttt{L09\_C4\_B1\_16}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.31\textwidth}\centering
+\begin{adjustbox}{max width=\linewidth, max totalheight=4.5cm, keepaspectratio}
 \begin{tikzpicture}[font=\footnotesize, line join=round, line cap=round, >=stealth, scale=0.85]
 \def\ang{53}
 \def\distX{5.0}
@@ -413,7 +1882,7 @@ Dung lượng khổng lồ (\textgreater 10\,KB mã nguồn), sử dụng hơn 5
 
 \draw[line width=1.5pt, blue!70!black] (D) -- (B);
 \fill[pink!80!black] (B) circle (2pt);
-\draw[<->] (-0.35,0) -- node[midway, left] {$h_0 = 1{,}0$\,m} (-0.35,\hEye);
+\draw[<->] (-0.35,0) -- node[midway, left] {$h_0 = 1,0$\,m} (-0.35,\hEye);
 
 \draw[thick, dashed] (B) -- (A);
 \draw[thick] (B) -- (C);
@@ -442,7 +1911,9 @@ Dung lượng khổng lồ (\textgreater 10\,KB mã nguồn), sử dụng hơn 5
 
 \draw[<->] ($(D)+(0,-0.55)$) -- node[midway, below] {$d = 350$\,m} ($(E)+(0,-0.55)$);
 \end{tikzpicture}
+\end{adjustbox}\\
+\scriptsize\texttt{L09\_C4\_B2\_27}
+\end{minipage}
 \end{center}
-\end{tcolorbox}
 
 \end{document}
