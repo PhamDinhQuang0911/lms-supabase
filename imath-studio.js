@@ -16,7 +16,7 @@
     'use strict';
 
     const LOCAL_BRIDGE_URL = 'http://127.0.0.1:8765';
-    const CATALOG_URL = 'data/imath/catalog_mapped.json?v=20261112-v12';
+    const CATALOG_URL = 'data/imath/catalog_mapped.json?v=20261112-v13';
 
     const state = {
         catalog: [],
@@ -989,7 +989,7 @@
     async function ensureGradePoolLoaded(gradePrefix) {
         if (state.poolsLoaded[gradePrefix]) return state.poolsLoaded[gradePrefix];
         try {
-            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261112-v12`);
+            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261112-v13`);
             if (res.ok) {
                 state.poolsLoaded[gradePrefix] = await res.json();
                 return state.poolsLoaded[gradePrefix];
