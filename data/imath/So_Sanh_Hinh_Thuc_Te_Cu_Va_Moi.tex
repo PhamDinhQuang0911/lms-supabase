@@ -17,9 +17,9 @@
 \maketitle
 \thispagestyle{empty}
 
-\begin{tcolorbox}[colback=blue!5!white,colframe=blue!65!black,title=\textbf{TÓM TẮT CÁC DẠNG ĐÃ NÂNG CẤP TRONG ĐỢT NÀY (21 MÃ CÂU HỎI)}]
+\begin{tcolorbox}[colback=blue!5!white,colframe=blue!65!black,title=\textbf{TÓM TẮT CÁC DẠNG ĐÃ NÂNG CẤP (21 MÃ) \& BỔ SUNG ĐA DẠNG (4 MÃ MỚI)}]
 \small
-\begin{tabular}{p{3.0cm} p{4.6cm} p{7.7cm}}
+\begin{tabular}{p{3.4cm} p{4.4cm} p{7.5cm}}
 \textbf{Nhóm hình} & \textbf{Mã câu hỏi áp dụng} & \textbf{Nội dung cải tiến chính}\\
 \hline
 1. Hải đăng + 2 tàu & \texttt{L09\_C4\_B2\_24, 25, 42} & Dùng mẫu \texttt{HP\_HYN\_002}, giữ đủ đỉnh $A, B, C, D$, đổi số $h, \alpha, \beta$.\\
@@ -30,6 +30,11 @@
 6. Lâu đài + giác kế & \texttt{L09\_C4\_B2\_16, 23, 41} & Lâu đài tháp đá + 2 chân giác kế, đổi số $\alpha, \beta, CD$, cao giác kế.\\
 7. Tòa nhà + 2 xe máy & \texttt{L09\_C4\_B2\_15, 51} & Tòa nhà 3D + 2 xe máy vector, dẫn nhãn góc thoáng không đè tường.\\
 8. Tòa nhà + ô tô & \texttt{L09\_C4\_B1\_20} & Tòa nhà 3D + người + xe ô tô, đổi số $1{,}8$ m, $79$ m, góc hạ.\\
+\hline
+9. Tháp Eiffel (Mới) & \texttt{L09\_C4\_B2\_58} & Tháp Eiffel + mặt trời đồng bộ tia nắng $C$--$A$, đổi số góc nắng \& bóng.\\
+10. Tòa nhà đôi (Mới) & \texttt{L09\_C4\_B2\_59} & Tòa nhà đôi \textbf{(H1)}, \textbf{(H2)} với góc $\alpha, \beta$ và chiều cao $h_1$ động.\\
+11. Tháp đồng hồ (Mới) & \texttt{L09\_C4\_B2\_60} & Hình bóng tháp đồng hồ góc nâng $\alpha$, đổi số $d$ và $\alpha$.\\
+12. Quạt hoa anh đào (Mới) & \texttt{L09\_C5\_B3\_58} & Nửa hình vành khuyên hoa anh đào, đổi số $R, L$ và tỷ lệ vòng trong $r$.\\
 \end{tabular}
 \end{tcolorbox}
 
@@ -1685,6 +1690,717 @@
 \fill[blue!75!black] (A) circle (2.2pt) node[above=2pt] {$A$};
 \fill[blue!75!black] (B) circle (2.2pt) node[below] {$B$};
 \fill[blue!75!black] (C) circle (2.2pt) node[below] {$C$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+\section{Mẫu mới 1: Tháp Eiffel tính chiều cao theo bóng nắng}
+\noindent\textbf{Mã câu:} \texttt{L09\_C4\_B2\_58} \quad---\quad \textbf{MapID:} \texttt{9H4V2-5}\\[2mm]
+\textbf{Mô tả logic đổi số động:} Đổi số góc nắng $\alpha \in [56^\circ, 68^\circ]$ và chiều dài bóng $HC$; tia nắng Mặt Trời đồng bộ đi qua đỉnh $A$ tới điểm $C$ trên mặt đất.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.49\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=teal!4!white,colframe=teal!70!black,title={\textbf{BIẾN THỂ ĐỔI SỐ 1 (Đáp số: 320)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+{\small Khi tia sáng mặt trời tạo với mặt đất một góc $\alpha = 58^\circ$ thì bóng của tháp Eiffel trên mặt đất dài $HC = 200\text{ m}$ (như hình vẽ). Tính chiều cao $h = AH$ của tháp Eiffel (làm tròn kết quả đến hàng đơn vị).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.32, font=\footnotesize]
+\definecolor{tgold}{HTML}{D97706}
+\definecolor{tlight}{HTML}{F59E0B}
+\pgfmathsetmacro{\ang}{58}
+\pgfmathsetmacro{\xC}{13.2 / tan(\ang)}
+\pgfmathsetmacro{\xmax}{max(9.0, \xC + 1.8)}
+\coordinate (H) at (0,0);
+\coordinate (A) at (0,13.2);
+\coordinate (C) at (\xC,0);
+\draw[line width=5pt, gray!40] (H) -- (C);
+\draw[] (-4.5,0) -- (\xmax,0);
+\foreach \i in {0,1,2} {
+    \pgfmathsetmacro{\yA}{\i}
+    \pgfmathsetmacro{\yB}{\i+1}
+    \pgfmathsetmacro{\xAo}{-2.4 + \yA*(0.8/3.0)}
+    \pgfmathsetmacro{\xAi}{-1.2 + \yA*(0.4/3.0)}
+    \pgfmathsetmacro{\xBo}{-2.4 + \yB*(0.8/3.0)}
+    \pgfmathsetmacro{\xBi}{-1.2 + \yB*(0.4/3.0)}
+    \draw[line width=1pt, tlight] (\xAo, \yA) -- (\xBi, \yB);
+    \draw[line width=1pt, tlight] (\xAi, \yA) -- (\xBo, \yB);
+    \draw[line width=1pt, tlight] (\xAo, \yA) -- (\xAi, \yA);
+}
+\foreach \i in {0,1,2} {
+    \pgfmathsetmacro{\yA}{\i}
+    \pgfmathsetmacro{\yB}{\i+1}
+    \pgfmathsetmacro{\xAo}{2.4 - \yA*(0.8/3.0)}
+    \pgfmathsetmacro{\xAi}{1.2 - \yA*(0.4/3.0)}
+    \pgfmathsetmacro{\xBo}{2.4 - \yB*(0.8/3.0)}
+    \pgfmathsetmacro{\xBi}{1.2 - \yB*(0.4/3.0)}
+    \draw[line width=1pt, tlight] (\xAo, \yA) -- (\xBi, \yB);
+    \draw[line width=1pt, tlight] (\xAi, \yA) -- (\xBo, \yB);
+    \draw[line width=1pt, tlight] (\xAo, \yA) -- (\xAi, \yA);
+}
+\foreach \i in {0,1,2,3} {
+    \pgfmathsetmacro{\yA}{3.5 + \i*0.75}
+    \pgfmathsetmacro{\yB}{3.5 + (\i+1)*0.75}
+    \pgfmathsetmacro{\xA}{-1.4 + \i*0.75*0.2}
+    \pgfmathsetmacro{\xB}{-1.4 + (\i+1)*0.75*0.2}
+    \pgfmathsetmacro{\mXA}{-\xA}
+    \pgfmathsetmacro{\mXB}{-\xB}
+    \draw[line width=1pt, tlight] (\xA, \yA) -- (\mXB, \yB);
+    \draw[line width=1pt, tlight] (\mXA, \yA) -- (\xB, \yB);
+    \draw[line width=1pt, tlight] (\xA, \yA) -- (\mXA, \yA);
+}
+\draw[line width=1pt, tlight] (0, 3.5) -- (0, 6.5);
+\foreach \i in {0,...,7} {
+    \pgfmathsetmacro{\yA}{6.9 + \i*0.5125}
+    \pgfmathsetmacro{\yB}{6.9 + (\i+1)*0.5125}
+    \pgfmathsetmacro{\xA}{-0.6 + \i*0.5125*(0.4/4.1)}
+    \pgfmathsetmacro{\xB}{-0.6 + (\i+1)*0.5125*(0.4/4.1)}
+    \pgfmathsetmacro{\mXA}{-\xA}
+    \pgfmathsetmacro{\mXB}{-\xB}
+    \draw[line width=1pt, tlight] (\xA, \yA) -- (\mXB, \yB);
+    \draw[line width=1pt, tlight] (\mXA, \yA) -- (\xB, \yB);
+    \draw[line width=1pt, tlight] (\xA, \yA) -- (\mXA, \yA);
+}
+\draw[line width=1pt, tlight] (0, 6.9) -- (0, 11.0);
+\draw[line width=1.8pt, tgold] (-2.4, 0) -- (-1.6, 3.0);
+\draw[line width=1.8pt, tgold] (-1.2, 0) -- (-0.8, 3.0);
+\draw[line width=1.8pt, tgold] (2.4, 0) -- (1.6, 3.0);
+\draw[line width=1.8pt, tgold] (1.2, 0) -- (0.8, 3.0);
+\draw[line width=1.8pt, tgold] (-2.4, 0) -- (-1.2, 0);
+\draw[line width=1.8pt, tgold] (1.2, 0) -- (2.4, 0);
+\draw[line width=2pt, tgold] (-1.2, 0) to[out=70,in=180] (0, 1.8) to[out=0,in=110] (1.2, 0);
+\draw[line width=1.2pt, tgold] (-0.9, 0) to[out=70,in=180] (0, 1.5) to[out=0,in=110] (0.9, 0);
+\draw[line width=1.8pt, tgold] (-1.4, 3.5) -- (-0.8, 6.5);
+\draw[line width=1.8pt, tgold] (1.4, 3.5) -- (0.8, 6.5);
+\draw[line width=1.8pt, tgold] (-0.6, 6.9) -- (-0.2, 11.0);
+\draw[line width=1.8pt, tgold] (0.6, 6.9) -- (0.2, 11.0);
+\fill[tgold] (-1.9, 3.0) rectangle (1.9, 3.15);
+\fill[tgold] (-2.0, 3.35) rectangle (2.0, 3.5);
+\foreach \x in {-1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8} {
+    \fill[tgold] (\x-0.04, 3.15) rectangle (\x+0.04, 3.35);
+}
+\fill[tgold] (-1.1, 6.5) rectangle (1.1, 6.65);
+\fill[tgold] (-1.2, 6.8) rectangle (1.2, 6.9);
+\foreach \x in {-1.0, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0} {
+    \fill[tgold] (\x-0.03, 6.65) rectangle (\x+0.03, 6.8);
+}
+\fill[tgold] (-0.4, 11.0) rectangle (0.4, 11.1);
+\fill[tgold] (-0.5, 11.2) rectangle (0.5, 11.3);
+\foreach \x in {-0.4, -0.2, 0, 0.2, 0.4} {
+    \fill[tgold] (\x-0.02, 11.1) rectangle (\x+0.02, 11.2);
+}
+\fill[tgold] (-0.3, 11.3) rectangle (0.3, 11.5);
+\fill[tlight] (-0.15, 11.5) rectangle (0.15, 11.8);
+\fill[tgold] (-0.2, 11.8) rectangle (0.2, 11.9);
+\fill[tgold] (-0.2, 11.9) to[out=70,in=260] (-0.03, 12.6) -- (0.03, 12.6) to[out=280,in=110] (0.2, 11.9) -- cycle;
+\draw[line width=1.8pt, tgold] (0, 12.6) -- (0, 13.2);
+\coordinate (Sun) at ({-0.22*\xC}, {13.2*1.22});
+\draw[dashed] (Sun) -- (C);
+\draw (H) -- (A);
+\draw[<->] (0,-0.6) -- (\xC,-0.6) node[midway, below] {$200\text{ m}$};
+\draw[<->] (-3.5,0) -- (-3.5,13.2) node[midway, left] {$h =?$};
+\fill[tgold] (Sun) circle (0.45);
+\foreach \a in {0,30,...,330} {
+    \draw[dashed, tgold] (Sun) -- ++(\a:0.85);
+}
+\draw[] (C) ++(180:1.7) arc (180:{180-\ang}:1.7) node[midway, above left=2pt] {$58^\circ$};
+\draw (0.5,0) -- (0.5,0.5) -- (0,0.5);
+\fill (H) circle (4pt) node[below left=1pt] {$H$};
+\fill (C) circle (4pt) node[below right=1pt] {$C$};
+\fill (A) circle (4pt) node[above right=1pt] {$A$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=blue!4!white,colframe=blue!70!black,title={\textbf{BIẾN THỂ ĐỔI SỐ 2 (Đáp số: 302)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+{\small Khi tia sáng mặt trời tạo với mặt đất một góc $\alpha = 57^\circ$ thì bóng của tháp Eiffel trên mặt đất dài $HC = 196\text{ m}$ (như hình vẽ). Tính chiều cao $h = AH$ của tháp Eiffel (làm tròn kết quả đến hàng đơn vị).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.32, font=\footnotesize]
+\definecolor{tgold}{HTML}{D97706}
+\definecolor{tlight}{HTML}{F59E0B}
+\pgfmathsetmacro{\ang}{57}
+\pgfmathsetmacro{\xC}{13.2 / tan(\ang)}
+\pgfmathsetmacro{\xmax}{max(9.0, \xC + 1.8)}
+\coordinate (H) at (0,0);
+\coordinate (A) at (0,13.2);
+\coordinate (C) at (\xC,0);
+\draw[line width=5pt, gray!40] (H) -- (C);
+\draw[] (-4.5,0) -- (\xmax,0);
+\foreach \i in {0,1,2} {
+    \pgfmathsetmacro{\yA}{\i}
+    \pgfmathsetmacro{\yB}{\i+1}
+    \pgfmathsetmacro{\xAo}{-2.4 + \yA*(0.8/3.0)}
+    \pgfmathsetmacro{\xAi}{-1.2 + \yA*(0.4/3.0)}
+    \pgfmathsetmacro{\xBo}{-2.4 + \yB*(0.8/3.0)}
+    \pgfmathsetmacro{\xBi}{-1.2 + \yB*(0.4/3.0)}
+    \draw[line width=1pt, tlight] (\xAo, \yA) -- (\xBi, \yB);
+    \draw[line width=1pt, tlight] (\xAi, \yA) -- (\xBo, \yB);
+    \draw[line width=1pt, tlight] (\xAo, \yA) -- (\xAi, \yA);
+}
+\foreach \i in {0,1,2} {
+    \pgfmathsetmacro{\yA}{\i}
+    \pgfmathsetmacro{\yB}{\i+1}
+    \pgfmathsetmacro{\xAo}{2.4 - \yA*(0.8/3.0)}
+    \pgfmathsetmacro{\xAi}{1.2 - \yA*(0.4/3.0)}
+    \pgfmathsetmacro{\xBo}{2.4 - \yB*(0.8/3.0)}
+    \pgfmathsetmacro{\xBi}{1.2 - \yB*(0.4/3.0)}
+    \draw[line width=1pt, tlight] (\xAo, \yA) -- (\xBi, \yB);
+    \draw[line width=1pt, tlight] (\xAi, \yA) -- (\xBo, \yB);
+    \draw[line width=1pt, tlight] (\xAo, \yA) -- (\xAi, \yA);
+}
+\foreach \i in {0,1,2,3} {
+    \pgfmathsetmacro{\yA}{3.5 + \i*0.75}
+    \pgfmathsetmacro{\yB}{3.5 + (\i+1)*0.75}
+    \pgfmathsetmacro{\xA}{-1.4 + \i*0.75*0.2}
+    \pgfmathsetmacro{\xB}{-1.4 + (\i+1)*0.75*0.2}
+    \pgfmathsetmacro{\mXA}{-\xA}
+    \pgfmathsetmacro{\mXB}{-\xB}
+    \draw[line width=1pt, tlight] (\xA, \yA) -- (\mXB, \yB);
+    \draw[line width=1pt, tlight] (\mXA, \yA) -- (\xB, \yB);
+    \draw[line width=1pt, tlight] (\xA, \yA) -- (\mXA, \yA);
+}
+\draw[line width=1pt, tlight] (0, 3.5) -- (0, 6.5);
+\foreach \i in {0,...,7} {
+    \pgfmathsetmacro{\yA}{6.9 + \i*0.5125}
+    \pgfmathsetmacro{\yB}{6.9 + (\i+1)*0.5125}
+    \pgfmathsetmacro{\xA}{-0.6 + \i*0.5125*(0.4/4.1)}
+    \pgfmathsetmacro{\xB}{-0.6 + (\i+1)*0.5125*(0.4/4.1)}
+    \pgfmathsetmacro{\mXA}{-\xA}
+    \pgfmathsetmacro{\mXB}{-\xB}
+    \draw[line width=1pt, tlight] (\xA, \yA) -- (\mXB, \yB);
+    \draw[line width=1pt, tlight] (\mXA, \yA) -- (\xB, \yB);
+    \draw[line width=1pt, tlight] (\xA, \yA) -- (\mXA, \yA);
+}
+\draw[line width=1pt, tlight] (0, 6.9) -- (0, 11.0);
+\draw[line width=1.8pt, tgold] (-2.4, 0) -- (-1.6, 3.0);
+\draw[line width=1.8pt, tgold] (-1.2, 0) -- (-0.8, 3.0);
+\draw[line width=1.8pt, tgold] (2.4, 0) -- (1.6, 3.0);
+\draw[line width=1.8pt, tgold] (1.2, 0) -- (0.8, 3.0);
+\draw[line width=1.8pt, tgold] (-2.4, 0) -- (-1.2, 0);
+\draw[line width=1.8pt, tgold] (1.2, 0) -- (2.4, 0);
+\draw[line width=2pt, tgold] (-1.2, 0) to[out=70,in=180] (0, 1.8) to[out=0,in=110] (1.2, 0);
+\draw[line width=1.2pt, tgold] (-0.9, 0) to[out=70,in=180] (0, 1.5) to[out=0,in=110] (0.9, 0);
+\draw[line width=1.8pt, tgold] (-1.4, 3.5) -- (-0.8, 6.5);
+\draw[line width=1.8pt, tgold] (1.4, 3.5) -- (0.8, 6.5);
+\draw[line width=1.8pt, tgold] (-0.6, 6.9) -- (-0.2, 11.0);
+\draw[line width=1.8pt, tgold] (0.6, 6.9) -- (0.2, 11.0);
+\fill[tgold] (-1.9, 3.0) rectangle (1.9, 3.15);
+\fill[tgold] (-2.0, 3.35) rectangle (2.0, 3.5);
+\foreach \x in {-1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8} {
+    \fill[tgold] (\x-0.04, 3.15) rectangle (\x+0.04, 3.35);
+}
+\fill[tgold] (-1.1, 6.5) rectangle (1.1, 6.65);
+\fill[tgold] (-1.2, 6.8) rectangle (1.2, 6.9);
+\foreach \x in {-1.0, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0} {
+    \fill[tgold] (\x-0.03, 6.65) rectangle (\x+0.03, 6.8);
+}
+\fill[tgold] (-0.4, 11.0) rectangle (0.4, 11.1);
+\fill[tgold] (-0.5, 11.2) rectangle (0.5, 11.3);
+\foreach \x in {-0.4, -0.2, 0, 0.2, 0.4} {
+    \fill[tgold] (\x-0.02, 11.1) rectangle (\x+0.02, 11.2);
+}
+\fill[tgold] (-0.3, 11.3) rectangle (0.3, 11.5);
+\fill[tlight] (-0.15, 11.5) rectangle (0.15, 11.8);
+\fill[tgold] (-0.2, 11.8) rectangle (0.2, 11.9);
+\fill[tgold] (-0.2, 11.9) to[out=70,in=260] (-0.03, 12.6) -- (0.03, 12.6) to[out=280,in=110] (0.2, 11.9) -- cycle;
+\draw[line width=1.8pt, tgold] (0, 12.6) -- (0, 13.2);
+\coordinate (Sun) at ({-0.22*\xC}, {13.2*1.22});
+\draw[dashed] (Sun) -- (C);
+\draw (H) -- (A);
+\draw[<->] (0,-0.6) -- (\xC,-0.6) node[midway, below] {$196\text{ m}$};
+\draw[<->] (-3.5,0) -- (-3.5,13.2) node[midway, left] {$h =?$};
+\fill[tgold] (Sun) circle (0.45);
+\foreach \a in {0,30,...,330} {
+    \draw[dashed, tgold] (Sun) -- ++(\a:0.85);
+}
+\draw[] (C) ++(180:1.7) arc (180:{180-\ang}:1.7) node[midway, above left=2pt] {$57^\circ$};
+\draw (0.5,0) -- (0.5,0.5) -- (0,0.5);
+\fill (H) circle (4pt) node[below left=1pt] {$H$};
+\fill (C) circle (4pt) node[below right=1pt] {$C$};
+\fill (A) circle (4pt) node[above right=1pt] {$A$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+
+\section{Mẫu mới 2: Hai tòa nhà (H1) và (H2) qua góc nâng và góc hạ}
+\noindent\textbf{Mã câu:} \texttt{L09\_C4\_B2\_59} \quad---\quad \textbf{MapID:} \texttt{9H4V2-5}\\[2mm]
+\textbf{Mô tả logic đổi số động:} Đổi số chiều cao $AB$ của tòa (H1) và hai góc $\beta = \widehat{ABC}, \alpha = \widehat{CAD}$ (ràng buộc tỷ lệ để chiều cao tòa (H2) hiển thị cân đối); tách nhãn $B$ và (H1) chống đè chữ.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.49\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=teal!4!white,colframe=teal!70!black,title={\textbf{BIẾN THỂ ĐỔI SỐ 1 (Đáp số: 16,0)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+{\small Hai tòa nhà (H1) và (H2) nằm trên cùng một mặt đất phẳng với các điểm $A, B, C, D$ như hình vẽ. Biết tòa nhà (H1) cao $AB = 20\text{ m}$, góc $\widehat{ABC} = 33^\circ$ và $\widehat{CAD} = 51^\circ$. Tính chiều cao $CD$ của tòa nhà (H2) (làm tròn kết quả đến hàng phần mười).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, font=\footnotesize, scale=0.65]
+\pgfmathsetmacro{\hOne}{6.0}
+\pgfmathsetmacro{\alpha}{ 51 }
+\pgfmathsetmacro{\beta}{ 33 }
+\pgfmathsetmacro{\w}{\hOne * tan(\beta)}
+\pgfmathsetmacro{\hTwo}{\w * tan(\alpha)}
+\pgfmathsetmacro{\a}{1.4}
+\pgfmathsetmacro{\b}{1.2}
+\pgfmathsetmacro{\xd}{-0.5}
+\pgfmathsetmacro{\dxTwo}{0.5}
+\pgfmathsetmacro{\dy}{0.4}
+\coordinate (A) at (0,0);
+\coordinate (B) at (0,\hOne);
+\coordinate (C) at (\w,0);
+\coordinate (D) at (\w,\hTwo);
+\fill[gray!15] (-\a,0) rectangle (0,\hOne);
+\fill[gray!25] (-\a,0) -- (-\a+\xd, \dy) -- (-\a+\xd, \hOne+\dy) -- (-\a, \hOne) -- cycle;
+\fill[gray!5] (-\a, \hOne) -- (-\a+\xd, \hOne+\dy) -- (\xd, \hOne+\dy) -- (0, \hOne) -- cycle;
+\draw[gray!40, line width=0.6pt] (-\a,0) rectangle (0,\hOne);
+\draw[gray!40, line width=0.6pt] (-\a,0) -- (-\a+\xd, \dy) -- (-\a+\xd, \hOne+\dy) -- (-\a, \hOne);
+\draw[gray!40, line width=0.6pt] (-\a+\xd, \hOne+\dy) -- (\xd, \hOne+\dy) -- (0, \hOne);
+\foreach \y in {0.4, 1.0, 1.6, 2.2, 3.4, 4.0, 4.6, 5.2} {
+    \fill[cyan!30, draw=black!40, line width=0.6pt] (-\a+0.15, \y) rectangle (-0.15, \y+0.4);
+    \fill[cyan!30, draw=black!40, line width=0.6pt] (-\a+\xd+0.1, \y+\dy+0.05) -- (-\a-0.05, \y+0.05) -- (-\a-0.05, \y+0.35) -- (-\a+\xd+0.1, \y+\dy+0.35) -- cycle;
+}
+\fill[orange!30, draw=black!40, line width=0.6pt] (-\a+0.15, 2.8) rectangle (-0.15, 2.8+0.4);
+\fill[orange!30, draw=black!40, line width=0.6pt] (-\a+\xd+0.1, 2.8+\dy+0.05) -- (-\a-0.05, 2.8+0.05) -- (-\a-0.05, 2.8+0.35) -- (-\a+\xd+0.1, 2.8+\dy+0.35) -- cycle;
+\fill[gray!15] (\w,0) rectangle (\w+\b,\hTwo);
+\fill[gray!25] (\w+\b,0) -- (\w+\b+\dxTwo, \dy) -- (\w+\b+\dxTwo, \hTwo+\dy) -- (\w+\b, \hTwo) -- cycle;
+\fill[gray!5] (\w, \hTwo) -- (\w+\b, \hTwo) -- (\w+\b/2+\dxTwo/2, \hTwo+\dy/2+0.6) -- cycle;
+\fill[gray!20] (\w+\b, \hTwo) -- (\w+\b+\dxTwo, \hTwo+\dy) -- (\w+\b/2+\dxTwo/2, \hTwo+\dy/2+0.6) -- cycle;
+\draw[gray!40, line width=0.6pt] (\w,0) rectangle (\w+\b,\hTwo);
+\draw[gray!40, line width=0.6pt] (\w+\b,0) -- (\w+\b+\dxTwo, \dy) -- (\w+\b+\dxTwo, \hTwo+\dy) -- (\w+\b, \hTwo);
+\draw[gray!40, line width=0.6pt] (\w, \hTwo) -- (\w+\b/2+\dxTwo/2, \hTwo+\dy/2+0.6) -- (\w+\b+\dxTwo, \hTwo+\dy);
+\draw[gray!40, line width=0.6pt] (\w+\b, \hTwo) -- (\w+\b/2+\dxTwo/2, \hTwo+\dy/2+0.6);
+\foreach \y in {0.4, 1.0, 2.2, 2.8, 3.4} {
+    \fill[cyan!30, draw=black!40, line width=0.6pt] (\w+0.15, \y) rectangle (\w+\b-0.15, \y+0.4);
+    \fill[cyan!30, draw=black!40, line width=0.6pt] (\w+\b+0.05, \y+0.05) -- (\w+\b+\dxTwo-0.1, \y+\dy+0.05) -- (\w+\b+\dxTwo-0.1, \y+\dy+0.35) -- (\w+\b+0.05, \y+0.35) -- cycle;
+}
+\fill[orange!30, draw=black!40, line width=0.6pt] (\w+0.15, 1.6) rectangle (\w+\b-0.15, 1.6+0.4);
+\fill[orange!30, draw=black!40, line width=0.6pt] (\w+\b+0.05, 1.6+0.05) -- (\w+\b+\dxTwo-0.1, 1.6+\dy+0.05) -- (\w+\b+\dxTwo-0.1, 1.6+\dy+0.35) -- (\w+\b+0.05, 1.6+0.35) -- cycle;
+\draw[black, line width=0.7pt] (B) -- (A) -- (C) -- (D);
+\draw[black, line width=0.7pt] (B) -- (C);
+\draw[black, line width=0.7pt] (A) -- (D);
+\draw[black, line width=0.7pt] (A) ++(0:0.85) arc (0:\alpha:0.85);
+\node[black, fill=white, inner sep=1pt] at ($(A)+(\alpha/2:1.35)$) {$51^\circ$};
+\draw[black, line width=0.7pt] (B) ++(-90:0.85) arc (-90:{-90+\beta}:0.85);
+\node[black, fill=white, inner sep=1pt] at ($(B)+(-90+\beta/2:1.35)$) {$33^\circ$};
+\fill[red] (A) circle (1.8pt) node[below left=1pt, black] {$A$};
+\fill[red] (B) circle (1.8pt) node[above right=1pt, black] {$B$};
+\fill[red] (C) circle (1.8pt) node[below right=1pt, black] {$C$};
+\fill[red] (D) circle (1.8pt) node[above right=1pt, black] {$D$};
+\node[black] at (-\a/2, \hOne + 0.72) {\textbf{(H1)}};
+\node[black] at (\w + \b/2, \hTwo + 1.0) {\textbf{(H2)}};
+\draw[<->, blue!70!black] (-\a+\xd-0.5, 0) -- (-\a+\xd-0.5, \hOne) node[midway, left] {$20\text{ m}$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=blue!4!white,colframe=blue!70!black,title={\textbf{BIẾN THỂ ĐỔI SỐ 2 (Đáp số: 23,4)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+{\small Hai tòa nhà (H1) và (H2) nằm trên cùng một mặt đất phẳng với các điểm $A, B, C, D$ như hình vẽ. Biết tòa nhà (H1) cao $AB = 32\text{ m}$, góc $\widehat{ABC} = 28^\circ$ và $\widehat{CAD} = 54^\circ$. Tính chiều cao $CD$ của tòa nhà (H2) (làm tròn kết quả đến hàng phần mười).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, font=\footnotesize, scale=0.65]
+\pgfmathsetmacro{\hOne}{6.0}
+\pgfmathsetmacro{\alpha}{ 54 }
+\pgfmathsetmacro{\beta}{ 28 }
+\pgfmathsetmacro{\w}{\hOne * tan(\beta)}
+\pgfmathsetmacro{\hTwo}{\w * tan(\alpha)}
+\pgfmathsetmacro{\a}{1.4}
+\pgfmathsetmacro{\b}{1.2}
+\pgfmathsetmacro{\xd}{-0.5}
+\pgfmathsetmacro{\dxTwo}{0.5}
+\pgfmathsetmacro{\dy}{0.4}
+\coordinate (A) at (0,0);
+\coordinate (B) at (0,\hOne);
+\coordinate (C) at (\w,0);
+\coordinate (D) at (\w,\hTwo);
+\fill[gray!15] (-\a,0) rectangle (0,\hOne);
+\fill[gray!25] (-\a,0) -- (-\a+\xd, \dy) -- (-\a+\xd, \hOne+\dy) -- (-\a, \hOne) -- cycle;
+\fill[gray!5] (-\a, \hOne) -- (-\a+\xd, \hOne+\dy) -- (\xd, \hOne+\dy) -- (0, \hOne) -- cycle;
+\draw[gray!40, line width=0.6pt] (-\a,0) rectangle (0,\hOne);
+\draw[gray!40, line width=0.6pt] (-\a,0) -- (-\a+\xd, \dy) -- (-\a+\xd, \hOne+\dy) -- (-\a, \hOne);
+\draw[gray!40, line width=0.6pt] (-\a+\xd, \hOne+\dy) -- (\xd, \hOne+\dy) -- (0, \hOne);
+\foreach \y in {0.4, 1.0, 1.6, 2.2, 3.4, 4.0, 4.6, 5.2} {
+    \fill[cyan!30, draw=black!40, line width=0.6pt] (-\a+0.15, \y) rectangle (-0.15, \y+0.4);
+    \fill[cyan!30, draw=black!40, line width=0.6pt] (-\a+\xd+0.1, \y+\dy+0.05) -- (-\a-0.05, \y+0.05) -- (-\a-0.05, \y+0.35) -- (-\a+\xd+0.1, \y+\dy+0.35) -- cycle;
+}
+\fill[orange!30, draw=black!40, line width=0.6pt] (-\a+0.15, 2.8) rectangle (-0.15, 2.8+0.4);
+\fill[orange!30, draw=black!40, line width=0.6pt] (-\a+\xd+0.1, 2.8+\dy+0.05) -- (-\a-0.05, 2.8+0.05) -- (-\a-0.05, 2.8+0.35) -- (-\a+\xd+0.1, 2.8+\dy+0.35) -- cycle;
+\fill[gray!15] (\w,0) rectangle (\w+\b,\hTwo);
+\fill[gray!25] (\w+\b,0) -- (\w+\b+\dxTwo, \dy) -- (\w+\b+\dxTwo, \hTwo+\dy) -- (\w+\b, \hTwo) -- cycle;
+\fill[gray!5] (\w, \hTwo) -- (\w+\b, \hTwo) -- (\w+\b/2+\dxTwo/2, \hTwo+\dy/2+0.6) -- cycle;
+\fill[gray!20] (\w+\b, \hTwo) -- (\w+\b+\dxTwo, \hTwo+\dy) -- (\w+\b/2+\dxTwo/2, \hTwo+\dy/2+0.6) -- cycle;
+\draw[gray!40, line width=0.6pt] (\w,0) rectangle (\w+\b,\hTwo);
+\draw[gray!40, line width=0.6pt] (\w+\b,0) -- (\w+\b+\dxTwo, \dy) -- (\w+\b+\dxTwo, \hTwo+\dy) -- (\w+\b, \hTwo);
+\draw[gray!40, line width=0.6pt] (\w, \hTwo) -- (\w+\b/2+\dxTwo/2, \hTwo+\dy/2+0.6) -- (\w+\b+\dxTwo, \hTwo+\dy);
+\draw[gray!40, line width=0.6pt] (\w+\b, \hTwo) -- (\w+\b/2+\dxTwo/2, \hTwo+\dy/2+0.6);
+\foreach \y in {0.4, 1.0, 2.2, 2.8, 3.4} {
+    \fill[cyan!30, draw=black!40, line width=0.6pt] (\w+0.15, \y) rectangle (\w+\b-0.15, \y+0.4);
+    \fill[cyan!30, draw=black!40, line width=0.6pt] (\w+\b+0.05, \y+0.05) -- (\w+\b+\dxTwo-0.1, \y+\dy+0.05) -- (\w+\b+\dxTwo-0.1, \y+\dy+0.35) -- (\w+\b+0.05, \y+0.35) -- cycle;
+}
+\fill[orange!30, draw=black!40, line width=0.6pt] (\w+0.15, 1.6) rectangle (\w+\b-0.15, 1.6+0.4);
+\fill[orange!30, draw=black!40, line width=0.6pt] (\w+\b+0.05, 1.6+0.05) -- (\w+\b+\dxTwo-0.1, 1.6+\dy+0.05) -- (\w+\b+\dxTwo-0.1, 1.6+\dy+0.35) -- (\w+\b+0.05, 1.6+0.35) -- cycle;
+\draw[black, line width=0.7pt] (B) -- (A) -- (C) -- (D);
+\draw[black, line width=0.7pt] (B) -- (C);
+\draw[black, line width=0.7pt] (A) -- (D);
+\draw[black, line width=0.7pt] (A) ++(0:0.85) arc (0:\alpha:0.85);
+\node[black, fill=white, inner sep=1pt] at ($(A)+(\alpha/2:1.35)$) {$54^\circ$};
+\draw[black, line width=0.7pt] (B) ++(-90:0.85) arc (-90:{-90+\beta}:0.85);
+\node[black, fill=white, inner sep=1pt] at ($(B)+(-90+\beta/2:1.35)$) {$28^\circ$};
+\fill[red] (A) circle (1.8pt) node[below left=1pt, black] {$A$};
+\fill[red] (B) circle (1.8pt) node[above right=1pt, black] {$B$};
+\fill[red] (C) circle (1.8pt) node[below right=1pt, black] {$C$};
+\fill[red] (D) circle (1.8pt) node[above right=1pt, black] {$D$};
+\node[black] at (-\a/2, \hOne + 0.72) {\textbf{(H1)}};
+\node[black] at (\w + \b/2, \hTwo + 1.0) {\textbf{(H2)}};
+\draw[<->, blue!70!black] (-\a+\xd-0.5, 0) -- (-\a+\xd-0.5, \hOne) node[midway, left] {$32\text{ m}$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+
+\section{Mẫu mới 3: Tháp đồng hồ tính chiều cao theo góc nâng}
+\noindent\textbf{Mã câu:} \texttt{L09\_C4\_B2\_60} \quad---\quad \textbf{MapID:} \texttt{9H4V2-5}\\[2mm]
+\textbf{Mô tả logic đổi số động:} Đổi số khoảng cách $CA$ và góc nâng $\alpha = \widehat{ACB}$; hình chiếu tháp đồng hồ co giãn đồng bộ theo $\tan\alpha$.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.49\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=teal!4!white,colframe=teal!70!black,title={\textbf{BIẾN THỂ ĐỔI SỐ 1 (Đáp số: 38,1)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+{\small Từ một điểm $C$ trên mặt đất cách chân tháp đồng hồ $A$ một khoảng $CA = 22\text{ m}$, người ta nhìn thấy đỉnh $B$ của tháp dưới góc nâng $\widehat{ACB} = 60^\circ$ (như hình vẽ). Tính chiều cao $AB$ của tháp đồng hồ (làm tròn kết quả đến hàng phần mười).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.48, font=\footnotesize]
+\def\dist{4.04}
+\def\ang{60}
+\pgfmathsetmacro{\yT}{\dist * tan(\ang)}
+\draw[thick] (-0.8, 0) -- (\dist + 1.5, 0);
+\pgfmathsetmacro{\tScale}{\yT / 17.5}
+\begin{scope}[shift={(\dist, {0.5*\tScale})}, scale=\tScale, fill=black!85]
+\fill (-1.2, -0.5) rectangle (1.2, 2.5);
+\fill (-1.3, 2.5) rectangle (1.3, 2.7);
+\fill (-1.1, 2.7) rectangle (1.1, 6.5);
+\foreach \x in {-0.8, -0.48, -0.16, 0.16, 0.48, 0.8} {
+    \fill[white] (\x-0.08, 2.9) rectangle (\x+0.08, 4.3);
+    \fill[white] (\x, 4.3) circle (0.08);
+    \fill[white] (\x-0.08, 4.6) rectangle (\x+0.08, 6.2);
+    \fill[white] (\x, 6.2) circle (0.08);
+}
+\fill (-1.25, 6.5) rectangle (1.25, 6.8);
+\fill (-1.15, 6.8) rectangle (1.15, 9.2);
+\fill[white] (0, 8.0) circle (0.9);
+\draw[line width=0.8pt, black] (0, 8.0) circle (0.8);
+\draw[line width=1.2pt, black, line cap=round] (0, 8.0) -- (0, 8.55);
+\draw[line width=1.2pt, black, line cap=round] (0, 8.0) -- (0.45, 7.75);
+\fill[black] (0, 8.0) circle (0.08);
+\fill (-1.3, 9.2) rectangle (1.3, 9.5);
+\fill (-1.0, 9.5) -- (1.0, 9.5) -- (0.7, 11.2) -- (-0.7, 11.2) -- cycle;
+\foreach \x in {-0.5, -0.25, 0, 0.25, 0.5} {
+    \fill[white] (\x-0.06, 9.7) rectangle (\x+0.06, 10.6);
+    \fill[white] (\x, 10.6) circle (0.06);
+}
+\fill (-0.8, 11.2) rectangle (0.8, 11.4);
+\fill (-0.65, 11.4) rectangle (0.65, 12.6);
+\foreach \x in {-0.35, 0, 0.35} {
+    \fill[white] (\x-0.06, 11.6) rectangle (\x+0.06, 12.2);
+}
+\fill (-0.7, 12.6) -- (0.7, 12.6) -- (0, 15.5) -- cycle;
+\draw[line width=1.5pt, black] (0, 15.4) -- (0, 16.5);
+\fill (0, 16.5) circle (0.12);
+\draw[line width=1pt, black] (0, 16.5) -- (0, 17.0);
+\end{scope}
+\coordinate (C) at (0, 0);
+\coordinate (A) at (\dist, 0);
+\coordinate (B) at (\dist, \yT);
+\draw[dashed, thick] (C) -- (B);
+\draw[dotted, thick] (A) -- (B);
+\draw (1.2, 0) arc (0:\ang:1.2);
+\node at ({\ang/2}:2.1) {$60^\circ$};
+\node[below] at ({\dist/2}, 0) {$22\text{ m}$};
+\node[below] at (C) {$C$};
+\node[below] at (A) {$A$};
+\node[above] at (B) {$B$};
+\fill (C) circle (2pt);
+\fill (A) circle (2pt);
+\fill (B) circle (2pt);
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=blue!4!white,colframe=blue!70!black,title={\textbf{BIẾN THỂ ĐỔI SỐ 2 (Đáp số: 16,7)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+{\small Từ một điểm $C$ trên mặt đất cách chân tháp đồng hồ $A$ một khoảng $CA = 14\text{ m}$, người ta nhìn thấy đỉnh $B$ của tháp dưới góc nâng $\widehat{ACB} = 50^\circ$ (như hình vẽ). Tính chiều cao $AB$ của tháp đồng hồ (làm tròn kết quả đến hàng phần mười).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, scale=0.48, font=\footnotesize]
+\def\dist{5.6}
+\def\ang{50}
+\pgfmathsetmacro{\yT}{\dist * tan(\ang)}
+\draw[thick] (-0.8, 0) -- (\dist + 1.5, 0);
+\pgfmathsetmacro{\tScale}{\yT / 17.5}
+\begin{scope}[shift={(\dist, {0.5*\tScale})}, scale=\tScale, fill=black!85]
+\fill (-1.2, -0.5) rectangle (1.2, 2.5);
+\fill (-1.3, 2.5) rectangle (1.3, 2.7);
+\fill (-1.1, 2.7) rectangle (1.1, 6.5);
+\foreach \x in {-0.8, -0.48, -0.16, 0.16, 0.48, 0.8} {
+    \fill[white] (\x-0.08, 2.9) rectangle (\x+0.08, 4.3);
+    \fill[white] (\x, 4.3) circle (0.08);
+    \fill[white] (\x-0.08, 4.6) rectangle (\x+0.08, 6.2);
+    \fill[white] (\x, 6.2) circle (0.08);
+}
+\fill (-1.25, 6.5) rectangle (1.25, 6.8);
+\fill (-1.15, 6.8) rectangle (1.15, 9.2);
+\fill[white] (0, 8.0) circle (0.9);
+\draw[line width=0.8pt, black] (0, 8.0) circle (0.8);
+\draw[line width=1.2pt, black, line cap=round] (0, 8.0) -- (0, 8.55);
+\draw[line width=1.2pt, black, line cap=round] (0, 8.0) -- (0.45, 7.75);
+\fill[black] (0, 8.0) circle (0.08);
+\fill (-1.3, 9.2) rectangle (1.3, 9.5);
+\fill (-1.0, 9.5) -- (1.0, 9.5) -- (0.7, 11.2) -- (-0.7, 11.2) -- cycle;
+\foreach \x in {-0.5, -0.25, 0, 0.25, 0.5} {
+    \fill[white] (\x-0.06, 9.7) rectangle (\x+0.06, 10.6);
+    \fill[white] (\x, 10.6) circle (0.06);
+}
+\fill (-0.8, 11.2) rectangle (0.8, 11.4);
+\fill (-0.65, 11.4) rectangle (0.65, 12.6);
+\foreach \x in {-0.35, 0, 0.35} {
+    \fill[white] (\x-0.06, 11.6) rectangle (\x+0.06, 12.2);
+}
+\fill (-0.7, 12.6) -- (0.7, 12.6) -- (0, 15.5) -- cycle;
+\draw[line width=1.5pt, black] (0, 15.4) -- (0, 16.5);
+\fill (0, 16.5) circle (0.12);
+\draw[line width=1pt, black] (0, 16.5) -- (0, 17.0);
+\end{scope}
+\coordinate (C) at (0, 0);
+\coordinate (A) at (\dist, 0);
+\coordinate (B) at (\dist, \yT);
+\draw[dashed, thick] (C) -- (B);
+\draw[dotted, thick] (A) -- (B);
+\draw (1.2, 0) arc (0:\ang:1.2);
+\node at ({\ang/2}:2.1) {$50^\circ$};
+\node[below] at ({\dist/2}, 0) {$14\text{ m}$};
+\node[below] at (C) {$C$};
+\node[below] at (A) {$A$};
+\node[above] at (B) {$B$};
+\fill (C) circle (2pt);
+\fill (A) circle (2pt);
+\fill (B) circle (2pt);
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}
+\newpage
+
+
+\section{Mẫu mới 4: Chiếc quạt giấy hoa anh đào (nửa hình vành khuyên)}
+\noindent\textbf{Mã câu:} \texttt{L09\_C5\_B3\_58} \quad---\quad \textbf{MapID:} \texttt{9H5V3-0}\\[2mm]
+\textbf{Mô tả logic đổi số động:} Đổi số bán kính ngoài $R$ (dm) và bề rộng nan giấy $L$ (dm); vòng cung trong $r = R - L$ tự co giãn tỷ lệ theo $r/R$, giữ nguyên nền chuyển sắc hồng/đỏ tương thích TikZJax và sạch watermark.\\[3mm]
+\noindent
+\begin{minipage}[t]{0.49\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=teal!4!white,colframe=teal!70!black,title={\textbf{BIẾN THỂ ĐỔI SỐ 1 (Đáp số: 5,51)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+{\small Một chiếc quạt giấy khi mở hết ra có dạng nửa hình tròn tâm $O$, bán kính $R = 2{,}0\text{ dm}$, phần giấy dán trang trí hoa anh đào nằm trên mỗi nan quạt có độ dài $1{,}3\text{ dm}$ tính từ mép ngoài (như hình vẽ). Tính diện tích phần giấy dán một mặt của chiếc quạt (lấy $\pi \approx 3{,}14$, làm tròn kết quả đến hàng phần trăm, đơn vị $\text{dm}^2$).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, font=\footnotesize, scale=1.08]
+    \def\R{2.2}
+    \def\r{0.77}
+    \tikzset{
+        sakura/.pic={
+            \foreach \a in {0, 72, 144, 216, 288} {
+                \fill[pink!15, draw=pink!60, line width=0.2pt, rotate=\a] 
+                    (0,0) .. controls (0.05,0.05) and (0.1,0.15) .. 
+                    (0.05,0.22) -- (0,0.17) -- (-0.05,0.22) .. 
+                    controls (-0.1,0.15) and (-0.05,0.05) .. (0,0);
+            }
+            \fill[pink!80!red] (0,0) circle (0.02);
+            \foreach \a in {36, 108, 180, 252, 324} {
+                \draw[pink!70!black, thin, rotate=\a] (0,0) -- (0,0.08);
+                \fill[pink!70!black, rotate=\a] (0,0.08) circle (0.01);
+            }
+        },
+        petal/.pic={
+            \fill[pink!30, draw=pink!50, line width=0.1pt] 
+                (0,0) .. controls (0.05,0.05) and (0.1,0.15) .. 
+                (0.05,0.22) -- (0,0.17) -- (-0.05,0.22) .. 
+                controls (-0.1,0.15) and (-0.05,0.05) .. (0,0);
+        }
+    }
+    \foreach \angle in {15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165} {
+        \draw[line width=1.5pt, black!85] (0,0) -- (\angle:\R);
+    }
+    \draw[line width=3.5pt, black!90] (0,0) -- (\R,0);
+    \draw[line width=3.5pt, black!90] (0,0) -- (-\R,0);
+    \begin{scope}
+        \clip (\r,0) arc (0:180:\r) -- (-\R,0) arc (180:0:\R) -- cycle;
+        \fill[red!82!black] (\r,0) arc (0:180:\r) -- (-\R,0) arc (180:0:\R) -- cycle;
+        \pgfmathsetmacro{\radTwo}{\r + 0.72*(\R - \r)}
+        \fill[red!70!black!70!white] (\r,0) arc (0:180:\r) -- (-\radTwo,0) arc (180:0:\radTwo) -- cycle;
+        \pgfmathsetmacro{\radThree}{\r + 0.45*(\R - \r)}
+        \fill[red!55!white!75] (\r,0) arc (0:180:\r) -- (-\radThree,0) arc (180:0:\radThree) -- cycle;
+        \pgfmathsetmacro{\radFour}{\r + 0.22*(\R - \r)}
+        \fill[pink!35!white] (\r,0) arc (0:180:\r) -- (-\radFour,0) arc (180:0:\radFour) -- cycle;
+        \foreach \angle in {10, 30, 50, 70, 90, 110, 130, 150, 170} {
+            \fill[white, opacity=0.25] (\angle-6:\r) arc (\angle-6:\angle+6:\r) -- (\angle+6:\R) arc (\angle+6:\angle-6:\R) -- cycle;
+        }
+        \foreach \angle in {10, 20, ..., 170} {
+            \draw[thin, black!15] (\angle:\r) -- (\angle:\R);
+        }
+        \draw[line width=2.5pt, brown!40!black] (-\R, 0.3) .. controls (-1.5, 0.6) and (-1.0, 1.0) .. (-0.3, 1.2);
+        \draw[line width=1.2pt, brown!40!black] (-1.4, 0.55) .. controls (-1.1, 0.9) .. (-0.8, 1.4);
+        \draw[line width=0.8pt, brown!40!black] (-0.9, 0.95) .. controls (-0.6, 1.1) .. (-0.5, 1.4);
+        \draw[line width=2.5pt, brown!40!black] (\R, 0.4) .. controls (1.6, 0.8) and (1.0, 1.0) .. (0.4, 1.3);
+        \draw[line width=1.2pt, brown!40!black] (1.5, 0.75) .. controls (1.2, 1.2) .. (0.9, 1.5);
+        \foreach \x/\y/\s/\rot in {
+            -1.5/0.55/1/15, -1.1/0.9/1.2/30, -0.8/1.4/0.9/72, -0.3/1.2/1/-20,
+            -1.8/0.4/0.8/45, -1.4/0.8/0.7/10, -0.9/1.1/0.6/80, -0.5/1.4/0.8/-15,
+            1.6/0.75/1.1/-10, 1.2/1.0/0.9/25, 0.9/1.5/1/60, 0.4/1.3/0.8/-30,
+            1.9/0.5/0.7/15, 1.4/1.0/0.6/5, 1.1/1.3/0.7/-40, 0.6/1.1/0.6/70
+        } {
+            \pic[scale=\s, rotate=\rot] at (\x,\y) {sakura};
+        }
+        \foreach \x/\y/\rot in {
+            -0.8/1.8/30, -0.2/1.6/75, 0.3/1.8/-20, 0.8/1.9/45, 1.3/1.7/-60, 
+            -1.2/1.9/15, 0.0/1.2/80, 0.5/0.8/-10, -1.8/1.3/110, 1.8/1.4/50
+        } {
+            \pic[rotate=\rot, scale=0.7] at (\x,\y) {petal};
+        }
+        \foreach \x/\y in {-1.2/1.5, -0.5/1.8, 0.2/1.4, 1.0/1.8, 1.5/1.2} {
+            \fill[white, opacity=0.6] (\x,\y) circle (0.02);
+        }
+    \end{scope}
+    \draw[thick, black!80] (\r,0) arc (0:180:\r) -- (-\R,0) arc (180:0:\R) -- cycle;
+    \draw[line width=1.5pt, red!90!black] (0,-0.05) .. controls (0.15,0.08) and (0.22,-0.15) .. (0,-0.05) .. controls (-0.22,-0.15) and (-0.15,0.08) .. (0,-0.05);
+    \draw[line width=1.5pt, red!90!black] (0,-0.05) .. controls (0.08,-0.15) and (-0.08,-0.15) .. (0,-0.05);
+    \fill[red!80!black] (0,-0.05) circle (1.5pt);
+    \draw[line width=1.1pt, red!90!black] (0,-0.05) .. controls (-0.2,-0.3) and (0.4,-0.2) .. (0.35,-0.5);
+    \draw[line width=1.1pt, red!90!black] (0,-0.05) .. controls (-0.4,-0.4) and (0.2,-0.5) .. (0.15,-0.7);
+    \fill[red!80!black] (0.31,-0.5) rectangle (0.39,-0.55);
+    \foreach \i in {-0.03,-0.015, 0, 0.015, 0.03} {
+        \draw[red!70!black, thin] (0.35+\i, -0.55) -- (0.35+\i, -0.75);
+    }
+    \fill[red!80!black] (0.11,-0.7) rectangle (0.19,-0.75);
+    \foreach \i in {-0.03,-0.015, 0, 0.015, 0.03} {
+        \draw[red!70!black, thin] (0.15+\i, -0.75) -- (0.15+\i, -0.95);
+    }
+    \draw[->, thick] (0,0) -- (135:\R) 
+        node[midway, sloped, above, fill=white, fill opacity=0.75, text opacity=1, inner sep=1pt] {$2{,}0\text{ dm}$};
+    \draw[gray!75, thin] (\r,-0.05) -- (\r,-0.38) (\R,-0.05) -- (\R,-0.38);
+    \draw[<->, thick] (\r,-0.32) -- (\R,-0.32) node[midway, below=2pt] {$1{,}3\text{ dm}$};
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
+\end{tcolorbox}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\vspace{0pt}
+\begin{tcolorbox}[colback=blue!4!white,colframe=blue!70!black,title={\textbf{BIẾN THỂ ĐỔI SỐ 2 (Đáp số: 7,08)}},top=2mm,bottom=2mm,left=2mm,right=2mm]
+{\small Một chiếc quạt giấy khi mở hết ra có dạng nửa hình tròn tâm $O$, bán kính $R = 2{,}6\text{ dm}$, phần giấy dán trang trí hoa anh đào nằm trên mỗi nan quạt có độ dài $1{,}1\text{ dm}$ tính từ mép ngoài (như hình vẽ). Tính diện tích phần giấy dán một mặt của chiếc quạt (lấy $\pi \approx 3{,}14$, làm tròn kết quả đến hàng phần trăm, đơn vị $\text{dm}^2$).}\par\vspace{2mm}
+\begin{center}
+\begin{adjustbox}{max width=0.98\linewidth, max totalheight=6.2cm, keepaspectratio}
+\begin{tikzpicture}[line cap=round, line join=round, >=stealth, font=\footnotesize, scale=1.08]
+    \def\R{2.2}
+    \def\r{1.22}
+    \tikzset{
+        sakura/.pic={
+            \foreach \a in {0, 72, 144, 216, 288} {
+                \fill[pink!15, draw=pink!60, line width=0.2pt, rotate=\a] 
+                    (0,0) .. controls (0.05,0.05) and (0.1,0.15) .. 
+                    (0.05,0.22) -- (0,0.17) -- (-0.05,0.22) .. 
+                    controls (-0.1,0.15) and (-0.05,0.05) .. (0,0);
+            }
+            \fill[pink!80!red] (0,0) circle (0.02);
+            \foreach \a in {36, 108, 180, 252, 324} {
+                \draw[pink!70!black, thin, rotate=\a] (0,0) -- (0,0.08);
+                \fill[pink!70!black, rotate=\a] (0,0.08) circle (0.01);
+            }
+        },
+        petal/.pic={
+            \fill[pink!30, draw=pink!50, line width=0.1pt] 
+                (0,0) .. controls (0.05,0.05) and (0.1,0.15) .. 
+                (0.05,0.22) -- (0,0.17) -- (-0.05,0.22) .. 
+                controls (-0.1,0.15) and (-0.05,0.05) .. (0,0);
+        }
+    }
+    \foreach \angle in {15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165} {
+        \draw[line width=1.5pt, black!85] (0,0) -- (\angle:\R);
+    }
+    \draw[line width=3.5pt, black!90] (0,0) -- (\R,0);
+    \draw[line width=3.5pt, black!90] (0,0) -- (-\R,0);
+    \begin{scope}
+        \clip (\r,0) arc (0:180:\r) -- (-\R,0) arc (180:0:\R) -- cycle;
+        \fill[red!82!black] (\r,0) arc (0:180:\r) -- (-\R,0) arc (180:0:\R) -- cycle;
+        \pgfmathsetmacro{\radTwo}{\r + 0.72*(\R - \r)}
+        \fill[red!70!black!70!white] (\r,0) arc (0:180:\r) -- (-\radTwo,0) arc (180:0:\radTwo) -- cycle;
+        \pgfmathsetmacro{\radThree}{\r + 0.45*(\R - \r)}
+        \fill[red!55!white!75] (\r,0) arc (0:180:\r) -- (-\radThree,0) arc (180:0:\radThree) -- cycle;
+        \pgfmathsetmacro{\radFour}{\r + 0.22*(\R - \r)}
+        \fill[pink!35!white] (\r,0) arc (0:180:\r) -- (-\radFour,0) arc (180:0:\radFour) -- cycle;
+        \foreach \angle in {10, 30, 50, 70, 90, 110, 130, 150, 170} {
+            \fill[white, opacity=0.25] (\angle-6:\r) arc (\angle-6:\angle+6:\r) -- (\angle+6:\R) arc (\angle+6:\angle-6:\R) -- cycle;
+        }
+        \foreach \angle in {10, 20, ..., 170} {
+            \draw[thin, black!15] (\angle:\r) -- (\angle:\R);
+        }
+        \draw[line width=2.5pt, brown!40!black] (-\R, 0.3) .. controls (-1.5, 0.6) and (-1.0, 1.0) .. (-0.3, 1.2);
+        \draw[line width=1.2pt, brown!40!black] (-1.4, 0.55) .. controls (-1.1, 0.9) .. (-0.8, 1.4);
+        \draw[line width=0.8pt, brown!40!black] (-0.9, 0.95) .. controls (-0.6, 1.1) .. (-0.5, 1.4);
+        \draw[line width=2.5pt, brown!40!black] (\R, 0.4) .. controls (1.6, 0.8) and (1.0, 1.0) .. (0.4, 1.3);
+        \draw[line width=1.2pt, brown!40!black] (1.5, 0.75) .. controls (1.2, 1.2) .. (0.9, 1.5);
+        \foreach \x/\y/\s/\rot in {
+            -1.5/0.55/1/15, -1.1/0.9/1.2/30, -0.8/1.4/0.9/72, -0.3/1.2/1/-20,
+            -1.8/0.4/0.8/45, -1.4/0.8/0.7/10, -0.9/1.1/0.6/80, -0.5/1.4/0.8/-15,
+            1.6/0.75/1.1/-10, 1.2/1.0/0.9/25, 0.9/1.5/1/60, 0.4/1.3/0.8/-30,
+            1.9/0.5/0.7/15, 1.4/1.0/0.6/5, 1.1/1.3/0.7/-40, 0.6/1.1/0.6/70
+        } {
+            \pic[scale=\s, rotate=\rot] at (\x,\y) {sakura};
+        }
+        \foreach \x/\y/\rot in {
+            -0.8/1.8/30, -0.2/1.6/75, 0.3/1.8/-20, 0.8/1.9/45, 1.3/1.7/-60, 
+            -1.2/1.9/15, 0.0/1.2/80, 0.5/0.8/-10, -1.8/1.3/110, 1.8/1.4/50
+        } {
+            \pic[rotate=\rot, scale=0.7] at (\x,\y) {petal};
+        }
+        \foreach \x/\y in {-1.2/1.5, -0.5/1.8, 0.2/1.4, 1.0/1.8, 1.5/1.2} {
+            \fill[white, opacity=0.6] (\x,\y) circle (0.02);
+        }
+    \end{scope}
+    \draw[thick, black!80] (\r,0) arc (0:180:\r) -- (-\R,0) arc (180:0:\R) -- cycle;
+    \draw[line width=1.5pt, red!90!black] (0,-0.05) .. controls (0.15,0.08) and (0.22,-0.15) .. (0,-0.05) .. controls (-0.22,-0.15) and (-0.15,0.08) .. (0,-0.05);
+    \draw[line width=1.5pt, red!90!black] (0,-0.05) .. controls (0.08,-0.15) and (-0.08,-0.15) .. (0,-0.05);
+    \fill[red!80!black] (0,-0.05) circle (1.5pt);
+    \draw[line width=1.1pt, red!90!black] (0,-0.05) .. controls (-0.2,-0.3) and (0.4,-0.2) .. (0.35,-0.5);
+    \draw[line width=1.1pt, red!90!black] (0,-0.05) .. controls (-0.4,-0.4) and (0.2,-0.5) .. (0.15,-0.7);
+    \fill[red!80!black] (0.31,-0.5) rectangle (0.39,-0.55);
+    \foreach \i in {-0.03,-0.015, 0, 0.015, 0.03} {
+        \draw[red!70!black, thin] (0.35+\i, -0.55) -- (0.35+\i, -0.75);
+    }
+    \fill[red!80!black] (0.11,-0.7) rectangle (0.19,-0.75);
+    \foreach \i in {-0.03,-0.015, 0, 0.015, 0.03} {
+        \draw[red!70!black, thin] (0.15+\i, -0.75) -- (0.15+\i, -0.95);
+    }
+    \draw[->, thick] (0,0) -- (135:\R) 
+        node[midway, sloped, above, fill=white, fill opacity=0.75, text opacity=1, inner sep=1pt] {$2{,}6\text{ dm}$};
+    \draw[gray!75, thin] (\r,-0.05) -- (\r,-0.38) (\R,-0.05) -- (\R,-0.38);
+    \draw[<->, thick] (\r,-0.32) -- (\R,-0.32) node[midway, below=2pt] {$1{,}1\text{ dm}$};
 \end{tikzpicture}
 \end{adjustbox}
 \end{center}

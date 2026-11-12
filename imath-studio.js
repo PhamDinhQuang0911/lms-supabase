@@ -16,7 +16,7 @@
     'use strict';
 
     const LOCAL_BRIDGE_URL = 'http://127.0.0.1:8765';
-    const CATALOG_URL = 'data/imath/catalog_mapped.json?v=20261111-v3';
+    const CATALOG_URL = 'data/imath/catalog_mapped.json?v=20261112-v6';
 
     const state = {
         catalog: [],
@@ -949,7 +949,7 @@
             badge.innerHTML = '<i class="fa-solid fa-bolt"></i><span>Engine Python Local</span>';
         } else {
             badge.className = 'ims-status-badge';
-            badge.innerHTML = '<i class="fa-solid fa-database"></i><span>2.423 mẫu chuẩn MapID</span>';
+            badge.innerHTML = '<i class="fa-solid fa-database"></i><span>2.427 mẫu chuẩn MapID</span>';
         }
     }
 
@@ -989,7 +989,7 @@
     async function ensureGradePoolLoaded(gradePrefix) {
         if (state.poolsLoaded[gradePrefix]) return state.poolsLoaded[gradePrefix];
         try {
-            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261112-v5`);
+            const res = await fetch(`data/imath/pool_${gradePrefix}.json?v=20261112-v6`);
             if (res.ok) {
                 state.poolsLoaded[gradePrefix] = await res.json();
                 return state.poolsLoaded[gradePrefix];
@@ -1134,7 +1134,7 @@
                         <div style="min-width:0;flex:1;">
                             <div class="ims-header-title-row">
                                 <h2 class="ims-header-title">Tạo câu hỏi theo dạng (Đổi số chuẩn MapID)</h2>
-                                <span id="imathEngineStatusBadge" onclick="window.pingIMathLocalEngine()" class="ims-status-badge" title="Bấm để kiểm tra kết nối Python Local Engine">2.423 mẫu chuẩn MapID</span>
+                                <span id="imathEngineStatusBadge" onclick="window.pingIMathLocalEngine()" class="ims-status-badge" title="Bấm để kiểm tra kết nối Python Local Engine">2.427 mẫu chuẩn MapID</span>
                             </div>
                             <p class="ims-header-sub">Lọc theo cấu trúc MapID (Khối • Phân môn • Chương • Bài • Dạng toán) & nạp thẳng vào Ngân hàng câu hỏi / Đề thi</p>
                         </div>
@@ -1328,7 +1328,7 @@
     window.pingIMathLocalEngine = function () {
         checkLocalBridge(true).then(online => {
             if (online) notify('Đã kết nối Engine Python Local (http://127.0.0.1:8765)!', 'success');
-            else notify('Đang sử dụng Kho dữ liệu chuẩn MapID trên Web (2.423 mẫu).', 'info');
+            else notify('Đang sử dụng Kho dữ liệu chuẩn MapID trên Web (2.427 mẫu).', 'info');
         });
     };
 
