@@ -4500,7 +4500,7 @@ if (typeof window !== 'undefined' && typeof window.isFreeTeacher === 'boolean') 
 isFree = window.isFreeTeacher;
 isVip = !isFree;
 } else if (prof) {
-isFree = prof.teacherTier === 'free' || prof.role === 'teacher_free';
+isFree = prof.teacherTier === 'free' || prof.role === 'teacher_free' || (!prof.teacherTier && typeof cachedRole.isFree === 'boolean' && cachedRole.isFree);
 isVip = !isFree;
 } else if (typeof cachedRole.isFree === 'boolean') {
 isFree = cachedRole.isFree;
@@ -4564,6 +4564,40 @@ const roleLabel = role.isSuper ? 'Super Admin' : (role.isFree ? 'Giáo viên Fre
 return { ...role, limit: role.monthlyLimit, roleLabel, monthKey, used, remaining, unlimited };
 }
 
+function emitQuotaUpdated() {
+try {
+if (typeof window !== 'undefined' && typeof window.refreshIMathRoleVisibility === 'function') {
+window.refreshIMathRoleVisibility();
+}
+if (typeof window !== 'undefined' && typeof window.refreshDashboardQuotaDisplay === 'function') {
+window.refreshDashboardQuotaDisplay();
+}
+if (typeof window !== 'undefined' && typeof window.applyEditorRoleVisibility === 'function') {
+window.applyEditorRoleVisibility();
+}
+if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+window.dispatchEvent(new CustomEvent('qmath-quota-updated'));
+}
+} catch (_) {}
+}
+
+function getDisplaySummary() {
+const st = getStatus();
+if (st.isSuper) {
+return { ...st, shortText: 'Không giới hạn (Super Admin)', badgeText: 'Không giới hạn (Admin)', tone: 'emerald' };
+}
+if (st.unlimited) {
+return { ...st, shortText: 'Gói VIP • Không giới hạn', badgeText: `${st.roleLabel} • Không giới hạn lượt/tháng`, tone: 'emerald' };
+}
+const tone = st.remaining <= 0 ? 'rose' : (st.remaining <= 10 ? 'amber' : 'blue');
+return {
+...st,
+shortText: `Còn ${st.remaining}/${st.limit} lượt/tháng`,
+badgeText: `Lượt tạo & tải đề tháng ${st.monthKey}: Còn ${st.remaining}/${st.limit} lượt`,
+tone
+};
+}
+
 function syncFromCloudUsage(uidOrKey, cloudMonthlyUsage) {
 if (!cloudMonthlyUsage || typeof cloudMonthlyUsage !== 'object') return;
 const role = getRoleInfo();
@@ -4581,6 +4615,7 @@ const n = Number(cnt || 0);
 if (!isNaN(n) && n > Number(map[uKey][mk] || 0)) map[uKey][mk] = n;
 });
 writeUsageMap(map);
+emitQuotaUpdated();
 }
 
 async function consume(actionLabel = 'Tạo / tải đề') {
@@ -4600,9 +4635,7 @@ const map = readUsageMap();
 if (!map[st.userKey]) map[st.userKey] = {};
 map[st.userKey][st.monthKey] = nextUsed;
 writeUsageMap(map);
-if (typeof window !== 'undefined' && typeof window.refreshIMathRoleVisibility === 'function') {
-    try { window.refreshIMathRoleVisibility(); } catch (_) {}
-}
+emitQuotaUpdated();
 if (typeof window._qmathQuotaSyncUsageToCloud === 'function') {
 try {
 await Promise.resolve(window._qmathQuotaSyncUsageToCloud(st.uid, st.monthKey, nextUsed, actionLabel));
@@ -4618,10 +4651,11 @@ remaining: Math.max(0, st.monthlyLimit - nextUsed)
 }
 
 function saveRoleSnapshot(snapshot) {
-if (typeof localStorage === 'undefined' || !snapshot) return;
+if (typeof localStorage === 'undefined' || !snapshot || typeof snapshot !== 'object') return;
 try {
 const prev = safeJsonParse(localStorage.getItem(STORAGE_ROLE_CFG_KEY)) || {};
 localStorage.setItem(STORAGE_ROLE_CFG_KEY, JSON.stringify({ ...prev, ...snapshot, updatedAt: Date.now() }));
+emitQuotaUpdated();
 } catch (_) {}
 }
 
@@ -4629,6 +4663,7 @@ return {
 getMonthKey,
 getRoleInfo,
 getStatus,
+getDisplaySummary,
 syncFromCloudUsage,
 consume,
 saveRoleSnapshot

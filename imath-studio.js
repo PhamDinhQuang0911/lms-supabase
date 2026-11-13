@@ -43,6 +43,8 @@
             keyword: ''
         },
         workspaceQuestions: [],
+        previewIndexByTag: {}, // { tag: 0-based active sample index }
+        matrixExpanded: false,
         isLoadingCatalog: false
     };
 
@@ -112,10 +114,10 @@
                 display: flex !important;
             }
             .ims-dialog {
-                width: 100% !important;
-                max-width: 1460px !important;
-                height: 92vh !important;
-                max-height: 960px !important;
+                width: calc(100vw - 24px) !important;
+                max-width: 1860px !important;
+                height: calc(100vh - 20px) !important;
+                max-height: 1120px !important;
                 background: #ffffff !important;
                 color: #0f172a !important;
                 border-radius: 16px !important;
@@ -324,8 +326,13 @@
                 flex: 1 !important;
                 min-height: 0 !important;
                 display: grid !important;
-                grid-template-columns: 320px 410px 1fr !important;
+                grid-template-columns: 310px 390px 1fr !important;
                 overflow: hidden !important;
+            }
+            @media (max-width: 1440px) and (min-width: 1025px) {
+                .ims-body {
+                    grid-template-columns: 280px 345px 1fr !important;
+                }
             }
             .ims-col-filter {
                 background: #f8fafc !important;
@@ -917,6 +924,190 @@
             .ims-btn-word:hover {
                 background: #0369a1 !important;
             }
+            .ims-topic-selected-badge {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 3px !important;
+                padding: 1px 6px !important;
+                border-radius: 999px !important;
+                background: rgba(79, 70, 229, 0.12) !important;
+                color: #4338ca !important;
+                border: 1px solid rgba(79, 70, 229, 0.28) !important;
+                font-size: 10.5px !important;
+                font-weight: 700 !important;
+            }
+            html.dark .ims-topic-selected-badge {
+                background: rgba(99, 102, 241, 0.2) !important;
+                color: #c7d2fe !important;
+                border-color: rgba(129, 140, 248, 0.35) !important;
+            }
+            .ims-stats-summary {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 8px !important;
+                flex-wrap: wrap !important;
+            }
+            .ims-stats-kpis {
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                flex-wrap: wrap !important;
+            }
+            .ims-stat-kpi {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                padding: 3px 9px !important;
+                border-radius: 999px !important;
+                font-size: 11px !important;
+                font-weight: 700 !important;
+                border: 1px solid #cbd5e1 !important;
+                background: #ffffff !important;
+                color: #334155 !important;
+            }
+            html.dark .ims-stat-kpi {
+                background: #1c2030 !important;
+                border-color: #313752 !important;
+                color: #cbd5e1 !important;
+            }
+            .ims-stat-kpi.kpi-total {
+                background: #eef2ff !important;
+                border-color: #c7d2fe !important;
+                color: #3730a3 !important;
+            }
+            html.dark .ims-stat-kpi.kpi-total {
+                background: rgba(79, 70, 229, 0.22) !important;
+                border-color: rgba(129, 140, 248, 0.4) !important;
+                color: #c7d2fe !important;
+            }
+            .ims-stat-kpi.kpi-tn {
+                background: #eff6ff !important;
+                border-color: #bfdbfe !important;
+                color: #1d4ed8 !important;
+            }
+            .ims-stat-kpi.kpi-ds {
+                background: #ecfdf5 !important;
+                border-color: #a7f3d0 !important;
+                color: #047857 !important;
+            }
+            .ims-stat-kpi.kpi-tln {
+                background: #fff7ed !important;
+                border-color: #fed7aa !important;
+                color: #c2410c !important;
+            }
+            .ims-stat-kpi.kpi-tl {
+                background: #f5f3ff !important;
+                border-color: #ddd6fe !important;
+                color: #6d28d9 !important;
+            }
+            html.dark .ims-stat-kpi.kpi-tn { background: rgba(59,130,246,0.16) !important; border-color: rgba(59,130,246,0.35) !important; color: #93c5fd !important; }
+            html.dark .ims-stat-kpi.kpi-ds { background: rgba(16,185,129,0.16) !important; border-color: rgba(16,185,129,0.35) !important; color: #6ee7b7 !important; }
+            html.dark .ims-stat-kpi.kpi-tln { background: rgba(249,115,22,0.16) !important; border-color: rgba(249,115,22,0.35) !important; color: #fdba74 !important; }
+            html.dark .ims-stat-kpi.kpi-tl { background: rgba(139,92,246,0.16) !important; border-color: rgba(139,92,246,0.35) !important; color: #c4b5fd !important; }
+            .ims-stats-tag-pills {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 5px !important;
+                margin-top: 7px !important;
+                max-height: 76px !important;
+                overflow-y: auto !important;
+            }
+            .ims-stats-tag-chip {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                padding: 2px 8px !important;
+                border-radius: 6px !important;
+                background: #ffffff !important;
+                border: 1px solid #cbd5e1 !important;
+                font-size: 10.5px !important;
+                font-weight: 600 !important;
+                color: #334155 !important;
+                cursor: pointer !important;
+                transition: all 0.12s ease !important;
+            }
+            .ims-stats-tag-chip:hover {
+                border-color: #6366f1 !important;
+                color: #4f46e5 !important;
+            }
+            html.dark .ims-stats-tag-chip {
+                background: #1c2030 !important;
+                border-color: #313752 !important;
+                color: #cbd5e1 !important;
+            }
+            .ims-card-qty-box {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 3px !important;
+                padding: 2px 4px !important;
+                border-radius: 8px !important;
+                background: #ffffff !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            html.dark .ims-card-qty-box {
+                background: #141724 !important;
+                border-color: #313752 !important;
+            }
+            .ims-card-qty-label {
+                font-size: 10px !important;
+                font-weight: 700 !important;
+                color: #64748b !important;
+                padding: 0 3px !important;
+                white-space: nowrap !important;
+            }
+            .ims-card-var-nav {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 2px !important;
+                padding: 2px 4px !important;
+                border-radius: 7px !important;
+                background: #eef2ff !important;
+                border: 1px solid #c7d2fe !important;
+                font-size: 10.5px !important;
+                font-weight: 700 !important;
+                color: #3730a3 !important;
+            }
+            html.dark .ims-card-var-nav {
+                background: rgba(79, 70, 229, 0.2) !important;
+                border-color: rgba(129, 140, 248, 0.4) !important;
+                color: #c7d2fe !important;
+            }
+            .ims-var-btn {
+                width: 19px !important;
+                height: 19px !important;
+                border-radius: 5px !important;
+                border: none !important;
+                background: transparent !important;
+                color: inherit !important;
+                cursor: pointer !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-size: 10px !important;
+            }
+            .ims-var-btn:hover {
+                background: rgba(79, 70, 229, 0.14) !important;
+            }
+            .ims-preview-hint {
+                margin-bottom: 8px !important;
+                padding: 4px 10px !important;
+                border-radius: 7px !important;
+                background: #f8fafc !important;
+                border: 1px dashed #cbd5e1 !important;
+                font-size: 11px !important;
+                color: #475569 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                gap: 8px !important;
+                flex-wrap: wrap !important;
+            }
+            html.dark .ims-preview-hint {
+                background: #131622 !important;
+                border-color: #2b3048 !important;
+                color: #94a3b8 !important;
+            }
             .ims-quota-pill {
                 display: inline-flex;
                 align-items: center;
@@ -1256,6 +1447,12 @@
                     font-size: 11.5px !important;
                     white-space: nowrap !important;
                 }
+            }
+            .ims-role-hidden {
+                display: none !important;
+            }
+            .ims-footer-actions {
+                margin-left: auto !important;
             }
         `;
     }
@@ -1683,7 +1880,7 @@
 
                         <!-- Thanh công cụ xuất / nạp dưới cùng -->
                         <div class="ims-footer">
-                            <button type="button" id="btnIMathDownloadTex" onclick="window.downloadIMathWorkspaceTex()" class="ims-btn ims-btn-sec">
+                            <button type="button" id="btnIMathDownloadTex" onclick="window.downloadIMathWorkspaceTex()" class="ims-btn ims-btn-sec ims-role-hidden">
                                 <i class="fa-solid fa-download"></i> Tải file .tex
                             </button>
                             <div class="ims-footer-actions" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1703,6 +1900,15 @@
             </div>
         `;
         document.body.appendChild(modal);
+
+        if (!window._imsQuotaListenerBound) {
+            window._imsQuotaListenerBound = true;
+            window.addEventListener('qmath-quota-updated', function () {
+                if (typeof window.refreshIMathRoleVisibility === 'function') {
+                    window.refreshIMathRoleVisibility();
+                }
+            });
+        }
 
         document.addEventListener('keydown', function (ev) {
             if (ev.key === 'Escape' && modal.classList.contains('ims-open')) {
@@ -1872,9 +2078,17 @@
             return;
         }
 
+        const tagCounts = {};
+        for (const q of state.workspaceQuestions) {
+            if (q && q.tag) tagCounts[q.tag] = (tagCounts[q.tag] || 0) + 1;
+        }
         const shown = filtered.slice(0, 150);
         listEl.innerHTML = shown.map(it => {
             const catShort = shortCategoryName(it.category);
+            const selectedCnt = tagCounts[it.tag] || 0;
+            const selectedBadge = selectedCnt > 0
+                ? `<span class="ims-topic-selected-badge" title="Đã thêm vào đề"><i class="fa-solid fa-check" style="font-size:8.5px;"></i>×${selectedCnt}</span>`
+                : '';
             const tikzMeta = it.has_tikz
                 ? `<span class="ims-meta-dot">•</span><span class="ims-meta-code" title="Nhóm hình TikZ"><i class="fa-solid fa-draw-polygon" style="font-size:9.5px;margin-right:2px;"></i>${escapeHtml(it.tikz_group_id || 'TikZ')}</span>`
                 : '';
@@ -1889,6 +2103,7 @@
                             <span class="ims-meta-dot">•</span>
                             <span class="ims-meta-code" title="${escapeHtml(it.lesson)}">${escapeHtml(it.tag)}</span>
                             ${tikzMeta}
+                            ${selectedBadge}
                         </div>
                     </div>
                     <div class="ims-topic-actions">
@@ -2278,62 +2493,83 @@
         return 'TL';
     }
 
+    function groupWorkspaceQuestions() {
+        const qs = state.workspaceQuestions || [];
+        const groupMap = new Map();
+        qs.forEach((q, wsIndex) => {
+            const tag = q.tag || q.map_id || 'unknown';
+            const kind = detectIMathQuestionKind(q);
+            if (!groupMap.has(tag)) {
+                const metaTitle = (state.byTag && state.byTag[tag] && state.byTag[tag].title) || q.title || tag;
+                groupMap.set(tag, {
+                    tag,
+                    title: metaTitle,
+                    map_id: q.map_id || '',
+                    tikz_group_id: q.tikz_group_id || '',
+                    kind,
+                    items: []
+                });
+            }
+            groupMap.get(tag).items.push({ q, wsIndex });
+        });
+        return Array.from(groupMap.values());
+    }
+
+    function safeTagDomId(tag) {
+        return String(tag || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
+
+    window.scrollToIMathTagCard = function (tag) {
+        const el = document.getElementById('ims-group-card-' + safeTagDomId(tag));
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            el.style.boxShadow = '0 0 0 2px #4f46e5';
+            setTimeout(() => { el.style.boxShadow = ''; }, 900);
+        }
+    };
+
     function renderIMathMatrixPanel() {
         const panel = document.getElementById('imathMatrixPanel');
         if (!panel) return;
         const qs = state.workspaceQuestions || [];
+        const groups = groupWorkspaceQuestions();
         const counts = { TN: 0, DS: 0, TLN: 0, TL: 0 };
-        const groupMap = new Map();
         qs.forEach((q) => {
             const kind = detectIMathQuestionKind(q);
             counts[kind] = (counts[kind] || 0) + 1;
-            const tag = q.tag || q.map_id || 'unknown';
-            if (!groupMap.has(tag)) {
-                const metaTitle = (state.byTag && state.byTag[tag] && state.byTag[tag].title) || q.title || tag;
-                groupMap.set(tag, { tag, title: metaTitle, kind, count: 0 });
-            }
-            groupMap.get(tag).count += 1;
         });
-        const groups = Array.from(groupMap.values());
+
+        const kindChipClass = { TN: 'kpi-tn', DS: 'kpi-ds', TLN: 'kpi-tln', TL: 'kpi-tl' };
+        const kindLabel = { TN: 'TN', DS: 'ĐS', TLN: 'TLN', TL: 'TL' };
         const collapsed = Boolean(state.matrixCollapsed);
 
-        const kindChipClass = { TN: 'ims-stat-tn', DS: 'ims-stat-ds', TLN: 'ims-stat-tln', TL: 'ims-stat-tl' };
-        const kindLabel = { TN: 'TN', DS: 'ĐS', TLN: 'TLN', TL: 'TL' };
-
-        const rowsHtml = (!collapsed && groups.length > 0)
-            ? `<div class="ims-matrix-rows">${groups.map((g) => {
+        const tagChipsHtml = (!collapsed && groups.length > 0)
+            ? `<div class="ims-stats-tag-pills">${groups.map((g) => {
                 const encTag = encodeURIComponent(g.tag);
-                return `<div class="ims-matrix-row">
-                    <div class="ims-matrix-row-info">
-                        <span class="ims-stat-chip ${kindChipClass[g.kind] || 'ims-stat-tn'}">${kindLabel[g.kind] || 'TN'}</span>
-                        <span class="ims-meta-mapid">${escapeHtml(g.tag)}</span>
-                        <span class="ims-matrix-row-title" title="${escapeHtml(g.title)}">${escapeHtml(g.title)}</span>
-                    </div>
-                    <div class="ims-matrix-stepper">
-                        <button type="button" class="ims-step-btn" onclick="window.setIMathTagCount(decodeURIComponent('${encTag}'), ${g.count - 1})" title="Giảm 1 câu">−</button>
-                        <input type="number" min="0" max="50" value="${g.count}" class="ims-step-input" onchange="window.setIMathTagCount(decodeURIComponent('${encTag}'), this.value)" title="Số câu của dạng ${escapeHtml(g.tag)}">
-                        <button type="button" class="ims-step-btn" onclick="window.setIMathTagCount(decodeURIComponent('${encTag}'), ${g.count + 1})" title="Tăng 1 câu">+</button>
-                        <button type="button" class="ims-step-btn" onclick="window.setIMathTagCount(decodeURIComponent('${encTag}'), 0)" title="Xóa toàn bộ dạng này" style="margin-left:2px;color:#ef4444;border-color:rgba(239,68,68,0.35);">×</button>
-                    </div>
-                </div>`;
+                return `<button type="button" class="ims-stats-tag-chip" onclick="window.scrollToIMathTagCard(decodeURIComponent('${encTag}'))" title="${escapeHtml(g.title)} (Bấm để cuộn tới câu mẫu)">
+                    <span class="ims-stat-kpi ${kindChipClass[g.kind] || 'kpi-tn'}" style="padding:1px 5px !important;font-size:9.5px !important;">${kindLabel[g.kind] || 'TN'}</span>
+                    <span>${escapeHtml(g.tag)}</span>
+                    <b style="color:#4f46e5;">×${g.items.length}</b>
+                </button>`;
             }).join('')}</div>`
             : '';
 
         panel.innerHTML = `
-            <div class="ims-matrix-hdr">
-                <span style="display:inline-flex;align-items:center;gap:6px;">
-                    <i class="fa-solid fa-table-cells" style="color:#4f46e5;"></i>
-                    <span>Ma trận dạng đã chọn (${groups.length} dạng · ${qs.length} câu)</span>
+            <div class="ims-stats-summary">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:12px;">
+                    <i class="fa-solid fa-chart-column" style="color:#4f46e5;"></i>
+                    <span>Thống kê câu đã chọn</span>
                 </span>
-                <div class="ims-matrix-stats">
-                    <span class="ims-stat-chip ims-stat-tn">TN: ${counts.TN}</span>
-                    <span class="ims-stat-chip ims-stat-ds">ĐS: ${counts.DS}</span>
-                    <span class="ims-stat-chip ims-stat-tln">TLN: ${counts.TLN}</span>
-                    ${counts.TL > 0 ? `<span class="ims-stat-chip ims-stat-tl">TL: ${counts.TL}</span>` : ''}
-                    ${groups.length > 0 ? `<button type="button" onclick="window.toggleIMathMatrixCollapse()" class="ims-btn-add3" style="padding:2px 8px;font-size:10.5px;">${collapsed ? 'Mở rộng' : 'Thu gọn'}</button>` : ''}
+                <div class="ims-stats-kpis">
+                    <span class="ims-stat-kpi kpi-total">${groups.length} dạng · ${qs.length} câu</span>
+                    <span class="ims-stat-kpi kpi-tn">TN: ${counts.TN}</span>
+                    <span class="ims-stat-kpi kpi-ds">ĐS: ${counts.DS}</span>
+                    <span class="ims-stat-kpi kpi-tln">TLN: ${counts.TLN}</span>
+                    ${counts.TL > 0 ? `<span class="ims-stat-kpi kpi-tl">TL: ${counts.TL}</span>` : ''}
+                    ${groups.length > 0 ? `<button type="button" onclick="window.toggleIMathMatrixCollapse()" class="ims-btn-add3" style="padding:2px 8px;height:24px;font-size:10.5px;">${collapsed ? 'Hiện chi tiết' : 'Thu gọn'}</button>` : ''}
                 </div>
             </div>
-            ${rowsHtml}
+            ${tagChipsHtml}
         `;
     }
 
@@ -2342,9 +2578,29 @@
         renderIMathMatrixPanel();
     };
 
+    window.stepIMathTagCount = function (tag, delta) {
+        const curCount = state.workspaceQuestions.filter(q => q.tag === tag).length;
+        const nextCount = Math.max(0, Math.min(150, curCount + Number(delta || 0)));
+        return window.setIMathTagCount(tag, nextCount);
+    };
+
+    window.cycleIMathTagPreview = function (tag, delta) {
+        const count = state.workspaceQuestions.filter(q => q.tag === tag).length;
+        if (count <= 1) return;
+        const curIdx = Number(state.previewIndexByTag[tag] || 0);
+        const nextIdx = (curIdx + delta + count) % count;
+        state.previewIndexByTag[tag] = nextIdx;
+        renderWorkspace();
+    };
+
     window.setIMathTagCount = async function (tag, rawCount) {
         try {
-            const targetCount = Math.max(0, Math.min(50, parseInt(rawCount, 10) || 0));
+            const parsed = parseInt(String(rawCount).trim(), 10);
+            if (isNaN(parsed)) {
+                renderWorkspace();
+                return;
+            }
+            const targetCount = Math.max(0, Math.min(150, parsed));
             const curCount = state.workspaceQuestions.filter(q => q.tag === tag).length;
             if (targetCount === curCount) {
                 renderIMathMatrixPanel();
@@ -2358,7 +2614,13 @@
                         toRemove--;
                     }
                 }
+                if (targetCount === 0) {
+                    delete state.previewIndexByTag[tag];
+                } else if (Number(state.previewIndexByTag[tag] || 0) >= targetCount) {
+                    state.previewIndexByTag[tag] = targetCount - 1;
+                }
                 renderWorkspace();
+                renderTopicList();
                 return;
             }
             const delta = targetCount - curCount;
@@ -2368,8 +2630,14 @@
                 renderIMathMatrixPanel();
                 return;
             }
+            const existingForTag = state.workspaceQuestions.find(q => q.tag === tag);
+            const inheritedMapId = existingForTag ? existingForTag.map_id : null;
             const newCards = items.map(it => ({
                 ...it,
+                map_id: inheritedMapId || it.map_id,
+                latex_mc: inheritedMapId
+                    ? String(it.latex_mc || '').replace(/^\\begin\{ex\}(?:\s*%\[[^\]]*\])?/, `\\begin{ex}%[${inheritedMapId}]`)
+                    : it.latex_mc,
                 id: 'imath_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
                 showCode: false
             }));
@@ -2385,7 +2653,11 @@
             } else {
                 state.workspaceQuestions.push(...newCards);
             }
+            if (state.previewIndexByTag[tag] === undefined) {
+                state.previewIndexByTag[tag] = 0;
+            }
             renderWorkspace();
+            renderTopicList();
         } catch (err) {
             console.warn('[iMathStudio] setIMathTagCount error:', err);
         }
@@ -2394,7 +2666,9 @@
     window.refreshIMathRoleVisibility = function () {
         const modal = document.getElementById('imathStudioModal');
         const quotaInfo = window.QMathQuota ? window.QMathQuota.getRoleInfo() : null;
-        const quotaStatus = window.QMathQuota ? window.QMathQuota.getStatus() : null;
+        const quotaSummary = (window.QMathQuota && typeof window.QMathQuota.getDisplaySummary === 'function')
+            ? window.QMathQuota.getDisplaySummary()
+            : (window.QMathQuota ? window.QMathQuota.getStatus() : null);
 
         let isSuper = false;
         let canDownloadTex = false;
@@ -2415,25 +2689,49 @@
 
         if (modal) {
             modal.querySelectorAll('.ims-super-only').forEach((el) => {
-                el.style.display = isSuper ? 'inline-flex' : 'none';
+                el.classList.toggle('ims-role-hidden', !isSuper);
+                el.style.setProperty('display', isSuper ? 'inline-flex' : 'none', 'important');
             });
+            modal.querySelectorAll('.ims-q-tex-btn').forEach((el) => {
+                el.classList.toggle('ims-role-hidden', !canDownloadTex);
+                el.style.setProperty('display', canDownloadTex ? 'inline-flex' : 'none', 'important');
+            });
+            if (!canDownloadTex) {
+                modal.querySelectorAll('.ims-q-code-drawer').forEach((el) => {
+                    el.classList.add('ims-role-hidden');
+                    el.style.setProperty('display', 'none', 'important');
+                });
+            }
         }
 
         const btnTex = document.getElementById('btnIMathDownloadTex');
         if (btnTex) {
-            btnTex.style.display = canDownloadTex ? 'inline-flex' : 'none';
+            btnTex.classList.toggle('ims-role-hidden', !canDownloadTex);
+            btnTex.style.setProperty('display', canDownloadTex ? 'inline-flex' : 'none', 'important');
         }
 
         const pill = document.getElementById('imathQuotaPill');
-        if (pill && quotaStatus) {
+        if (pill && quotaSummary) {
             pill.style.display = 'inline-flex';
-            if (quotaStatus.limit < 0) {
+            if (quotaSummary.limit < 0 || quotaSummary.unlimited) {
                 pill.className = 'ims-quota-pill';
-                pill.textContent = `✨ Không giới hạn (${quotaStatus.roleLabel})`;
+                pill.textContent = quotaSummary.isSuper
+                    ? '✨ Không giới hạn (Super Admin)'
+                    : '✨ Gói VIP · Không giới hạn lượt/tháng';
+                pill.title = 'Không giới hạn số lượt tạo và tải đề mỗi tháng';
+                pill.style.cursor = 'default';
+                pill.onclick = null;
             } else {
-                const rem = Math.max(0, quotaStatus.remaining);
+                const rem = Math.max(0, quotaSummary.remaining);
                 pill.className = 'ims-quota-pill' + (rem <= 0 ? ' ims-quota-zero' : (rem <= 10 ? ' ims-quota-warn' : ''));
-                pill.textContent = `📊 Còn ${rem}/${quotaStatus.limit} lượt/tháng`;
+                pill.textContent = `📊 Còn ${rem}/${quotaSummary.limit} lượt/tháng`;
+                pill.title = quotaSummary.isFree
+                    ? `Đã dùng ${quotaSummary.used}/${quotaSummary.limit} lượt tạo/tải đề trong tháng ${quotaSummary.monthKey}. Bấm để nâng cấp VIP!`
+                    : `Đã dùng ${quotaSummary.used}/${quotaSummary.limit} lượt trong tháng ${quotaSummary.monthKey}`;
+                pill.style.cursor = quotaSummary.isFree ? 'pointer' : 'default';
+                pill.onclick = (quotaSummary.isFree && typeof window.openTeacherVipUpgradeModal === 'function')
+                    ? () => window.openTeacherVipUpgradeModal()
+                    : null;
             }
         }
     };
@@ -2461,44 +2759,82 @@
             return;
         }
 
-        listEl.innerHTML = state.workspaceQuestions.map((q, idx) => `
-            <div class="ims-q-card">
+        const groups = groupWorkspaceQuestions();
+        const canTex = window.QMathQuota ? Boolean(window.QMathQuota.getRoleInfo().canDownloadTex) : false;
+        const kindLabel = { TN: 'TN', DS: 'ĐS', TLN: 'TLN', TL: 'TL' };
+        const kindStyle = {
+            TN: 'background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;',
+            DS: 'background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;',
+            TLN: 'background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;',
+            TL: 'background:#f5f3ff;color:#6d28d9;border:1px solid #ddd6fe;'
+        };
+
+        listEl.innerHTML = groups.map((grp, gIdx) => {
+            const count = grp.items.length;
+            const rawPreviewIdx = Number(state.previewIndexByTag[grp.tag] || 0);
+            const pIdx = Math.max(0, Math.min(count - 1, rawPreviewIdx));
+            state.previewIndexByTag[grp.tag] = pIdx;
+            const activeEntry = grp.items[pIdx];
+            const q = activeEntry.q;
+            const idx = activeEntry.wsIndex;
+            const encTag = encodeURIComponent(grp.tag);
+
+            return `
+            <div class="ims-q-card" id="ims-group-card-${safeTagDomId(grp.tag)}">
                 <div class="ims-q-card-hdr">
-                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                        <span style="padding:2px 8px;border-radius:5px;background:#4f46e5;color:#fff;font-weight:700;font-size:11px;">Câu ${idx + 1}</span>
-                        <span class="ims-meta-mapid" title="Mã câu iMath">${escapeHtml(q.tag)}</span>
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;">
+                        <span style="padding:2px 8px;border-radius:5px;background:#4f46e5;color:#fff;font-weight:700;font-size:11px;">Dạng ${gIdx + 1}</span>
+                        <span style="padding:1px 6px;border-radius:5px;font-weight:700;font-size:10.5px;${kindStyle[grp.kind] || kindStyle.TN}">${kindLabel[grp.kind] || 'TN'}</span>
+                        <span class="ims-meta-mapid" title="Mã dạng iMath">${escapeHtml(grp.tag)}</span>
                         ${q.tikz_group_id ? `<span class="ims-meta-mapid" title="Mã hình TikZ">${escapeHtml(q.tikz_group_id)}</span>` : ''}
                         <div style="display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:5px;border:1px solid rgba(148,163,184,0.35);">
                             <span style="font-size:10.5px;color:#64748b;">MapID:</span>
-                            <input type="text" value="${escapeHtml(q.map_id)}" onchange="window.updateIMathQuestionMapId(${idx}, this.value)" style="width:74px;font-size:11px;font-family:monospace;font-weight:700;color:inherit;background:transparent;border:none;outline:none;" title="Chỉnh sửa mã MapID">
+                            <input type="text" value="${escapeHtml(q.map_id)}" onchange="window.updateIMathTagMapId(decodeURIComponent('${encTag}'), this.value)" style="width:74px;font-size:11px;font-family:monospace;font-weight:700;color:inherit;background:transparent;border:none;outline:none;" title="Chỉnh sửa mã MapID cho toàn bộ dạng này">
                         </div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:5px;">
-                        <button type="button" onclick="window.rerollSingleWorkspaceQuestion(${idx})" class="ims-btn-add3" title="Sinh bộ số khác cho câu này">
+                    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                        <div class="ims-card-qty-box" title="Tăng giảm hoặc nhập số lượng câu cho dạng ${escapeHtml(grp.tag)}">
+                            <span class="ims-card-qty-label">SL:</span>
+                            <button type="button" class="ims-step-btn" onclick="window.stepIMathTagCount(decodeURIComponent('${encTag}'), -1)" title="Giảm 1 câu">−</button>
+                            <input type="number" min="0" max="150" value="${count}" class="ims-step-input" style="width:46px !important;text-align:center;" onchange="window.setIMathTagCount(decodeURIComponent('${encTag}'), this.value)" onkeydown="if(event.key==='Enter'){this.blur();}" title="Nhập số lượng (1–150) rồi nhấn Enter">
+                            <button type="button" class="ims-step-btn" onclick="window.stepIMathTagCount(decodeURIComponent('${encTag}'), 1)" title="Tăng 1 câu">+</button>
+                        </div>
+                        ${count > 1 ? `
+                        <span class="ims-card-var-nav" title="Xem từng biến thể đã sinh trong cùng dạng">
+                            <button type="button" class="ims-var-btn" onclick="window.cycleIMathTagPreview(decodeURIComponent('${encTag}'), -1)" title="Mẫu trước"><i class="fa-solid fa-chevron-left"></i></button>
+                            <span>Mẫu ${pIdx + 1}/${count}</span>
+                            <button type="button" class="ims-var-btn" onclick="window.cycleIMathTagPreview(decodeURIComponent('${encTag}'), 1)" title="Mẫu tiếp"><i class="fa-solid fa-chevron-right"></i></button>
+                        </span>` : ''}
+                        <button type="button" onclick="window.rerollSingleWorkspaceQuestion(${idx})" class="ims-btn-add3" title="Sinh bộ số khác cho mẫu xem trước này">
                             <i class="fa-solid fa-arrows-rotate"></i> Đổi số
                         </button>
-                        <button type="button" onclick="window.toggleIMathQuestionCode(${idx})" class="ims-btn-add3" title="Xem / Sửa mã LaTeX">
+                        <button type="button" onclick="window.toggleIMathQuestionCode(${idx})" class="ims-btn-add3 ims-q-tex-btn ${canTex ? '' : 'ims-role-hidden'}" style="${canTex ? '' : 'display:none !important;'}" title="Xem / Sửa mã LaTeX">
                             <i class="fa-solid fa-code"></i> LaTeX
                         </button>
-                        <button type="button" onclick="window.removeIMathWorkspaceQuestion(${idx})" class="ims-btn-add3" title="Xóa câu này">
+                        <button type="button" onclick="window.setIMathTagCount(decodeURIComponent('${encTag}'), 0)" class="ims-btn-add3" style="color:#ef4444;" title="Xóa toàn bộ dạng ${escapeHtml(grp.tag)}">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
                 </div>
 
                 <div class="ims-q-body" id="imathPreviewCard_${idx}">
+                    <div class="ims-preview-hint">
+                        <span style="font-weight:700;">${escapeHtml(grp.title)}</span>
+                        <span>${count > 1 ? `Đang xem trước mẫu <b>${pIdx + 1}/${count}</b> · Khi xuất giữ đủ <b>${count}</b> biến thể` : '1 câu đã chọn'}</span>
+                    </div>
                     ${formatLatexPreviewHtml(q.latex_mc)}
                 </div>
 
-                <div id="imathCodeDrawer_${idx}" style="display:${q.showCode ? 'block' : 'none'};padding:12px;background:#0f172a;color:#f8fafc;border-top:1px solid #1e293b;">
+                <div id="imathCodeDrawer_${idx}" class="ims-q-code-drawer" style="display:${canTex && q.showCode ? 'block' : 'none'};padding:12px;background:#0f172a;color:#f8fafc;border-top:1px solid #1e293b;">
                     <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;margin-bottom:6px;">
-                        <span style="font-weight:600;color:#94a3b8;">Mã LaTeX ex_test (${escapeHtml(q.tag)}):</span>
+                        <span style="font-weight:600;color:#94a3b8;">Mã LaTeX ex_test (${escapeHtml(q.tag)} - Mẫu ${pIdx + 1}/${count}):</span>
                         <span style="color:#64748b;">Tự động cập nhật khi sửa</span>
                     </div>
                     <textarea rows="7" onchange="window.updateIMathQuestionLatex(${idx}, this.value)" style="width:100%;padding:10px;border-radius:8px;background:#020617;color:#e2e8f0;font-family:monospace;font-size:12px;border:1px solid #334155;outline:none;box-sizing:border-box;">${escapeHtml(q.latex_mc)}</textarea>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
         setTimeout(() => {
             try {
@@ -2635,7 +2971,11 @@
                     showCode: false
                 });
             }
+            if (state.previewIndexByTag[tag] === undefined) {
+                state.previewIndexByTag[tag] = 0;
+            }
             renderWorkspace();
+            renderTopicList();
             if (window.innerWidth <= 1024) {
                 window.setIMathMobileTab('workspace');
             }
@@ -2665,6 +3005,7 @@
                 }
             }
             renderWorkspace();
+            renderTopicList();
             if (window.innerWidth <= 1024) {
                 window.setIMathMobileTab('workspace');
             }
@@ -2720,6 +3061,17 @@
         }
     };
 
+    window.updateIMathTagMapId = function (tag, newMapId) {
+        const cleanId = (newMapId || '').trim().toUpperCase();
+        state.workspaceQuestions.forEach((q, idx) => {
+            if (!q || q.tag !== tag) return;
+            q.map_id = cleanId;
+            q.latex_mc = String(q.latex_mc || '').replace(/^\\begin\{ex\}(?:\s*%\[[^\]]*\])?/, `\\begin{ex}%[${cleanId}]`);
+            const drawer = document.querySelector(`#imathCodeDrawer_${idx} textarea`);
+            if (drawer) drawer.value = q.latex_mc;
+        });
+    };
+
     window.updateIMathQuestionMapId = function (idx, newMapId) {
         const q = state.workspaceQuestions[idx];
         if (!q) return;
@@ -2750,11 +3102,14 @@
     window.removeIMathWorkspaceQuestion = function (idx) {
         state.workspaceQuestions.splice(idx, 1);
         renderWorkspace();
+        renderTopicList();
     };
 
     window.clearIMathWorkspace = function () {
         state.workspaceQuestions = [];
+        state.previewIndexByTag = {};
         renderWorkspace();
+        renderTopicList();
     };
 
     function buildCombinedIMathTex() {

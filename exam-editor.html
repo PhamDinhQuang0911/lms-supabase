@@ -100,9 +100,9 @@ startup: { typeset: false }
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="qrcode.min.js?v=20261017_V1"></script>
     <script src="question-importer.js?v=20261113-v2"></script>
-    <script src="word-mathtype-exporter.js?v=20261113-v6"></script>
+    <script src="word-mathtype-exporter.js?v=20261113-v7"></script>
     <script src="exam-mixer.js?v=20261113-v4"></script>
-    <script src="imath-studio.js?v=20261113-v4" defer></script>
+    <script src="imath-studio.js?v=20261113-v5" defer></script>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
@@ -959,6 +959,7 @@ window.clearExamTime = clearExamTime;
                             <span>Danh sách (<span id="totalQCount">0</span>)</span>
                         </h2>
                         <span id="liveExamTotalScoreBadge" class="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200" title="Tổng điểm hiện tại của đề">0.0 đ</span>
+                        <span id="editorMonthlyQuotaBadge" class="hidden text-xs font-bold px-2 py-0.5 rounded-md border" title="Số lần còn lại tạo/tải đề trong tháng"></span>
                         <div id="orderModeBadge" onclick="window.toggleOrderModeFromBadge()" class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer select-none transition-all bg-white text-slate-600 border-slate-200 hover:bg-slate-100 shadow-2xs" title="Bấm để chuyển đổi giữa Đảo đề và Giữ thứ tự gốc">
                             <span id="orderModeIcon"><i class="fa-solid fa-shuffle text-slate-500"></i></span> <span id="orderModeText">Đảo đề</span>
                         </div>
@@ -2137,15 +2138,33 @@ window.customAlert = (message, type = 'info') => { return new Promise((resolve) 
 window.customConfirm = (message) => { return new Promise((resolve) => { modalTitle.innerText = "Xác nhận"; modalMsg.innerText = message; modalIcon.innerHTML = '<i class="fa-solid fa-circle-question text-amber-600"></i>'; document.getElementById('modalInput').classList.add('hidden'); btnCancel.classList.remove('hidden'); btnConfirm.innerText = "Đồng ý"; modalEl.classList.remove('opacity-0', 'pointer-events-none'); modalBox.classList.remove('scale-95'); modalBox.classList.add('scale-100'); btnConfirm.onclick = () => { resolve(true); modalResolve = null; closeCustomModal(); }; btnCancel.onclick = () => { resolve(false); modalResolve = null; closeCustomModal(); }; }); };
 window.globalIdTree = [];
 window.applyEditorRoleVisibility = () => {
-    const canTex = window.QMathQuota ? window.QMathQuota.getRoleInfo().canDownloadTex : true;
+    const canTex = window.QMathQuota ? Boolean(window.QMathQuota.getRoleInfo().canDownloadTex) : false;
     ['btnEditorOpenExportLatex', 'btnEditorDownloadExportLatex'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.style.display = canTex ? '' : 'none';
+        if (el) el.style.setProperty('display', canTex ? '' : 'none', canTex ? '' : 'important');
     });
+    const qBadge = document.getElementById('editorMonthlyQuotaBadge');
+    if (qBadge && window.QMathQuota && typeof window.QMathQuota.getDisplaySummary === 'function') {
+        const q = window.QMathQuota.getDisplaySummary();
+        qBadge.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-700', 'border-emerald-200', 'bg-blue-50', 'text-blue-700', 'border-blue-200', 'bg-amber-50', 'text-amber-700', 'border-amber-200', 'bg-rose-50', 'text-rose-700', 'border-rose-200');
+        const toneCls = q.tone === 'emerald'
+            ? ['bg-emerald-50', 'text-emerald-700', 'border-emerald-200']
+            : q.tone === 'rose'
+                ? ['bg-rose-50', 'text-rose-700', 'border-rose-200']
+                : q.tone === 'amber'
+                    ? ['bg-amber-50', 'text-amber-700', 'border-amber-200']
+                    : ['bg-blue-50', 'text-blue-700', 'border-blue-200'];
+        qBadge.classList.add(...toneCls);
+        qBadge.textContent = q.shortText;
+        qBadge.title = q.badgeText;
+    }
     if (typeof window.refreshIMathRoleVisibility === 'function') {
         window.refreshIMathRoleVisibility();
     }
 };
+window.addEventListener('qmath-quota-updated', () => {
+    if (typeof window.applyEditorRoleVisibility === 'function') window.applyEditorRoleVisibility();
+});
 window.applyEditorRoleVisibility();
 onAuthStateChanged(auth, async (user) => {
 if (user) {
@@ -2185,7 +2204,7 @@ window._qmathQuotaSyncUsageToCloud = async (uid, monthKey, count) => {
     try {
         if (!uid || !db) return;
         await setDoc(doc(db, "users", uid), {
-            monthlyExamUsage: { monthKey, count, updatedAt: new Date().toISOString() }
+            monthlyExamUsage: { [monthKey]: count }
         }, { merge: true });
     } catch (_) {}
 };
@@ -2217,7 +2236,17 @@ const roleLoad = (async () => {
             teacherTier: isSuperRole ? 'vip' : tierRole
         };
         if (window.QMathQuota) {
-            window.QMathQuota.saveRoleSnapshot(window.currentAdminProfile, window.teacherPackageConfig || {});
+            const pkgCfg = window.teacherPackageConfig || {};
+            window.QMathQuota.saveRoleSnapshot({
+                uid: user.uid,
+                email: user.email || '',
+                isSuper: isSuperRole,
+                isFree: (!isSuperRole && tierRole === 'free'),
+                isVip: (!isSuperRole && tierRole !== 'free'),
+                vipAllowTexDownload: Boolean(pkgCfg.vipAllowTexDownload),
+                vipMonthlyExamQuota: pkgCfg.vipMonthlyExamQuota !== undefined ? parseInt(pkgCfg.vipMonthlyExamQuota, 10) : -1,
+                freeMonthlyExamQuota: pkgCfg.freeMonthlyExamQuota !== undefined ? parseInt(pkgCfg.freeMonthlyExamQuota, 10) : 100
+            });
             if (uDataRole.monthlyExamUsage) {
                 window.QMathQuota.syncFromCloudUsage(user.uid, uDataRole.monthlyExamUsage);
             }
