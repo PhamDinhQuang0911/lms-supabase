@@ -69,20 +69,20 @@
         DB.questions = (pickData.questions || []).slice().sort(natural); DB.sets = pickData.sets || []; DB.gameConfigs = pickData.gameConfigs || {}; DB.presets = pickData.presets || [];
         DB.settings = sanitizeSettings(pickData.settings || {});
         DB.source = local ? "local-file" : pickData === off ? "offline-file" : "cache";
-      } else { DB.source = "demo"; DB.questions = []; }
+      } else { DB.source = "none"; DB.questions = []; }
     }
-    DB.usingDemo = !DB.questions.length;
+    DB.usingDemo = false;
     DB.loaded = true; DB.emit();
   };
 
-  /* Câu hỏi dùng để chơi (nếu ngân hàng trống => câu mẫu) */
-  DB.bank = () => DB.questions.length ? DB.questions : (window.DEMO_QUESTIONS || []);
+  /* Câu hỏi dùng để chơi (chỉ dùng dữ liệu đã nạp / Firestore, không dùng kho cứng) */
+  DB.bank = () => DB.questions;
   DB.findQ = (id) => DB.bank().find((q) => q.Id === id || q._doc === id);
   DB.findSet = (id) => DB.sets.find((s) => s.id === id);
 
   DB.sourceLabel = () => ({
-    cloud: "☁️ Firestore", cache: "📦 Bộ nhớ đệm (ngoại tuyến)", "offline-file": "💾 File offline", "local-file": "📂 File từ máy", demo: "🧪 Dữ liệu mẫu", none: "…"
-  })[DB.source] + (DB.usingDemo && DB.source !== "demo" ? " · đang dùng câu mẫu" : "");
+    cloud: "☁️ Firestore", cache: "📦 Bộ nhớ đệm (ngoại tuyến)", "offline-file": "💾 File offline", "local-file": "📂 File từ máy", demo: "📭 Chưa chọn dữ liệu", none: "📭 Chưa có dữ liệu"
+  })[DB.source] || "📭 Chưa có dữ liệu";
 
   /* Các giá trị phân loại để lọc */
   DB.facets = (list) => {
@@ -108,12 +108,13 @@
     if (set.filter) return DB.filterQ(DB.bank(), set.filter);
     return [];
   };
-  /* Lấy câu hỏi cho một game theo nguồn đã chọn: {kind:'set'|'filter'|'all', setId, filter} */
+  /* Lấy câu hỏi cho một game theo nguồn đã chọn: {kind:'set'|'filter'|'local'|'all'|'none', setId, filter} */
   DB.questionsFor = (src) => {
-    src = src || { kind: "all" };
+    if (!src || src.kind === "none") return [];
     if (src.kind === "set") return DB.resolveSet(DB.findSet(src.setId));
     if (src.kind === "filter") return DB.filterQ(DB.bank(), src.filter);
-    return DB.bank();
+    if (src.kind === "local" || src.kind === "all") return DB.bank();
+    return [];
   };
 
   function needCloud() {
@@ -168,7 +169,7 @@
       existing.add(id);
     });
     await batchRun(ops);
-    DB.questions.sort(natural); DB.usingDemo = !DB.questions.length; saveCache(); DB.emit();
+    DB.questions.sort(natural); DB.usingDemo = false; saveCache(); DB.emit();
     return { added, updated, skipped };
   };
 

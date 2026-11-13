@@ -2713,6 +2713,10 @@ const pBar = document.getElementById('mixerProgressBar');
 const pText = document.getElementById('mixerProgressText');
 const pPct = document.getElementById('mixerProgressPercent');
 const activeTab = window._activeMixerTab || 'file';
+if (typeof window !== 'undefined' && window.QMathQuota && typeof window.QMathQuota.consume === 'function') {
+const qRes = await window.QMathQuota.consume('Trộn đề thi');
+if (!qRes.allowed) return;
+}
 let inputData = null;
 try {
 if (activeTab === 'file') {

@@ -105,7 +105,8 @@ ldots: [0x86, 0x2026, 188, false],
 cdots: [0x86, 0x2026, 188, false],
 int: [0x86, 0x222B, 242, false],
 sum: [0x86, 0x2211, 229, false],
-prod: [0x86, 0x220F, 213, false]
+prod: [0x86, 0x220F, 213, false],
+colon: [0x82, 0x003A, 58, false]
 };
 function packMtefChar(opt, tf, mtcode, enc) {
 if ((opt & 0x04) && enc !== undefined && enc !== null) {
@@ -355,6 +356,7 @@ return { node: { type: 'space' }, pos };
 }
 if (tok.startsWith('\\')) {
 const cmd = tok.substring(1);
+if (cmd === 'colon') return { node: { type: 'char', ch: ':' }, pos };
 if (KNOWN_MATH_FUNCS.has(cmd)) return { node: { type: 'func', name: cmd }, pos };
 if (cmd in LC_GREEK) return { node: { type: 'lcgreek', name: cmd }, pos };
 if (cmd in UC_GREEK) return { node: { type: 'ucgreek', name: cmd }, pos };
@@ -1711,6 +1713,11 @@ while (end < len && /[a-zA-Z]/.test(tex[end])) end++;
 const cmd = tex.substring(i + 1, end);
 if (KNOWN_MATH_FUNCS.has(cmd)) {
 out += `<m:r><m:rPr><m:nor/></m:rPr><m:t>${cmd}</m:t></m:r>`;
+i = end;
+continue;
+}
+if (cmd === 'colon') {
+out += '<m:r><m:t>:</m:t></m:r>';
 i = end;
 continue;
 }
@@ -3305,7 +3312,15 @@ const m2 = txt.matchAll(/\\includegraphics(?:\[.*?\])?\{([^}]+)\}/gi);
 for (const m of m2) res.push(m[1]);
 return res;
 };
+const scanTikz = (txt) => {
+if (!txt) return [];
+const res = [];
+const mt = txt.matchAll(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/gi);
+for (const m of mt) res.push(m[0]);
+return res;
+};
 const allSources = [];
+const allTikzPy = [];
 questions.forEach(q => {
 if (q.image) allSources.push(q.image);
 if (q.img) allSources.push(q.img);
@@ -3314,13 +3329,17 @@ if (q.image_url) allSources.push(q.image_url);
 if (Array.isArray(q.images)) allSources.push(...q.images);
 allSources.push(...scanImgs(q.content));
 allSources.push(...scanImgs(q.solution || q.explain));
+allTikzPy.push(...scanTikz(q.content));
+allTikzPy.push(...scanTikz(q.solution || q.explain));
 (q.options || []).forEach(opt => {
 if (typeof opt === 'object') {
 if (opt.image) allSources.push(opt.image);
 if (opt.img) allSources.push(opt.img);
-allSources.push(...scanImgs(opt.text));
+allSources.push(...scanImgs(opt.text || opt.content));
+allTikzPy.push(...scanTikz(opt.text || opt.content));
 } else {
 allSources.push(...scanImgs(opt));
+allTikzPy.push(...scanTikz(opt));
 }
 });
 (q.statements || []).forEach(st => {
@@ -3328,11 +3347,30 @@ if (typeof st === 'object') {
 if (st.image) allSources.push(st.image);
 if (st.img) allSources.push(st.img);
 allSources.push(...scanImgs(st.text || st.content));
+allTikzPy.push(...scanTikz(st.text || st.content));
 } else {
 allSources.push(...scanImgs(st));
+allTikzPy.push(...scanTikz(st));
 }
 });
 });
+const tikzRenderedUrlMap = {};
+const uniqueTikzPy = Array.from(new Set(allTikzPy.filter(Boolean)));
+if (uniqueTikzPy.length > 0 && typeof window !== 'undefined' && typeof window.compileTikZToImage === 'function') {
+setStatus(20, `Đang biên dịch ${uniqueTikzPy.length} hình TikZ sang ảnh...`);
+for (const tkCode of uniqueTikzPy) {
+try {
+const prepared = typeof window.prepareTikzForCompilation === 'function' ? window.prepareTikzForCompilation(tkCode) : tkCode;
+const renderedUrl = await window.compileTikZToImage(prepared);
+if (renderedUrl && !renderedUrl.includes('Image+Error')) {
+tikzRenderedUrlMap[tkCode] = renderedUrl;
+allSources.push(renderedUrl);
+}
+} catch (tErr) {
+console.warn('[PyodideExport] Lỗi biên dịch TikZ:', tErr);
+}
+}
+}
 const uniqueSources = Array.from(new Set(allSources.filter(Boolean)));
 const imagesList = [];
 const imageMap = {};
@@ -3350,6 +3388,19 @@ imagesList.push({ filename: fname, data: bytes });
 console.warn('[PyodideExport] Không thể nạp ảnh:', src, e);
 }
 }
+const replaceTikzAndImages = (raw) => {
+let s = String(raw || '');
+for (const [tkCode, rUrl] of Object.entries(tikzRenderedUrlMap)) {
+const fname = imageMap[rUrl];
+if (fname && s.includes(tkCode)) {
+s = s.split(tkCode).join(`\\includegraphics{${fname}}`);
+}
+}
+for (const [sUrl, fName] of Object.entries(imageMap)) {
+if (s.includes(sUrl)) s = s.split(sUrl).join(fName);
+}
+return cleanHtmlToLatex(s);
+};
 setStatus(30, "Đang chuẩn hóa đề thi sang LaTeX...");
 const p1List = [];
 const p2List = [];
@@ -3371,11 +3422,7 @@ let currentRomanPy = 1;
 const romanNumeralsPy = ['I', 'II', 'III', 'IV'];
 const formatQuestionLatex = (q) => {
 let res = '';
-let content = q.content || '';
-for (const [sUrl, fName] of Object.entries(imageMap)) {
-if (content.includes(sUrl)) content = content.split(sUrl).join(fName);
-}
-content = cleanHtmlToLatex(content);
+let content = replaceTikzAndImages(q.content || '');
 const env = q.env || (q.type === 'essay' || q.type === 'tl' ? 'bt' : 'ex');
 const cccd = q.cccd || q.bankId || q.id || '';
 res += `\\begin{${env}}[${cccd}]\n${content}\n`;
@@ -3389,11 +3436,7 @@ res += `\\begin{center}\n\\includegraphics{${imageMap[cand]}}\n\\end{center}\n`;
 if (q.type === 'tf' || (Array.isArray(q.statements) && q.statements.length > 0)) {
 const stmts = Array.isArray(q.statements) ? q.statements : q.options;
 const tfItems = (stmts || []).map((st, sIdx) => {
-let stText = typeof st === 'object' ? (st.content || st.text || '') : st;
-for (const [sUrl, fName] of Object.entries(imageMap)) {
-if (stText.includes(sUrl)) stText = stText.split(sUrl).join(fName);
-}
-stText = cleanHtmlToLatex(stText);
+let stText = replaceTikzAndImages(typeof st === 'object' ? (st.content || st.text || '') : st);
 const isTrue = (getTfAnswerChar(q, sIdx) === 'Đ');
 return `\t{${isTrue ? '\\True ' : ''}${stText}}`;
 }).join('\n');
@@ -3401,11 +3444,7 @@ res += `\\choiceTF\n${tfItems}\n`;
 } else if (Array.isArray(q.options) && q.options.length > 0) {
 const correctIdx = getChoiceCorrectIndex(q);
 const choiceItems = q.options.map((opt, i) => {
-let optText = typeof opt === 'object' ? (opt.text || '') : opt;
-for (const [sUrl, fName] of Object.entries(imageMap)) {
-if (optText.includes(sUrl)) optText = optText.split(sUrl).join(fName);
-}
-optText = cleanHtmlToLatex(optText);
+let optText = replaceTikzAndImages(typeof opt === 'object' ? (opt.text || opt.content || '') : opt);
 const isCorrect = (i === correctIdx);
 return `\t{${isCorrect ? '\\True ' : ''}${optText}}`;
 }).join('\n');
@@ -3415,16 +3454,12 @@ const ans = getShortAnswerText(q);
 if (ans) {
 const ansLatex = formatShortAnswerForLatex(ans);
 if (customOptions.underlineCorrect || mode === 'full') {
-res += `\\textbf{Đáp án: }${ansLatex}\n\n`;
+res += `\\textbf{Đáp số: }${ansLatex}\n\n`;
 }
 }
 }
 if (q.solution || q.explain) {
-let sol = q.solution || q.explain || '';
-for (const [sUrl, fName] of Object.entries(imageMap)) {
-if (sol.includes(sUrl)) sol = sol.split(sUrl).join(fName);
-}
-sol = cleanHtmlToLatex(sol);
+let sol = replaceTikzAndImages(q.solution || q.explain || '');
 res += `\\loigiai{\n${sol}\n}\n`;
 }
 res += `\\end{${env}}\n\n`;
@@ -3554,6 +3589,10 @@ header_config: headerConfig
 }
 async function exportExamToWord(exam, customOptions = {}) {
 if (!exam) throw new Error('Không có dữ liệu đề thi');
+if (!customOptions.skipQuota && typeof window !== 'undefined' && window.QMathQuota && typeof window.QMathQuota.consume === 'function') {
+const qRes = await window.QMathQuota.consume('Xuất file Word');
+if (!qRes.allowed) return null;
+}
 const questions = exam.questions || [];
 const baseName = sanitizeFilename(customOptions.examTitle || exam.title || 'De_Thi');
 const mode = customOptions.mode || 'questions';
@@ -3605,7 +3644,7 @@ let modal = document.getElementById('exportWordModal');
 if (!modal) {
 modal = document.createElement('div');
 modal.id = 'exportWordModal';
-modal.className = 'fixed inset-0 z-[160] bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 transition-opacity';
+modal.className = 'fixed inset-0 z-[10040] bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 transition-opacity';
 modal.innerHTML = `
 <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex flex-col" style="width: 95vw; max-width: 1050px; max-height: 90vh;">
 <!-- Header Modal -->
@@ -3937,6 +3976,10 @@ return;
 }
 const confirmOk = confirm(`Bạn có chắc muốn xuất ${selectedIds.length} đề thi đã chọn sang Word MathType (.docx)?`);
 if (!confirmOk) return;
+if (typeof window !== 'undefined' && window.QMathQuota && typeof window.QMathQuota.consume === 'function') {
+const qRes = await window.QMathQuota.consume('Xuất hàng loạt đề Word');
+if (!qRes.allowed) return;
+}
 try {
 if (typeof window.showNotification === 'function') {
 window.showNotification(`Đang chuẩn bị xuất ${selectedIds.length} file Word...`, 'info');
@@ -4010,4 +4053,205 @@ input.value = String(num).padStart(digits, '0');
 window.openExportWordModal = openExportWordModal;
 window.closeExportWordModal = closeExportWordModal;
 window.exportExamToWord = exportExamToWord;
+
+const QMathQuota = (function () {
+const STORAGE_USAGE_KEY = 'qmath_exam_monthly_usage_v1';
+const STORAGE_ROLE_CFG_KEY = 'qmath_role_quota_cfg';
+const STORAGE_PKG_CFG_KEY = 'qmath_teacher_pkg_cfg';
+const ROOT_EMAILS = [
+'phamdinhquang0911@gmail.com',
+'phamquang09112001@gmail.com',
+'phamngockhanh.942001@gmail.com',
+'phamngockhanh.942002@gmail.com'
+];
+
+function safeJsonParse(raw) {
+if (!raw) return null;
+try { return JSON.parse(raw); } catch (_) { return null; }
+}
+
+function getMonthKey() {
+const d = new Date();
+return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function notifyQuotaError(msg) {
+if (typeof window.showNotification === 'function') {
+window.showNotification(msg, 'warning');
+} else if (typeof window.showToast === 'function') {
+window.showToast(msg, 'warning');
+} else if (typeof window.customAlert === 'function') {
+window.customAlert(msg, 'warning');
+} else {
+alert(msg);
+}
+}
+
+function getRoleInfo() {
+const cachedRole = safeJsonParse(typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_ROLE_CFG_KEY) : null) || {};
+const cachedPkg = safeJsonParse(typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_PKG_CFG_KEY) : null) || {};
+const pkg = (typeof window !== 'undefined' && window.teacherPackageConfig) ? window.teacherPackageConfig : cachedPkg;
+const prof = (typeof window !== 'undefined' && window.currentAdminProfile) ? window.currentAdminProfile : null;
+
+const email = String(
+(prof && prof.email) ||
+cachedRole.email ||
+(typeof window !== 'undefined' && window.currentUserEmail) ||
+''
+).toLowerCase().trim();
+
+const uid = String(
+(prof && (prof.uid || prof.id)) ||
+cachedRole.uid ||
+(typeof window !== 'undefined' && window.currentUserId) ||
+email ||
+'anonymous_teacher'
+).trim();
+
+const isRootEmail = Boolean(email && ROOT_EMAILS.includes(email));
+const hasWindowSuperFlag = typeof window !== 'undefined' && (window.isSuperAdmin === true || (prof && (prof.role === 'super_admin' || prof.isRoot === true)));
+const isSuper = Boolean(isRootEmail || hasWindowSuperFlag || (prof === null && cachedRole.isSuper === true));
+
+let isFree = false;
+let isVip = false;
+if (!isSuper) {
+if (typeof window !== 'undefined' && typeof window.isFreeTeacher === 'boolean') {
+isFree = window.isFreeTeacher;
+isVip = !isFree;
+} else if (prof) {
+isFree = prof.teacherTier === 'free' || prof.role === 'teacher_free';
+isVip = !isFree;
+} else if (typeof cachedRole.isFree === 'boolean') {
+isFree = cachedRole.isFree;
+isVip = !isFree;
+} else {
+isVip = true;
+}
+}
+
+const vipAllowTexDownload = Boolean(
+pkg && pkg.vipAllowTexDownload !== undefined ? pkg.vipAllowTexDownload : cachedRole.vipAllowTexDownload
+);
+
+const rawVipQuota = (pkg && pkg.vipMonthlyExamQuota !== undefined)
+? parseInt(pkg.vipMonthlyExamQuota, 10)
+: (cachedRole.vipMonthlyExamQuota !== undefined ? parseInt(cachedRole.vipMonthlyExamQuota, 10) : -1);
+const vipMonthlyExamQuota = isNaN(rawVipQuota) ? -1 : rawVipQuota;
+
+const rawFreeQuota = (pkg && pkg.freeMonthlyExamQuota !== undefined)
+? parseInt(pkg.freeMonthlyExamQuota, 10)
+: (cachedRole.freeMonthlyExamQuota !== undefined ? parseInt(cachedRole.freeMonthlyExamQuota, 10) : 100);
+const freeMonthlyExamQuota = isNaN(rawFreeQuota) ? 100 : rawFreeQuota;
+
+const canDownloadTex = isSuper || (isVip && vipAllowTexDownload);
+const monthlyLimit = isSuper ? -1 : (isFree ? freeMonthlyExamQuota : vipMonthlyExamQuota);
+
+return {
+uid,
+email,
+userKey: (uid || email || 'anonymous_teacher').toLowerCase().replace(/[^a-z0-9_@.-]/g, '_'),
+isSuper,
+isFree,
+isVip,
+vipAllowTexDownload,
+vipMonthlyExamQuota,
+freeMonthlyExamQuota,
+canDownloadTex,
+monthlyLimit,
+unlimited: monthlyLimit < 0
+};
+}
+
+function readUsageMap() {
+if (typeof localStorage === 'undefined') return {};
+return safeJsonParse(localStorage.getItem(STORAGE_USAGE_KEY)) || {};
+}
+
+function writeUsageMap(map) {
+if (typeof localStorage === 'undefined') return;
+try { localStorage.setItem(STORAGE_USAGE_KEY, JSON.stringify(map)); } catch (_) {}
+}
+
+function getStatus() {
+const role = getRoleInfo();
+const monthKey = getMonthKey();
+const map = readUsageMap();
+const used = Number((map[role.userKey] && map[role.userKey][monthKey]) || 0);
+const unlimited = role.monthlyLimit < 0;
+const remaining = unlimited ? -1 : Math.max(0, role.monthlyLimit - used);
+const roleLabel = role.isSuper ? 'Super Admin' : (role.isFree ? 'Giáo viên Free' : 'Giáo viên VIP');
+return { ...role, limit: role.monthlyLimit, roleLabel, monthKey, used, remaining, unlimited };
+}
+
+function syncFromCloudUsage(uidOrKey, cloudMonthlyUsage) {
+if (!cloudMonthlyUsage || typeof cloudMonthlyUsage !== 'object') return;
+const role = getRoleInfo();
+const uKey = String(uidOrKey || role.userKey || 'anonymous_teacher').toLowerCase().replace(/[^a-z0-9_@.-]/g, '_');
+const map = readUsageMap();
+if (!map[uKey]) map[uKey] = {};
+if (cloudMonthlyUsage.monthKey && cloudMonthlyUsage.count !== undefined) {
+const mk = String(cloudMonthlyUsage.monthKey);
+const n = Number(cloudMonthlyUsage.count || 0);
+if (!isNaN(n) && n > Number(map[uKey][mk] || 0)) map[uKey][mk] = n;
+}
+Object.entries(cloudMonthlyUsage).forEach(([mk, cnt]) => {
+if (!/^\d{4}-\d{2}$/.test(mk)) return;
+const n = Number(cnt || 0);
+if (!isNaN(n) && n > Number(map[uKey][mk] || 0)) map[uKey][mk] = n;
+});
+writeUsageMap(map);
+}
+
+async function consume(actionLabel = 'Tạo / tải đề') {
+const st = getStatus();
+if (st.unlimited) {
+return { allowed: true, unlimited: true, used: st.used, limit: st.monthlyLimit, remaining: -1 };
+}
+if (st.monthlyLimit === 0 || st.used >= st.monthlyLimit) {
+notifyQuotaError(
+`Bạn đã dùng hết ${st.used}/${st.monthlyLimit} lượt tạo & tải đề trong tháng ${st.monthKey}. ` +
+(st.isFree ? 'Hãy nâng cấp Giáo viên VIP để mở khóa không giới hạn!' : 'Vui lòng liên hệ Quản trị viên để tăng hạn mức.')
+);
+return { allowed: false, unlimited: false, used: st.used, limit: st.monthlyLimit, remaining: 0 };
+}
+const nextUsed = st.used + 1;
+const map = readUsageMap();
+if (!map[st.userKey]) map[st.userKey] = {};
+map[st.userKey][st.monthKey] = nextUsed;
+writeUsageMap(map);
+if (typeof window !== 'undefined' && typeof window.refreshIMathRoleVisibility === 'function') {
+    try { window.refreshIMathRoleVisibility(); } catch (_) {}
+}
+if (typeof window._qmathQuotaSyncUsageToCloud === 'function') {
+try {
+await Promise.resolve(window._qmathQuotaSyncUsageToCloud(st.uid, st.monthKey, nextUsed, actionLabel));
+} catch (_) {}
+}
+return {
+allowed: true,
+unlimited: false,
+used: nextUsed,
+limit: st.monthlyLimit,
+remaining: Math.max(0, st.monthlyLimit - nextUsed)
+};
+}
+
+function saveRoleSnapshot(snapshot) {
+if (typeof localStorage === 'undefined' || !snapshot) return;
+try {
+const prev = safeJsonParse(localStorage.getItem(STORAGE_ROLE_CFG_KEY)) || {};
+localStorage.setItem(STORAGE_ROLE_CFG_KEY, JSON.stringify({ ...prev, ...snapshot, updatedAt: Date.now() }));
+} catch (_) {}
+}
+
+return {
+getMonthKey,
+getRoleInfo,
+getStatus,
+syncFromCloudUsage,
+consume,
+saveRoleSnapshot
+};
+})();
+window.QMathQuota = QMathQuota;
 })(typeof window !== 'undefined' ? window : this);

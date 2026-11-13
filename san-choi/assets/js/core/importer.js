@@ -631,11 +631,272 @@
     return out;
   };
 
+  function texReadBalanced(str, startIdx, openCh = "{", closeCh = "}") {
+    if (!str || startIdx < 0 || startIdx >= str.length) return null;
+    const o = str.indexOf(openCh, startIdx);
+    if (o === -1) return null;
+    let depth = 0;
+    for (let i = o; i < str.length; i++) {
+      const ch = str[i];
+      if (ch === "\\" && i + 1 < str.length) { i++; continue; }
+      if (ch === openCh) depth++;
+      else if (ch === closeCh) {
+        depth--;
+        if (depth === 0) {
+          return { text: str.slice(o + 1, i), start: o, end: i, nextIdx: i + 1 };
+        }
+      }
+    }
+    return null;
+  }
+
+  function texSkipWsAndBracket(str, idx) {
+    let i = idx;
+    while (i < str.length && /\s/.test(str[i])) i++;
+    if (i < str.length && str[i] === "[") {
+      const br = texReadBalanced(str, i, "[", "]");
+      if (br) return br.nextIdx;
+    }
+    return i;
+  }
+
+  function texUnwrapImmini(str) {
+    let out = String(str || "");
+    let guard = 0;
+    while (guard++ < 30) {
+      const pos = out.search(/\\immini(?![a-zA-Z])/);
+      if (pos === -1) break;
+      let cursor = texSkipWsAndBracket(out, pos + 7);
+      const arg1 = texReadBalanced(out, cursor, "{", "}");
+      if (!arg1) break;
+      const arg2 = texReadBalanced(out, arg1.nextIdx, "{", "}");
+      if (!arg2) {
+        out = out.slice(0, pos) + arg1.text + out.slice(arg1.nextIdx);
+        continue;
+      }
+      const cleanSide = arg2.text
+        .replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, "")
+        .replace(/\\begin\{center\}|\\end\{center\}/g, "")
+        .trim();
+      const combined = cleanSide ? `${arg1.text.trim()}\n${cleanSide}` : arg1.text.trim();
+      out = out.slice(0, pos) + combined + out.slice(arg2.nextIdx);
+    }
+    return out;
+  }
+
+  function cleanTexProseChunk(txt, itemState = { idx: 0 }) {
+    let s = String(txt || "");
+    s = s.replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, "");
+    s = s.replace(/\\begin\{(?:center|flushleft|flushright)\}|\\end\{(?:center|flushleft|flushright)\}/g, "");
+    s = s.replace(/\\begin\{itemchoice\}/g, () => {
+      itemState.idx = 0;
+      return "\n";
+    }).replace(/\\end\{itemchoice\}/g, "");
+    s = s.replace(/\\itemch(?![a-zA-Z])/g, () => {
+      const lbl = ["a)", "b)", "c)", "d)"][itemState.idx++] || "•";
+      return `\n${lbl} `;
+    });
+    s = s.replace(/\\begin\{(?:itemize|enumerate)\}/g, "\n").replace(/\\end\{(?:itemize|enumerate)\}/g, "");
+    s = s.replace(/\\item(?![a-zA-Z])\s*/g, "\n• ");
+    s = s.replace(/\\(?:textbf|mathbf)\s*\{([^{}]*)\}/g, "<b>$1</b>");
+    s = s.replace(/\\(?:textit|emph)\s*\{([^{}]*)\}/g, "<i>$1</i>");
+    s = s.replace(/\\centerline\s*\{([^{}]*)\}/g, "$1");
+    s = s.replace(/\\(?:noindent|centering|hfill|newline|par|medskip|bigskip|smallskip)\b/g, " ");
+    s = s.replace(/\\\\(?:\s*\[[^\]]*\])?/g, "\n");
+    s = s.replace(/~/g, " ");
+    return s;
+  }
+
+  function cleanTexSegment(raw) {
+    if (!raw) return "";
+    let s = texUnwrapImmini(String(raw));
+    s = s.replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, "");
+    const mathRe = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$(?:\\.|[^$])+\$)/g;
+    const parts = s.split(mathRe);
+    const itemState = { idx: 0 };
+    for (let i = 0; i < parts.length; i++) {
+      if (i % 2 === 0) {
+        parts[i] = cleanTexProseChunk(parts[i], itemState);
+      } else {
+        parts[i] = parts[i].replace(/\{,\}/g, ",").replace(/\\colon\b/g, ":");
+      }
+    }
+    return parts.join("")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/ {2,}/g, " ")
+      .trim();
+  }
+
+  function parseTexMapIdMeta(rawId) {
+    const meta = { mapId: "", Grade: "", Subject: "Toán", Level: "Nhận biết" };
+    const id = String(rawId || "").trim().toUpperCase();
+    const m = id.match(/^(\d+)([A-Z]+)(\d+)([NHVCYBKGC])(\d*)(?:-([A-Za-z0-9]+))?$/i);
+    if (!m) return meta;
+    meta.mapId = id;
+    const gCode = m[1];
+    meta.Grade = gCode === "0" ? "10" : gCode === "1" ? "11" : gCode === "2" ? "12" : gCode;
+    const sCode = m[2].toUpperCase();
+    if (sCode === "D" || sCode === "DS") meta.Subject = "Đại số";
+    else if (sCode === "H" || sCode === "HH") meta.Subject = "Hình học";
+    else if (sCode === "X" || sCode === "XS") meta.Subject = "Xác suất";
+    else if (sCode === "G") meta.Subject = "Giải tích";
+    const lCode = m[4].toUpperCase();
+    if (lCode === "N" || lCode === "B") meta.Level = "Nhận biết";
+    else if (lCode === "H" || lCode === "T") meta.Level = "Thông hiểu";
+    else if (lCode === "V") meta.Level = "Vận dụng";
+    else if (lCode === "C") meta.Level = "Vận dụng cao";
+    return meta;
+  }
+
+  IO.parseTex = (rawText) => {
+    const text = String(rawText || "").replace(/\r/g, "");
+    if (!text.trim()) return [];
+    const blockRe = /\\begin\{(ex|bt)\}(?:\[([^\]]*)\])?(?:%\[([^\]]*)\])?([\s\S]*?)\\end\{\1\}/g;
+    const out = [];
+    let match;
+    let idx = 0;
+
+    while ((match = blockRe.exec(text)) !== null) {
+      idx++;
+      const optArg = (match[2] || "").trim();
+      const mapArg = (match[3] || "").trim();
+      let rawBody = match[4] || "";
+
+      // Trích xuất %[MapID] nếu nằm ở dòng đầu trong body trước khi loại bỏ comment %
+      let mapCandidate = mapArg || (/^\s*%\[([^\]]+)\]/.test(rawBody) ? rawBody.match(/^\s*%\[([^\]]+)\]/)[1].trim() : "");
+      if (!mapCandidate && optArg && !/^\d+$/.test(optArg)) mapCandidate = optArg;
+      const meta = parseTexMapIdMeta(mapCandidate);
+      const qId = (/^\d{4,}$/.test(optArg) ? optArg : "") || meta.mapId || `TEX_${String(idx).padStart(3, "0")}`;
+
+      // Loại bỏ chú thích % không bị escape
+      let body = rawBody.replace(/(^|[^\\])%[^\n]*/g, "$1").trim();
+
+      // Tách \loigiai{...} ở cuối (nếu có)
+      let explain = "";
+      const lgIdx = body.lastIndexOf("\\loigiai");
+      if (lgIdx !== -1) {
+        const lgArg = texReadBalanced(body, lgIdx + 8, "{", "}");
+        if (lgArg) {
+          explain = cleanTexSegment(lgArg.text);
+          body = (body.slice(0, lgIdx) + "\n" + body.slice(lgArg.nextIdx)).trim();
+        }
+      }
+
+      const unwrappedBody = texUnwrapImmini(body).replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, "");
+      const tfMatch = /\\choiceTF(?![a-zA-Z])/.exec(unwrappedBody);
+      const mcMatch = /\\choice(?![a-zA-Z])/.exec(unwrappedBody);
+      const saMatch = /\\shortans(?![a-zA-Z])/.exec(unwrappedBody);
+
+      if (tfMatch) {
+        const stem = cleanTexSegment(unwrappedBody.slice(0, tfMatch.index));
+        let cursor = tfMatch.index + tfMatch[0].length;
+        const opts = {};
+        let ansChars = "";
+        const keys = ["a", "b", "c", "d"];
+        for (let i = 0; i < 4; i++) {
+          const arg = texReadBalanced(unwrappedBody, cursor, "{", "}");
+          if (!arg) break;
+          cursor = arg.nextIdx;
+          const isTrue = /\\True(?![a-zA-Z])/.test(arg.text);
+          ansChars += isTrue ? "Đ" : "S";
+          opts[keys[i]] = cleanTexSegment(arg.text.replace(/\\(?:True|False)(?![a-zA-Z])/g, "").replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, ""));
+        }
+        const tail = cleanTexSegment(unwrappedBody.slice(cursor));
+        const finalStem = tail ? `${stem}\n${tail}`.trim() : stem;
+        out.push(cleanQ({
+          Id: qId,
+          cccd: /^\d+$/.test(optArg) ? optArg : "",
+          mapId: meta.mapId,
+          Type: "TF",
+          Level: meta.Level,
+          Grade: meta.Grade,
+          Subject: meta.Subject,
+          Question: finalStem,
+          Options: opts,
+          CorrectAnswer: ansChars.padEnd(4, "S").slice(0, 4),
+          Explain: explain
+        }));
+      } else if (mcMatch) {
+        const stem = cleanTexSegment(unwrappedBody.slice(0, mcMatch.index));
+        let cursor = mcMatch.index + mcMatch[0].length;
+        const opts = {};
+        let correct = "A";
+        const keys = ["A", "B", "C", "D"];
+        for (let i = 0; i < 4; i++) {
+          const arg = texReadBalanced(unwrappedBody, cursor, "{", "}");
+          if (!arg) break;
+          cursor = arg.nextIdx;
+          if (/\\True(?![a-zA-Z])/.test(arg.text)) correct = keys[i];
+          opts[keys[i]] = cleanTexSegment(arg.text.replace(/\\(?:True|False)(?![a-zA-Z])/g, "").replace(/\[\s*(?:NB|TH|VD|VDC|##)\s*\]/gi, ""));
+        }
+        const tail = cleanTexSegment(unwrappedBody.slice(cursor));
+        const finalStem = tail ? `${stem}\n${tail}`.trim() : stem;
+        out.push(cleanQ({
+          Id: qId,
+          cccd: /^\d+$/.test(optArg) ? optArg : "",
+          mapId: meta.mapId,
+          Type: "MC",
+          Level: meta.Level,
+          Grade: meta.Grade,
+          Subject: meta.Subject,
+          Question: finalStem,
+          Options: opts,
+          CorrectAnswer: correct,
+          Explain: explain
+        }));
+      } else if (saMatch) {
+        const afterCmd = texSkipWsAndBracket(unwrappedBody, saMatch.index + saMatch[0].length);
+        const saArg = texReadBalanced(unwrappedBody, afterCmd, "{", "}");
+        let rawAns = saArg ? saArg.text : "";
+        rawAns = rawAns
+          .replace(/\\(?:textbf|mathbf|text|mathrm|textrm)\s*\{([^{}]*)\}/g, "$1")
+          .replace(/^\$+|\$+$/g, "")
+          .replace(/\{([.,])\}/g, "$1")
+          .trim();
+        const rawStem = saArg
+          ? (unwrappedBody.slice(0, saMatch.index) + "\n" + unwrappedBody.slice(saArg.nextIdx))
+          : unwrappedBody.slice(0, saMatch.index);
+        out.push(cleanQ({
+          Id: qId,
+          cccd: /^\d+$/.test(optArg) ? optArg : "",
+          mapId: meta.mapId,
+          Type: "SA",
+          Level: meta.Level,
+          Grade: meta.Grade,
+          Subject: meta.Subject,
+          Question: cleanTexSegment(rawStem),
+          CorrectAnswer: rawAns,
+          Explain: explain
+        }));
+      } else {
+        out.push(cleanQ({
+          Id: qId,
+          cccd: /^\d+$/.test(optArg) ? optArg : "",
+          mapId: meta.mapId,
+          Type: "LA",
+          Level: meta.Level,
+          Grade: meta.Grade,
+          Subject: meta.Subject,
+          Question: cleanTexSegment(unwrappedBody),
+          Explain: explain
+        }));
+      }
+    }
+    return out;
+  };
+
   IO.parseFile = async (file) => {
     const name = file.name.toLowerCase();
     if (name.endsWith(".docx")) return IO.parseDocx(await U.readFile(file, "buffer"), file);
     if (name.endsWith(".doc")) throw new Error("Hệ thống chỉ hỗ trợ định dạng .docx (Word 2010 trở lên). Hãy mở file trong Word và chọn File → Save As → .docx nhé!");
-    if (name.endsWith(".json") || name.endsWith(".js") || name.endsWith(".txt")) return IO.parseJSON(await U.readFile(file));
+    if (name.endsWith(".tex")) return IO.parseTex(await U.readFile(file));
+    if (name.endsWith(".txt")) {
+      const txt = await U.readFile(file);
+      if (/\\begin\s*\{(?:ex|bt)\}/.test(txt)) return IO.parseTex(txt);
+      return IO.parseJSON(txt);
+    }
+    if (name.endsWith(".json") || name.endsWith(".js")) return IO.parseJSON(await U.readFile(file));
     return IO.parseSheet(await U.readFile(file, "buffer"));
   };
 

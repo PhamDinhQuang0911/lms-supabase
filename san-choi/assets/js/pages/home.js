@@ -82,7 +82,7 @@
       <section class="sec">
         <div class="sec-h"><div><span class="eyebrow">Cách chơi</span><h2>3 bước là vào trận!</h2></div></div>
         <div class="steps3">
-          <div class="step" data-reveal><span class="num">1</span><div class="s-ic">📚</div><h3>Chọn bộ câu hỏi</h3><p>Giáo viên chọn câu hỏi từ Ngân hàng QMath hoặc tải trực tiếp từ file Word (.docx) có công thức Toán & hình ảnh.</p></div>
+          <div class="step" data-reveal><span class="num">1</span><div class="s-ic">📚</div><h3>Chọn bộ câu hỏi</h3><p>Giáo viên chọn câu hỏi từ Ngân hàng QMath hoặc tải trực tiếp từ file Word (.docx) / LaTeX (.tex) có công thức Toán.</p></div>
           <div class="step" data-reveal><span class="num">2</span><div class="s-ic">🎮</div><h3>Chọn trò chơi & chế độ</h3><p>Chiếu một màn hình cho cả lớp thi đấu theo đội, hoặc tạo phòng trực tuyến với mã PIN.</p></div>
           <div class="step" data-reveal><span class="num">3</span><div class="s-ic">🏆</div><h3>Thi đấu & vinh danh</h3><p>Trả lời đúng để tiến lên, xem lời giải ngay, điểm số được lưu vào bảng vàng.</p></div>
         </div>
@@ -90,7 +90,7 @@
 
       <section class="sec home-bottom">
         <div class="card" data-reveal><div class="card-h"><h3>🏆 Bảng vàng gần đây</h3><span class="grow"></span><a class="btn btn-sm btn-ghost" href="#/bang-vang">Xem tất cả</a></div><div id="hLb"><div class="muted">Đang tải…</div></div></div>
-        <div class="card" data-reveal><div class="card-h"><h3>📚 Đưa câu hỏi lên Game (Ngân hàng QMath & Word .docx)</h3></div>
+        <div class="card" data-reveal><div class="card-h"><h3>📚 Đưa câu hỏi lên Game (Ngân hàng QMath, Word .docx &amp; LaTeX .tex)</h3></div>
           <p class="muted" style="font-size:14px;margin:0 0 8px">Giáo viên có thể đưa câu hỏi vào trò chơi theo <b>2 cách cực nhanh</b>:</p>
           <div style="display:flex;flex-direction:column">
             <div style="display:flex;gap:13px;padding:14px 0;border-bottom:1px dashed var(--line)">
@@ -104,11 +104,11 @@
             <div style="display:flex;gap:13px;padding:14px 0;border-bottom:1px dashed var(--line)">
               <span style="flex:0 0 32px;height:32px;border-radius:50%;background:var(--primary-soft);color:var(--primary);font-weight:800;display:grid;place-items:center;font-size:16px">📄</span>
               <div style="flex:1;min-width:0">
-                <div style="font-weight:700;margin-bottom:3px">Cách 2: Tải trực tiếp file Word (.docx) từ máy tính</div>
-                <p class="muted" style="font-size:13.5px;margin:0 0 9px;line-height:1.55">Nhận diện tự động công thức <b>MathType / LaTeX</b>, hình ảnh <b>EMF/WMF/PNG</b>, bảng biểu và gạch chân đáp án đúng giống hệt trình Tạo đề Word QMath.</p>
+                <div style="font-weight:700;margin-bottom:3px">Cách 2: Tải trực tiếp file Word (.docx) hoặc LaTeX (.tex) từ máy tính</div>
+                <p class="muted" style="font-size:13.5px;margin:0 0 9px;line-height:1.55">Nhận diện tự động chuẩn <b>ex_test (.tex)</b>, công thức <b>MathType / LaTeX</b>, hình ảnh <b>EMF/WMF/PNG</b>, bảng biểu và gạch chân đáp án đúng.</p>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <button class="btn btn-sm btn-primary" id="openLocal">📄 Tải file Word (.docx) / Excel / JSON</button>
-                  <button class="btn btn-sm btn-ghost" id="homeWordGuide">📘 Hướng dẫn chuẩn bị file Word & Tải mẫu</button>
+                  <button class="btn btn-sm btn-primary" id="openLocal">📄 Tải file Word (.docx) / LaTeX (.tex) / Excel</button>
+                  <button class="btn btn-sm btn-ghost" id="homeWordGuide">📘 Hướng dẫn chuẩn bị file (.docx / .tex)</button>
                 </div>
               </div>
             </div>
@@ -212,7 +212,7 @@
     const wgBtn = $("#homeWordGuide", view);
     if (wgBtn) wgBtn.onclick = () => window.QMathBridge && QMathBridge.openWordGuideModal(() => $("#openLocal", view).click());
     $("#openLocal", view).onclick = async () => {
-      const f = await U.pickFile(".docx,.json,.js,.xlsx,.xls,.csv"); if (!f) return;
+      const f = await U.pickFile(".docx,.tex,.txt,.json,.js,.xlsx,.xls,.csv"); if (!f) return;
       try { const list = await IO.parseFile(f); if (!list.length) throw new Error("File không có câu hỏi"); await DB.useLocalFile(list); U.toast(`Đã nạp ${list.length} câu hỏi từ file ${f.name}`, "ok"); App.render(); saveFileToCloud(list); }
       catch (e) { U.toast("Không đọc được file: " + e.message, "err", 4000); }
     };

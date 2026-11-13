@@ -213,7 +213,9 @@
       else c[f.key] = typeof f.def === "function" ? f.def() : f.def;
     });
     const gc = DB.gameCfg(game.id);
-    c.source = gc.setId && DB.findSet(gc.setId) ? { kind: "set", setId: gc.setId } : { kind: "all" };
+    c.source = gc.setId && DB.findSet(gc.setId)
+      ? { kind: "set", setId: gc.setId }
+      : (DB.source === "local-file" && DB.questions.length ? { kind: "local" } : { kind: "none" });
     return c;
   }
   function loadCfg(game, override) {
@@ -224,6 +226,8 @@
     if (tf) c.teamCount = U.clamp(+c.teamCount || tf.def || tf.min, tf.min, tf.max);
     c.teamNames = U.TEAM_NAMES.map((n, i) => (c.teamNames || [])[i] || n);
     if (c.source && c.source.kind === "set" && !DB.findSet(c.source.setId)) c.source = d.source;
+    if (c.source && c.source.kind === "all") c.source = d.source;
+    if (c.source && c.source.kind === "local" && (DB.source !== "local-file" || !DB.questions.length)) c.source = d.source;
     if (!game.modes.includes(c.mode)) c.mode = game.modes[0];
     c.types = (c.types || []).filter((t) => game.types.includes(t)); if (!c.types.length) c.types = game.types.slice();
     return c;
@@ -422,26 +426,34 @@
             <button type="button" class="qm-src-card bank-card" id="qmPickBankBtn">
               <div class="qm-src-ic">📚</div>
               <div class="qm-src-txt">
-                <b>Chọn từng bước từ Ngân hàng QMath</b>
-                <small>Chọn Lớp ➔ Phân môn ➔ Bài ➔ Dạng bài & Xem trước câu hỏi</small>
+                <b>Chọn từ Ngân hàng QMath</b>
+                <small>Lớp ➔ Phân môn ➔ Bài ➔ Dạng bài &amp; Xem trước</small>
               </div>
             </button>
             <button type="button" class="qm-src-card word-card" id="qmPickWordBtn">
               <div class="qm-src-ic">📄</div>
               <div class="qm-src-txt">
                 <b>Đưa câu hỏi từ File Word (.docx)</b>
-                <small>Nhận diện tự động công thức Toán, hình ảnh & đáp án</small>
+                <small>Nhận diện công thức MathType, hình ảnh &amp; đáp án</small>
+              </div>
+            </button>
+            <button type="button" class="qm-src-card tex-card" id="qmPickTexBtn">
+              <div class="qm-src-ic">📜</div>
+              <div class="qm-src-txt">
+                <b>Đưa câu hỏi từ File LaTeX (.tex)</b>
+                <small>Đọc chuẩn ex_test (\choice, \choiceTF, \shortans)</small>
               </div>
             </button>
           </div>
           <div class="qm-word-help-row">
-            <span>💡 Chưa rõ cách trình bày file Word (.docx) để tự động nhận câu hỏi & đáp án?</span>
-            <button type="button" class="qm-link-btn" id="qmWordGuideBtn">📘 Xem hướng dẫn chuẩn bị file Word & Tải file mẫu (.docx)</button>
+            <span>💡 Hỗ trợ trực tiếp file <b>Word (.docx)</b> và file <b>LaTeX (.tex)</b> chuẩn <code>ex_test</code> — xem hướng dẫn &amp; tải file mẫu:</span>
+            <button type="button" class="qm-link-btn" id="qmWordGuideBtn">📘 Xem hướng dẫn (.docx / .tex) &amp; Tải mẫu</button>
           </div>
           <select class="select" id="srcSel">
-            <option value="all">📚 Toàn bộ ngân hàng câu hỏi</option>
+            <option value="">-- Chọn bộ đề hoặc nguồn câu hỏi --</option>
+            ${DB.source === "local-file" && DB.questions.length ? `<option value="local">📂 Bộ câu hỏi vừa nạp (${DB.questions.length} câu)</option>` : ""}
             ${DB.sets.map((s) => `<option value="set:${s.id}">🧩 ${esc(s.name)}${DB.gameCfg(game.id).setId === s.id ? " (được phân bổ)" : ""}</option>`).join("")}
-            <option value="filter">🔎 Lọc theo môn / lớp / chương…</option>
+            ${DB.questions.length ? `<option value="filter">🔎 Lọc theo môn / lớp / chương…</option>` : ""}
           </select>
           <div class="adm-filters" id="fltBox" style="margin:10px 0 0">
             ${["Subject:Môn", "Grade:Lớp", "Chapter:Chương", "Topic:Chủ đề", "Level:Mức độ"].map((p) => { const [k, l] = p.split(":"); return `<select class="select input-sm" data-f="${k}"><option value="">${l}: tất cả</option>${facets[k].map((x) => `<option>${esc(x)}</option>`).join("")}</select>`; }).join("")}
@@ -553,7 +565,7 @@
         if (!savedSet) return;
         if (Array.isArray(savedSet)) {
           DB.useLocalFile(savedSet);
-          cfg.source = { kind: "all" };
+          cfg.source = { kind: "local" };
         } else if (savedSet.id) {
           cfg.source = { kind: "set", setId: savedSet.id };
         }
@@ -564,21 +576,28 @@
       if (pickBankBtn) pickBankBtn.onclick = () => QMathBridge.openBankPickerModal({ game, onConfirm: applyCreatedSet });
       const pickWordBtn = $("#qmPickWordBtn", v);
       if (pickWordBtn) pickWordBtn.onclick = () => QMathBridge.quickImportWordForGame(game, applyCreatedSet);
+      const pickTexBtn = $("#qmPickTexBtn", v);
+      if (pickTexBtn) pickTexBtn.onclick = () => QMathBridge.quickImportWordForGame(game, applyCreatedSet, { accept: ".tex,.txt" });
       const wordGuideBtn = $("#qmWordGuideBtn", v);
       if (wordGuideBtn) wordGuideBtn.onclick = () => QMathBridge.openWordGuideModal(() => QMathBridge.quickImportWordForGame(game, applyCreatedSet));
     }
 
     const srcSel = $("#srcSel", v);
-    srcSel.value = cfg.source.kind === "set" ? "set:" + cfg.source.setId : cfg.source.kind;
-    if (!srcSel.value) srcSel.value = "all";
+    srcSel.value = cfg.source.kind === "set"
+      ? "set:" + cfg.source.setId
+      : (cfg.source.kind === "local" && DB.source === "local-file" && DB.questions.length ? "local" : (cfg.source.kind === "filter" ? "filter" : ""));
+    if (!srcSel.value && DB.source === "local-file" && DB.questions.length && srcSel.querySelector('option[value="local"]')) {
+      srcSel.value = "local";
+    }
     $$("#fltBox select", v).forEach((s) => { s.value = (cfg.source.filter || {})[s.dataset.f] || ""; s.onchange = updSrc; });
     $$("#typeBox input", v).forEach((c) => { c.checked = cfg.types.includes(c.value); c.onchange = updSrc; });
     srcSel.onchange = updSrc;
     function readSrc() {
       const val = srcSel.value;
+      if (val === "local") return { kind: "local" };
       if (val.startsWith("set:")) return { kind: "set", setId: val.slice(4) };
       if (val === "filter") { const f = {}; $$("#fltBox select", v).forEach((s) => { if (s.value) f[s.dataset.f] = s.value; }); return { kind: "filter", filter: f }; }
-      return { kind: "all" };
+      return { kind: "none" };
     }
     function updSrc() {
       cfg.source = readSrc();
@@ -588,7 +607,13 @@
       const by = { MC: 0, TF: 0, SA: 0 }; items.forEach((i) => by[i.type]++);
       const noQ = game.needsQuestions && !game.needsQuestions(cfg);
       $("#srcInfo", v).closest(".gs-sec").classList.toggle("dimmed", !!noQ);
-      $("#srcInfo", v).innerHTML = noQ ? `<span class="chip green">Chế độ này không cần câu hỏi</span>` : `<b class="${items.length ? "" : "warn"}">${items.length}</b> câu dùng được <span class="muted">(MC ${by.MC} · TF ${by.TF} · SA ${by.SA})</span>${DB.usingDemo ? ' <span class="chip amber">câu hỏi mẫu</span>' : ""}`;
+      if (noQ) {
+        $("#srcInfo", v).innerHTML = `<span class="chip green">Chế độ này không cần câu hỏi</span>`;
+      } else if (cfg.source.kind === "none") {
+        $("#srcInfo", v).innerHTML = `<span class="muted">Chưa chọn nguồn câu hỏi — hãy chọn từ <strong style="color:#0f172a">Ngân hàng QMath</strong>, tải <strong style="color:#0f172a">File Word (.docx)</strong>, tải <strong style="color:#0f172a">File LaTeX (.tex)</strong> hoặc chọn một <strong style="color:#0f172a">Bộ đề</strong>.</span>`;
+      } else {
+        $("#srcInfo", v).innerHTML = `<b class="${items.length ? "" : "warn"}">${items.length}</b> câu dùng được <span class="muted">(MC ${by.MC} · TF ${by.TF} · SA ${by.SA})</span>`;
+      }
     }
     updSrc();
 
@@ -659,7 +684,7 @@
       else if (f.type === "textarea" && val) parts.push(`${f.label}: ${String(val).split(/\n+/).filter(Boolean).length} dòng`);
     });
     const src = c.source || {};
-    parts.push("📚 " + (src.kind === "set" ? "Bộ đề: " + ((DB.findSet(src.setId) || {}).name || "?") : src.kind === "filter" ? "Lọc: " + Object.values(src.filter || {}).join(" · ") : "Toàn bộ ngân hàng"));
+    parts.push("📚 " + (src.kind === "set" ? "Bộ đề: " + ((DB.findSet(src.setId) || {}).name || "?") : src.kind === "filter" ? "Lọc: " + Object.values(src.filter || {}).join(" · ") : src.kind === "local" ? "Bộ câu hỏi vừa nạp" : "Chưa chọn nguồn"));
     return parts;
   };
   GK.savePresetDialog = async (game, cfg, cur) => {

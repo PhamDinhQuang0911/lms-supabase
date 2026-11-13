@@ -30,12 +30,12 @@
         <div class="stat-tile" style="--i:4"><i>🎮</i><b>${Games.enabled().length}/${Games.list.length}</b><span>Trò chơi đang bật</span></div>
         <div class="stat-tile" style="--i:5"><i>🏅</i><b id="dRes">…</b><span>Trận đấu đã lưu</span></div>
       </div>
-      ${!qs.length ? `<div class="notice">🌱 Ngân hàng câu hỏi trên Firestore đang trống — web đang dùng câu hỏi mẫu. <button class="btn btn-sm btn-primary" id="seed">Nạp ${DEMO_QUESTIONS.length} câu mẫu vào Firestore</button><a class="btn btn-sm btn-ghost" href="#/admin/questions">Nhập từ file</a></div>` : ""}
+      ${!qs.length ? `<div class="notice">📭 Ngân hàng câu hỏi chưa có dữ liệu — hãy chọn từ Kho QMath hoặc nhập từ file Word (.docx) / LaTeX (.tex). <a class="btn btn-sm btn-primary" href="#/admin/questions">Nhập từ file / Kho QMath</a></div>` : ""}
       <div class="grid2">
         <div class="card" data-reveal><div class="card-h"><h3>📦 Phân loại câu hỏi</h3></div>
           <div class="type-bars">${Object.entries(by).map(([k, v]) => `<div class="tb"><span>${k}</span><div><i style="width:${qs.length ? (v / qs.length) * 100 : 0}%"></i></div><b>${v}</b></div>`).join("")}</div></div>
         <div class="card" data-reveal><div class="card-h"><h3>⚡ Thao tác nhanh</h3></div><div class="quick">
-          <a class="btn btn-primary" href="#/admin/questions">📥 Nhập câu hỏi (JSON / Excel)</a>
+          <a class="btn btn-primary" href="#/admin/questions">📥 Nhập câu hỏi (Word .docx / LaTeX .tex / Excel)</a>
           <a class="btn btn-ghost" href="#/admin/sets">🧩 Tạo bộ đề & phân bổ game</a>
           <a class="btn btn-ghost" href="#/admin/presets">💾 Cấu hình soạn sẵn cho các game</a>
           <button class="btn btn-ghost" id="offl">💾 Tải bản offline (questions-offline.js)</button>
@@ -44,7 +44,6 @@
       </div></div>`;
     U.reveal(view);
     DB.listResults(500).then((r) => { const e = $("#dRes", view); if (e) e.textContent = r.length; });
-    const sd = $("#seed", view); if (sd) sd.onclick = async () => { busy(sd, true); try { const r = await DB.importQuestions(DEMO_QUESTIONS, { overwrite: true }); U.toast(`Đã nạp ${r.added + r.updated} câu`, "ok"); App.render(); } catch (e) { busy(sd, false); fail(e); } };
     $("#offl", view).onclick = () => { U.download("questions-offline.js", DB.exportOfflineJS(), "text/javascript"); U.toast("Đặt file vào thư mục data/ cạnh index.html", "info", 4000); };
   };
 
@@ -55,8 +54,8 @@
       <div class="adm-tools">
         <button class="btn btn-primary" id="qAdd">➕ Thêm câu hỏi</button>
         <button class="btn btn-fun" id="qPickBank">🌳 Chọn từ Kho QMath (Cây ID)</button>
-        <button class="btn btn-fun" id="qImp">📥 Nhập Word (.docx) / Excel / JSON</button>
-        <button class="btn btn-ghost" id="qWordGuide">📘 Hướng dẫn file Word (.docx)</button>
+        <button class="btn btn-fun" id="qImp">📥 Nhập Word (.docx) / LaTeX (.tex) / Excel</button>
+        <button class="btn btn-ghost" id="qWordGuide">📘 Hướng dẫn file (.docx / .tex)</button>
         <button class="btn btn-ghost" id="qExpJ">⬇️ JSON</button>
         <button class="btn btn-ghost" id="qExpX">⬇️ Excel</button>
         <button class="btn btn-ghost" id="qTpl">📄 File Excel mẫu</button>
@@ -230,17 +229,17 @@
   /* ----- Nhập file ----- */
   A.importDialog = () => {
     const body = h(`<div>
-      <div class="drop" id="drop"><div class="d-ic">📥</div><b>Kéo thả file vào đây hoặc bấm để chọn</b><p class="muted" style="margin:6px 0 0">Hỗ trợ <b>file Word (.docx)</b>, <b>Excel (.xlsx / .xls / .csv)</b> và <b>JSON (.json)</b></p></div>
+      <div class="drop" id="drop"><div class="d-ic">📥</div><b>Kéo thả file vào đây hoặc bấm để chọn</b><p class="muted" style="margin:6px 0 0">Hỗ trợ <b>Word (.docx)</b>, <b>LaTeX (.tex)</b>, <b>Excel (.xlsx / .xls / .csv)</b> và <b>JSON (.json)</b></p></div>
       <div class="qm-word-help-row" style="margin-top:10px">
-        <span>📄 <b>Mẹo nhập file Word (.docx):</b> Gạch chân chữ cái đúng (<u>A.</u>, <u>a)</u>) hoặc ghi <code>Chọn A</code> / <code>Đáp án: 50</code> ở lời giải.</span>
+        <span>📄 <b>Mẹo nhập file (.docx / .tex):</b> File Word gạch chân chữ cái đúng (<u>A.</u>, <u>a)</u>) hoặc file <code>.tex</code> chuẩn <code>ex_test</code> (<code>\\choice</code>, <code>\\choiceTF</code>, <code>\\shortans</code>).</span>
         <div style="display:flex;gap:8px;align-items:center">
-          <button type="button" class="qm-link-btn" id="impWordGuideBtn">📘 Xem hướng dẫn chuẩn bị file Word</button>
+          <button type="button" class="qm-link-btn" id="impWordGuideBtn">📘 Xem hướng dẫn chuẩn bị file Word &amp; LaTeX</button>
           <a href="../mau_de_tron_chuan.docx" download="De_Mau_Game_QMath.docx" class="qm-link-btn">⬇️ Tải file Word mẫu (.docx)</a>
         </div>
       </div>
       <div id="impRes" style="margin-top:14px"></div></div>`);
     let parsed = null;
-    const m = U.modal({ title: "📥 Nhập câu hỏi vào ngân hàng (Word .docx / Excel / JSON)", size: "lg", body, actions: [{ label: "Hủy", cls: "btn-ghost" }, { label: "Nhập vào ngân hàng", cls: "btn-primary", onClick: async (btn, w) => {
+    const m = U.modal({ title: "📥 Nhập câu hỏi vào ngân hàng (Word .docx / LaTeX .tex / Excel / JSON)", size: "lg", body, actions: [{ label: "Hủy", cls: "btn-ghost" }, { label: "Nhập vào ngân hàng", cls: "btn-primary", onClick: async (btn, w) => {
       if (!parsed || !parsed.length) { U.toast("Chưa chọn file", "warn"); return false; }
       const meta = {}; $$("[data-dm]", w).forEach((i) => { if (i.value.trim()) meta[i.dataset.dm] = i.value.trim(); });
       const list = parsed.map((q) => { const c = U.plain(q); Object.keys(meta).forEach((k) => { if (!c[k]) c[k] = meta[k]; }); return c; });
@@ -267,7 +266,7 @@
         Quiz.typeset($("#impRes", body));
       } catch (e) { parsed = null; $("#impRes", body).innerHTML = `<div class="notice">⛔ Không đọc được file: ${esc(e.message)}</div>`; }
     };
-    drop.onclick = async () => handle(await U.pickFile(".docx,.json,.js,.txt,.xlsx,.xls,.csv"));
+    drop.onclick = async () => handle(await U.pickFile(".docx,.tex,.json,.js,.txt,.xlsx,.xls,.csv"));
     drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
     drop.ondragleave = () => drop.classList.remove("over");
     drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); handle(e.dataTransfer.files[0]); };
@@ -280,10 +279,10 @@
       view.innerHTML = `<div class="page">${header("🧩", "Bộ đề & phân bổ cho game", "Gom câu hỏi thành bộ đề, rồi chọn bộ đề mặc định cho từng trò chơi.", "linear-gradient(135deg,#f472b6,#fb923c)")}
         <div class="card" data-reveal style="margin-bottom:16px"><div class="card-h"><h3>🎮 Phân bổ câu hỏi cho từng game</h3><span class="muted">Bật/tắt game và chọn bộ đề mặc định (người chơi vẫn có thể đổi khi cấu hình).</span></div>
           <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Trò chơi</th><th>Hiển thị</th><th>Bộ đề mặc định</th><th>Số câu dùng được</th></tr></thead><tbody>
-          ${Games.list.map((g) => { const c = DB.gameCfg(g.id); const n = Quiz.flatten(c.setId ? DB.resolveSet(DB.findSet(c.setId)) : DB.bank(), g.types).length;
+          ${Games.list.map((g) => { const c = DB.gameCfg(g.id); const n = Quiz.flatten(c.setId ? DB.resolveSet(DB.findSet(c.setId)) : [], g.types).length;
             return `<tr data-g="${g.id}"><td><b>${g.icon} ${esc(g.name)}</b><br><small class="muted">${g.types.join(" · ")}</small></td>
             <td><label class="switch"><input type="checkbox" data-en ${c.enabled !== false ? "checked" : ""}></label></td>
-            <td><select class="select input-sm" data-set><option value="">📚 Toàn bộ ngân hàng</option>${DB.sets.map((s) => `<option value="${s.id}" ${c.setId === s.id ? "selected" : ""}>🧩 ${esc(s.name)}</option>`).join("")}</select></td>
+            <td><select class="select input-sm" data-set><option value="">-- Chưa chọn bộ đề mặc định --</option>${DB.sets.map((s) => `<option value="${s.id}" ${c.setId === s.id ? "selected" : ""}>🧩 ${esc(s.name)}</option>`).join("")}</select></td>
             <td><span class="chip ${n ? "green" : "red"}">${n} câu</span></td></tr>`; }).join("")}
           </tbody></table></div></div>
         <div class="card-h"><h3>📦 Danh sách bộ đề (${DB.sets.length})</h3><span class="grow"></span><button class="btn btn-primary" id="sAdd">➕ Tạo bộ đề</button></div>

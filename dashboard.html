@@ -569,9 +569,9 @@ window.switchView = switchView;
     <script src="latex-exporter.js?v=20261002"></script>
     <script src="system-backup.js?v=20261007"></script>
     <script src="qrcode.min.js?v=20261017_V1"></script>
-    <script src="word-mathtype-exporter.js?v=20261016_V5"></script>
-    <script src="exam-mixer.js?v=20261108_V4"></script>
-    <script src="imath-studio.js?v=20261113-v2" defer></script>
+    <script src="word-mathtype-exporter.js?v=20261113-v3"></script>
+    <script src="exam-mixer.js?v=20261113-v3"></script>
+    <script src="imath-studio.js?v=20261113-v3" defer></script>
     <script>
 window.MathJax = {
 loader: { load: ['[tex]/noerrors'] },
@@ -1403,12 +1403,15 @@ startup: { typeset: false }
             color: #b91c1c !important;
             background-color: #fef2f2 !important;
         }
+        .swal2-container {
+            z-index: 10045 !important;
+        }
     </style>
 
 </head>
 <body class="h-screen flex overflow-hidden text-gray-800 bg-gray-50">
 
-    <div id="notificationContainer" class="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+    <div id="notificationContainer" class="fixed top-5 right-5 z-[10050] flex flex-col gap-3 pointer-events-none"></div>
     <div id="sidebarOverlay" onclick="window.closeSidebar()" class="fixed inset-0 bg-gray-900/60 z-[90] hidden transition-opacity md:hidden"></div>
 
     <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-gray-200 flex flex-col shadow-2xl z-[99] sidebar-closed md:translate-x-0 md:relative md:w-64 md:shadow-sm md:z-20 flex-shrink-0">
@@ -4801,6 +4804,38 @@ window.openSidebar = () => window.toggleSidebar(true);
                                     </label>
                                 </div>
                             </div>
+
+                            <!-- Quyền tải .tex & Hạn mức Tạo/Tải đề hàng tháng -->
+                            <div class="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2.5">
+                                <div class="text-xs font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wide flex items-center gap-1.5">
+                                    <i class="fa-solid fa-gauge-high text-indigo-500"></i>
+                                    Phân quyền tải file .tex &amp; Hạn mức Tạo / Tải đề hàng tháng
+                                </div>
+                                <label class="flex items-center gap-2 p-2.5 rounded-lg border border-indigo-200 dark:border-indigo-800/70 bg-indigo-50/50 dark:bg-indigo-950/30 cursor-pointer">
+                                    <input type="checkbox" id="cfgVipPerm_download_tex" class="accent-indigo-600 rounded">
+                                    <span class="text-[11px] font-bold text-gray-800 dark:text-gray-100">Cho phép Giáo viên VIP tải file mã nguồn .tex (iMath Studio / Soạn đề)</span>
+                                </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div class="p-2.5 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/50 space-y-1">
+                                        <label class="block text-[11px] font-bold text-gray-800 dark:text-gray-200">
+                                            <i class="fa-solid fa-crown text-amber-500 mr-1"></i> Số lần tạo / tải đề mỗi tháng (Giáo viên VIP)
+                                        </label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="cfgVipMonthlyExamQuota" value="-1" min="-1" class="w-24 px-2 py-1 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300">
+                                            <span class="text-[10px] text-slate-500 font-semibold">(-1 = Không giới hạn)</span>
+                                        </div>
+                                    </div>
+                                    <div class="p-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/50 space-y-1">
+                                        <label class="block text-[11px] font-bold text-gray-800 dark:text-gray-200">
+                                            <i class="fa-solid fa-user-graduate text-emerald-600 mr-1"></i> Số lần tạo / tải đề mỗi tháng (Giáo viên Free)
+                                        </label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="cfgFreeMonthlyExamQuota" value="100" min="-1" class="w-24 px-2 py-1 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300">
+                                            <span class="text-[10px] text-slate-500 font-semibold">lần/tháng (-1 = KGH)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         
@@ -6115,6 +6150,16 @@ const qs = params.toString();
 return 'exam-editor.html' + (qs ? '?' + qs : '');
 };
 window.openCreateExam = (customType) => {
+if (window.QMathQuota && typeof window.QMathQuota.getStatus === 'function') {
+const qStatus = window.QMathQuota.getStatus();
+if (!qStatus.unlimited && (qStatus.monthlyLimit === 0 || qStatus.used >= qStatus.monthlyLimit)) {
+window.showNotification(
+`Bạn đã sử dụng hết ${qStatus.used}/${qStatus.monthlyLimit} lượt tạo & tải đề trong tháng ${qStatus.monthKey}!`,
+'warning'
+);
+return;
+}
+}
 const tab = window.currentBankTab || 'exam';
 const type = customType !== undefined ? customType : (tab === 'homework' ? 'homework' : (tab === 'mixed' ? 'mixed' : ''));
 window.location.href = window.getCreateExamUrl(type);
@@ -6966,6 +7011,72 @@ bankImportBtnText.textContent = isSuper ? 'Nạp câu hỏi' : 'Tải lên Kho R
 if (typeof window.updateBankVaultBadges === 'function') {
 window.updateBankVaultBadges();
 }
+const btnExportQuestionTex = document.getElementById('btnExportQuestionTex');
+if (btnExportQuestionTex) {
+const vipCanTex = Boolean(window.teacherPackageConfig && window.teacherPackageConfig.vipAllowTexDownload);
+const allowSingleTex = isSuper || (!isFree && vipCanTex);
+btnExportQuestionTex.style.display = allowSingleTex ? '' : 'none';
+}
+if (typeof window.QMathQuota !== 'undefined' && typeof window.QMathQuota.saveRoleSnapshot === 'function') {
+const curUid = (window.currentAdminProfile && (window.currentAdminProfile.uid || window.currentAdminProfile.id)) || (auth.currentUser && auth.currentUser.uid) || '';
+const curEmail = (window.currentAdminProfile && window.currentAdminProfile.email) || (auth.currentUser && auth.currentUser.email) || '';
+const pkgCfg = window.teacherPackageConfig || {};
+window.QMathQuota.saveRoleSnapshot({
+uid: curUid,
+email: String(curEmail).toLowerCase().trim(),
+isSuper: !!isSuper,
+isFree: !!isFree,
+isVip: (!isSuper && !isFree),
+vipAllowTexDownload: Boolean(pkgCfg.vipAllowTexDownload),
+vipMonthlyExamQuota: pkgCfg.vipMonthlyExamQuota !== undefined ? parseInt(pkgCfg.vipMonthlyExamQuota, 10) : -1,
+freeMonthlyExamQuota: pkgCfg.freeMonthlyExamQuota !== undefined ? parseInt(pkgCfg.freeMonthlyExamQuota, 10) : 100
+});
+}
+if (typeof window._qmathQuotaSyncUsageToCloud !== 'function') {
+window._qmathQuotaSyncUsageToCloud = async (uidArg, monthKey, nextCount) => {
+const targetUid = uidArg || (auth.currentUser && auth.currentUser.uid);
+if (!targetUid || targetUid === 'anonymous_teacher') return;
+try {
+await setDoc(doc(db, "users", targetUid), {
+monthlyExamUsage: { [monthKey]: nextCount },
+updatedAt: new Date().toISOString()
+}, { merge: true });
+} catch (errQSync) {
+console.warn("Lỗi đồng bộ hạn mức tháng lên cloud:", errQSync);
+}
+};
+}
+            const _curUidForPkgSync = (auth.currentUser && auth.currentUser.uid) ? auth.currentUser.uid : 'guest';
+            if (window._qmathPkgSyncedUid !== _curUidForPkgSync) {
+                window._qmathPkgSyncedUid = _curUidForPkgSync;
+                (async () => {
+                    try {
+                        const [pkgSnapSync, userSnapSync] = await Promise.all([
+                            getDoc(doc(db, "configurations", "teacher_package_config")).catch(() => null),
+                            (auth.currentUser && auth.currentUser.uid)
+                                ? getDoc(doc(db, "users", auth.currentUser.uid)).catch(() => null)
+                                : Promise.resolve(null)
+                        ]);
+                        if (pkgSnapSync && pkgSnapSync.exists()) {
+                            const pData = pkgSnapSync.data() || {};
+                            window.teacherPackageConfig = { ...(window.teacherPackageConfig || {}), ...pData };
+                            try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
+                        }
+                        if (userSnapSync && userSnapSync.exists() && window.QMathQuota) {
+                            const uData = userSnapSync.data() || {};
+                            if (uData.monthlyExamUsage) {
+                                window.QMathQuota.syncFromCloudUsage(auth.currentUser.uid, uData.monthlyExamUsage);
+                            }
+                        }
+                        if (typeof window.applyUIPermissions === 'function') {
+                            window.applyUIPermissions();
+                        }
+                        if (typeof window.refreshIMathRoleVisibility === 'function') {
+                            window.refreshIMathRoleVisibility();
+                        }
+                    } catch (_) {}
+                })();
+            }
 };
 window.populateSuperAdminTeacherDropdowns = (teachersList = []) => {
 const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
@@ -7136,6 +7247,8 @@ let defPerms = [...(ADMIN_PRESETS.teacher_full || [])];
 let defCourses = [];
 if (pkgSnap.exists()) {
 const pData = pkgSnap.data();
+window.teacherPackageConfig = { ...(window.teacherPackageConfig || {}), ...pData };
+try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
 if (Array.isArray(pData.defaultPermissions) && pData.defaultPermissions.length > 0) defPerms = pData.defaultPermissions;
 if (Array.isArray(pData.defaultAssignedCourseIds) && pData.defaultAssignedCourseIds.length > 0) defCourses = pData.defaultAssignedCourseIds;
 }
@@ -7162,6 +7275,8 @@ try {
 const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config"));
 if (pkgSnap.exists()) {
 const pData = pkgSnap.data();
+window.teacherPackageConfig = { ...(window.teacherPackageConfig || {}), ...pData };
+try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
 const freePerms = Array.isArray(pData.freePermissions) ? pData.freePermissions : [];
 if (!freePerms.includes('bank.use_shared')) {
 perms = perms.filter(p => p !== 'bank.use_shared');
@@ -7217,6 +7332,8 @@ try {
 const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config"));
 if (pkgSnap.exists()) {
 const pData = pkgSnap.data();
+window.teacherPackageConfig = { ...(window.teacherPackageConfig || {}), ...pData };
+try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
 const freePerms = Array.isArray(pData.freePermissions) ? pData.freePermissions : [];
 if (!freePerms.includes('bank.use_shared')) {
 perms = perms.filter(p => p !== 'bank.use_shared');
@@ -7655,6 +7772,10 @@ if (document.getElementById('cfgFreePerm_bank')) document.getElementById('cfgFre
 if (document.getElementById('cfgFreePerm_word_importer')) document.getElementById('cfgFreePerm_word_importer').checked = freePerms.includes('word_importer.use');
 if (document.getElementById('cfgFreePerm_exams_assign')) document.getElementById('cfgFreePerm_exams_assign').checked = freePerms.includes('exams.assign');
 if (document.getElementById('cfgFreePerm_bank_shared')) document.getElementById('cfgFreePerm_bank_shared').checked = freePerms.includes('bank.use_shared');
+const pkgDataQ = (typeof snap !== 'undefined' && snap && typeof snap.exists === 'function' && snap.exists()) ? (snap.data() || {}) : {};
+if (document.getElementById('cfgVipPerm_download_tex')) document.getElementById('cfgVipPerm_download_tex').checked = Boolean(pkgDataQ.vipAllowTexDownload);
+if (document.getElementById('cfgVipMonthlyExamQuota')) document.getElementById('cfgVipMonthlyExamQuota').value = pkgDataQ.vipMonthlyExamQuota !== undefined ? pkgDataQ.vipMonthlyExamQuota : -1;
+if (document.getElementById('cfgFreeMonthlyExamQuota')) document.getElementById('cfgFreeMonthlyExamQuota').value = pkgDataQ.freeMonthlyExamQuota !== undefined ? pkgDataQ.freeMonthlyExamQuota : 100;
 const costs = data?.featureCosts || {};
 if (document.getElementById('cfgQpCost_ai_question')) document.getElementById('cfgQpCost_ai_question').value = costs.ai_question !== undefined ? costs.ai_question : 2;
 if (document.getElementById('cfgQpCost_ai_grading')) document.getElementById('cfgQpCost_ai_grading').value = costs.ai_grading !== undefined ? costs.ai_grading : 5;
@@ -7743,7 +7864,16 @@ featureCosts: featureCostsToSave,
 updatedAt: new Date().toISOString(),
 updatedBy: window.currentAdminProfile?.email || 'admin'
 };
+payload.vipAllowTexDownload = Boolean(document.getElementById('cfgVipPerm_download_tex')?.checked);
+const rawVipQ = parseInt(document.getElementById('cfgVipMonthlyExamQuota')?.value ?? '-1', 10);
+payload.vipMonthlyExamQuota = isNaN(rawVipQ) ? -1 : rawVipQ;
+const rawFreeQ = parseInt(document.getElementById('cfgFreeMonthlyExamQuota')?.value ?? '100', 10);
+payload.freeMonthlyExamQuota = isNaN(rawFreeQ) ? 100 : rawFreeQ;
+window.teacherPackageConfig = { ...(window.teacherPackageConfig || {}), ...payload };
+try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
 await setDoc(doc(db, "configurations", "teacher_package_config"), payload, { merge: true });
+if (typeof window.applyUIPermissions === 'function') window.applyUIPermissions();
+if (typeof window.refreshIMathRoleVisibility === 'function') window.refreshIMathRoleVisibility();
 window.cachedTeacherPkgConfig = payload;
 try {
 const rolesRef = doc(db, "configurations", "admin_roles");

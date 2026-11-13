@@ -894,6 +894,151 @@
             .ims-btn-exam:hover {
                 background: #4338ca !important;
             }
+            .ims-btn-word {
+                background: #0284c7 !important;
+                color: #ffffff !important;
+            }
+            .ims-btn-word:hover {
+                background: #0369a1 !important;
+            }
+            .ims-quota-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 4px 10px;
+                border-radius: 999px;
+                font-size: 11px;
+                font-weight: 700;
+                background: rgba(16, 185, 129, 0.12);
+                color: #059669;
+                border: 1px solid rgba(16, 185, 129, 0.35);
+                white-space: nowrap;
+            }
+            .ims-quota-pill.ims-quota-warn {
+                background: rgba(245, 158, 11, 0.12);
+                color: #d97706;
+                border-color: rgba(245, 158, 11, 0.35);
+            }
+            .ims-quota-pill.ims-quota-zero {
+                background: rgba(239, 68, 68, 0.12);
+                color: #dc2626;
+                border-color: rgba(239, 68, 68, 0.35);
+            }
+            .ims-matrix-panel {
+                border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+                background: rgba(248, 250, 252, 0.72);
+                padding: 8px 14px;
+                flex-shrink: 0;
+            }
+            html.dark .ims-matrix-panel,
+            .dark .ims-matrix-panel {
+                background: rgba(15, 23, 42, 0.55);
+            }
+            .ims-matrix-hdr {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                flex-wrap: wrap;
+                font-size: 11.5px;
+                font-weight: 700;
+            }
+            .ims-matrix-stats {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                flex-wrap: wrap;
+            }
+            .ims-stat-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 3px;
+                padding: 2px 7px;
+                border-radius: 999px;
+                font-size: 10.5px;
+                font-weight: 700;
+                border: 1px solid transparent;
+            }
+            .ims-stat-tn { background: rgba(79,70,229,0.12); color: #4f46e5; border-color: rgba(79,70,229,0.28); }
+            .ims-stat-ds { background: rgba(16,185,129,0.12); color: #059669; border-color: rgba(16,185,129,0.28); }
+            .ims-stat-tln { background: rgba(245,158,11,0.12); color: #d97706; border-color: rgba(245,158,11,0.28); }
+            .ims-stat-tl { background: rgba(100,116,139,0.14); color: #475569; border-color: rgba(100,116,139,0.28); }
+            .ims-matrix-rows {
+                margin-top: 7px;
+                max-height: 146px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                padding-right: 2px;
+            }
+            .ims-matrix-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                padding: 5px 8px;
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.85);
+                border: 1px solid rgba(148, 163, 184, 0.25);
+                font-size: 11.5px;
+            }
+            html.dark .ims-matrix-row,
+            .dark .ims-matrix-row {
+                background: rgba(30, 41, 59, 0.85);
+            }
+            .ims-matrix-row-info {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                min-width: 0;
+                flex: 1;
+            }
+            .ims-matrix-row-title {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-weight: 600;
+                opacity: 0.9;
+            }
+            .ims-matrix-stepper {
+                display: inline-flex;
+                align-items: center;
+                gap: 3px;
+                flex-shrink: 0;
+            }
+            .ims-step-btn {
+                width: 22px;
+                height: 22px;
+                border-radius: 6px;
+                border: 1px solid rgba(148, 163, 184, 0.4);
+                background: transparent;
+                color: inherit;
+                font-weight: 800;
+                font-size: 12px;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                line-height: 1;
+            }
+            .ims-step-btn:hover {
+                background: rgba(79, 70, 229, 0.14);
+                border-color: #4f46e5;
+                color: #4f46e5;
+            }
+            .ims-step-input {
+                width: 38px;
+                height: 22px;
+                text-align: center;
+                border-radius: 6px;
+                border: 1px solid rgba(148, 163, 184, 0.4);
+                background: transparent;
+                color: inherit;
+                font-size: 11.5px;
+                font-weight: 700;
+                outline: none;
+            }
 
             @media (max-width: 1024px) {
                 .ims-hdr-btn-tex { display: none !important; }
@@ -1181,15 +1326,16 @@
                         </div>
                     </div>
                     <div class="ims-header-actions">
-                        <a href="data/imath/So_Sanh_Hinh_Thuc_Te_Cu_Va_Moi.pdf" target="_blank" class="ims-hdr-btn ims-hdr-btn-pdf" style="border-color:#10b981;color:#10b981;background:rgba(16,185,129,0.08);" title="Xem bảng so sánh đối chiếu hình vẽ thực tế cũ và hình TikZ chuẩn mới">
+                        <span id="imathQuotaPill" class="ims-quota-pill" style="display:none;" title="Hạn mức tạo & tải đề trong tháng"></span>
+                        <a href="data/imath/So_Sanh_Hinh_Thuc_Te_Cu_Va_Moi.pdf" target="_blank" class="ims-hdr-btn ims-hdr-btn-pdf ims-super-only" style="border-color:#10b981;color:#10b981;background:rgba(16,185,129,0.08);" title="Xem bảng so sánh đối chiếu hình vẽ thực tế cũ và hình TikZ chuẩn mới">
                             <i class="fa-solid fa-file-circle-check"></i>
                             <span>So Sánh TikZ Mới</span>
                         </a>
-                        <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.pdf" target="_blank" class="ims-hdr-btn ims-hdr-btn-pdf" title="Mở bảng PDF thống kê 456 câu hỏi có hình vẽ TikZ kèm mã định danh">
+                        <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.pdf" target="_blank" class="ims-hdr-btn ims-hdr-btn-pdf ims-super-only" title="Mở bảng PDF thống kê 456 câu hỏi có hình vẽ TikZ kèm mã định danh">
                             <i class="fa-regular fa-file-pdf"></i>
                             <span>Bảng PDF 456 Hình</span>
                         </a>
-                        <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.tex" download="Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.tex" class="ims-hdr-btn ims-hdr-btn-tex" title="Tải file mã nguồn .tex của 456 câu có hình TikZ">
+                        <a href="data/imath/Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.tex" download="Bang_Thong_Ke_460_Cau_Hoi_Co_Hinh_TikZ.tex" class="ims-hdr-btn ims-hdr-btn-tex ims-super-only" title="Tải file mã nguồn .tex của 456 câu có hình TikZ">
                             <i class="fa-solid fa-code"></i>
                             <span>File .tex 456 Hình</span>
                         </a>
@@ -1333,21 +1479,28 @@
                             </div>
                         </div>
 
+                        <div id="imathMatrixPanel" class="ims-matrix-panel">
+                            <!-- Ma trận dạng đã chọn & thống kê TN - ĐS - TLN -->
+                        </div>
+
                         <div id="imathWorkspaceList" class="ims-scroll-list">
                             <!-- Các câu hỏi đã sinh render tại đây -->
                         </div>
 
                         <!-- Thanh công cụ xuất / nạp dưới cùng -->
                         <div class="ims-footer">
-                            <button type="button" onclick="window.downloadIMathWorkspaceTex()" class="ims-btn ims-btn-sec">
+                            <button type="button" id="btnIMathDownloadTex" onclick="window.downloadIMathWorkspaceTex()" class="ims-btn ims-btn-sec">
                                 <i class="fa-solid fa-download"></i> Tải file .tex
                             </button>
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                <button type="button" onclick="window.pushIMathWorkspaceToBank()" class="ims-btn ims-btn-bank" title="Đưa toàn bộ câu hỏi vào Ngân hàng câu hỏi R2">
+                                <button type="button" id="btnIMathPushBank" onclick="window.pushIMathWorkspaceToBank()" class="ims-btn ims-btn-bank" title="Đưa toàn bộ câu hỏi vào Ngân hàng câu hỏi R2">
                                     <i class="fa-solid fa-cloud-arrow-up"></i> Nạp vào Ngân hàng
                                 </button>
-                                <button type="button" id="btnIMathInsertToExam" onclick="window.insertIMathWorkspaceToExam()" class="ims-btn ims-btn-exam">
-                                    <i class="fa-solid fa-plus"></i> Chèn vào Đề thi
+                                <button type="button" id="btnIMathToOnlineExam" onclick="window.exportIMathToOnlineExam()" class="ims-btn ims-btn-exam" title="Đưa toàn bộ câu hỏi sang Trình tạo đề online (exam-editor.html)">
+                                    <i class="fa-solid fa-paper-plane"></i> Đưa sang tạo đề online
+                                </button>
+                                <button type="button" id="btnIMathToWordMathType" onclick="window.exportIMathToWordMathType()" class="ims-btn ims-btn-word" title="Cấu hình tiêu đề, định dạng và xuất file Word MathType (.docx)">
+                                    <i class="fa-solid fa-file-word"></i> Xuất file Word MathType
                                 </button>
                             </div>
                         </div>
@@ -1922,10 +2075,180 @@
         return `<div>${s}${solutionHtml}</div>`;
     }
 
+    function detectIMathQuestionKind(q) {
+        const tex = String((q && (q.latex_mc || q.latex)) || '');
+        const cat = String((q && q.category) || '').trim();
+        if (/\\choiceTF(?![a-zA-Z])/.test(tex) || cat === 'Đúng-Sai') return 'DS';
+        if (/\\shortans(?:\[|\{)/.test(tex) || cat === 'Trả lời ngắn') return 'TLN';
+        if (/\\choice(?![a-zA-Z])/.test(tex) || cat === 'Trắc nghiệm') return 'TN';
+        return 'TL';
+    }
+
+    function renderIMathMatrixPanel() {
+        const panel = document.getElementById('imathMatrixPanel');
+        if (!panel) return;
+        const qs = state.workspaceQuestions || [];
+        const counts = { TN: 0, DS: 0, TLN: 0, TL: 0 };
+        const groupMap = new Map();
+        qs.forEach((q) => {
+            const kind = detectIMathQuestionKind(q);
+            counts[kind] = (counts[kind] || 0) + 1;
+            const tag = q.tag || q.map_id || 'unknown';
+            if (!groupMap.has(tag)) {
+                const metaTitle = (state.byTag && state.byTag[tag] && state.byTag[tag].title) || q.title || tag;
+                groupMap.set(tag, { tag, title: metaTitle, kind, count: 0 });
+            }
+            groupMap.get(tag).count += 1;
+        });
+        const groups = Array.from(groupMap.values());
+        const collapsed = Boolean(state.matrixCollapsed);
+
+        const kindChipClass = { TN: 'ims-stat-tn', DS: 'ims-stat-ds', TLN: 'ims-stat-tln', TL: 'ims-stat-tl' };
+        const kindLabel = { TN: 'TN', DS: 'ĐS', TLN: 'TLN', TL: 'TL' };
+
+        const rowsHtml = (!collapsed && groups.length > 0)
+            ? `<div class="ims-matrix-rows">${groups.map((g) => {
+                const encTag = encodeURIComponent(g.tag);
+                return `<div class="ims-matrix-row">
+                    <div class="ims-matrix-row-info">
+                        <span class="ims-stat-chip ${kindChipClass[g.kind] || 'ims-stat-tn'}">${kindLabel[g.kind] || 'TN'}</span>
+                        <span class="ims-meta-mapid">${escapeHtml(g.tag)}</span>
+                        <span class="ims-matrix-row-title" title="${escapeHtml(g.title)}">${escapeHtml(g.title)}</span>
+                    </div>
+                    <div class="ims-matrix-stepper">
+                        <button type="button" class="ims-step-btn" onclick="window.setIMathTagCount(decodeURIComponent('${encTag}'), ${g.count - 1})" title="Giảm 1 câu">−</button>
+                        <input type="number" min="0" max="50" value="${g.count}" class="ims-step-input" onchange="window.setIMathTagCount(decodeURIComponent('${encTag}'), this.value)" title="Số câu của dạng ${escapeHtml(g.tag)}">
+                        <button type="button" class="ims-step-btn" onclick="window.setIMathTagCount(decodeURIComponent('${encTag}'), ${g.count + 1})" title="Tăng 1 câu">+</button>
+                        <button type="button" class="ims-step-btn" onclick="window.setIMathTagCount(decodeURIComponent('${encTag}'), 0)" title="Xóa toàn bộ dạng này" style="margin-left:2px;color:#ef4444;border-color:rgba(239,68,68,0.35);">×</button>
+                    </div>
+                </div>`;
+            }).join('')}</div>`
+            : '';
+
+        panel.innerHTML = `
+            <div class="ims-matrix-hdr">
+                <span style="display:inline-flex;align-items:center;gap:6px;">
+                    <i class="fa-solid fa-table-cells" style="color:#4f46e5;"></i>
+                    <span>Ma trận dạng đã chọn (${groups.length} dạng · ${qs.length} câu)</span>
+                </span>
+                <div class="ims-matrix-stats">
+                    <span class="ims-stat-chip ims-stat-tn">TN: ${counts.TN}</span>
+                    <span class="ims-stat-chip ims-stat-ds">ĐS: ${counts.DS}</span>
+                    <span class="ims-stat-chip ims-stat-tln">TLN: ${counts.TLN}</span>
+                    ${counts.TL > 0 ? `<span class="ims-stat-chip ims-stat-tl">TL: ${counts.TL}</span>` : ''}
+                    ${groups.length > 0 ? `<button type="button" onclick="window.toggleIMathMatrixCollapse()" class="ims-btn-add3" style="padding:2px 8px;font-size:10.5px;">${collapsed ? 'Mở rộng' : 'Thu gọn'}</button>` : ''}
+                </div>
+            </div>
+            ${rowsHtml}
+        `;
+    }
+
+    window.toggleIMathMatrixCollapse = function () {
+        state.matrixCollapsed = !Boolean(state.matrixCollapsed);
+        renderIMathMatrixPanel();
+    };
+
+    window.setIMathTagCount = async function (tag, rawCount) {
+        try {
+            const targetCount = Math.max(0, Math.min(50, parseInt(rawCount, 10) || 0));
+            const curCount = state.workspaceQuestions.filter(q => q.tag === tag).length;
+            if (targetCount === curCount) {
+                renderIMathMatrixPanel();
+                return;
+            }
+            if (targetCount < curCount) {
+                let toRemove = curCount - targetCount;
+                for (let i = state.workspaceQuestions.length - 1; i >= 0 && toRemove > 0; i--) {
+                    if (state.workspaceQuestions[i].tag === tag) {
+                        state.workspaceQuestions.splice(i, 1);
+                        toRemove--;
+                    }
+                }
+                renderWorkspace();
+                return;
+            }
+            const delta = targetCount - curCount;
+            const items = await generateVariantsForTag(tag, delta);
+            if (!items || items.length === 0) {
+                notify(`Không thể sinh thêm câu hỏi cho dạng ${tag}`, 'warning');
+                renderIMathMatrixPanel();
+                return;
+            }
+            const newCards = items.map(it => ({
+                ...it,
+                id: 'imath_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                showCode: false
+            }));
+            let lastIdx = -1;
+            for (let i = state.workspaceQuestions.length - 1; i >= 0; i--) {
+                if (state.workspaceQuestions[i].tag === tag) {
+                    lastIdx = i;
+                    break;
+                }
+            }
+            if (lastIdx !== -1) {
+                state.workspaceQuestions.splice(lastIdx + 1, 0, ...newCards);
+            } else {
+                state.workspaceQuestions.push(...newCards);
+            }
+            renderWorkspace();
+        } catch (err) {
+            console.warn('[iMathStudio] setIMathTagCount error:', err);
+        }
+    };
+
+    window.refreshIMathRoleVisibility = function () {
+        const modal = document.getElementById('imathStudioModal');
+        const quotaInfo = window.QMathQuota ? window.QMathQuota.getRoleInfo() : null;
+        const quotaStatus = window.QMathQuota ? window.QMathQuota.getStatus() : null;
+
+        let isSuper = false;
+        let canDownloadTex = false;
+        if (quotaInfo) {
+            isSuper = Boolean(quotaInfo.isSuper);
+            canDownloadTex = Boolean(quotaInfo.canDownloadTex);
+        } else {
+            const prof = window.currentAdminProfile || {};
+            const email = String(prof.email || '').trim().toLowerCase();
+            isSuper = prof.role === 'super_admin' || prof.isRoot === true || [
+                'phamdinhquang0911@gmail.com',
+                'phamquang09112001@gmail.com',
+                'phamngockhanh.942001@gmail.com',
+                'phamngockhanh.942002@gmail.com'
+            ].includes(email);
+            canDownloadTex = isSuper;
+        }
+
+        if (modal) {
+            modal.querySelectorAll('.ims-super-only').forEach((el) => {
+                el.style.display = isSuper ? 'inline-flex' : 'none';
+            });
+        }
+
+        const btnTex = document.getElementById('btnIMathDownloadTex');
+        if (btnTex) {
+            btnTex.style.display = canDownloadTex ? 'inline-flex' : 'none';
+        }
+
+        const pill = document.getElementById('imathQuotaPill');
+        if (pill && quotaStatus) {
+            pill.style.display = 'inline-flex';
+            if (quotaStatus.limit < 0) {
+                pill.className = 'ims-quota-pill';
+                pill.textContent = `✨ Không giới hạn (${quotaStatus.roleLabel})`;
+            } else {
+                const rem = Math.max(0, quotaStatus.remaining);
+                pill.className = 'ims-quota-pill' + (rem <= 0 ? ' ims-quota-zero' : (rem <= 10 ? ' ims-quota-warn' : ''));
+                pill.textContent = `📊 Còn ${rem}/${quotaStatus.limit} lượt/tháng`;
+            }
+        }
+    };
+
     function renderWorkspace() {
         const listEl = document.getElementById('imathWorkspaceList');
         const countEl = document.getElementById('imathWorkspaceCount');
         const mobCountEl = document.getElementById('imathMobileWorkspaceCount');
+        renderIMathMatrixPanel();
         if (!listEl) return;
 
         if (countEl) countEl.textContent = String(state.workspaceQuestions.length);
@@ -2006,10 +2329,8 @@
             const modal = ensureModalDOM();
             modal.classList.add('ims-open');
 
-            const btnInsertExam = document.getElementById('btnIMathInsertToExam');
-            if (btnInsertExam) {
-                const isExamEditorPage = window.location.pathname.includes('exam-editor') || typeof window.parseLatexContent === 'function';
-                btnInsertExam.style.display = isExamEditorPage ? 'inline-flex' : 'none';
+            if (typeof window.refreshIMathRoleVisibility === 'function') {
+                window.refreshIMathRoleVisibility();
             }
 
             checkLocalBridge(false).catch(() => {});
@@ -2242,41 +2563,151 @@
         renderWorkspace();
     };
 
-    window.downloadIMathWorkspaceTex = function () {
+    function buildCombinedIMathTex() {
+        return (state.workspaceQuestions || [])
+            .map((q, i) => `% === Câu ${i + 1} | Mã iMath: [${q.tag}] | MapID: ${q.map_id} ===\n${(q.latex_mc || q.latex || '').trim()}`)
+            .filter(Boolean)
+            .join('\n\n');
+    }
+
+    function normalizeParsedQuestionForWord(pq, src, idx) {
+        const out = { ...pq };
+        out.id = out.id || pq.cccd || (src && (src.map_id || src.tag)) || (`imath_${idx + 1}`);
+        out.mapId = out.mapId || (src && src.map_id) || '';
+        const sol = out.solution || out.explain || out.explanation || '';
+        out.solution = sol;
+        out.explain = sol;
+        out.explanation = sol;
+        if (out.type === 'mc' && typeof out.correct === 'number' && out.correct >= 0 && out.correct < 4) {
+            out.correctAnswer = ['A', 'B', 'C', 'D'][out.correct];
+        }
+        if (out.type === 'tf' && Array.isArray(out.statements)) {
+            const tfMap = {};
+            ['a', 'b', 'c', 'd'].forEach((k, i) => {
+                if (out.statements[i]) {
+                    tfMap[k] = out.statements[i].isTrue ? 'Đ' : 'S';
+                }
+            });
+            out.correctTf = tfMap;
+        }
+        return out;
+    }
+
+    window.downloadIMathWorkspaceTex = async function () {
+        if (window.QMathQuota && !window.QMathQuota.getRoleInfo().canDownloadTex) {
+            notify('Tài khoản của bạn chưa được cấp quyền tải file .tex!', 'error');
+            return;
+        }
         if (state.workspaceQuestions.length === 0) {
             notify('Chưa có câu hỏi nào để xuất file .tex!', 'warning');
             return;
         }
-        const content = state.workspaceQuestions.map((q, i) => `% === Câu ${i + 1} | Mã iMath: [${q.tag}] | MapID: ${q.map_id} ===\n${q.latex_mc}`).join('\n\n');
+        if (window.QMathQuota) {
+            const qRes = await window.QMathQuota.consume('Tải file .tex từ iMath Studio');
+            if (typeof window.refreshIMathRoleVisibility === 'function') window.refreshIMathRoleVisibility();
+            if (!qRes.allowed) return;
+        }
+        const content = buildCombinedIMathTex();
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `Cau_Hoi_Doi_So_QMath_${new Date().toISOString().slice(0, 10)}.tex`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        notify(`Đã tải file .tex gồm ${state.workspaceQuestions.length} câu hỏi!`, 'success');
     };
 
-    window.insertIMathWorkspaceToExam = function () {
+    window.exportIMathToOnlineExam = function () {
         if (state.workspaceQuestions.length === 0) {
-            notify('Hãy chọn ít nhất 1 dạng toán để sinh câu hỏi trước khi chèn!', 'warning');
+            notify('Hãy chọn ít nhất 1 dạng toán để sinh câu hỏi trước khi đưa sang tạo đề online!', 'warning');
             return;
         }
-        const combinedTex = state.workspaceQuestions
-            .map(q => q.latex_mc || q.latex || '')
-            .filter(Boolean)
-            .join('\n\n');
+        if (window.QMathQuota) {
+            const st = window.QMathQuota.getStatus();
+            if (st.limit >= 0 && st.remaining <= 0) {
+                notify(`Bạn đã hết lượt tạo/tải đề trong tháng này (${st.used}/${st.limit} lần).`, 'error');
+                return;
+            }
+        }
+        const combinedTex = buildCombinedIMathTex();
         if (!combinedTex) {
-            notify('Không có nội dung LaTeX hợp lệ để chèn!', 'warning');
+            notify('Không có nội dung LaTeX hợp lệ!', 'warning');
             return;
         }
-        if (typeof window.parseLatexContent === 'function') {
+        const isOnExamEditor = window.location.pathname.includes('exam-editor') && typeof window.parseLatexContent === 'function';
+        if (isOnExamEditor) {
             window.closeIMathStudioModal();
-            window.parseLatexContent(combinedTex);
-            notify(`Đã chèn ${state.workspaceQuestions.length} câu hỏi đổi số vào đề thi!`, 'success');
-        } else {
-            notify('Chức năng chèn trực tiếp chỉ khả dụng trong trang Soạn Đề Thi (exam-editor.html).', 'warning');
+            const count = window.parseLatexContent(combinedTex);
+            notify(`Đã đưa ${count || state.workspaceQuestions.length} câu hỏi đổi số vào đề thi online!`, 'success');
+            return;
         }
+        try {
+            const firstGrade = (state.workspaceQuestions.find(q => q.grade)?.grade) || '';
+            const titleGuess = firstGrade
+                ? `Đề ${firstGrade} (iMath Studio - ${state.workspaceQuestions.length} câu)`
+                : `Đề luyện tập iMath Studio (${state.workspaceQuestions.length} câu)`;
+            localStorage.setItem('qmath_imath_pending_exam_tex', JSON.stringify({
+                tex: combinedTex,
+                count: state.workspaceQuestions.length,
+                title: titleGuess,
+                createdAt: Date.now()
+            }));
+        } catch (err) {
+            notify('Không thể lưu dữ liệu tạm để chuyển trang: ' + err.message, 'error');
+            return;
+        }
+        window.closeIMathStudioModal();
+        notify(`Đang chuyển ${state.workspaceQuestions.length} câu hỏi sang khu tạo đề online...`, 'success');
+        window.location.href = 'exam-editor.html?from=imath';
+    };
+
+    window.insertIMathWorkspaceToExam = window.exportIMathToOnlineExam;
+
+    window.exportIMathToWordMathType = function () {
+        if (state.workspaceQuestions.length === 0) {
+            notify('Hãy chọn ít nhất 1 dạng toán để sinh câu hỏi trước khi xuất Word!', 'warning');
+            return;
+        }
+        if (typeof window.openExportWordModal !== 'function') {
+            notify('Module xuất Word MathType chưa sẵn sàng, vui lòng thử lại sau giây lát!', 'warning');
+            return;
+        }
+        if (window.QMathQuota) {
+            const st = window.QMathQuota.getStatus();
+            if (st.limit >= 0 && st.remaining <= 0) {
+                notify(`Bạn đã hết lượt tạo/tải đề trong tháng này (${st.used}/${st.limit} lần).`, 'error');
+                return;
+            }
+        }
+        const combinedTex = buildCombinedIMathTex();
+        let parsedList = [];
+        if (typeof window.parseLatexExamString === 'function') {
+            try {
+                parsedList = window.parseLatexExamString(combinedTex) || [];
+            } catch (err) {
+                console.warn('[iMathStudio] parseLatexExamString warning:', err);
+            }
+        }
+        if (!Array.isArray(parsedList) || parsedList.length === 0) {
+            notify('Không thể phân tích câu hỏi sang định dạng xuất Word. Vui lòng kiểm tra module phân tích LaTeX!', 'error');
+            return;
+        }
+        const normalizedQuestions = parsedList.map((pq, idx) => normalizeParsedQuestionForWord(pq, state.workspaceQuestions[idx], idx));
+        const firstQ = state.workspaceQuestions[0] || {};
+        const examTitle = firstQ.grade
+            ? `Đề ${firstQ.grade} (${normalizedQuestions.length} câu)`
+            : `Đề luyện tập Toán (${normalizedQuestions.length} câu)`;
+        const examObj = {
+            title: examTitle,
+            duration: 90,
+            grade: firstQ.grade || '',
+            subject: 'Toán học',
+            questions: normalizedQuestions
+        };
+        window.openExportWordModal(examObj, normalizedQuestions);
     };
 
     window.pushIMathWorkspaceToBank = function () {
