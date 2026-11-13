@@ -330,6 +330,21 @@ function convertVietnameseForTikzJax(str) {
 // --- BỘ NHỚ ĐỆM SVG TIKZJAX TRỰC TIẾP TRÊN TRÌNH DUYỆT (0ms HIỂN THỊ TỨC THÌ) ---
 const TIKZJAX_SVG_CACHE_KEY = 'qmath_tikzjax_svg_cache_v3';
 const _tikzSvgMemCache = new Map();
+let _tikzSvgScopeSeq = 0;
+
+function scopeTikzSvgIds(svgHtml) {
+    if (!svgHtml || typeof svgHtml !== 'string' || !svgHtml.includes('id=')) return svgHtml;
+    const prefix = `tz${(++_tikzSvgScopeSeq).toString(36)}_`;
+    const ids = new Set();
+    svgHtml.replace(/\bid=["']([^"']+)["']/g, (_, id) => {
+        if (id && !/^tz[0-9a-z]+_/.test(id)) ids.add(id);
+    });
+    if (ids.size === 0) return svgHtml;
+    let out = svgHtml.replace(/\bid=(["'])([^"']+)\1/g, (m, q, id) => (ids.has(id) ? `id=${q}${prefix}${id}${q}` : m));
+    out = out.replace(/url\(#([^)]+)\)/g, (m, id) => (ids.has(id) ? `url(#${prefix}${id})` : m));
+    out = out.replace(/(href=["'])#([^"']+)(["'])/g, (m, p1, id, p3) => (ids.has(id) ? `${p1}#${prefix}${id}${p3}` : m));
+    return out;
+}
 
 function hashTikzKey(code) {
     const norm = String(code || '').replace(/\s+/g, ' ').trim();
@@ -347,14 +362,14 @@ function hashTikzKey(code) {
 
 export function getCachedTikzSvg(code) {
     const key = hashTikzKey(code);
-    if (_tikzSvgMemCache.has(key)) return _tikzSvgMemCache.get(key);
+    if (_tikzSvgMemCache.has(key)) return scopeTikzSvgIds(_tikzSvgMemCache.get(key));
     try {
         const raw = safeStorageGet(TIKZJAX_SVG_CACHE_KEY, '');
         if (raw) {
             const parsed = JSON.parse(raw);
             if (parsed && parsed[key]) {
                 _tikzSvgMemCache.set(key, parsed[key]);
-                return parsed[key];
+                return scopeTikzSvgIds(parsed[key]);
             }
         }
     } catch (_) {}
@@ -549,7 +564,7 @@ export const compileTikzToSvgViaTikzJax = async (code) => {
             '<svg class="tikzjax-inline-svg" style="max-height:220px;max-width:100%;height:auto;display:block;margin:2px auto;overflow:visible;"'
         );
         setCachedTikzSvg(cleaned, styledSvg);
-        return styledSvg;
+        return scopeTikzSvgIds(styledSvg);
     };
 
     const nextInQueue = _tikzWorkerQueue.then(runTask, runTask);

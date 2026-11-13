@@ -102,7 +102,7 @@ startup: { typeset: false }
     <script src="question-importer.js?v=20261113-v2"></script>
     <script src="word-mathtype-exporter.js?v=20261113-v7"></script>
     <script src="exam-mixer.js?v=20261113-v4"></script>
-    <script src="imath-studio.js?v=20261113-v5" defer></script>
+    <script src="imath-studio.js?v=20261113-v6" defer></script>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
@@ -2081,7 +2081,7 @@ getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs,
 getStorage, ref, uploadBytes, getDownloadURL,
 supabase
 } from "./supabase-db-compat.js?v=25";
-import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzToSvgViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, getTikzRenderMode, setTikzRenderMode, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, extractTikzPrelude, attachTikzPrelude, renderTikz } from "./utils.js?v=20261113-v2";
+import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzToSvgViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, getTikzRenderMode, setTikzRenderMode, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, extractTikzPrelude, attachTikzPrelude, renderTikz } from "./utils.js?v=20261113-v3";
 import { readCache, writeCache } from "./perf-cache.js";
 window.formatContent = formatContent;
 window.autoScaleTables = autoScaleTables;
