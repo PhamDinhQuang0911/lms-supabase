@@ -100,7 +100,7 @@ startup: { typeset: false }
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="qrcode.min.js?v=20261017_V1"></script>
     <script src="question-importer.js?v=20261113-v2"></script>
-    <script src="word-mathtype-exporter.js?v=20261113-v3"></script>
+    <script src="word-mathtype-exporter.js?v=20261113-v4"></script>
     <script src="exam-mixer.js?v=20261113-v3"></script>
     <script src="imath-studio.js?v=20261113-v3" defer></script>
     
@@ -525,7 +525,7 @@ window.clearExamTime = clearExamTime;
     </style>
     
     
-    <link rel="stylesheet" href="/styles.css?v=70">
+    <link rel="stylesheet" href="/styles.css?v=76">
 <meta name="view-transition" content="same-origin" /></head>
 <body class="h-screen flex overflow-hidden text-gray-800">
 
@@ -2004,7 +2004,7 @@ this.innerHTML = '<i class="fa-solid fa-eye"></i>';
     </div>
     
     
-    <div id="toastContainer" class="fixed top-5 right-5 z-[10050] flex flex-col gap-2.5 pointer-events-none"></div>
+    <div id="toastContainer" class="fixed top-5 right-5 z-[10050] flex flex-col gap-2.5 pointer-events-none" style="z-index: 10050 !important;"></div>
     <script>
 window.showToast = function(message, type = 'success', duration = 3200) {
 const container = document.getElementById('toastContainer');

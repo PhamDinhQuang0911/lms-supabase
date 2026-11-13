@@ -569,7 +569,7 @@ window.switchView = switchView;
     <script src="latex-exporter.js?v=20261002"></script>
     <script src="system-backup.js?v=20261007"></script>
     <script src="qrcode.min.js?v=20261017_V1"></script>
-    <script src="word-mathtype-exporter.js?v=20261113-v3"></script>
+    <script src="word-mathtype-exporter.js?v=20261113-v4"></script>
     <script src="exam-mixer.js?v=20261113-v3"></script>
     <script src="imath-studio.js?v=20261113-v3" defer></script>
     <script>
@@ -1362,7 +1362,7 @@ startup: { typeset: false }
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=75">
+    <link rel="stylesheet" href="/styles.css?v=76">
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 
@@ -1411,7 +1411,7 @@ startup: { typeset: false }
 </head>
 <body class="h-screen flex overflow-hidden text-gray-800 bg-gray-50">
 
-    <div id="notificationContainer" class="fixed top-5 right-5 z-[10050] flex flex-col gap-3 pointer-events-none"></div>
+    <div id="notificationContainer" class="fixed top-5 right-5 z-[10050] flex flex-col gap-3 pointer-events-none" style="z-index: 10050 !important;"></div>
     <div id="sidebarOverlay" onclick="window.closeSidebar()" class="fixed inset-0 bg-gray-900/60 z-[90] hidden transition-opacity md:hidden"></div>
 
     <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-gray-200 flex flex-col shadow-2xl z-[99] sidebar-closed md:translate-x-0 md:relative md:w-64 md:shadow-sm md:z-20 flex-shrink-0">

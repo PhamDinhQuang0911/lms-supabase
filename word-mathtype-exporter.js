@@ -3638,13 +3638,43 @@ options: customOptions
 triggerDownload(blob, `${baseName}_De_Bai.docx`);
 }
 }
+function ensureExportWordModalStyles() {
+if (typeof document === 'undefined' || document.getElementById('export-word-modal-styles')) return;
+const style = document.createElement('style');
+style.id = 'export-word-modal-styles';
+style.textContent = `
+#exportWordModal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10040 !important;
+  background: rgba(17, 24, 39, 0.62) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px !important;
+}
+#exportWordModal:not(.hidden) {
+  display: flex !important;
+}
+#exportWordModal.hidden {
+  display: none !important;
+}
+`;
+if (document.head) document.head.appendChild(style);
+}
 function openExportWordModal(examOrId, preloadedQuestions = null) {
 try { getPyodideExporterWorker(); } catch(e) {}
+ensureExportWordModalStyles();
 let modal = document.getElementById('exportWordModal');
 if (!modal) {
 modal = document.createElement('div');
 modal.id = 'exportWordModal';
-modal.className = 'fixed inset-0 z-[10040] bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 transition-opacity';
+modal.className = 'fixed inset-0 z-[10040] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 transition-opacity';
+modal.style.setProperty('z-index', '10040', 'important');
+modal.onclick = (e) => {
+if (e.target === modal) closeExportWordModal();
+};
 modal.innerHTML = `
 <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex flex-col" style="width: 95vw; max-width: 1050px; max-height: 90vh;">
 <!-- Header Modal -->
@@ -3800,7 +3830,7 @@ Dòng kẻ chấm làm bài / nháp
 <input type="text" id="exportWordExamCode" value="1001" maxlength="6" class="w-24 px-2 py-1.5 text-xs font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-center text-gray-800 dark:text-gray-200 outline-none focus:ring-1 focus:ring-primary-500">
 <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-0.5 bg-gray-100 dark:bg-gray-800 text-[11px]" role="group">
 <button type="button" id="btnExamCode3Digits" onclick="window.setWordExamCodeDigits(3)" class="px-2 py-1 font-medium rounded-md transition-all text-gray-600 dark:text-gray-400 cursor-pointer">3 số</button>
-<button type="button" id="btnExamCode4Digits" onclick="window.setWordExamCodeDigits(4)" class="px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-xs cursor-pointer">4 số</button>
+<button type="button" id="btnExamCode4Digits" onclick="window.setWordExamCodeDigits(4)" class="px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm cursor-pointer">4 số</button>
 </div>
 </div>
 </div>
@@ -3945,6 +3975,12 @@ btnConfirm.disabled = false;
 btnConfirm.innerHTML = '<i class="fa-solid fa-file-arrow-down"></i> Tải file Word (.docx)';
 }
 };
+}
+if (modal.parentElement !== document.body && document.body) {
+document.body.appendChild(modal);
+}
+if (modal.style && typeof modal.style.setProperty === 'function') {
+modal.style.setProperty('z-index', '10040', 'important');
 }
 modal.classList.remove('hidden');
 }
