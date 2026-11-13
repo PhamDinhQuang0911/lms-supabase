@@ -790,6 +790,22 @@
                 font-size: 13.5px !important;
                 color: #0f172a !important;
                 line-height: 1.65 !important;
+                overflow-wrap: anywhere !important;
+                word-break: break-word !important;
+                min-width: 0 !important;
+            }
+            .ims-q-body .tikz-container {
+                max-width: 100% !important;
+                overflow-x: auto !important;
+            }
+            .ims-q-body .tikz-container svg {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            .ims-q-body mjx-container {
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
             }
             html.dark .ims-q-body {
                 color: #e2e8f0 !important;
@@ -1041,6 +1057,19 @@
             }
 
             @media (max-width: 1024px) {
+                .ims-header {
+                    flex-wrap: wrap !important;
+                    padding: 10px 14px !important;
+                    gap: 8px !important;
+                }
+                .ims-header-left {
+                    min-width: 240px !important;
+                }
+                .ims-header-actions {
+                    margin-left: auto !important;
+                    flex-wrap: wrap !important;
+                    justify-content: flex-end !important;
+                }
                 .ims-hdr-btn-tex { display: none !important; }
                 .ims-mobile-tabs { display: flex !important; }
                 .ims-body {
@@ -1060,8 +1089,173 @@
                 }
             }
             @media (max-width: 640px) {
-                .ims-hdr-btn-pdf span { display: none !important; }
-                .ims-choices-grid { grid-template-columns: 1fr !important; }
+                #imathStudioModal.ims-overlay {
+                    padding: 0 !important;
+                }
+                .ims-dialog {
+                    width: 100vw !important;
+                    max-width: 100vw !important;
+                    height: 100vh !important;
+                    height: 100dvh !important;
+                    max-height: 100vh !important;
+                    max-height: 100dvh !important;
+                    border-radius: 0 !important;
+                    border: none !important;
+                }
+                .ims-header {
+                    position: relative !important;
+                    flex-direction: column !important;
+                    align-items: stretch !important;
+                    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 9px 12px !important;
+                    gap: 7px !important;
+                }
+                .ims-header-left {
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    flex: none !important;
+                    padding-right: 40px !important;
+                    gap: 10px !important;
+                    align-items: center !important;
+                    box-sizing: border-box !important;
+                }
+                .ims-header-icon {
+                    width: 32px !important;
+                    height: 32px !important;
+                    border-radius: 9px !important;
+                    font-size: 14px !important;
+                }
+                .ims-header-title-row {
+                    gap: 4px 6px !important;
+                }
+                .ims-header-title {
+                    font-size: 13.5px !important;
+                    line-height: 1.3 !important;
+                    white-space: normal !important;
+                    word-break: normal !important;
+                }
+                .ims-header-sub {
+                    display: none !important;
+                }
+                .ims-status-badge {
+                    font-size: 10.5px !important;
+                    padding: 2px 7px !important;
+                    white-space: nowrap !important;
+                    max-width: 100% !important;
+                }
+                .ims-header-actions {
+                    width: 100% !important;
+                    margin-left: 0 !important;
+                    justify-content: flex-start !important;
+                    flex-wrap: wrap !important;
+                    gap: 6px !important;
+                }
+                .ims-close-btn {
+                    position: absolute !important;
+                    top: calc(10px + env(safe-area-inset-top, 0px)) !important;
+                    right: 12px !important;
+                    width: 32px !important;
+                    height: 32px !important;
+                    z-index: 2 !important;
+                }
+                .ims-hdr-btn-pdf {
+                    padding: 4px 8px !important;
+                    font-size: 11px !important;
+                    border-radius: 7px !important;
+                }
+                .ims-quota-pill {
+                    font-size: 10.5px !important;
+                    padding: 3px 9px !important;
+                    max-width: 100% !important;
+                    overflow: hidden !important;
+                    text-overflow: ellipsis !important;
+                }
+                .ims-mobile-tabs {
+                    padding: 6px 8px !important;
+                    gap: 5px !important;
+                }
+                .ims-mobile-tab-btn {
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 4px !important;
+                    padding: 7px 6px !important;
+                    font-size: 11.5px !important;
+                    white-space: nowrap !important;
+                    min-width: 0 !important;
+                }
+                .ims-col-filter {
+                    padding: 10px 12px 16px !important;
+                    gap: 9px !important;
+                }
+                .ims-seg-btn {
+                    font-size: 11px !important;
+                    padding: 6px 3px !important;
+                }
+                .ims-mapform-box {
+                    min-height: 170px !important;
+                    max-height: 260px !important;
+                }
+                .ims-col-subheader {
+                    padding: 8px 10px !important;
+                    flex-wrap: wrap !important;
+                    gap: 6px !important;
+                }
+                .ims-scroll-list {
+                    padding: 8px 10px !important;
+                    gap: 8px !important;
+                }
+                .ims-topic-card {
+                    padding: 10px !important;
+                    gap: 8px !important;
+                }
+                .ims-matrix-panel {
+                    padding: 8px 10px !important;
+                }
+                .ims-matrix-rows {
+                    max-height: 112px !important;
+                }
+                .ims-matrix-row {
+                    flex-wrap: wrap !important;
+                    gap: 6px !important;
+                    padding: 6px 8px !important;
+                }
+                .ims-matrix-row-info {
+                    width: 100% !important;
+                }
+                .ims-matrix-stepper {
+                    margin-left: auto !important;
+                }
+                .ims-q-card-hdr {
+                    padding: 8px 10px !important;
+                    gap: 6px !important;
+                }
+                .ims-q-body {
+                    padding: 11px 10px !important;
+                    font-size: 13px !important;
+                }
+                .ims-choices-grid {
+                    grid-template-columns: 1fr !important;
+                    gap: 6px !important;
+                }
+                .ims-footer {
+                    padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+                    display: flex !important;
+                    flex-wrap: wrap !important;
+                    gap: 6px !important;
+                    justify-content: stretch !important;
+                }
+                .ims-footer-actions {
+                    display: contents !important;
+                }
+                .ims-footer .ims-btn {
+                    flex: 1 1 calc(50% - 4px) !important;
+                    min-width: 135px !important;
+                    justify-content: center !important;
+                    text-align: center !important;
+                    padding: 8px 8px !important;
+                    font-size: 11.5px !important;
+                    white-space: nowrap !important;
+                }
             }
         `;
     }
@@ -1348,13 +1542,13 @@
                 <!-- Mobile Navigation Tabs (< 1024px) -->
                 <div class="ims-mobile-tabs">
                     <button type="button" onclick="window.setIMathMobileTab('filter')" id="imsMobileTab_filter" class="ims-mobile-tab-btn">
-                        <i class="fa-solid fa-filter"></i> Bộ lọc MapID
+                        <i class="fa-solid fa-filter"></i> <span>Bộ lọc MapID</span>
                     </button>
                     <button type="button" onclick="window.setIMathMobileTab('topics')" id="imsMobileTab_topics" class="ims-mobile-tab-btn ims-tab-active">
-                        <i class="fa-solid fa-layer-group"></i> Dạng câu (<span id="imathMobileTopicCount">0</span>)
+                        <i class="fa-solid fa-layer-group"></i> <span>Dạng câu (<span id="imathMobileTopicCount">0</span>)</span>
                     </button>
                     <button type="button" onclick="window.setIMathMobileTab('workspace')" id="imsMobileTab_workspace" class="ims-mobile-tab-btn">
-                        <i class="fa-solid fa-list-check"></i> Đã sinh (<span id="imathMobileWorkspaceCount">0</span>)
+                        <i class="fa-solid fa-list-check"></i> <span>Đã sinh (<span id="imathMobileWorkspaceCount">0</span>)</span>
                     </button>
                 </div>
 
@@ -1492,7 +1686,7 @@
                             <button type="button" id="btnIMathDownloadTex" onclick="window.downloadIMathWorkspaceTex()" class="ims-btn ims-btn-sec">
                                 <i class="fa-solid fa-download"></i> Tải file .tex
                             </button>
-                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <div class="ims-footer-actions" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                                 <button type="button" id="btnIMathPushBank" onclick="window.pushIMathWorkspaceToBank()" class="ims-btn ims-btn-bank" title="Đưa toàn bộ câu hỏi vào Ngân hàng câu hỏi R2">
                                     <i class="fa-solid fa-cloud-arrow-up"></i> Nạp vào Ngân hàng
                                 </button>

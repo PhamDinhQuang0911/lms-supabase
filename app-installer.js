@@ -68,7 +68,7 @@
                 bottom: calc(12px + env(safe-area-inset-bottom, 0px));
                 left: 12px;
                 right: 12px;
-                z-index: 99999;
+                z-index: 45;
                 max-width: 440px;
                 margin: 0 auto;
                 background: rgba(255, 255, 255, 0.96);
@@ -84,6 +84,40 @@
                 font-family: Inter, system-ui, sans-serif;
                 animation: qmathSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
                 transition: all 0.3s ease;
+                box-sizing: border-box;
+            }
+            body:has(#imathStudioModal.ims-open, #exportWordModal:not(.hidden), #examMixerModal:not(.hidden)) #qmathInstallBanner {
+                display: none !important;
+            }
+            @media (max-width: 480px) {
+                #qmathInstallBanner {
+                    left: 8px;
+                    right: 8px;
+                    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+                    padding: 8px 10px;
+                    gap: 8px;
+                    border-radius: 16px;
+                }
+                #qmathInstallBanner .qmath-app-icon-wrap {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                }
+                #qmathInstallBanner .qmath-app-badge {
+                    display: none;
+                }
+                #qmathInstallBanner .qmath-app-title {
+                    font-size: 12.5px;
+                }
+                #qmathInstallBanner .qmath-app-subtitle {
+                    font-size: 11px;
+                }
+                #qmathInstallActionBtn {
+                    padding: 7px 10px !important;
+                    font-size: 11.5px !important;
+                    border-radius: 10px !important;
+                    white-space: nowrap !important;
+                }
             }
             html.dark #qmathInstallBanner {
                 background: rgba(17, 24, 39, 0.96);

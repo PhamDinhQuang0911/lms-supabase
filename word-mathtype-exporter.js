@@ -3653,12 +3653,50 @@ style.textContent = `
   align-items: center !important;
   justify-content: center !important;
   padding: 12px !important;
+  box-sizing: border-box !important;
 }
 #exportWordModal:not(.hidden) {
   display: flex !important;
 }
 #exportWordModal.hidden {
   display: none !important;
+}
+#exportWordModal .ew-dialog {
+  width: 95vw;
+  max-width: 1050px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  box-sizing: border-box;
+}
+#exportWordModal .ew-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+}
+@media (max-width: 640px) {
+  #exportWordModal {
+    padding: 8px !important;
+  }
+  #exportWordModal .ew-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100vh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+  #exportWordModal .ew-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  #exportWordModal .ew-footer {
+    flex-wrap: wrap !important;
+    justify-content: stretch !important;
+  }
+  #exportWordModal .ew-footer button {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+  }
 }
 `;
 if (document.head) document.head.appendChild(style);
@@ -3670,31 +3708,31 @@ let modal = document.getElementById('exportWordModal');
 if (!modal) {
 modal = document.createElement('div');
 modal.id = 'exportWordModal';
-modal.className = 'fixed inset-0 z-[10040] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 transition-opacity';
+modal.className = 'fixed inset-0 z-[10040] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 transition-opacity';
 modal.style.setProperty('z-index', '10040', 'important');
 modal.onclick = (e) => {
 if (e.target === modal) closeExportWordModal();
 };
 modal.innerHTML = `
-<div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex flex-col" style="width: 95vw; max-width: 1050px; max-height: 90vh;">
+<div class="ew-dialog bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex flex-col">
 <!-- Header Modal -->
-<div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
-<div class="flex items-center gap-2.5">
-<span class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center justify-center text-lg">
+<div class="flex items-start sm:items-center justify-between gap-2 pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
+<div class="flex items-center gap-2.5 min-w-0 flex-1">
+<span class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center justify-center text-lg shrink-0">
 <i class="fa-solid fa-file-word"></i>
 </span>
-<div>
-<h3 class="font-bold text-gray-800 dark:text-gray-100 text-sm sm:text-base">Tùy chọn Xuất file Word (.docx)</h3>
+<div class="min-w-0">
+<h3 class="font-bold text-gray-800 dark:text-gray-100 text-sm sm:text-base leading-snug">Tùy chọn Xuất file Word (.docx)</h3>
 <p class="text-[11px] text-gray-500 dark:text-gray-400">Công thức MathType / Equation, Tùy biến khung tiêu đề đề thi &amp; Bảng đáp án</p>
 </div>
 </div>
-<button type="button" onclick="window.closeExportWordModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg text-lg">
+<button type="button" onclick="window.closeExportWordModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg text-lg shrink-0">
 <i class="fa-solid fa-xmark"></i>
 </button>
 </div>
 <!-- Body Modal (Scrollable, 2 Cột trên màn hình ngang) -->
-<div class="py-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
+<div class="py-3 sm:py-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
+<div class="ew-grid">
 <!-- CỘT TRÁI: Định dạng & Chế độ xuất -->
 <div class="space-y-3.5" style="min-width: 0;">
 <!-- 1. Định dạng công thức Toán -->
@@ -3772,11 +3810,11 @@ Dòng kẻ chấm làm bài / nháp
 <!-- CỘT PHẢI: Cấu hình Khung Tiêu Đề Đề Thi -->
 <div class="space-y-3.5" style="min-width: 0;">
 <div class="p-3.5 bg-gray-50/70 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700/80 space-y-3">
-<div class="flex items-center justify-between">
+<div class="flex flex-wrap items-center justify-between gap-2">
 <label class="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
 <i class="fa-solid fa-heading text-gray-600 dark:text-gray-300"></i> Khung tiêu đề đề thi (Header)
 </label>
-<select id="exportWordHeaderStyle" class="text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 outline-none cursor-pointer">
+<select id="exportWordHeaderStyle" class="w-full sm:w-auto text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 outline-none cursor-pointer">
 <option value="standard_gov" selected>🏛️ Mẫu 1: Chuẩn Sở / Bộ GD (2 cột)</option>
 <option value="brand_center">⭐ Mẫu 2: Trung tâm / QMath (Trang trọng)</option>
 <option value="compact">📄 Mẫu 3: Tiêu đề Rút gọn</option>
@@ -3805,7 +3843,7 @@ Dòng kẻ chấm làm bài / nháp
 <input type="text" id="exportWordExamType" value="(ĐỀ CHÍNH THỨC)" class="w-full px-2.5 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 outline-none">
 </div>
 </div>
-<div class="grid grid-cols-3 gap-2">
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
 <div>
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Môn thi</label>
 <input type="text" id="exportWordSubject" value="TOÁN HỌC" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 outline-none">
@@ -3814,7 +3852,7 @@ Dòng kẻ chấm làm bài / nháp
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Khối</label>
 <input type="text" id="exportWordGrade" value="9" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 outline-none">
 </div>
-<div>
+<div class="col-span-2 sm:col-span-1">
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Thời gian</label>
 <div class="flex items-center gap-1">
 <input type="number" id="exportWordDuration" value="90" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-center font-bold text-gray-800 dark:text-gray-200 outline-none">
@@ -3824,7 +3862,7 @@ Dòng kẻ chấm làm bài / nháp
 </div>
 <!-- Mã đề thi gọn gàng (Mặc định 4 số) -->
 <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
-<div class="flex items-center justify-between">
+<div class="flex flex-wrap items-center justify-between gap-2">
 <label class="text-[11px] font-bold text-gray-700 dark:text-gray-300">Mã đề thi (Mặc định 4 chữ số)</label>
 <div class="flex items-center gap-2">
 <input type="text" id="exportWordExamCode" value="1001" maxlength="6" class="w-24 px-2 py-1.5 text-xs font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-center text-gray-800 dark:text-gray-200 outline-none focus:ring-1 focus:ring-primary-500">
@@ -3847,7 +3885,7 @@ Dòng kẻ chấm làm bài / nháp
 </div>
 </div>
 <!-- Footer Modal -->
-<div class="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-200 dark:border-gray-800 shrink-0">
+<div class="ew-footer flex items-center justify-end gap-2.5 pt-3 border-t border-gray-200 dark:border-gray-800 shrink-0">
 <button type="button" onclick="window.closeExportWordModal()" class="px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer">Hủy</button>
 <button type="button" id="btnConfirmExportWord" class="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl transition shadow-md flex items-center gap-2 cursor-pointer" style="background-color: var(--primary-color, #ea580c); color: #ffffff;">
 <i class="fa-solid fa-file-arrow-down"></i> Tải file Word (.docx)
@@ -4073,10 +4111,10 @@ const b4 = document.getElementById('btnExamCode4Digits');
 window._wordExamCodeDigits = digits;
 if (b3 && b4) {
 if (digits === 3) {
-b3.className = "px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-xs cursor-pointer";
+b3.className = "px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm cursor-pointer";
 b4.className = "px-2 py-1 font-medium rounded-md transition-all text-gray-600 dark:text-gray-400 cursor-pointer";
 } else {
-b4.className = "px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-xs cursor-pointer";
+b4.className = "px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm cursor-pointer";
 b3.className = "px-2 py-1 font-medium rounded-md transition-all text-gray-600 dark:text-gray-400 cursor-pointer";
 }
 }
