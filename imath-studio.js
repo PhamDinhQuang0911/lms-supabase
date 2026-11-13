@@ -16,7 +16,7 @@
     'use strict';
 
     const LOCAL_BRIDGE_URL = 'http://127.0.0.1:8765';
-    const DATA_VERSION = '20261113-v3';
+    const DATA_VERSION = '20261113-v4';
     const CATALOG_URL = `data/imath/catalog_mapped.json?v=${DATA_VERSION}`;
 
     const state = {
