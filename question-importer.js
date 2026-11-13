@@ -105,7 +105,222 @@
     }
 
     // --- PARSER LATEX HOÀN CHỈNH ---
-    function parseLatexExamString(rawFileContent) {
+    // Helpers for unwrapping \immini and attaching TikZ preludes (\definecolor, \tikzset, ...)
+function qiReadBracketArg(str, idx) {
+    let i = idx;
+    while (i < str.length && /\s/.test(str[i])) i++;
+    if (str[i] !== '[') return null;
+    let depth = 0;
+    const start = i;
+    while (i < str.length) {
+        const ch = str[i];
+        if (ch === '\\') { i += 2; continue; }
+        if (ch === '{') depth++;
+        else if (ch === '}' && depth > 0) depth--;
+        else if (ch === '[' && depth === 0) depth += 1000;
+        else if (ch === ']' && depth >= 1000) {
+            depth -= 1000;
+            if (depth === 0) return { content: str.slice(start + 1, i), end: i + 1 };
+        }
+        i++;
+    }
+    return null;
+}
+
+function qiReadBracedArg(str, idx) {
+    let i = idx;
+    while (i < str.length && /\s/.test(str[i])) i++;
+    if (str[i] !== '{') return null;
+    let depth = 0;
+    const start = i;
+    while (i < str.length) {
+        const ch = str[i];
+        if (ch === '\\') { i += 2; continue; }
+        if (ch === '%') {
+            while (i < str.length && str[i] !== '\n') i++;
+            continue;
+        }
+        if (ch === '{') depth++;
+        else if (ch === '}') {
+            depth--;
+            if (depth === 0) return { content: str.slice(start + 1, i), end: i + 1 };
+        }
+        i++;
+    }
+    return null;
+}
+
+function qiUnwrapImminiBlocks(str, placeSecondBeforeChoice = false) {
+    if (!str || !str.includes('\\immini')) return str;
+    let out = '';
+    let i = 0;
+    while (i < str.length) {
+        const idx = str.indexOf('\\immini', i);
+        if (idx === -1) {
+            out += str.slice(i);
+            break;
+        }
+        const afterCmd = idx + '\\immini'.length;
+        if (afterCmd < str.length && /[a-zA-Z]/.test(str[afterCmd])) {
+            out += str.slice(i, afterCmd);
+            i = afterCmd;
+            continue;
+        }
+        out += str.slice(i, idx);
+        let cur = afterCmd;
+        const opt = qiReadBracketArg(str, cur);
+        if (opt) cur = opt.end;
+        const arg1 = qiReadBracedArg(str, cur);
+        if (!arg1) {
+            out += '\\immini';
+            i = afterCmd;
+            continue;
+        }
+        const arg2 = qiReadBracedArg(str, arg1.end);
+        if (!arg2) {
+            out += qiUnwrapImminiBlocks(arg1.content, placeSecondBeforeChoice);
+            i = arg1.end;
+            continue;
+        }
+        const inner1 = qiUnwrapImminiBlocks(arg1.content, placeSecondBeforeChoice).trim();
+        const inner2 = qiUnwrapImminiBlocks(arg2.content, false).trim();
+        if (placeSecondBeforeChoice) {
+            const choiceMatch = /\\(choiceTF|choice|shortans|indapan)(?![a-zA-Z])/.exec(inner1);
+            if (choiceMatch) {
+                const before = inner1.slice(0, choiceMatch.index).trimEnd();
+                const after = inner1.slice(choiceMatch.index);
+                out += (before ? before + '\n' : '') + inner2 + '\n' + after;
+                i = arg2.end;
+                continue;
+            }
+        }
+        out += inner1 + (inner1 && inner2 ? '\n' : '') + inner2;
+        i = arg2.end;
+    }
+    return out;
+}
+
+function qiExtractOuterTikzPrelude(str) {
+    if (!str) return { cmds: [], cleanText: '' };
+    const cmds = [];
+    let out = '';
+    let i = 0;
+    let tikzDepth = 0;
+    const oneArg = ['tikzset', 'usetikzlibrary', 'usepgfplotslibrary', 'pgfplotsset', 'pgfdeclarelayer', 'pgfsetlayers'];
+    while (i < str.length) {
+        if (str.startsWith('\\begin{tikzpicture}', i)) {
+            tikzDepth++;
+            out += '\\begin{tikzpicture}';
+            i += '\\begin{tikzpicture}'.length;
+            continue;
+        }
+        if (str.startsWith('\\end{tikzpicture}', i) && tikzDepth > 0) {
+            tikzDepth--;
+            out += '\\end{tikzpicture}';
+            i += '\\end{tikzpicture}'.length;
+            continue;
+        }
+        if (str[i] === '\\' && i + 1 < str.length && !/[a-zA-Z]/.test(str[i + 1])) {
+            out += str.slice(i, i + 2);
+            i += 2;
+            continue;
+        }
+        if (tikzDepth === 0 && str[i] === '\\') {
+            const rest = str.slice(i);
+            const m = /^\\(definecolor|colorlet|tikzset|tikzstyle|usetikzlibrary|usepgfplotslibrary|pgfplotsset|pgfmathsetmacro|pgfmathtruncatemacro|pgfdeclarelayer|pgfsetlayers)(?![a-zA-Z])/.exec(rest);
+            if (m) {
+                const name = m[1];
+                let cur = i + m[0].length;
+                let ok = false;
+                if (name === 'definecolor') {
+                    const a1 = qiReadBracedArg(str, cur);
+                    const a2 = a1 && qiReadBracedArg(str, a1.end);
+                    const a3 = a2 && qiReadBracedArg(str, a2.end);
+                    if (a3) { cur = a3.end; ok = true; }
+                } else if (name === 'colorlet') {
+                    const a1 = qiReadBracedArg(str, cur);
+                    const a2 = a1 && qiReadBracedArg(str, a1.end);
+                    if (a2) { cur = a2.end; ok = true; }
+                } else if (oneArg.includes(name)) {
+                    const a1 = qiReadBracedArg(str, cur);
+                    if (a1) { cur = a1.end; ok = true; }
+                } else if (name === 'pgfmathsetmacro' || name === 'pgfmathtruncatemacro') {
+                    while (cur < str.length && /\s/.test(str[cur])) cur++;
+                    let targetEnd = cur;
+                    if (str[cur] === '{') {
+                        const a1 = qiReadBracedArg(str, cur);
+                        if (a1) targetEnd = a1.end;
+                    } else if (str[cur] === '\\') {
+                        const vm = /^\\[a-zA-Z@]+/.exec(str.slice(cur));
+                        if (vm) targetEnd = cur + vm[0].length;
+                    }
+                    if (targetEnd > cur) {
+                        const a2 = qiReadBracedArg(str, targetEnd);
+                        if (a2) { cur = a2.end; ok = true; }
+                    }
+                } else if (name === 'tikzstyle') {
+                    while (cur < str.length && /\s/.test(str[cur])) cur++;
+                    const nm = /^(?:\{[^}]+\}|[a-zA-Z0-9_.\-/\s]+?)\s*=/.exec(str.slice(cur));
+                    if (nm) {
+                        const br = qiReadBracketArg(str, cur + nm[0].length);
+                        if (br) { cur = br.end; ok = true; }
+                    }
+                }
+                if (ok) {
+                    const cmdText = str.slice(i, cur).trim();
+                    if (!/^\\use(tikz|pgfplots)library\b/.test(cmdText)) {
+                        cmds.push(cmdText);
+                    }
+                    while (cur < str.length && (str[cur] === ' ' || str[cur] === '\t')) cur++;
+                    if (str[cur] === '\r') cur++;
+                    if (str[cur] === '\n') cur++;
+                    i = cur;
+                    continue;
+                }
+            }
+        }
+        out += str[i];
+        i++;
+    }
+    return { cmds, cleanText: out };
+}
+
+function qiAttachTikzPreludes(str, globalCmds = []) {
+    if (!str) return str;
+    const { cmds: localCmds, cleanText } = qiExtractOuterTikzPrelude(str);
+    const seen = new Set();
+    const allCmds = [];
+    for (const c of [...globalCmds, ...localCmds]) {
+        const norm = c.replace(/\s+/g, ' ').trim();
+        if (norm && !seen.has(norm)) {
+            seen.add(norm);
+            allCmds.push(c);
+        }
+    }
+    if (allCmds.length === 0 || !cleanText.includes('\\begin{tikzpicture}')) {
+        return cleanText;
+    }
+    const preludeBlock = allCmds.join('\n');
+    let out = '';
+    let i = 0;
+    while (i < cleanText.length) {
+        const idx = cleanText.indexOf('\\begin{tikzpicture}', i);
+        if (idx === -1) {
+            out += cleanText.slice(i);
+            break;
+        }
+        let cur = idx + '\\begin{tikzpicture}'.length;
+        const opt = qiReadBracketArg(cleanText, cur);
+        if (opt) cur = opt.end;
+        out += cleanText.slice(i, cur) + '\n' + preludeBlock;
+        i = cur;
+    }
+    return out;
+}
+
+function parseLatexExamString(rawFileContent) {
+    const qiOutsideEx = String(rawFileContent || '').replace(/\\begin\{ex\}[\s\S]*?\\end\{ex\}/g, '');
+    const qiGlobalTikzCmds = qiExtractOuterTikzPrelude(qiOutsideEx).cmds;
         let content = rawFileContent;
 
         // 1. Làm sạch LaTeX rác
@@ -234,12 +449,12 @@
                         if (depth === 0 && start !== -1) { end = i; break; }
                     }
                     if (end !== -1) {
-                        qData.solution = cleanTikzCode(solPart.substring(start + 1, end)).replace(/(?<!\\)%.*/g, '');
+                        qData.solution = qiAttachTikzPreludes(qiUnwrapImminiBlocks(cleanTikzCode(solPart.substring(start + 1, end)).replace(/(?<!\\)%.*/g, ''), false), qiGlobalTikzCmds);
                     }
                 }
             }
             
-            let procBody = cleanTikzCode(mainContent);
+            let procBody = qiAttachTikzPreludes(qiUnwrapImminiBlocks(cleanTikzCode(mainContent), true), qiGlobalTikzCmds);
             
             // Nhận diện loại câu hỏi
             if (procBody.includes('\\choiceTF')) {

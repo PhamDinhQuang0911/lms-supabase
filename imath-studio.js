@@ -16,7 +16,7 @@
     'use strict';
 
     const LOCAL_BRIDGE_URL = 'http://127.0.0.1:8765';
-    const DATA_VERSION = '20261113-v1';
+    const DATA_VERSION = '20261113-v2';
     const CATALOG_URL = `data/imath/catalog_mapped.json?v=${DATA_VERSION}`;
 
     const state = {
@@ -2262,10 +2262,17 @@
             notify('Hãy chọn ít nhất 1 dạng toán để sinh câu hỏi trước khi chèn!', 'warning');
             return;
         }
-        const combinedTex = state.workspaceQuestions.map(q => q.latex_mc).join('\n\n');
+        const combinedTex = state.workspaceQuestions
+            .map(q => q.latex_mc || q.latex || '')
+            .filter(Boolean)
+            .join('\n\n');
+        if (!combinedTex) {
+            notify('Không có nội dung LaTeX hợp lệ để chèn!', 'warning');
+            return;
+        }
         if (typeof window.parseLatexContent === 'function') {
-            window.parseLatexContent(combinedTex);
             window.closeIMathStudioModal();
+            window.parseLatexContent(combinedTex);
             notify(`Đã chèn ${state.workspaceQuestions.length} câu hỏi đổi số vào đề thi!`, 'success');
         } else {
             notify('Chức năng chèn trực tiếp chỉ khả dụng trong trang Soạn Đề Thi (exam-editor.html).', 'warning');

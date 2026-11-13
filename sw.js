@@ -14,7 +14,7 @@
  * (network-first) nhÆ°ng nÃªn tÄƒng khi Ä‘á»•i styles.css/utils.js Ä‘á»ƒ cháº¯c cháº¯n.
  */
 
-const VERSION = 'qmath-v167-imath-ui-fixes-20261113';
+const VERSION = 'qmath-v168-imath-immini-fix-20261113';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const CDN_CACHE = `${VERSION}-cdn`;

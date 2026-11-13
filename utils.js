@@ -1292,7 +1292,158 @@ const formatContentCore = (text) => {
     // 0.5 Strip question environments
     processed = processed.replace(/\\begin\{(?:ex|bt|vd|cau|question)\}(?:\[.*?\])?/g, '');
     processed = processed.replace(/\\end\{(?:ex|bt|vd|cau|question)\}/g, '');
-    processed = processed.replace(/\\immini(?:\[.*?\])?\s*\{/g, '{'); // Strip \immini but keep the group
+    // Cleanly unwrap \immini[...]{arg1}{arg2} using balanced braces and fold outer TikZ preludes inside \begin{tikzpicture}
+    {
+        const readOptBracket = (s, idx) => {
+            let i = idx;
+            while (i < s.length && /\s/.test(s[i])) i++;
+            if (s[i] !== '[') return null;
+            let b = 0, p = 0;
+            const start = i;
+            while (i < s.length) {
+                const ch = s[i];
+                if (ch === '\\') { i += 2; continue; }
+                if (ch === '{') b++;
+                else if (ch === '}' && b > 0) b--;
+                else if (ch === '[' && b === 0) p++;
+                else if (ch === ']' && b === 0) {
+                    p--;
+                    if (p === 0) return { content: s.slice(start + 1, i), end: i + 1 };
+                }
+                i++;
+            }
+            return null;
+        };
+        const readBraced = (s, idx) => {
+            let i = idx;
+            while (i < s.length && /\s/.test(s[i])) i++;
+            if (s[i] !== '{') return null;
+            let d = 0;
+            const start = i;
+            while (i < s.length) {
+                const ch = s[i];
+                if (ch === '\\') { i += 2; continue; }
+                if (ch === '%') {
+                    while (i < s.length && s[i] !== '\n') i++;
+                    continue;
+                }
+                if (ch === '{') d++;
+                else if (ch === '}') {
+                    d--;
+                    if (d === 0) return { content: s.slice(start + 1, i), end: i + 1 };
+                }
+                i++;
+            }
+            return null;
+        };
+        const unwrapImmini = (s) => {
+            if (!s || !s.includes('\\immini')) return s;
+            let out = '', i = 0;
+            while (i < s.length) {
+                const idx = s.indexOf('\\immini', i);
+                if (idx === -1) { out += s.slice(i); break; }
+                const afterCmd = idx + 7;
+                if (afterCmd < s.length && /[a-zA-Z]/.test(s[afterCmd])) {
+                    out += s.slice(i, afterCmd);
+                    i = afterCmd;
+                    continue;
+                }
+                out += s.slice(i, idx);
+                let cur = afterCmd;
+                const opt = readOptBracket(s, cur);
+                if (opt) cur = opt.end;
+                const a1 = readBraced(s, cur);
+                if (!a1) { out += '\\immini'; i = afterCmd; continue; }
+                const a2 = readBraced(s, a1.end);
+                if (!a2) { out += unwrapImmini(a1.content); i = a1.end; continue; }
+                const c1 = unwrapImmini(a1.content).trim();
+                const c2 = unwrapImmini(a2.content).trim();
+                const cm = /\\(choiceTF|choice|shortans|indapan)(?![a-zA-Z])/.exec(c1);
+                if (cm) {
+                    const before = c1.slice(0, cm.index).trimEnd();
+                    out += (before ? before + '\n' : '') + c2 + '\n' + c1.slice(cm.index);
+                } else {
+                    out += c1 + (c1 && c2 ? '\n' : '') + c2;
+                }
+                i = a2.end;
+            }
+            return out;
+        };
+        processed = unwrapImmini(processed);
+
+        if (processed.includes('\\begin{tikzpicture}') || /\\(definecolor|colorlet|tikzset|tikzstyle|usetikzlibrary|usepgfplotslibrary|pgfplotsset|pgfmathsetmacro|pgfmathtruncatemacro|pgfdeclarelayer|pgfsetlayers)(?![a-zA-Z])/.test(processed)) {
+            const cmds = [];
+            let clean = '', i = 0, tikzDepth = 0;
+            const oneArg = ['tikzset', 'usetikzlibrary', 'usepgfplotslibrary', 'pgfplotsset', 'pgfdeclarelayer', 'pgfsetlayers'];
+            while (i < processed.length) {
+                if (processed.startsWith('\\begin{tikzpicture}', i)) {
+                    tikzDepth++; clean += '\\begin{tikzpicture}'; i += 19; continue;
+                }
+                if (processed.startsWith('\\end{tikzpicture}', i) && tikzDepth > 0) {
+                    tikzDepth--; clean += '\\end{tikzpicture}'; i += 17; continue;
+                }
+                if (processed[i] === '\\' && i + 1 < processed.length && !/[a-zA-Z]/.test(processed[i + 1])) {
+                    clean += processed.slice(i, i + 2); i += 2; continue;
+                }
+                if (tikzDepth === 0 && processed[i] === '\\') {
+                    const m = /^\\(definecolor|colorlet|tikzset|tikzstyle|usetikzlibrary|usepgfplotslibrary|pgfplotsset|pgfmathsetmacro|pgfmathtruncatemacro|pgfdeclarelayer|pgfsetlayers)(?![a-zA-Z])/.exec(processed.slice(i));
+                    if (m) {
+                        const name = m[1];
+                        let cur = i + m[0].length, ok = false;
+                        if (name === 'definecolor') {
+                            const g1 = readBraced(processed, cur), g2 = g1 && readBraced(processed, g1.end), g3 = g2 && readBraced(processed, g2.end);
+                            if (g3) { cur = g3.end; ok = true; }
+                        } else if (name === 'colorlet') {
+                            const g1 = readBraced(processed, cur), g2 = g1 && readBraced(processed, g1.end);
+                            if (g2) { cur = g2.end; ok = true; }
+                        } else if (oneArg.includes(name)) {
+                            const g1 = readBraced(processed, cur);
+                            if (g1) { cur = g1.end; ok = true; }
+                        } else if (name === 'pgfmathsetmacro' || name === 'pgfmathtruncatemacro') {
+                            while (cur < processed.length && /\s/.test(processed[cur])) cur++;
+                            let tEnd = cur;
+                            if (processed[cur] === '{') { const g1 = readBraced(processed, cur); if (g1) tEnd = g1.end; }
+                            else if (processed[cur] === '\\') { const vm = /^\\[a-zA-Z@]+/.exec(processed.slice(cur)); if (vm) tEnd = cur + vm[0].length; }
+                            if (tEnd > cur) { const g2 = readBraced(processed, tEnd); if (g2) { cur = g2.end; ok = true; } }
+                        } else if (name === 'tikzstyle') {
+                            while (cur < processed.length && /\s/.test(processed[cur])) cur++;
+                            const nm = /^(?:\{[^}]+\}|[a-zA-Z0-9_.\-/\s]+?)\s*=/.exec(processed.slice(cur));
+                            if (nm) { const br = readOptBracket(processed, cur + nm[0].length); if (br) { cur = br.end; ok = true; } }
+                        }
+                        if (ok) {
+                            const cmdText = processed.slice(i, cur).trim();
+                            if (!/^\\use(tikz|pgfplots)library\b/.test(cmdText)) cmds.push(cmdText);
+                            while (cur < processed.length && (processed[cur] === ' ' || processed[cur] === '\t')) cur++;
+                            if (processed[cur] === '\r') cur++;
+                            if (processed[cur] === '\n') cur++;
+                            i = cur;
+                            continue;
+                        }
+                    }
+                }
+                clean += processed[i];
+                i++;
+            }
+            if (cmds.length > 0 && clean.includes('\\begin{tikzpicture}')) {
+                const seen = new Set();
+                const uniq = cmds.filter(c => { const n = c.replace(/\s+/g, ' '); if (seen.has(n)) return false; seen.add(n); return true; });
+                const block = uniq.join('\n');
+                let attached = '', j = 0;
+                while (j < clean.length) {
+                    const tidx = clean.indexOf('\\begin{tikzpicture}', j);
+                    if (tidx === -1) { attached += clean.slice(j); break; }
+                    let tcur = tidx + 19;
+                    const topt = readOptBracket(clean, tcur);
+                    if (topt) tcur = topt.end;
+                    attached += clean.slice(j, tcur) + '\n' + block;
+                    j = tcur;
+                }
+                processed = attached;
+            } else {
+                processed = clean;
+            }
+        }
+    }
     processed = processed.replace(/\\loigiai\s*\{/gi, '');
 
     // 1. Clean Text (Math-safe replacements)
