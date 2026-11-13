@@ -70,18 +70,25 @@ neq: [0x86, 0x2260, 185, true],
 approx: [0x86, 0x2248, 187, true],
 equiv: [0x86, 0x2261, 186, true],
 sim: [0x86, 0x223C, 126, true],
+backsim: [0x86, 0x223D, 126, true],
+simeq: [0x86, 0x2243, 64, true],
+cong: [0x86, 0x2245, 64, true],
 pm: [0x86, 0x00B1, 177, true],
 mp: [0x86, 0x2213, 177, true],
 cdot: [0x86, 0x22C5, 215, true],
 times: [0x86, 0x00D7, 180, true],
 div: [0x86, 0x00F7, 184, true],
+frown: [0x96, 0x2322, 0x22, true],
 ast: [0x86, 0x2217, 42, true],
 circ: [0x86, 0x00B0, 176, false],
 degree: [0x86, 0x00B0, 176, false],
 in: [0x86, 0x2208, 206, true],
 notin: [0x86, 0x2209, 207, true],
+ni: [0x86, 0x220B, 39, true],
 subset: [0x86, 0x2282, 204, true],
 subseteq: [0x86, 0x2286, 205, true],
+supset: [0x86, 0x2283, 201, true],
+supseteq: [0x86, 0x2287, 202, true],
 cup: [0x86, 0x222A, 200, true],
 cap: [0x86, 0x2229, 199, true],
 setminus: [0x86, 0x2216, 92, true],
@@ -90,7 +97,13 @@ varnothing: [0x86, 0x2205, 198, false],
 infty: [0x86, 0x221E, 165, false],
 forall: [0x86, 0x2200, 34, false],
 exists: [0x86, 0x2203, 36, false],
+partial: [0x86, 0x2202, 182, false],
+nabla: [0x86, 0x2207, 209, false],
 perp: [0x86, 0x22A5, 94, true],
+bot: [0x86, 0x22A5, 94, true],
+mid: [0x86, 0x2223, 124, true],
+nmid: [0x86, 0x2224, 124, true],
+nsubset: [0x86, 0x2284, 203, true],
 parallel: [0x8B, 0x2225, 80, true],
 Rightarrow: [0x86, 0x21D2, 222, true],
 implies: [0x86, 0x21D2, 222, true],
@@ -100,10 +113,19 @@ iff: [0x86, 0x21D4, 219, true],
 rightarrow: [0x86, 0x2192, 174, true],
 to: [0x86, 0x2192, 174, true],
 leftarrow: [0x86, 0x2190, 172, true],
+longmapsto: [0x86, 0x2192, 174, true],
+mapsto: [0x86, 0x2192, 174, true],
+triangle: [0x86, 0x2206, 68, false],
+bigtriangleup: [0x86, 0x2206, 68, false],
+angle: [0x86, 0x2220, 208, false],
 dots: [0x86, 0x2026, 188, false],
 ldots: [0x86, 0x2026, 188, false],
 cdots: [0x86, 0x2026, 188, false],
+vdots: [0x8B, 0x22EE, 77, false],
+ddots: [0x8B, 0x22F1, 79, false],
+prime: [0x86, 0x2032, 162, false],
 int: [0x86, 0x222B, 242, false],
+oint: [0x86, 0x222B, 242, false],
 sum: [0x86, 0x2211, 229, false],
 prod: [0x86, 0x220F, 213, false],
 colon: [0x82, 0x003A, 58, false]
@@ -207,7 +229,7 @@ const nodes = [];
 const n = tokens.length;
 while (pos < n) {
 const tok = tokens[pos];
-if (stopTokens.has(tok) || tok === '}' || tok === '\\right' || tok.startsWith('\\end')) {
+if (stopTokens.has(tok) || tok === '}' || (tok === '\\right' && stopTokens.has('\\right')) || tok.startsWith('\\end')) {
 break;
 }
 const res = this.parseAtom(tokens, pos);
@@ -325,7 +347,11 @@ pos = envRes.pos;
 if (pos < tokens.length && tokens[pos] === '}') pos++;
 envName = envRes.nodes.map(n => n.ch || '').join('');
 }
-if (['array', 'cases'].includes(envName)) {
+if (pos < tokens.length && tokens[pos] === '[') {
+const optRes = this.parseExpr(tokens, pos + 1, new Set([']']));
+pos = optRes.pos;
+if (pos < tokens.length && tokens[pos] === ']') pos++;
+}
 if (envName === 'array' && pos < tokens.length && tokens[pos] === '{') {
 const colRes = this.parseExpr(tokens, pos + 1, new Set(['}']));
 pos = colRes.pos;
@@ -333,8 +359,46 @@ if (pos < tokens.length && tokens[pos] === '}') pos++;
 }
 const envRows = this.parseEnvRows(tokens, pos);
 pos = envRows.pos;
-return { node: { type: 'system', kind: envName === 'cases' ? 'heva' : 'hoac', rows: envRows.rows }, pos };
+if (envName === 'cases') {
+return { node: { type: 'system', kind: 'heva', rows: envRows.rows }, pos };
+} else if (envName === 'pmatrix') {
+return { node: { type: 'fence', left: '(', right: ')', body: [{ type: 'pile', rows: envRows.rows }] }, pos };
+} else if (envName === 'bmatrix') {
+return { node: { type: 'fence', left: '[', right: ']', body: [{ type: 'pile', rows: envRows.rows }] }, pos };
+} else if (envName === 'vmatrix') {
+return { node: { type: 'fence', left: '|', right: '|', body: [{ type: 'pile', rows: envRows.rows }] }, pos };
 }
+return { node: { type: 'pile', rows: envRows.rows }, pos };
+}
+if (tok === '\\right') {
+let rd = '.';
+if (pos < tokens.length) {
+rd = tokens[pos];
+pos++;
+}
+if (rd === '.') return { node: null, pos };
+if (['\\{', '\\}', '\\|'].includes(rd)) {
+return { node: { type: 'char', ch: rd.substring(1) }, pos };
+}
+return { node: { type: 'char', ch: rd }, pos };
+}
+if (tok === '\\not') {
+if (pos < tokens.length) {
+const nxt = tokens[pos];
+const notMap = {
+'\\in': 'notin',
+'=': 'ne',
+'\\equiv': 'ne',
+'\\subset': 'nsubset',
+'\\mid': 'nmid',
+'|': 'nmid'
+};
+if (nxt in notMap) {
+pos++;
+return { node: { type: 'sym', name: notMap[nxt] }, pos };
+}
+}
+return { node: null, pos };
 }
 if (tok === '\\left') {
 const ld = pos < tokens.length ? tokens[pos] : '(';
@@ -354,6 +418,9 @@ return { node: { type: 'fence', left: ld, right: rd, body: innerRes.nodes }, pos
 if (['\\,', '\\;', '\\:', '\\ ', '\\quad', '\\qquad', '~'].includes(tok)) {
 return { node: { type: 'space' }, pos };
 }
+if (tok === '\\!') {
+return { node: null, pos };
+}
 if (tok.startsWith('\\')) {
 const cmd = tok.substring(1);
 if (cmd === 'colon') return { node: { type: 'char', ch: ':' }, pos };
@@ -361,6 +428,11 @@ if (KNOWN_MATH_FUNCS.has(cmd)) return { node: { type: 'func', name: cmd }, pos }
 if (cmd in LC_GREEK) return { node: { type: 'lcgreek', name: cmd }, pos };
 if (cmd in UC_GREEK) return { node: { type: 'ucgreek', name: cmd }, pos };
 if (cmd in SYMBOL_MAP) return { node: { type: 'sym', name: cmd }, pos };
+if (['{', '}', '|'].includes(cmd)) return { node: { type: 'char', ch: cmd }, pos };
+if (['mathbb', 'mathcal', 'mathfrak', 'mathbf', 'mathsf', 'mathtt', 'mathit'].includes(cmd)) {
+const fArg = this.parseScriptArg(tokens, pos);
+return { node: { type: 'group', body: fArg.nodes }, pos: fArg.pos };
+}
 return { node: { type: 'char', ch: cmd }, pos };
 }
 if (tok in SYMBOL_MAP) return { node: { type: 'sym', name: tok }, pos };
@@ -683,6 +755,23 @@ new Uint8Array([0x00, 0x02, 0x00, 0x96, 0x5b, 0x00, 0x00])
 }
 continue;
 }
+if (ntype === 'pile') {
+const rowMtefs = [];
+for (const rAst of nd.rows) {
+const rm = this.compileNodes(rAst, false);
+rowMtefs.push(concatUint8Arrays([
+new Uint8Array([0x01, 0x00]),
+rm,
+new Uint8Array([0x00])
+]));
+}
+mtefParts.push(concatUint8Arrays([
+new Uint8Array([0x04, 0x00, 0x01, 0x02]),
+concatUint8Arrays(rowMtefs),
+new Uint8Array([0x00])
+]));
+continue;
+}
 }
 return concatUint8Arrays(mtefParts);
 }
@@ -695,6 +784,7 @@ else if (norm.startsWith('\\(') && norm.endsWith('\\)')) norm = norm.substring(2
 if (norm.endsWith('\\\\')) norm = norm.substring(0, norm.length - 2).trim();
 if (norm.startsWith('\\True')) norm = norm.substring(5).trim();
 norm = norm.replace(/\{,\}/g, ',');
+norm = norm.replace(/\\widehat([A-Z])(?![a-zA-Z])/g, '\\widehat{$1}');
 if (this.cache.has(norm)) {
 return this.cache.get(norm);
 }
@@ -1076,6 +1166,25 @@ rowBoxes, braceW, scale
 });
 continue;
 }
+if (ntype === 'pile') {
+let maxW = 0;
+let totalH = 0;
+const rowBoxes = [];
+for (const rAst of nd.rows) {
+const rb = layoutNodes(rAst, scale, false);
+rowBoxes.push(rb);
+maxW = Math.max(maxW, rb.width);
+totalH += rb.ascent + rb.descent + 3.0 * scale;
+}
+boxes.push({
+width: maxW,
+ascent: totalH * 0.55 + 2.0 * scale,
+descent: totalH * 0.45,
+kind: 'pile',
+rowBoxes, scale
+});
+continue;
+}
 }
 let cursorX = 0;
 let asc = 8.0 * scale;
@@ -1258,6 +1367,16 @@ let curRowTop = topY;
 for (const rb of box.rowBoxes) {
 const rowBaseY = curRowTop - rb.ascent;
 drawNode(rb, ctx, x + box.braceW + 1.0 * box.scale, y - rowBaseY, ptScale);
+curRowTop -= rb.ascent + rb.descent + 3.2 * box.scale;
+}
+break;
+}
+case 'pile': {
+const topY = box.ascent;
+let curRowTop = topY;
+for (const rb of box.rowBoxes) {
+const rowBaseY = curRowTop - rb.ascent;
+drawNode(rb, ctx, x, y - rowBaseY, ptScale);
 curRowTop -= rb.ascent + rb.descent + 3.2 * box.scale;
 }
 break;
@@ -1764,6 +1883,7 @@ let cleanedRow = rawRow.replace(/\\(hline|toprule|midrule|bottomrule)/g, '').rep
 if (!cleanedRow) continue;
 const cells = cleanedRow.split('&').map(c => {
 let cell = c.trim().replace(/\{,\}/g, ',');
+if (cell === '$$') cell = '';
 const mCol = cell.match(/\\multicolumn\{\d+\}\{[^}]*\}\{(.*?)\}/i);
 if (mCol) cell = mCol[1];
 return cell;
@@ -1833,16 +1953,146 @@ s = s.replace(/\{,\}/g, ',');
 s = s.replace(/\\lq\\lq/g, '“').replace(/\\rq\\rq/g, '”');
 s = s.replace(/\\lq/g, '‘').replace(/\\rq/g, '’');
 s = s.replace(/``/g, '“').replace(/''/g, '”');
+s = s.replace(/\\widehat([A-Z])(?![a-zA-Z])/g, '\\widehat{$1}');
 s = s.replace(/\\quad/g, '  ').replace(/\\qquad/g, '    ');
 return s.trim();
+}
+function findUnescapedDollarPos(text, startIdx) {
+const n = text.length;
+let i = startIdx;
+while (i < n) {
+const ch = text[i];
+if (ch === '\\') {
+i += 2;
+continue;
+}
+if (ch === '$') return i;
+i++;
+}
+return -1;
+}
+function findEscapedDelimPos(text, startIdx, closeTok) {
+const n = text.length;
+let i = startIdx;
+while (i < n) {
+if (text.startsWith('\\\\', i)) {
+i += 2;
+continue;
+}
+if (text.startsWith(closeTok, i)) return i;
+i++;
+}
+return -1;
+}
+function splitRichWordTokens(text) {
+const out = [];
+const n = text.length;
+let i = 0;
+let bufStart = 0;
+const flushPlain = (endIdx) => {
+if (endIdx > bufStart) out.push({ kind: 'plain', raw: text.slice(bufStart, endIdx) });
+};
+const cmdRegex = /^(\\(?:textbf|textit|underline)\{[^{}]*\}|<img\s+[^>]*src=["'][^"']+["'][^>]*>|\\includegraphics(?:\[.*?\])?\{[^}]+\}|\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/i;
+while (i < n) {
+const ch = text[i];
+if (ch === '\\') {
+if (i + 1 < n && (text[i + 1] === '\\' || text[i + 1] === '$')) {
+i += 2;
+continue;
+}
+if (text.startsWith('\\[', i) || text.startsWith('\\(', i)) {
+const closeTok = text.startsWith('\\[', i) ? '\\]' : '\\)';
+const endPos = findEscapedDelimPos(text, i + 2, closeTok);
+if (endPos !== -1 && text.slice(i + 2, endPos).trim()) {
+flushPlain(i);
+out.push({ kind: 'math', raw: text.slice(i, endPos + 2) });
+i = endPos + 2;
+bufStart = i;
+continue;
+}
+}
+const sub = text.slice(i);
+const mCmd = cmdRegex.exec(sub);
+if (mCmd) {
+flushPlain(i);
+out.push({ kind: 'tag', raw: mCmd[0] });
+i += mCmd[0].length;
+bufStart = i;
+continue;
+}
+i++;
+continue;
+}
+if (ch === '<') {
+const sub = text.slice(i);
+const mImgTag = /^<img\s+[^>]*src=["'][^"']+["'][^>]*>/i.exec(sub);
+if (mImgTag) {
+flushPlain(i);
+out.push({ kind: 'tag', raw: mImgTag[0] });
+i += mImgTag[0].length;
+bufStart = i;
+continue;
+}
+}
+if (ch === '$') {
+if (text.startsWith('$$', i)) {
+const endPos = text.indexOf('$$', i + 2);
+if (endPos !== -1 && text.slice(i + 2, endPos).trim()) {
+flushPlain(i);
+out.push({ kind: 'math', raw: text.slice(i, endPos + 2) });
+i = endPos + 2;
+bufStart = i;
+continue;
+}
+flushPlain(i);
+i += 2;
+bufStart = i;
+continue;
+}
+const endPos = findUnescapedDollarPos(text, i + 1);
+if (endPos !== -1) {
+const inner = text.slice(i + 1, endPos);
+flushPlain(i);
+if (inner.trim()) {
+out.push({ kind: 'math', raw: text.slice(i, endPos + 1) });
+} else if (inner) {
+out.push({ kind: 'plain', raw: inner });
+}
+i = endPos + 1;
+bufStart = i;
+continue;
+}
+}
+i++;
+}
+flushPlain(n);
+return out;
+}
+function cleanMathRawForExporter(rawMath) {
+let s = String(rawMath || '');
+s = s.replace(/\t(?=(?:ext(?:bf|it|rm|tt)?|frac|imes|riangle|heta|au|op|an(?![a-zA-Z])|o(?![a-zA-Z])))/g, '\\t');
+s = s.replace(/\s*[\r\n\t]+\s*/g, ' ');
+return s.replace(/\\widehat([A-Z])(?![a-zA-Z])/g, '\\widehat{$1}').trim();
 }
 function parseRunsFromText(rawText, baseBold = false, baseItalic = false, formulaRegistry = null, formulaMode = 'mathtype') {
 if (!rawText) return [];
 const text = String(rawText);
-const tokens = text.split(/(\\textbf\{[^{}]*\}|\\textit\{[^{}]*\}|\\underline\{[^{}]*\}|\$\$[\s\S]*?\$\$|\$[^\$]+?\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\<img\s+[^>]*src=["'](?:[^"']+)["'][^>]*\>|\\includegraphics(?:\[.*?\])?\{[^}]+\}|\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/g);
+const items = splitRichWordTokens(text);
 const runs = [];
-for (const tok of tokens) {
+for (const item of items) {
+const tok = item.raw;
 if (!tok) continue;
+if (item.kind === 'math') {
+const mathTok = cleanMathRawForExporter(tok);
+if (!mathTok || mathTok === '$$') continue;
+if (formulaMode === 'mathtype' && formulaRegistry) {
+const oleEntry = formulaRegistry.register(mathTok);
+runs.push({ isMath: true, isMathType: true, entry: oleEntry });
+} else {
+runs.push({ isMath: true, isMathType: false, ommlXml: parseLatexToOmml(mathTok) });
+}
+continue;
+}
 const mImg = tok.match(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/i) || tok.match(/\\includegraphics(?:\[.*?\])?\{([^}]+)\}/i);
 if (mImg) {
 runs.push({ isImage: true, src: mImg[1] });
@@ -1850,15 +2100,6 @@ continue;
 }
 if (tok.startsWith('\\begin{tikzpicture}')) {
 runs.push({ isImage: true, src: tok });
-continue;
-}
-if (tok.startsWith('$') || tok.startsWith('\\[') || tok.startsWith('\\(')) {
-if (formulaMode === 'mathtype' && formulaRegistry) {
-const oleEntry = formulaRegistry.register(tok);
-runs.push({ isMath: true, isMathType: true, entry: oleEntry });
-} else {
-runs.push({ isMath: true, isMathType: false, ommlXml: parseLatexToOmml(tok) });
-}
 continue;
 }
 const mB = tok.match(/^\\textbf\{(.*)\}$/);
@@ -1936,8 +2177,35 @@ res += `
 }
 return res;
 }
-function buildCandidateInfoXml(examCode = '101') {
+function buildCandidateInfoXml(examCode = '101', includeExamCode = true) {
 const cleanCode = String(examCode || '101').trim();
+const showCode = includeExamCode !== false && cleanCode.length > 0;
+if (!showCode) {
+return `
+<w:tbl>
+<w:tblPr>
+<w:tblW w:w="10773" w:type="dxa"/>
+<w:tblBorders>
+<w:top w:val="none"/><w:left w:val="none"/><w:bottom w:val="none"/><w:right w:val="none"/>
+<w:insideH w:val="none"/><w:insideV w:val="none"/>
+</w:tblBorders>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="10773"/>
+</w:tblGrid>
+<w:tr>
+<w:tc>
+<w:tcPr><w:tcW w:w="10773" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>
+<w:p>
+<w:pPr><w:spacing w:before="60" w:after="60"/></w:pPr>
+<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>
+<w:t xml:space="preserve">Họ và tên thí sinh: ........................................................................ Số báo danh: ........................</w:t>
+</w:r>
+</w:p>
+</w:tc>
+</w:tr>
+</w:tbl>`;
+}
 return `
 <w:tbl>
 <w:tblPr>
@@ -2160,6 +2428,7 @@ grade = '9',
 examCode = '1001',
 duration = 90,
 includeCandidateInfo = true,
+includeExamCode = true,
 includeDottedLines = false,
 dottedLinesCount = 4,
 dottedLinesScope = 'essay_short',
@@ -2167,6 +2436,8 @@ includeAnswerTable = true,
 includeCccd = false,
 underlineCorrect = false
 } = options;
+const cleanGrade = String(grade || '').replace(/^(?:môn\s*)?toán\s*/i, '').trim();
+const showExamCode = includeExamCode !== false && String(examCode || '').trim() !== '';
 let bodyXml = '';
 if (headerStyle === 'standard_gov') {
 bodyXml += `
@@ -2212,7 +2483,7 @@ bodyXml += `
 </w:p>
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="20"/></w:pPr>
-<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>MÔN THI: ${escapeXml(subject.toUpperCase())}${grade ? ' - KHỐI ' + escapeXml(grade) : ''}</w:t></w:r>
+<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>MÔN THI: ${escapeXml(subject.toUpperCase())}${cleanGrade ? ' - KHỐI ' + escapeXml(cleanGrade) : ''}</w:t></w:r>
 </w:p>
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="40"/></w:pPr>
@@ -2222,9 +2493,13 @@ bodyXml += `
 </w:tr>
 </w:tbl>`;
 if (includeCandidateInfo) {
-bodyXml += buildCandidateInfoXml(examCode);
+bodyXml += buildCandidateInfoXml(examCode, showExamCode);
 }
 } else if (headerStyle === 'brand_center') {
+const brandParts = [`Môn: ${escapeXml(subject)}`];
+if (cleanGrade) brandParts.push(`Khối ${escapeXml(cleanGrade)}`);
+brandParts.push(`Thời gian làm bài: ${duration} phút`);
+if (showExamCode) brandParts.push(`Mã đề: ${escapeXml(examCode)}`);
 bodyXml += `
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="40"/></w:pPr>
@@ -2236,12 +2511,14 @@ bodyXml += `
 </w:p>
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="160"/></w:pPr>
-<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:i/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>Môn: ${escapeXml(subject)} | Khối ${escapeXml(grade)} | Thời gian làm bài: ${duration} phút | Mã đề: ${escapeXml(examCode)}</w:t></w:r>
+<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:i/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>${brandParts.join(' | ')}</w:t></w:r>
 </w:p>`;
 if (includeCandidateInfo) {
-bodyXml += buildCandidateInfoXml(examCode);
+bodyXml += buildCandidateInfoXml(examCode, showExamCode);
 }
 } else if (headerStyle === 'compact') {
+const compactParts = [`Môn: ${escapeXml(subject)}`, `Thời gian: ${duration} phút`];
+if (showExamCode) compactParts.push(`Mã đề: ${escapeXml(examCode)}`);
 bodyXml += `
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="60"/></w:pPr>
@@ -2249,10 +2526,10 @@ bodyXml += `
 </w:p>
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="160"/></w:pPr>
-<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:i/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>Môn: ${escapeXml(subject)} - Thời gian: ${duration} phút - Mã đề: ${escapeXml(examCode)}</w:t></w:r>
+<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:i/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>${compactParts.join(' - ')}</w:t></w:r>
 </w:p>`;
 if (includeCandidateInfo) {
-bodyXml += buildCandidateInfoXml(examCode);
+bodyXml += buildCandidateInfoXml(examCode, showExamCode);
 }
 }
 const part1 = [];
@@ -3198,7 +3475,7 @@ return pyodideInitPromise;
 pyodideInitPromise = new Promise((resolve, reject) => {
 try {
 if (!pyodideExporterWorker) {
-pyodideExporterWorker = new Worker("tex2mathtype-worker.js?v=20261016_V6");
+pyodideExporterWorker = new Worker("tex2mathtype-worker.js?v=20261113_V7");
 }
 const initTimeout = setTimeout(() => {
 if (!isPyodideExporterReady) {
@@ -3285,6 +3562,7 @@ s = s.replace(/<b>(.*?)<\/b>/gi, '\\textbf{$1}');
 s = s.replace(/<strong>(.*?)<\/strong>/gi, '\\textbf{$1}');
 s = s.replace(/<i>(.*?)<\/i>/gi, '\\textit{$1}');
 s = s.replace(/<em>(.*?)<\/em>/gi, '\\textit{$1}');
+s = s.replace(/&nbsp;/g, ' ');
 s = s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 s = s.replace(/<\/?(?:div|span|script)[^>]*>/gi, '');
 return s.trim();
@@ -3559,6 +3837,8 @@ worker.removeEventListener('message', messageHandler);
 reject(new Error(error));
 }
 };
+const cleanGradePy = String(customOptions.grade || '9').replace(/^(?:môn\s*)?toán\s*/i, '').trim() || '9';
+const includeExamCodePy = customOptions.includeExamCode !== false;
 const headerConfig = {
 style: customOptions.headerStyle || 'standard_gov',
 agency: customOptions.agencyName || 'SỞ GD&ĐT HÀ NỘI',
@@ -3566,9 +3846,11 @@ school: customOptions.schoolName || 'TRƯỜNG THPT TRẦN QUANG KHẢI',
 exam_type: customOptions.examType || '(ĐỀ CHÍNH THỨC)',
 title: customOptions.examTitle || exam.title || 'ĐỀ THI',
 subject: customOptions.subject || 'TOÁN HỌC',
-grade: customOptions.grade || '9',
+grade: cleanGradePy,
 duration: customOptions.duration || 90,
-exam_code: customOptions.examCode || '1001',
+exam_code: includeExamCodePy ? (customOptions.examCode || '1001') : '',
+include_exam_code: includeExamCodePy,
+total_questions: questions.length,
 candidate_info: customOptions.includeCandidateInfo !== false,
 underline_correct: customOptions.underlineCorrect === true
 };
@@ -3860,11 +4142,14 @@ Dòng kẻ chấm làm bài / nháp
 </div>
 </div>
 </div>
-<!-- Mã đề thi gọn gàng (Mặc định 4 số) -->
-<div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+<!-- Mã đề thi gọn gàng (Tùy chọn hiển thị / ẩn, mặc định 4 số) -->
+<div class="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
 <div class="flex flex-wrap items-center justify-between gap-2">
-<label class="text-[11px] font-bold text-gray-700 dark:text-gray-300">Mã đề thi (Mặc định 4 chữ số)</label>
-<div class="flex items-center gap-2">
+<label class="flex items-center gap-2 cursor-pointer">
+<input type="checkbox" id="exportWordIncludeExamCode" checked class="rounded text-primary-600 focus:ring-primary-500">
+<span class="text-[11px] font-bold text-gray-700 dark:text-gray-300">Hiển thị Mã đề thi (Mặc định 4 số)</span>
+</label>
+<div id="exportWordExamCodeControls" class="flex items-center gap-2 transition-opacity">
 <input type="text" id="exportWordExamCode" value="1001" maxlength="6" class="w-24 px-2 py-1.5 text-xs font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-center text-gray-800 dark:text-gray-200 outline-none focus:ring-1 focus:ring-primary-500">
 <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-0.5 bg-gray-100 dark:bg-gray-800 text-[11px]" role="group">
 <button type="button" id="btnExamCode3Digits" onclick="window.setWordExamCodeDigits(3)" class="px-2 py-1 font-medium rounded-md transition-all text-gray-600 dark:text-gray-400 cursor-pointer">3 số</button>
@@ -3876,7 +4161,7 @@ Dòng kẻ chấm làm bài / nháp
 <div class="pt-1">
 <label class="flex items-center gap-2 cursor-pointer">
 <input type="checkbox" id="exportWordCandidateInfo" checked class="rounded text-primary-600 focus:ring-primary-500">
-<span class="text-xs text-gray-700 dark:text-gray-300 font-medium">Khung thông tin thí sinh (Họ tên, SBD) &amp; Ô Mã đề thi</span>
+<span class="text-xs text-gray-700 dark:text-gray-300 font-medium">Khung thông tin thí sinh (Họ tên, SBD)</span>
 </label>
 </div>
 </div>
@@ -3931,16 +4216,36 @@ subjectInput.value = examObj.subject;
 }
 const gradeInput = document.getElementById('exportWordGrade');
 if (gradeInput && examObj && examObj.grade) {
-gradeInput.value = examObj.grade;
+const normGrade = String(examObj.grade).replace(/^(?:môn\s*)?toán\s*/i, '').trim();
+gradeInput.value = normGrade || examObj.grade;
 }
 const durInput = document.getElementById('exportWordDuration');
 if (durInput && examObj && examObj.duration) {
 durInput.value = examObj.duration;
 }
+const incCodeCheck = document.getElementById('exportWordIncludeExamCode');
+const codeControls = document.getElementById('exportWordExamCodeControls');
 const codeInput = document.getElementById('exportWordExamCode');
+const syncExamCodeUi = () => {
+const enabled = !incCodeCheck || incCodeCheck.checked;
+if (codeInput) codeInput.disabled = !enabled;
+const b3 = document.getElementById('btnExamCode3Digits');
+const b4 = document.getElementById('btnExamCode4Digits');
+if (b3) b3.disabled = !enabled;
+if (b4) b4.disabled = !enabled;
+if (codeControls) {
+codeControls.classList.toggle('opacity-40', !enabled);
+codeControls.classList.toggle('pointer-events-none', !enabled);
+}
+};
+if (incCodeCheck) {
+incCodeCheck.checked = !(examObj && examObj.includeExamCode === false);
+incCodeCheck.onchange = syncExamCodeUi;
+}
 if (codeInput) {
 codeInput.value = examObj && examObj.examCode ? examObj.examCode : '1001';
 }
+syncExamCodeUi();
 const btnConfirm = document.getElementById('btnConfirmExportWord');
 if (btnConfirm) {
 btnConfirm.onclick = async () => {
@@ -3972,9 +4277,10 @@ const sName = document.getElementById('exportWordSchoolName')?.value || 'TRƯỜ
 const eType = document.getElementById('exportWordExamType')?.value || '(ĐỀ CHÍNH THỨC)';
 const eTitle = document.getElementById('exportWordTitleInput')?.value || fullExam.title || 'Đề thi';
 const subj = document.getElementById('exportWordSubject')?.value || 'TOÁN HỌC';
-const grd = document.getElementById('exportWordGrade')?.value || '9';
+const grd = (document.getElementById('exportWordGrade')?.value || '9').replace(/^(?:môn\s*)?toán\s*/i, '').trim() || '9';
 const dur = parseInt(document.getElementById('exportWordDuration')?.value || 90);
-const code = document.getElementById('exportWordExamCode')?.value || '1001';
+const incExamCode = document.getElementById('exportWordIncludeExamCode')?.checked !== false;
+const code = incExamCode ? (document.getElementById('exportWordExamCode')?.value || '1001') : '';
 const cInfo = document.getElementById('exportWordCandidateInfo')?.checked !== false;
 const hasDotted = document.getElementById('exportWordIncludeDottedLines')?.checked === true;
 const dotCount = parseInt(document.getElementById('exportWordDottedCount')?.value || 4);
@@ -3994,6 +4300,7 @@ subject: subj,
 grade: grd,
 duration: dur,
 examCode: code,
+includeExamCode: incExamCode,
 includeCandidateInfo: cInfo,
 includeDottedLines: hasDotted,
 dottedLinesCount: dotCount,
