@@ -96,6 +96,16 @@
   /* ---------- Làm sạch công thức Toán từ Word / MathType (chuẩn exam-editor.html) ---------- */
   function cleanWordMathLatex(str, tokenVault) {
     if (!str || typeof str !== "string") return str || "";
+    str = str.replace(/\{\\rm(?:\s*\{\})?\}\s*%/g, '{\\rm \\%}');
+    str = str.replace(/\$\$([\s\S]+?)\$\$/g, (m, mathContent) => {
+      return '$$' + mathContent.replace(/(^|[^\\])%/g, '$1\\%') + '$$';
+    });
+    str = str.replace(/\\\[([\s\S]+?)\\\]/g, (m, mathContent) => {
+      return '\\[' + mathContent.replace(/(^|[^\\])%/g, '$1\\%') + '\\]';
+    });
+    str = str.replace(/\$([^$]+)\$/g, (m, mathContent) => {
+      return '$' + mathContent.replace(/(^|[^\\])%/g, '$1\\%') + '$';
+    });
     const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right(?:\\\.|\.|\{|\})?\s*([\s\S]*?)\s*(?:\\\{|\\\}|\\\.|(?=\$))/g;
     str = str.replace(regexMangledSystem, (_, eq1, eq2) => {
       const clean1 = (eq1 || "").trim().replace(/^\\left\s*/, "");

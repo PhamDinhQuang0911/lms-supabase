@@ -1483,29 +1483,38 @@ if (ov) ov.classList.add('hidden');
                     </div>
 
                     
-                    <div class="grid grid-cols-2 gap-2">
+                    <!-- PHẦN I (TN) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phần I (TN) - Số câu:</label>
-                            <input type="number" id="newExamCountP1" value="12" oninput="window.calcExamScorePreview('create')" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-bold">
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Phần I (TN) - Số câu:</label>
+                            <input type="number" id="newExamCountP1" value="12" min="0" oninput="window.onPartCountChange('create', 1)" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-bold">
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Điểm / câu TN:</label>
-                            <input type="number" step="any" id="newExamPointP1" value="0.25" oninput="window.calcExamScorePreview('create')" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            <label class="block font-bold text-emerald-700 dark:text-emerald-300 mb-1 text-xs"><i class="fa-solid fa-calculator mr-1"></i>Tổng điểm P1:</label>
+                            <input type="number" step="any" min="0" id="newExamTotalP1" value="3.0" oninput="window.onPartTotalChange('create', 1)" class="w-full px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Điểm / 1 câu TN:</label>
+                            <input type="number" step="any" min="0" id="newExamPointP1" value="0.25" oninput="window.onPartPointChange('create', 1)" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         </div>
                     </div>
 
-                    
+                    <!-- PHẦN II (Đúng / Sai) -->
                     <div class="space-y-2">
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div>
-                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phần II (Đúng/Sai) - Số câu:</label>
-                                <input type="number" id="newExamCountP2" value="4" oninput="window.calcExamScorePreview('create')" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-bold">
+                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Phần II (Đ/S) - Số câu:</label>
+                                <input type="number" id="newExamCountP2" value="4" min="0" oninput="window.onPartCountChange('create', 2)" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-bold">
                             </div>
                             <div>
-                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Thang điểm Đúng/Sai:</label>
+                                <label class="block font-bold text-emerald-700 dark:text-emerald-300 mb-1 text-xs"><i class="fa-solid fa-calculator mr-1"></i>Tổng điểm P2:</label>
+                                <input type="number" step="any" min="0" id="newExamTotalP2" value="4.0" oninput="window.onPartTotalChange('create', 2)" class="w-full px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Thang điểm Đúng/Sai:</label>
                                 <select id="newExamP2Mode" onchange="window.onPart2ModeChange('create')" class="w-full px-2.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] text-emerald-700 dark:text-emerald-400 font-bold outline-none text-xs cursor-pointer">
-                                    <option value="bgd">Chuẩn BGD (0.1 · 0.25 · 0.5 · 1)</option>
-                                    <option value="even">Chia đều 4 ý (VD: 0.25 đ/ý)</option>
+                                    <option value="bgd">Chuẩn BGD (10% · 25% · 50% · 100%)</option>
+                                    <option value="even">Chia đều 4 ý (mỗi ý 25%)</option>
                                     <option value="custom">Tùy chỉnh 4 mốc điểm</option>
                                 </select>
                             </div>
@@ -1561,15 +1570,19 @@ if (ov) ov.classList.add('hidden');
                         </div>
                     </div>
 
-                    
-                    <div class="grid grid-cols-2 gap-2">
+                    <!-- PHẦN III (TLN) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phần III (TLN) - Số câu:</label>
-                            <input type="number" id="newExamCountP3" value="6" oninput="window.calcExamScorePreview('create')" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-bold">
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Phần III (TLN) - Số câu:</label>
+                            <input type="number" id="newExamCountP3" value="6" min="0" oninput="window.onPartCountChange('create', 3)" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-bold">
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Điểm / câu TLN:</label>
-                            <input type="number" step="any" id="newExamPointP3" value="0.5" oninput="window.calcExamScorePreview('create')" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            <label class="block font-bold text-emerald-700 dark:text-emerald-300 mb-1 text-xs"><i class="fa-solid fa-calculator mr-1"></i>Tổng điểm P3:</label>
+                            <input type="number" step="any" min="0" id="newExamTotalP3" value="3.0" oninput="window.onPartTotalChange('create', 3)" class="w-full px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Điểm / 1 câu TLN:</label>
+                            <input type="number" step="any" min="0" id="newExamPointP3" value="0.5" oninput="window.onPartPointChange('create', 3)" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#262335] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         </div>
                     </div>
 
@@ -1965,29 +1978,38 @@ if (ov) ov.classList.add('hidden');
                     </div>
 
                     
-                    <div class="grid grid-cols-2 gap-2">
+                    <!-- PHẦN I (TN) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phần I (TN) - Số câu:</label>
-                            <input type="number" id="editExamCountP1" oninput="window.calcExamScorePreview('edit')" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] font-bold text-slate-800 dark:text-white">
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Phần I (TN) - Số câu:</label>
+                            <input type="number" id="editExamCountP1" min="0" oninput="window.onPartCountChange('edit', 1)" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] font-bold text-slate-800 dark:text-white">
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Điểm / câu TN:</label>
-                            <input type="number" step="any" id="editExamPointP1" oninput="window.calcExamScorePreview('edit')" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            <label class="block font-bold text-emerald-700 dark:text-emerald-300 mb-1 text-xs"><i class="fa-solid fa-calculator mr-1"></i>Tổng điểm P1:</label>
+                            <input type="number" step="any" min="0" id="editExamTotalP1" oninput="window.onPartTotalChange('edit', 1)" class="w-full px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Điểm / 1 câu TN:</label>
+                            <input type="number" step="any" min="0" id="editExamPointP1" oninput="window.onPartPointChange('edit', 1)" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         </div>
                     </div>
 
-                    
+                    <!-- PHẦN II (Đúng / Sai) -->
                     <div class="space-y-2">
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div>
-                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phần II (Đúng/Sai) - Số câu:</label>
-                                <input type="number" id="editExamCountP2" oninput="window.calcExamScorePreview('edit')" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] text-slate-800 dark:text-white font-bold">
+                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Phần II (Đ/S) - Số câu:</label>
+                                <input type="number" id="editExamCountP2" min="0" oninput="window.onPartCountChange('edit', 2)" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] text-slate-800 dark:text-white font-bold">
                             </div>
                             <div>
-                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Thang điểm Đúng/Sai:</label>
+                                <label class="block font-bold text-emerald-700 dark:text-emerald-300 mb-1 text-xs"><i class="fa-solid fa-calculator mr-1"></i>Tổng điểm P2:</label>
+                                <input type="number" step="any" min="0" id="editExamTotalP2" oninput="window.onPartTotalChange('edit', 2)" class="w-full px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Thang điểm Đúng/Sai:</label>
                                 <select id="editExamP2Mode" onchange="window.onPart2ModeChange('edit')" class="w-full px-2.5 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] text-emerald-700 dark:text-emerald-400 font-bold outline-none text-xs cursor-pointer">
-                                    <option value="bgd">Chuẩn BGD (0.1 · 0.25 · 0.5 · 1)</option>
-                                    <option value="even">Chia đều 4 ý (VD: 0.25 đ/ý)</option>
+                                    <option value="bgd">Chuẩn BGD (10% · 25% · 50% · 100%)</option>
+                                    <option value="even">Chia đều 4 ý (mỗi ý 25%)</option>
                                     <option value="custom">Tùy chỉnh 4 mốc điểm</option>
                                 </select>
                             </div>
@@ -2043,15 +2065,19 @@ if (ov) ov.classList.add('hidden');
                         </div>
                     </div>
 
-                    
-                    <div class="grid grid-cols-2 gap-2">
+                    <!-- PHẦN III (TLN) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phần III (TLN) - Số câu:</label>
-                            <input type="number" id="editExamCountP3" oninput="window.calcExamScorePreview('edit')" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] font-bold text-slate-800 dark:text-white">
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Phần III (TLN) - Số câu:</label>
+                            <input type="number" id="editExamCountP3" min="0" oninput="window.onPartCountChange('edit', 3)" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] font-bold text-slate-800 dark:text-white">
                         </div>
                         <div>
-                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Điểm / câu TLN:</label>
-                            <input type="number" step="any" id="editExamPointP3" oninput="window.calcExamScorePreview('edit')" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            <label class="block font-bold text-emerald-700 dark:text-emerald-300 mb-1 text-xs"><i class="fa-solid fa-calculator mr-1"></i>Tổng điểm P3:</label>
+                            <input type="number" step="any" min="0" id="editExamTotalP3" oninput="window.onPartTotalChange('edit', 3)" class="w-full px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">Điểm / 1 câu TLN:</label>
+                            <input type="number" step="any" min="0" id="editExamPointP3" oninput="window.onPartPointChange('edit', 3)" class="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#38344D] bg-white dark:bg-[#1E1B29] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         </div>
                     </div>
 

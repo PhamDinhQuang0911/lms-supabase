@@ -385,6 +385,14 @@ window.clearExamTime = clearExamTime;
         .palette-btn:hover { border-color: #0F172A; color: #0F172A; background-color: #F1F5F9; }
         .palette-btn.active { background-color: #0F172A; color: #FFFFFF; border-color: #0F172A; }
 
+        @keyframes editorFadeIn {
+            from { opacity: 0.82; transform: translateY(3px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .editor-animate {
+            animation: editorFadeIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
         /* Modal chấm bài: dùng dynamic viewport của iOS để không bị thanh địa chỉ
            hoặc vùng tai thỏ che header/nút lưu. */
         #essayGradingModal .modal-content { min-height: 0; }
@@ -3537,12 +3545,46 @@ if (chevron) chevron.classList.add('-rotate-90');
 }
 };
 window.loadQuestionToEditor = (index, listType = 'normal') => {
-if (window.currentQIndex !== -1 && (window.currentQIndex !== index || window.currentQListType !== listType)) saveCurrentQuestionToMemory();
+const oldIndex = window.currentQIndex;
+const oldListType = window.currentQListType;
+if (window.currentQIndex !== -1 && (window.currentQIndex !== index || window.currentQListType !== listType)) {
+saveCurrentQuestionToMemory();
+if (oldIndex !== -1) {
+const oldCard = document.getElementById(oldListType === 'mixed-tl' ? `q-preview-tl-${oldIndex}` : `q-preview-${oldIndex}`);
+const oldQ = oldListType === 'mixed-tl' ? (window.mixedTlQuestions && window.mixedTlQuestions[oldIndex]) : (window.questions && window.questions[oldIndex]);
+if (oldCard && oldQ) {
+const oldMath = oldCard.querySelector('.math-content');
+if (oldMath && typeof window.formatContent === 'function') {
+oldMath.innerHTML = window.formatContent(oldQ.content || '');
+if (window.MathJax && window.MathJax.typesetPromise) {
+MathJax.typesetPromise([oldMath]).catch(()=>{});
+}
+}
+}
+}
+}
 window.currentQIndex = index;
 window.currentQListType = listType;
+
+const nextActiveId = listType === 'mixed-tl' ? `q-preview-tl-${index}` : `q-preview-${index}`;
+const nextItem = document.getElementById(nextActiveId);
+if (!nextItem) {
 renderPreviewList();
 if (typeof window.renderMixedTlList === 'function') window.renderMixedTlList();
-setTimeout(() => { const activeItem = document.getElementById(listType === 'mixed-tl' ? `q-preview-tl-${index}` : `q-preview-${index}`); if(activeItem) activeItem.scrollIntoView({behavior: 'smooth', block: 'nearest'}); }, 100);
+} else {
+document.querySelectorAll('.preview-item.active').forEach(el => el.classList.remove('active'));
+nextItem.classList.add('active');
+nextItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+const palette = document.getElementById('quickPalette');
+if (palette) {
+const btns = palette.querySelectorAll('.palette-btn');
+btns.forEach((btn, bIdx) => {
+if (bIdx === index && listType !== 'mixed-tl') btn.classList.add('active');
+else btn.classList.remove('active');
+});
+}
+}
 const q = listType === 'mixed-tl' ? window.mixedTlQuestions[index] : window.questions[index];
 const editor = document.getElementById('editorArea');
 if (!q || !editor) return;
@@ -3754,6 +3796,9 @@ ${window.formatContent(q.solution || 'Chưa có lời giải')}
 </div>
 `;
 editor.innerHTML = card1Html + card2Html + card3Html + card4Html;
+editor.classList.remove('editor-animate');
+void editor.offsetWidth;
+editor.classList.add('editor-animate');
 if (window.MathPalette) {
 window.MathPalette.registerTextarea(document.getElementById('editContent'));
 window.MathPalette.registerTextarea(document.getElementById('editSolution'));
@@ -3764,7 +3809,7 @@ window.MathPalette.enableImageReplacement('solLivePreview', 'editSolution');
 if(window.MathJax && window.MathJax.typesetPromise) {
 MathJax.typesetPromise([editor]).catch(()=>{});
 }
-setTimeout(() => window.renderTikz(), 200);
+setTimeout(() => { if (window.renderTikz) window.renderTikz(editor); }, 60);
 };window.assignSingleQuestionMapIdAi = async (index, listType = 'normal') => {
 const qList = listType === 'mixed-tl' ? window.mixedTlQuestions : window.questions;
 const q = qList && qList[index];
@@ -5209,6 +5254,16 @@ btn.disabled = false;
 };
 function cleanWordMathLatex(str) {
 if (!str || typeof str !== 'string') return str;
+str = str.replace(/\{\\rm(?:\s*\{\})?\}\s*%/g, '{\\rm \\%}');
+str = str.replace(/\$\$([\s\S]+?)\$\$/g, (m, mathContent) => {
+    return '$$' + mathContent.replace(/(^|[^\\])%/g, '$1\\%') + '$$';
+});
+str = str.replace(/\\\[([\s\S]+?)\\\]/g, (m, mathContent) => {
+    return '\\[' + mathContent.replace(/(^|[^\\])%/g, '$1\\%') + '\\]';
+});
+str = str.replace(/\$([^$]+)\$/g, (m, mathContent) => {
+    return '$' + mathContent.replace(/(^|[^\\])%/g, '$1\\%') + '$';
+});
 const regexMangledSystem = /\\left\s*([^\\]*(?:\\(?!(?:begin\{array\}|right))[^\\]*)*?)\s*\\begin\{array\}\s*\{[^{}]*\}\s*\\end\{array\}\s*\\right(?:\\\.|\.|\{|\})?\s*([\s\S]*?)\s*(?:\\\{|\\\}|\\\.|(?=\$))/g;
 str = str.replace(regexMangledSystem, (match, eq1, eq2) => {
 const clean1 = (eq1 || '').trim().replace(/^\\left\s*/, '');

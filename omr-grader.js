@@ -10901,7 +10901,22 @@ function readPart2ConfigFromModal(mode = 'create') {
 const prefix = mode === 'create' ? 'newExam' : 'editExam';
 const selMode = document.getElementById(`${prefix}P2Mode`)?.value || 'bgd';
 if (selMode === 'bgd') {
-return { mode: 'bgd', points: [0.1, 0.25, 0.5, 1.0], maxPerQ: 1.0 };
+    const p2Count = parseInt(document.getElementById(`${prefix}CountP2`)?.value) || 4;
+    const totVal = parseFloat(document.getElementById(`${prefix}TotalP2`)?.value);
+    let maxPerQ = 1.0;
+    if (Number.isFinite(totVal) && totVal > 0 && p2Count > 0) {
+        maxPerQ = Math.round((totVal / p2Count) * 10000) / 10000;
+    } else {
+        const rawPt4 = parseSafeScorePoint(document.getElementById(`${prefix}P2Pt4`)?.value, 1.0);
+        if (rawPt4 > 0) maxPerQ = rawPt4;
+    }
+    const pts = [
+        Math.round(maxPerQ * 0.1 * 10000) / 10000,
+        Math.round(maxPerQ * 0.25 * 10000) / 10000,
+        Math.round(maxPerQ * 0.5 * 10000) / 10000,
+        maxPerQ
+    ];
+    return { mode: 'bgd', points: pts, maxPerQ };
 }
 if (selMode === 'even') {
 const subRaw = parseSafeScorePoint(document.getElementById(`${prefix}P2SubPoint`)?.value, NaN);
@@ -10920,6 +10935,92 @@ Math.max(0, parseSafeScorePoint(document.getElementById(`${prefix}P2Pt4`)?.value
 ]);
 return { mode: 'custom', points: pts, maxPerQ: getPart2MaxPointPerQuestion(pts) };
 }
+
+window.onPartCountChange = (mode = 'create', part = 1) => {
+    const prefix = mode === 'create' ? 'newExam' : 'editExam';
+    const count = parseInt(document.getElementById(`${prefix}CountP${part}`)?.value) || 0;
+    const totEl = document.getElementById(`${prefix}TotalP${part}`);
+    const ptEl = document.getElementById(`${prefix}PointP${part}`);
+    const totVal = parseFloat(totEl?.value) || 0;
+    
+    if (part === 1 || part === 3) {
+        if (totVal > 0 && count > 0) {
+            const point = Math.round((totVal / count) * 10000) / 10000;
+            if (ptEl) ptEl.value = formatCleanScoreNum(point);
+        } else if (count > 0 && ptEl) {
+            const point = parseSafeScorePoint(ptEl.value, part === 1 ? 0.25 : 0.5);
+            if (totEl) totEl.value = formatCleanScoreNum(Math.round(count * point * 100) / 100);
+        }
+    } else if (part === 2) {
+        if (totVal > 0 && count > 0) {
+            window.onPartTotalChange(mode, 2);
+            return;
+        }
+    }
+    window.calcExamScorePreview(mode);
+};
+
+window.onPartTotalChange = (mode = 'create', part = 1) => {
+    const prefix = mode === 'create' ? 'newExam' : 'editExam';
+    const count = parseInt(document.getElementById(`${prefix}CountP${part}`)?.value) || 0;
+    const totEl = document.getElementById(`${prefix}TotalP${part}`);
+    const total = parseFloat(totEl?.value) || 0;
+    
+    if (part === 1 || part === 3) {
+        const ptEl = document.getElementById(`${prefix}PointP${part}`);
+        if (count > 0 && ptEl) {
+            const point = Math.round((total / count) * 10000) / 10000;
+            ptEl.value = formatCleanScoreNum(point);
+        }
+    } else if (part === 2) {
+        if (count > 0) {
+            const maxPerQ = Math.round((total / count) * 10000) / 10000;
+            const selMode = document.getElementById(`${prefix}P2Mode`)?.value || 'bgd';
+            
+            if (selMode === 'bgd') {
+                const pt1 = Math.round(maxPerQ * 0.1 * 10000) / 10000;
+                const pt2 = Math.round(maxPerQ * 0.25 * 10000) / 10000;
+                const pt3 = Math.round(maxPerQ * 0.5 * 10000) / 10000;
+                const pt4 = maxPerQ;
+                [1, 2, 3, 4].forEach((n, idx) => {
+                    const el = document.getElementById(`${prefix}P2Pt${n}`);
+                    if (el) el.value = formatCleanScoreNum([pt1, pt2, pt3, pt4][idx]);
+                });
+                const infoBgd = document.getElementById(`${prefix}P2InfoBgd`);
+                if (infoBgd) {
+                    infoBgd.innerHTML = `Lũy tiến BGD: 1ý = <b>${formatCleanScoreNum(pt1)}đ</b> · 2ý = <b>${formatCleanScoreNum(pt2)}đ</b> · 3ý = <b>${formatCleanScoreNum(pt3)}đ</b> · 4ý = <b>${formatCleanScoreNum(pt4)}đ</b>`;
+                }
+            } else if (selMode === 'even') {
+                const sub = Math.round((maxPerQ / 4) * 10000) / 10000;
+                const subEl = document.getElementById(`${prefix}P2SubPoint`);
+                const maxEl = document.getElementById(`${prefix}P2MaxPoint`);
+                if (subEl) subEl.value = formatCleanScoreNum(sub);
+                if (maxEl) maxEl.value = formatCleanScoreNum(maxPerQ);
+                updatePart2EvenPreviewUI(mode, sub);
+                [1, 2, 3, 4].forEach((n, idx) => {
+                    const el = document.getElementById(`${prefix}P2Pt${n}`);
+                    if (el) el.value = formatCleanScoreNum(sub * n);
+                });
+            } else {
+                const pt4El = document.getElementById(`${prefix}P2Pt4`);
+                if (pt4El) pt4El.value = formatCleanScoreNum(maxPerQ);
+            }
+        }
+    }
+    window.calcExamScorePreview(mode);
+};
+
+window.onPartPointChange = (mode = 'create', part = 1) => {
+    const prefix = mode === 'create' ? 'newExam' : 'editExam';
+    const count = parseInt(document.getElementById(`${prefix}CountP${part}`)?.value) || 0;
+    const ptEl = document.getElementById(`${prefix}PointP${part}`);
+    const totEl = document.getElementById(`${prefix}TotalP${part}`);
+    if (count > 0 && ptEl && totEl) {
+        const point = parseSafeScorePoint(ptEl.value, part === 1 ? 0.25 : 0.5);
+        totEl.value = formatCleanScoreNum(Math.round(count * point * 100) / 100);
+    }
+    window.calcExamScorePreview(mode);
+};
 window.onPart2ModeChange = (mode = 'create') => {
 syncPart2ModePanels(mode);
 const prefix = mode === 'create' ? 'newExam' : 'editExam';
@@ -11147,6 +11248,20 @@ const p1Total = Math.round(p1Count * p1Pt * 100) / 100;
 const p2Total = Math.round(p2Count * p2MaxPt * 100) / 100;
 const p3Total = Math.round(p3Count * p3Pt * 100) / 100;
 const total = Math.round((p1Total + p2Total + p3Total) * 100) / 100;
+
+const totP1El = document.getElementById(`${prefix}TotalP1`);
+if (totP1El && document.activeElement !== totP1El) {
+    totP1El.value = formatCleanScoreNum(p1Total);
+}
+const totP2El = document.getElementById(`${prefix}TotalP2`);
+if (totP2El && document.activeElement !== totP2El) {
+    totP2El.value = formatCleanScoreNum(p2Total);
+}
+const totP3El = document.getElementById(`${prefix}TotalP3`);
+if (totP3El && document.activeElement !== totP3El) {
+    totP3El.value = formatCleanScoreNum(p3Total);
+}
+
 const badge = document.getElementById(`${prefix}ScoreBadge`);
 const warnBox = document.getElementById(`${prefix}ScoreWarnBox`);
 if (badge) {

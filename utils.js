@@ -1492,9 +1492,20 @@ const formatContentCore = (text) => {
         tikzProtected.push(m);
         return `QMUTILSTIKZPROTECT${idx}QMEND`;
     });
+    // Chuẩn hóa ký hiệu % từ MathType / LaTeX (tránh bị nuốt thành comment)
+    processed = processed.replace(/\{\\rm(?:\s*\{\})?\}\s*%/g, '{\\rm \\%}');
+    processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (m, mathContent) => {
+        return '$$' + mathContent.replace(/(^|[^\\])%/g, '$1\\%') + '$$';
+    });
+    processed = processed.replace(/\\\[([\s\S]+?)\\\]/g, (m, mathContent) => {
+        return '\\[' + mathContent.replace(/(^|[^\\])%/g, '$1\\%') + '\\]';
+    });
+    processed = processed.replace(/\$([^$]+)\$/g, (m, mathContent) => {
+        return '$' + mathContent.replace(/(^|[^\\])%/g, '$1\\%') + '$';
+    });
     processed = processed
         .replace(/\\setlength\s*\{[^}]*\}\s*\{[^}]*\}/g, '')
-        .replace(/((?:^|[^\\])(?:\\\\)*)%(?![0-9A-Fa-f]{2}\b)[^\r\n]*/g, '$1')
+        .replace(/((?:^|[^\\])(?:\\\\)*)(?<![\d\w.,\)\]\}\$])%(?![0-9A-Fa-f]{2}\b)[^\r\n]*/g, '$1')
         .replace(/\\begin\{center\}/g, '<div class="text-center my-2">')
         .replace(/\\end\{center\}/g, '</div>')
         .replace(/\\begin\{minipage\}(?:\[[^\]]*\])?\{[^}]*\}/g, '<div>')
