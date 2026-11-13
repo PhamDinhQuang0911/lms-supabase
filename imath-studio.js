@@ -16,7 +16,7 @@
     'use strict';
 
     const LOCAL_BRIDGE_URL = 'http://127.0.0.1:8765';
-    const DATA_VERSION = '20261112-v14';
+    const DATA_VERSION = '20261113-v1';
     const CATALOG_URL = `data/imath/catalog_mapped.json?v=${DATA_VERSION}`;
 
     const state = {
@@ -1556,22 +1556,197 @@
     // ------------------------------------------------------------------
     // 4. HIỂN THỊ PREVIEW TRỰC TIẾP (MATHJAX + TIKZJAX) Ở CỘT 3
     // ------------------------------------------------------------------
-    function cleanLineBreaksOutsideMath(str) {
+    function splitTabularCellsJs(row) {
+        const cells = [];
+        let cur = '';
+        let braceDepth = 0;
+        for (let i = 0; i < row.length; i++) {
+            const ch = row[i];
+            if (ch === '\\' && i + 1 < row.length) {
+                cur += ch + row[i + 1];
+                i++;
+                continue;
+            }
+            if (ch === '{') braceDepth++;
+            else if (ch === '}' && braceDepth > 0) braceDepth--;
+            if (ch === '&' && braceDepth === 0) {
+                cells.push(cur);
+                cur = '';
+            } else {
+                cur += ch;
+            }
+        }
+        cells.push(cur);
+        return cells;
+    }
+
+    function escapeMathAndTextSegment(str) {
         if (!str) return '';
-        // Bảo vệ các khối công thức toán học $...$ và $$...$$
         const mathBlocks = [];
-        const protectedStr = str.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (m) => {
-            const token = `___MATH_BLOCK_${mathBlocks.length}___`;
-            mathBlocks.push(m);
+        const protectedStr = String(str).replace(/(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$[^\$\n]+?\$)/g, (m) => {
+            const token = `___IMS_MATH_${mathBlocks.length}___`;
+            mathBlocks.push(m.replace(/</g, ' &lt; ').replace(/>/g, ' &gt; '));
             return token;
         });
-        // Dọn dẹp dấu xuống dòng \\ ở cuối dòng (tránh lộ dấu gạch chéo ngược trên web)
         let cleaned = protectedStr
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\\%/g, '%')
+            .replace(/\\vdots(?![a-zA-Z])/g, '&#8942;')
+            .replace(/\\textbf\{([^{}]*)\}/g, '<strong>$1</strong>')
+            .replace(/\\textit\{([^{}]*)\}/g, '<em>$1</em>')
+            .replace(/\\rightarrow(?![a-zA-Z])/g, '→')
+            .replace(/\\Rightarrow(?![a-zA-Z])/g, '⇒')
             .replace(/\\\\+\s*(\n|$)/g, '$1')
             .replace(/\\\\+/g, '<br>');
-        // Khôi phục công thức toán
         for (let i = 0; i < mathBlocks.length; i++) {
-            cleaned = cleaned.replace(`___MATH_BLOCK_${i}___`, mathBlocks[i]);
+            cleaned = cleaned.replace(`___IMS_MATH_${i}___`, () => mathBlocks[i]);
+        }
+        return cleaned;
+    }
+
+    let _imsTokenSeq = 0;
+
+    function convertTabularBlocksJs(str, htmlBlocks, prefix) {
+        if (!str || !str.includes('\\begin{tabular}')) return str;
+        let out = '';
+        let cursor = 0;
+        const startToken = '\\begin{tabular}';
+        const endToken = '\\end{tabular}';
+        while (cursor < str.length) {
+            const idx = str.indexOf(startToken, cursor);
+            if (idx === -1) { out += str.slice(cursor); break; }
+            let p = idx + startToken.length;
+            while (p < str.length && /\s/.test(str[p])) p++;
+            if (str[p] === '[') {
+                const closeBracket = str.indexOf(']', p);
+                if (closeBracket !== -1) {
+                    p = closeBracket + 1;
+                    while (p < str.length && /\s/.test(str[p])) p++;
+                }
+            }
+            if (str[p] !== '{') {
+                out += str.slice(cursor, idx + startToken.length);
+                cursor = idx + startToken.length;
+                continue;
+            }
+            let depth = 0;
+            let specEnd = p;
+            for (; specEnd < str.length; specEnd++) {
+                if (str[specEnd] === '\\') { specEnd++; continue; }
+                if (str[specEnd] === '{') depth++;
+                else if (str[specEnd] === '}') { depth--; if (depth === 0) break; }
+            }
+            const closeIdx = depth === 0 ? str.indexOf(endToken, specEnd + 1) : -1;
+            if (depth !== 0 || closeIdx === -1) {
+                out += str.slice(cursor, idx + startToken.length);
+                cursor = idx + startToken.length;
+                continue;
+            }
+            out += str.slice(cursor, idx);
+            const body = str.slice(specEnd + 1, closeIdx);
+            const rows = body.split(/\\\\(?:\s*\[[^\]]*\])?/);
+            let tableHtml = '<div style="margin:8px 0;width:100%;overflow-x:auto;"><table style="margin:0 auto;border-collapse:collapse;font-size:13px;min-width:max-content;">';
+            let rIdx = 0;
+            rows.forEach((row) => {
+                const cleanRow = row
+                    .replace(/\\(?:hline|toprule|midrule|bottomrule)\b/g, '')
+                    .replace(/\\cline\s*\{[^}]*\}/g, '')
+                    .replace(/\\centering\b/g, '')
+                    .trim();
+                if (!cleanRow) return;
+                const cols = splitTabularCellsJs(cleanRow);
+                tableHtml += `<tr style="background:${rIdx % 2 === 0 ? 'transparent' : 'rgba(148,163,184,0.06)'};">`;
+                cols.forEach((rawCol, cIdx) => {
+                    let cell = rawCol.trim();
+                    if (!cell || cell === '$$') {
+                        cell = '&nbsp;';
+                    } else {
+                        cell = escapeMathAndTextSegment(cell);
+                    }
+                    const tag = rIdx === 0 ? 'th' : 'td';
+                    const bg = rIdx === 0 ? 'background:rgba(99,102,241,0.08);font-weight:600;' : (cIdx === 0 ? 'font-weight:500;' : '');
+                    tableHtml += `<${tag} style="border:1px solid rgba(148,163,184,0.45);padding:6px 10px;text-align:center;${bg}">${cell}</${tag}>`;
+                });
+                tableHtml += '</tr>';
+                rIdx++;
+            });
+            tableHtml += '</table></div>';
+            const tok = `${prefix}${htmlBlocks.length}___`;
+            htmlBlocks.push(tableHtml);
+            out += tok;
+            cursor = closeIdx + endToken.length;
+        }
+        return out;
+    }
+
+    function cleanLineBreaksOutsideMath(str) {
+        if (!str) return '';
+        const prefix = `___IMS_H${++_imsTokenSeq}_`;
+        const htmlBlocks = [];
+        // 1. Bảo vệ các block .tikz-container (chứa <script type="text/tikz">...</script>) khỏi mọi bước dọn dẹp text
+        let s = String(str).replace(/<div class="tikz-container"[\s\S]*?<\/script><\/div>/g, (m) => {
+            const tok = `${prefix}${htmlBlocks.length}___`;
+            htmlBlocks.push(m);
+            return tok;
+        });
+
+        // 2. Bỏ lệnh căn chỉnh / chú thích LaTeX không dùng khi hiển thị web
+        s = s
+            .replace(/\\begin\{table\}(?:\[[^\]]*\])?/g, '')
+            .replace(/\\end\{table\}/g, '')
+            .replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '')
+            .replace(/\\renewcommand\s*\{?\s*\\arraystretch\s*\}?\s*\{[^}]+\}/g, '')
+            .replace(/\\setlength\s*\{[^}]*\}\s*\{[^}]*\}/g, '')
+            .replace(/\\centering\b/g, '')
+            .replace(/\\(h|v)space\*?\{[^}]*\}/g, '')
+            .replace(/\\(no)?indent\b/g, '')
+            .replace(/((?:^|[^\\])(?:\\\\)*)%(?![0-9A-Fa-f]{2}\b)[^\r\n]*/g, '$1');
+
+        // 3. Chuyển đổi \shortans, \begin{tabular}, \begin{center}, \begin{itemchoice}, \begin{itemize} thành HTML token
+        s = s.replace(/\\shortans(?:\[[^\]]*\])?\{([^{}]*)\}/g, (_, ans) => {
+            const tok = `${prefix}${htmlBlocks.length}___`;
+            htmlBlocks.push(`<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-size:12px;font-weight:600;">Đáp án: <span style="font-family:monospace;">${escapeHtml(ans || '(Trống)')}</span></div>`);
+            return tok;
+        });
+
+        s = convertTabularBlocksJs(s, htmlBlocks, prefix);
+
+        s = s.replace(/\\begin\{center\}\s*(\\\\)?/g, () => {
+            const tok = `${prefix}${htmlBlocks.length}___`;
+            htmlBlocks.push('<div style="text-align:center;">');
+            return tok;
+        }).replace(/\\end\{center\s*\}/g, () => {
+            const tok = `${prefix}${htmlBlocks.length}___`;
+            htmlBlocks.push('</div>');
+            return tok;
+        });
+
+        s = s.replace(/\\begin\{itemchoice\}([\s\S]*?)\\end\{itemchoice\}/g, (_, body) => {
+            const items = body.split(/\\itemch\b/g).map(x => x.trim()).filter(Boolean);
+            const itemsHtml = items.map((item, idx) => {
+                const label = String.fromCharCode(97 + idx) + ')';
+                return `<div style="margin:4px 0;"><strong style="color:#4f46e5;">${label}</strong> ${cleanLineBreaksOutsideMath(item)}</div>`;
+            }).join('');
+            const tok = `${prefix}${htmlBlocks.length}___`;
+            htmlBlocks.push(`<div style="margin-top:4px;">${itemsHtml}</div>`);
+            return tok;
+        });
+
+        s = s.replace(/\\begin\{itemize\}([\s\S]*?)\\end\{itemize\}/g, (_, body) => {
+            const items = body.split(/\\item\b/g).map(x => x.trim()).filter(Boolean);
+            const itemsHtml = items.map(item => `<li>${cleanLineBreaksOutsideMath(item)}</li>`).join('');
+            const tok = `${prefix}${htmlBlocks.length}___`;
+            htmlBlocks.push(`<ul style="margin:4px 0 4px 18px;padding:0;">${itemsHtml}</ul>`);
+            return tok;
+        });
+
+        // 4. Escape < > an toàn cả trong lẫn ngoài công thức toán, giữ nguyên dòng
+        let cleaned = escapeMathAndTextSegment(s);
+
+        // 5. Khôi phục toàn bộ HTML / TikZ blocks
+        for (let i = 0; i < htmlBlocks.length; i++) {
+            cleaned = cleaned.replace(`${prefix}${i}___`, () => htmlBlocks[i]);
         }
         return cleaned;
     }
@@ -1580,13 +1755,11 @@
         if (!htmlText) return '';
         let res = htmlText;
         // 1. Gỡ wrapper \begin{center} quanh TikZ trước để tránh bị bọc 2 lần
-        res = res.replace(/\\begin\{center\}\s*((?:\\definecolor[^\n]+\n\s*)*\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})\s*\\end\{center\s*\}/g, '$1');
+        res = res.replace(/\\begin\{center\}\s*((?:\\(?:definecolor|colorlet|usetikzlibrary|tikzset|pgfplotsset)[^\n]*\n\s*)*\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})\s*\\end\{center\s*\}/g, '$1');
         // 2. Bọc khối TikZ duy nhất 1 lần vào thẻ <script type="text/tikz">
-        res = res.replace(/((?:\\definecolor[^\n]+\n\s*)*\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/g, (tikz) => {
+        res = res.replace(/((?:\\(?:definecolor|colorlet|usetikzlibrary|tikzset|pgfplotsset)[^\n]*\n\s*)*\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/g, (tikz) => {
             return `<div class="tikz-container" style="margin:10px 0;display:flex;justify-content:center;background:#ffffff;border-radius:10px;padding:10px;border:1px solid #e2e8f0;overflow-x:auto;"><script type="text/tikz">${tikz.trim()}<\/script></div>`;
         });
-        // 3. Gỡ các thẻ \begin{center} và \end{center} rỗng hoặc bao quanh nội dung khác
-        res = res.replace(/\\begin\{center\}\s*(\\\\)?/g, '<div style="text-align:center;">').replace(/\\end\{center\s*\}/g, '</div>');
         return res;
     }
 
@@ -1668,7 +1841,7 @@
                 }
                 s = s.slice(0, lgIdx).trim();
 
-                // Dọn dẹp hình TikZ và ký hiệu xuống dòng trong lời giải
+                // Dọn dẹp hình TikZ, bảng, ký tự < > và xuống dòng trong lời giải
                 let cleanSol = renderTikzContainersInHtml(solContent);
                 cleanSol = cleanLineBreaksOutsideMath(cleanSol);
 
@@ -1687,12 +1860,7 @@
         // 3. Render các hình vẽ TikZ còn lại ở phần đề bài
         s = renderTikzContainersInHtml(s);
 
-        // 4. Chuẩn hóa hiển thị \shortans
-        s = s.replace(/\\shortans(?:\[[^\]]*\])?\{([^{}]*)\}/g, (_, ans) => {
-            return `<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-size:12px;font-weight:600;">Đáp án: <span style="font-family:monospace;">${escapeHtml(ans || '(Trống)')}</span></div>`;
-        });
-
-        // 5. Chuẩn hóa hiển thị lựa chọn \choice hoặc \choiceTF
+        // 4. Chuẩn hóa hiển thị lựa chọn \choice hoặc \choiceTF (giữ cả hình TikZ/phần còn lại sau \choice!)
         let hasChoices = false;
         for (const [cmd, labels] of [['\\choiceTF', ['a)', 'b)', 'c)', 'd)']], ['\\choice', ['A.', 'B.', 'C.', 'D.']]]) {
             const pos = s.indexOf(cmd);
@@ -1723,6 +1891,12 @@
             }
             if (opts.length === 4) {
                 hasChoices = true;
+                const trailingRaw = s.slice(cursor).trim();
+                const trailingTikz = [];
+                const trailingRest = trailingRaw.replace(/<div class="tikz-container"[\s\S]*?<\/script><\/div>/g, (m) => {
+                    trailingTikz.push(m);
+                    return '';
+                }).trim();
                 const gridClass = cmd === '\\choice' ? 'ims-choices-grid' : 'ims-choices-tf';
                 const optsHtml = opts.map((opt, idx) => {
                     const isTrue = opt.includes('\\True');
@@ -1734,7 +1908,8 @@
                     </div>`;
                 }).join('');
                 const cleanStem = cleanLineBreaksOutsideMath(stem);
-                s = `<div style="white-space:pre-line;">${cleanStem}</div><div class="${gridClass}">${optsHtml}</div>`;
+                const extraTrailHtml = trailingRest ? `<div style="margin-top:6px;">${cleanLineBreaksOutsideMath(trailingRest)}</div>` : '';
+                s = `<div style="white-space:pre-line;">${cleanStem}</div>${trailingTikz.join('')}<div class="${gridClass}">${optsHtml}</div>${extraTrailHtml}`;
                 break;
             }
         }

@@ -571,7 +571,7 @@ window.switchView = switchView;
     <script src="qrcode.min.js?v=20261017_V1"></script>
     <script src="word-mathtype-exporter.js?v=20261016_V5"></script>
     <script src="exam-mixer.js?v=20261108_V4"></script>
-    <script src="imath-studio.js?v=20261112-v14" defer></script>
+    <script src="imath-studio.js?v=20261113-v1" defer></script>
     <script>
 window.MathJax = {
 loader: { load: ['[tex]/noerrors'] },
@@ -6011,7 +6011,7 @@ window.openSidebar = () => window.toggleSidebar(true);
     </div>
 
     <script type="module">
-import { formatContent, autoScaleTables, renderTikz, compileTikZToImage, compileTikZBatch, cleanTikzCode, prepareTikzForCompilation } from "./utils.js";
+import { formatContent, autoScaleTables, renderTikz, compileTikZToImage, compileTikZBatch, cleanTikzCode, prepareTikzForCompilation } from "./utils.js?v=20261113-v1";
 window.formatContent = formatContent;
 window.autoScaleTables = autoScaleTables;
 window.renderTikz = renderTikz;
@@ -17077,11 +17077,27 @@ processed = processed.replace(/\\itemch\b/g, '<span class="font-bold text-amber-
 processed = processed.replace(/\\begin\{nx\}([\s\S]*?)\\end\{nx\}/gi, (match, body) => {
 return `<div class="my-3 p-3.5 border-l-4 border-teal-500 bg-teal-50 text-teal-900 rounded-r-xl shadow-2xs"><strong class="block mb-1 text-teal-800 flex items-center gap-1.5"><i class="fa-solid fa-lightbulb text-teal-600"></i>Nhận xét:</strong>${body}</div>`;
 });
-processed = processed.replace(/\\begin\{tabular\}\{[^}]*\}([\s\S]*?)\\end\{tabular\}/gi, (match, body) => {
-const cleanBody = body.replace(/\\hspace\*?\{[^}]*\}/g, ' ')
-.replace(/\\vspace\*?\{[^}]*\}/g, ' ')
-.replace(/&amp;|&/g, ' ');
-return `<div class="flex flex-wrap items-center justify-around gap-4 my-2">${cleanBody}</div>`;
+processed = processed.replace(/\\setlength\s*\{[^}]*\}\s*\{[^}]*\}/g, '').replace(/\\begin\{center\}/g, '<div class="text-center my-2">').replace(/\\end\{center\}/g, '</div>');
+processed = processed.replace(/\\begin\{tabular\}\s*(?:\[[^\]]*\])?\s*\{(?:[^{}]|\{[^{}]*\})*\}([\s\S]*?)\\end\{tabular\}/gi, (match, body) => {
+const rows = body.split(/\\\\(?:\s*\[[^\]]*\])?/);
+let tbl = '<div class="my-2 w-full overflow-x-auto"><table class="mx-auto border-collapse border border-slate-300 bg-white text-sm" style="min-width:max-content;">';
+let rIdx = 0;
+rows.forEach((row) => {
+const cleanRow = row.replace(/\\(?:hline|toprule|midrule|bottomrule)\b/g, '').replace(/\\cline\s*\{[^}]*\}/g, '').replace(/\\centering\b/g, '').trim();
+if (!cleanRow) return;
+const cols = cleanRow.split(/(?<!\\)&/);
+tbl += `<tr class="${rIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}">`;
+cols.forEach((rawCol, cIdx) => {
+let cell = rawCol.trim();
+if (!cell || cell === '$$') cell = '&nbsp;';
+const tag = rIdx === 0 ? 'th' : 'td';
+tbl += `<${tag} class="border border-slate-300 px-3 py-1.5 text-center">${cell}</${tag}>`;
+});
+tbl += '</tr>';
+rIdx++;
+});
+tbl += '</table></div>';
+return tbl;
 });
 processed = processed.replace(/\\\\(?=\s*(?:<br|\n|$))/g, '<br>');
 processed = processed.replace(/\\\\/g, '<br>');
