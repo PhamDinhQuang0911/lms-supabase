@@ -1,5 +1,5 @@
 // topic-parser.js - Parser cấu trúc LaTeX cho Kho Chuyên Đề
-import { compileTikZToImage, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode, extractTikzPrelude, attachTikzPrelude } from './utils.js?v=20261113-v3';
+import { compileTikZToImage, compileTikzLocalViaTikzJax, compileTikzViaQuickLaTeX, cleanTikzCode, canRenderWithTikzJax, getTikzRenderMode, extractTikzPrelude, attachTikzPrelude } from './utils.js?v=20261113-v4';
 
 // Cloudflare Upload Endpoint (Từ exam-editor.html)
 const CLOUDFLARE_UPLOAD_API = "https://upload-helper.phamngockhanh-942001.workers.dev/";
