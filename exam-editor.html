@@ -5254,6 +5254,7 @@ btn.disabled = false;
 };
 function cleanWordMathLatex(str) {
 if (!str || typeof str !== 'string') return str;
+str = str.replace(/\\frac(?![a-zA-Z])/g, '\\dfrac');
 str = str.replace(/\{\\rm(?:\s*\{\})?\}\s*%/g, '{\\rm \\%}');
 str = str.replace(/\$\$([\s\S]+?)\$\$/g, (m, mathContent) => {
     return '$$' + mathContent.replace(/(^|[^\\])%/g, '$1\\%') + '$$';
