@@ -99,10 +99,10 @@ startup: { typeset: false }
     <script src="latex-exporter.js?v=20261002"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="qrcode.min.js?v=20261017_V1"></script>
-    <script src="question-importer.js?v=20261016_V5"></script>
-    <script src="word-mathtype-exporter.js?v=20261016_V5"></script>
-    <script src="exam-mixer.js?v=20261017_V3"></script>
-    <script src="imath-studio.js?v=20261111-v3" defer></script>
+    <script src="question-importer.js?v=20261113-v2"></script>
+    <script src="word-mathtype-exporter.js?v=20261113-v7"></script>
+    <script src="exam-mixer.js?v=20261113-v4"></script>
+    <script src="imath-studio.js?v=20261113-v6" defer></script>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
@@ -519,10 +519,13 @@ window.clearExamTime = clearExamTime;
             color: #2563eb !important; /* blue-600 */
             border-color: #93c5fd !important; /* blue-300 */
         }
+        .swal2-container {
+            z-index: 10045 !important;
+        }
     </style>
     
     
-    <link rel="stylesheet" href="/styles.css?v=70">
+    <link rel="stylesheet" href="/styles.css?v=77">
 <meta name="view-transition" content="same-origin" /></head>
 <body class="h-screen flex overflow-hidden text-gray-800">
 
@@ -956,6 +959,7 @@ window.clearExamTime = clearExamTime;
                             <span>Danh sách (<span id="totalQCount">0</span>)</span>
                         </h2>
                         <span id="liveExamTotalScoreBadge" class="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200" title="Tổng điểm hiện tại của đề">0.0 đ</span>
+                        <span id="editorMonthlyQuotaBadge" class="hidden text-xs font-bold px-2 py-0.5 rounded-md border" title="Số lần còn lại tạo/tải đề trong tháng"></span>
                         <div id="orderModeBadge" onclick="window.toggleOrderModeFromBadge()" class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer select-none transition-all bg-white text-slate-600 border-slate-200 hover:bg-slate-100 shadow-2xs" title="Bấm để chuyển đổi giữa Đảo đề và Giữ thứ tự gốc">
                             <span id="orderModeIcon"><i class="fa-solid fa-shuffle text-slate-500"></i></span> <span id="orderModeText">Đảo đề</span>
                         </div>
@@ -1004,7 +1008,7 @@ window.clearExamTime = clearExamTime;
                                 </div>
                                 <div class="py-1">
                                     <div class="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Xuất dữ liệu</div>
-                                    <button type="button" onclick="window.closeImportExportDropdown(); window.openExportLatexModal();" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 cursor-pointer font-medium text-slate-700">
+                                    <button type="button" id="btnEditorOpenExportLatex" onclick="window.closeImportExportDropdown(); window.openExportLatexModal();" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 cursor-pointer font-medium text-slate-700">
                                         <i class="fa-solid fa-file-export w-4 text-emerald-600 text-center"></i> Xuất file TeX (.tex)
                                     </button>
                                     <button type="button" onclick="window.closeImportExportDropdown(); window.exportEditorExamToWord();" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 cursor-pointer font-medium text-slate-700">
@@ -1740,7 +1744,7 @@ this.innerHTML = '<i class="fa-solid fa-eye"></i>';
                     <button onclick="window.copyExportLatexCode()" class="px-4 py-2 bg-white border border-slate-300 text-slate-800 rounded-xl text-xs font-bold hover:bg-slate-100 transition shadow-xs flex items-center gap-1.5 cursor-pointer">
                         <i class="fa-regular fa-copy"></i> Sao chép mã TeX
                     </button>
-                    <button onclick="window.downloadExportLatexFile()" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                    <button id="btnEditorDownloadExportLatex" onclick="window.downloadExportLatexFile()" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
                         <i class="fa-solid fa-download"></i> Tải file .tex về máy
                     </button>
                 </div>
@@ -2001,7 +2005,7 @@ this.innerHTML = '<i class="fa-solid fa-eye"></i>';
     </div>
     
     
-    <div id="toastContainer" class="fixed top-5 right-5 z-[110] flex flex-col gap-2.5 pointer-events-none"></div>
+    <div id="toastContainer" class="fixed top-4 right-3 sm:top-5 sm:right-5 max-w-[calc(100vw-24px)] z-[10050] flex flex-col gap-2.5 pointer-events-none" style="z-index: 10050 !important;"></div>
     <script>
 window.showToast = function(message, type = 'success', duration = 3200) {
 const container = document.getElementById('toastContainer');
@@ -2077,7 +2081,7 @@ getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, where, getDocs,
 getStorage, ref, uploadBytes, getDownloadURL,
 supabase
 } from "./supabase-db-compat.js?v=25";
-import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzToSvgViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, getTikzRenderMode, setTikzRenderMode, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, extractTikzPrelude, attachTikzPrelude, renderTikz } from "./utils.js?v=20261110-v7";
+import { getTikzApiUrl, compileTikZToImage, compileTikZBatch, compileTikzLocalViaTikzJax, compileTikzToSvgViaTikzJax, compileTikzViaQuickLaTeX, canRenderWithTikzJax, getTikzRenderMode, setTikzRenderMode, formatContent, convertArrayToMatrix, autoScaleTables, cleanTikzCode, extractNextBrace, extractTikzPrelude, attachTikzPrelude, renderTikz } from "./utils.js?v=20261113-v4";
 import { readCache, writeCache } from "./perf-cache.js";
 window.formatContent = formatContent;
 window.autoScaleTables = autoScaleTables;
@@ -2133,10 +2137,39 @@ window.closeCustomModal = () => { modalEl.classList.add('opacity-0', 'pointer-ev
 window.customAlert = (message, type = 'info') => { return new Promise((resolve) => { modalTitle.innerText = type === 'error' ? 'Lỗi' : 'Thông báo'; modalMsg.innerText = message; modalIcon.innerHTML = type === 'error' ? '<i class="fa-solid fa-triangle-exclamation text-rose-600"></i>' : '<i class="fa-solid fa-bell text-blue-600"></i>'; document.getElementById('modalInput').classList.add('hidden'); btnCancel.classList.add('hidden'); btnConfirm.innerText = "Đã hiểu"; modalEl.classList.remove('opacity-0', 'pointer-events-none'); modalBox.classList.remove('scale-100'); modalBox.classList.add('scale-100'); btnConfirm.onclick = () => { resolve(true); modalResolve = null; closeCustomModal(); }; modalResolve = resolve; }); };
 window.customConfirm = (message) => { return new Promise((resolve) => { modalTitle.innerText = "Xác nhận"; modalMsg.innerText = message; modalIcon.innerHTML = '<i class="fa-solid fa-circle-question text-amber-600"></i>'; document.getElementById('modalInput').classList.add('hidden'); btnCancel.classList.remove('hidden'); btnConfirm.innerText = "Đồng ý"; modalEl.classList.remove('opacity-0', 'pointer-events-none'); modalBox.classList.remove('scale-95'); modalBox.classList.add('scale-100'); btnConfirm.onclick = () => { resolve(true); modalResolve = null; closeCustomModal(); }; btnCancel.onclick = () => { resolve(false); modalResolve = null; closeCustomModal(); }; }); };
 window.globalIdTree = [];
+window.applyEditorRoleVisibility = () => {
+    const canTex = window.QMathQuota ? Boolean(window.QMathQuota.getRoleInfo().canDownloadTex) : false;
+    ['btnEditorOpenExportLatex', 'btnEditorDownloadExportLatex'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.setProperty('display', canTex ? '' : 'none', canTex ? '' : 'important');
+    });
+    const qBadge = document.getElementById('editorMonthlyQuotaBadge');
+    if (qBadge && window.QMathQuota && typeof window.QMathQuota.getDisplaySummary === 'function') {
+        const q = window.QMathQuota.getDisplaySummary();
+        qBadge.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-700', 'border-emerald-200', 'bg-blue-50', 'text-blue-700', 'border-blue-200', 'bg-amber-50', 'text-amber-700', 'border-amber-200', 'bg-rose-50', 'text-rose-700', 'border-rose-200');
+        const toneCls = q.tone === 'emerald'
+            ? ['bg-emerald-50', 'text-emerald-700', 'border-emerald-200']
+            : q.tone === 'rose'
+                ? ['bg-rose-50', 'text-rose-700', 'border-rose-200']
+                : q.tone === 'amber'
+                    ? ['bg-amber-50', 'text-amber-700', 'border-amber-200']
+                    : ['bg-blue-50', 'text-blue-700', 'border-blue-200'];
+        qBadge.classList.add(...toneCls);
+        qBadge.textContent = q.shortText;
+        qBadge.title = q.badgeText;
+    }
+    if (typeof window.refreshIMathRoleVisibility === 'function') {
+        window.refreshIMathRoleVisibility();
+    }
+};
+window.addEventListener('qmath-quota-updated', () => {
+    if (typeof window.applyEditorRoleVisibility === 'function') window.applyEditorRoleVisibility();
+});
+window.applyEditorRoleVisibility();
 onAuthStateChanged(auth, async (user) => {
 if (user) {
 const emailLower = (user.email || '').trim().toLowerCase();
-const ROOT_ADMINS = ["phamdinhquang0911@gmail.com", "phamngockhanh.942001@gmail.com", "phamngockhanh.942002@gmail.com"];
+const ROOT_ADMINS = ["phamdinhquang0911@gmail.com", "phamquang09112001@gmail.com", "phamngockhanh.942001@gmail.com", "phamngockhanh.942002@gmail.com"];
 let isAuthorizedStaff = ROOT_ADMINS.includes(emailLower) || ['admin', 'teacher', 'super_admin'].includes(user.role);
 if (!isAuthorizedStaff && emailLower) {
 try {
@@ -2157,6 +2190,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const examId = urlParams.get('id');
 const viewParam = urlParams.get('view');
 const typeParam = urlParams.get('type');
+const fromParam = urlParams.get('from');
 if (examId) currentExamId = examId;
 const p1 = loadTeacherClasses();
 window.n8nWebhook = ''; getDoc(doc(db, "configurations", "n8n_webhook")).then(snap => { if (snap.exists()) window.n8nWebhook = snap.data().url || ''; }); const p2 = getDoc(doc(db, "configurations", "map_id_tree")).then(snap => {
@@ -2166,7 +2200,63 @@ console.log("Đã tải MapID Tree:", window.globalIdTree);
 }
 }).catch(err => console.log("Lỗi tải MapID:", err));
 const examLoad = examId ? loadExamData(examId) : Promise.resolve();
-await Promise.all([p1, p2, examLoad]);
+window._qmathQuotaSyncUsageToCloud = async (uid, monthKey, count) => {
+    try {
+        if (!uid || !db) return;
+        await setDoc(doc(db, "users", uid), {
+            monthlyExamUsage: { [monthKey]: count }
+        }, { merge: true });
+    } catch (_) {}
+};
+const roleLoad = (async () => {
+    try {
+        const [pkgSnapRole, rolesSnapRole, userSnapRole] = await Promise.all([
+            getDoc(doc(db, "configurations", "teacher_package_config")).catch(() => null),
+            getDoc(doc(db, "configurations", "admin_roles")).catch(() => null),
+            getDoc(doc(db, "users", user.uid)).catch(() => null)
+        ]);
+        if (pkgSnapRole && pkgSnapRole.exists()) {
+            window.teacherPackageConfig = pkgSnapRole.data() || {};
+            try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
+        }
+        const isRootEmail = ROOT_ADMINS.includes(emailLower);
+        let accRec = null;
+        if (rolesSnapRole && rolesSnapRole.exists()) {
+            const accs = rolesSnapRole.data().accounts || [];
+            accRec = accs.find(a => (a.email || '').toLowerCase().trim() === emailLower || a.id === user.uid) || null;
+        }
+        const uDataRole = (userSnapRole && userSnapRole.exists()) ? (userSnapRole.data() || {}) : {};
+        const isSuperRole = isRootEmail || accRec?.role === 'super_admin' || accRec?.isRoot === true || uDataRole.role === 'super_admin' || uDataRole.isSuperAdmin === true;
+        const tierRole = (accRec?.teacherTier === 'free' || accRec?.role === 'teacher_free' || uDataRole.teacherTier === 'free' || uDataRole.role === 'teacher_free') ? 'free' : 'vip';
+        window.currentAdminProfile = {
+            ...(accRec || {}),
+            uid: user.uid,
+            email: user.email || '',
+            role: isSuperRole ? 'super_admin' : 'teacher',
+            teacherTier: isSuperRole ? 'vip' : tierRole
+        };
+        if (window.QMathQuota) {
+            const pkgCfg = window.teacherPackageConfig || {};
+            window.QMathQuota.saveRoleSnapshot({
+                uid: user.uid,
+                email: user.email || '',
+                isSuper: isSuperRole,
+                isFree: (!isSuperRole && tierRole === 'free'),
+                isVip: (!isSuperRole && tierRole !== 'free'),
+                vipAllowTexDownload: Boolean(pkgCfg.vipAllowTexDownload),
+                vipMonthlyExamQuota: pkgCfg.vipMonthlyExamQuota !== undefined ? parseInt(pkgCfg.vipMonthlyExamQuota, 10) : -1,
+                freeMonthlyExamQuota: pkgCfg.freeMonthlyExamQuota !== undefined ? parseInt(pkgCfg.freeMonthlyExamQuota, 10) : 100
+            });
+            if (uDataRole.monthlyExamUsage) {
+                window.QMathQuota.syncFromCloudUsage(user.uid, uDataRole.monthlyExamUsage);
+            }
+        }
+    } catch (eRole) {
+        console.warn('[exam-editor] Lỗi đồng bộ phân quyền/hạn mức:', eRole);
+    }
+})();
+await Promise.all([p1, p2, examLoad, roleLoad]);
+window.applyEditorRoleVisibility();
 if (typeof window.renderExamEditorTags === 'function') window.renderExamEditorTags();
 if (examId) {
 if (!viewParam && window.switchView) window.switchView('editor');
@@ -2186,6 +2276,28 @@ window.handleKeepOriginalOrderChange(true);
 if (window.updateOrderBadge) window.updateOrderBadge();
 if (viewParam && window.switchView) {
 window.switchView(viewParam);
+}
+if (!examId && fromParam === 'imath') {
+    try {
+        const pendingRaw = localStorage.getItem('qmath_imath_pending_exam_tex');
+        if (pendingRaw) {
+            const pendingData = JSON.parse(pendingRaw);
+            const isFresh = !pendingData.createdAt || (Date.now() - pendingData.createdAt < 30 * 60 * 1000);
+            if (isFresh && pendingData.tex && typeof window.parseLatexContent === 'function') {
+                localStorage.removeItem('qmath_imath_pending_exam_tex');
+                if (pendingData.title) {
+                    const tInp = document.getElementById('settingTitle');
+                    if (tInp && !tInp.value.trim()) tInp.value = pendingData.title;
+                }
+                const addedCount = window.parseLatexContent(pendingData.tex);
+                if (addedCount > 0 && window.showToast) {
+                    window.showToast(`Đã đưa ${addedCount} câu hỏi từ iMath Studio sang khu tạo đề online!`, 'success', 4000);
+                }
+            }
+        }
+    } catch (eImp) {
+        console.warn('[exam-editor] Lỗi nạp câu hỏi từ iMath Studio:', eImp);
+    }
 }
 } else { window.location.href = 'index.html'; }
 });
@@ -4702,6 +4814,37 @@ count++;
 }
 return parsedList;
 };
+window.parseLatexContent = function(rawTex) {
+    if (!rawTex || !String(rawTex).trim()) return 0;
+    if (window.currentQIndex !== -1 && typeof saveCurrentQuestionToMemory === 'function') {
+        saveCurrentQuestionToMemory();
+    }
+    pendingImageUploads = [];
+    const parsed = window.parseLatexExamString(rawTex);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+        if (window.showToast) window.showToast('Không tìm thấy câu hỏi hợp lệ trong mã LaTeX.', 'warning');
+        return 0;
+    }
+    if (!Array.isArray(window.questions)) window.questions = [];
+    const typeSetting = (typeof document !== 'undefined' && document.getElementById('settingType'))
+        ? document.getElementById('settingType').value
+        : (window.examData ? window.examData.type : '');
+    const isMixed = typeSetting === 'mixed' || (window.examData && window.examData.type === 'mixed');
+    parsed.forEach(q => {
+        if (isMixed && q.type === 'essay') {
+            if (!Array.isArray(window.mixedTlQuestions)) window.mixedTlQuestions = [];
+            window.mixedTlQuestions.push(q);
+        } else {
+            window.questions.push(q);
+        }
+    });
+    if (typeof window.continueProcessTikZ === 'function') {
+        window.continueProcessTikZ();
+    } else if (typeof window.finishImportProcess === 'function') {
+        window.finishImportProcess();
+    }
+    return parsed.length;
+};
 window.handleOverwriteTexFile = async (input) => {
 const file = input.files[0];
 if (!file) return;
@@ -5526,6 +5669,10 @@ webhooksConfig = webhookSnap.data();
 } catch(e) { console.error("Error fetching webhooks:", e); }
 sessionUploadedFiles = [];
 window.originalQuestionsData = JSON.parse(JSON.stringify(window.questions));
+if (!currentExamId && !window._qmathNewExamQuotaCharged && window.QMathQuota) {
+    const qRes = await window.QMathQuota.consume('Tạo đề thi online');
+    if (!qRes.allowed) return;
+}
 const examRef = currentExamId ? doc(db, "exams", currentExamId) : doc(collection(db, "exams"));
 let rawTexToSave = window.lastUploadedTexFile?.rawText || window.examData?.rawTex || window.examData?.latexContent || null;
 const rawTexNameToSave = window.lastUploadedTexFile?.name || window.examData?.rawTexName || null;
@@ -5583,6 +5730,7 @@ window.examData.rawTex = rawTexToSave;
 window.examData.rawTexName = rawTexNameToSave;
 }
 currentExamId = examRef.id; window.currentExamId = currentExamId;
+window._qmathNewExamQuotaCharged = true;
 const sbTitleEl = document.getElementById('sidebarExamTitle');
 if (sbTitleEl) sbTitleEl.textContent = title;
 window.updateExamStatusUI(status, currentExamId);
@@ -9845,6 +9993,10 @@ qrBanner.classList.add('hidden');
 }
 };
 window.openExportLatexModal = async () => {
+if (window.QMathQuota && !window.QMathQuota.getRoleInfo().canDownloadTex) {
+    if (window.showToast) window.showToast("Tài khoản của bạn chưa được cấp quyền xuất/tải file .tex!", "error");
+    return;
+}
 if (window.currentQIndex !== -1 && typeof saveCurrentQuestionToMemory === 'function') {
 saveCurrentQuestionToMemory();
 }
@@ -9947,12 +10099,20 @@ document.execCommand('copy');
 window.showToast("Đã sao chép mã TeX!", "success");
 }
 };
-window.downloadExportLatexFile = () => {
+window.downloadExportLatexFile = async () => {
+if (window.QMathQuota && !window.QMathQuota.getRoleInfo().canDownloadTex) {
+    if (window.showToast) window.showToast("Tài khoản của bạn chưa được cấp quyền tải file .tex!", "error");
+    return;
+}
 const textarea = document.getElementById('exportLatexCodePreview');
 const content = textarea ? textarea.value : '';
 if (!content) {
 window.showToast("Không có nội dung LaTeX để tải!", "warning");
 return;
+}
+if (window.QMathQuota) {
+    const qRes = await window.QMathQuota.consume('Tải file .tex từ trình tạo đề');
+    if (!qRes.allowed) return;
 }
 const examTitle = (document.getElementById('settingTitle')?.value || window.examData?.title || "De_Thi").trim();
 let fileName = `${examTitle.replace(/[^a-zA-Z0-9_\-\u00C0-\u024F\u1EA0-\u1EF9]/g, '_')}_ID.tex`;

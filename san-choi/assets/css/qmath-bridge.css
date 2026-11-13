@@ -138,6 +138,15 @@
   border-color: #cbd5e1;
   background: #ffffff;
 }
+.qm-src-card.tex-card {
+  grid-column: 1 / -1;
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+.qm-src-card.tex-card:hover {
+  border-color: #10b981;
+  background: #d1fae5;
+}
 .qm-src-ic {
   width: 40px;
   height: 40px;

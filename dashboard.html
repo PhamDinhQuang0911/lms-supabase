@@ -497,7 +497,7 @@ return true;
 </script>
     <script>
 (function() {
-const CACHE_RESET_ID = 'qmath_reset_v20261022_v53';
+const CACHE_RESET_ID = 'qmath_reset_v20261112_v56';
 if (localStorage.getItem('qm_reset_cache') !== CACHE_RESET_ID) {
 if ('serviceWorker' in navigator) {
 navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -561,7 +561,7 @@ window.switchView = switchView;
     <script src="mathlive.min.js"></script>
     <script src="math-palette.js?v=20260927-v4"></script>
     <script src="mapid-picker.js"></script>
-    <script src="question-importer.js"></script>
+    <script src="question-importer.js?v=20261113-v2"></script>
     <script src="bank-service.js?v=20260927-hotswap"></script>
     <script src="bank-deduplicator.js?v=20260930"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -569,9 +569,9 @@ window.switchView = switchView;
     <script src="latex-exporter.js?v=20261002"></script>
     <script src="system-backup.js?v=20261007"></script>
     <script src="qrcode.min.js?v=20261017_V1"></script>
-    <script src="word-mathtype-exporter.js?v=20261016_V5"></script>
-    <script src="exam-mixer.js?v=20261108_V4"></script>
-    <script src="imath-studio.js?v=20261111-v3" defer></script>
+    <script src="word-mathtype-exporter.js?v=20261113-v7"></script>
+    <script src="exam-mixer.js?v=20261113-v4"></script>
+    <script src="imath-studio.js?v=20261113-v6" defer></script>
     <script>
 window.MathJax = {
 loader: { load: ['[tex]/noerrors'] },
@@ -1362,7 +1362,7 @@ startup: { typeset: false }
             }
         }
     </style>
-    <link rel="stylesheet" href="/styles.css?v=75">
+    <link rel="stylesheet" href="/styles.css?v=77">
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 
@@ -1403,12 +1403,15 @@ startup: { typeset: false }
             color: #b91c1c !important;
             background-color: #fef2f2 !important;
         }
+        .swal2-container {
+            z-index: 10045 !important;
+        }
     </style>
 
 </head>
 <body class="h-screen flex overflow-hidden text-gray-800 bg-gray-50">
 
-    <div id="notificationContainer" class="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+    <div id="notificationContainer" class="fixed top-4 right-3 sm:top-5 sm:right-5 max-w-[calc(100vw-24px)] z-[10050] flex flex-col gap-3 pointer-events-none" style="z-index: 10050 !important;"></div>
     <div id="sidebarOverlay" onclick="window.closeSidebar()" class="fixed inset-0 bg-gray-900/60 z-[90] hidden transition-opacity md:hidden"></div>
 
     <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-gray-200 flex flex-col shadow-2xl z-[99] sidebar-closed md:translate-x-0 md:relative md:w-64 md:shadow-sm md:z-20 flex-shrink-0">
@@ -1463,6 +1466,16 @@ startup: { typeset: false }
                     <i class="fa-solid fa-plus text-[9px]"></i> Nạp
                 </button>
             </div>
+        </div>
+
+        <div id="teacherQuotaSidebarBox" class="hidden px-3 py-2 border-b border-gray-100 dark:border-slate-800 shrink-0">
+            <button type="button" onclick="window.handleDashboardQuotaClick()" id="teacherQuotaSidebarBtn" class="w-full p-2 rounded-xl border text-left transition-all flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 hover:border-indigo-300 cursor-pointer">
+                <div class="min-w-0">
+                    <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tạo &amp; tải đề tháng này</div>
+                    <div id="teacherQuotaSidebarText" class="text-xs font-extrabold text-slate-800 dark:text-slate-100 truncate">Đang tải...</div>
+                </div>
+                <span id="teacherQuotaSidebarTag" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 shrink-0">...</span>
+            </button>
         </div>
 
         <div id="sidebarNav" class="flex-1 overflow-y-auto py-3 px-3 space-y-3 custom-scrollbar min-h-0 pb-16">
@@ -1578,9 +1591,15 @@ startup: { typeset: false }
                 
                 <div class="rounded-2xl md:rounded-3xl p-5 sm:p-6 md:p-8 lg:p-10 text-white shadow-lg md:shadow-xl relative overflow-hidden" style="background: linear-gradient(135deg, #3730a3 0%, #1e40af 100%);">
                     <div class="relative z-10 max-w-3xl">
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold mb-3">
-                            <span class="w-2 h-2 rounded-full bg-emerald-300"></span>
-                            <span id="homeTeacherRoleBadge">Giáo viên Quản trị</span>
+                        <div class="flex flex-wrap items-center gap-2 mb-3">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold">
+                                <span class="w-2 h-2 rounded-full bg-emerald-300"></span>
+                                <span id="homeTeacherRoleBadge">Giáo viên Quản trị</span>
+                            </div>
+                            <button type="button" id="homeMonthlyQuotaBadge" onclick="window.handleDashboardQuotaClick()" class="hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-xs font-bold text-white border border-white/25 transition-all cursor-pointer" title="Số lần còn lại để tạo &amp; tải đề đổi số trong tháng">
+                                <i class="fa-solid fa-gauge-high text-[11px]"></i>
+                                <span id="homeMonthlyQuotaText">...</span>
+                            </button>
                         </div>
                         <h1 class="text-2xl sm:text-3xl md:text-4xl font-black mb-2 tracking-tight">Xin chào <span id="homeTeacherGreeting">Thầy Choang</span>! 👋</h1>
                         <p class="text-white/95 text-xs sm:text-sm md:text-base max-w-2xl leading-relaxed mb-6">Hệ thống quản lý giảng dạy thông minh. Chúc Thầy Cô một ngày làm việc hiệu quả và đầy cảm hứng.</p>
@@ -1772,9 +1791,10 @@ startup: { typeset: false }
                                         <i class="fa-solid fa-dice"></i>
                                     </div>
                                     <div class="min-w-0">
-                                        <div class="font-extrabold text-sm text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex items-center gap-2">
+                                        <div class="font-extrabold text-sm text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors flex flex-wrap items-center gap-2">
                                             <span>Tạo câu hỏi đổi số (Theo dạng)</span>
                                             <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">Hot</span>
+                                            <span id="homeCardImatchQuotaBadge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/70 dark:text-indigo-300 dark:border-indigo-800"></span>
                                         </div>
                                         <p class="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">Sinh câu hỏi biến thể đổi số Toán 6, 7, 8, 9 chuẩn MapID & nạp Ngân hàng</p>
                                     </div>
@@ -2659,12 +2679,16 @@ startup: { typeset: false }
         <div id="view-exambank" class="view-section hidden flex-1 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
             <div class="border-b border-gray-200 dark:border-gray-800 flex flex-col items-stretch bg-white dark:bg-gray-900 shrink-0 sticky top-0 z-20 shadow-xs">
                 
-                <div class="flex items-center justify-between px-3 md:px-4 py-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                <div class="flex flex-wrap items-center justify-between gap-2 px-3 md:px-4 py-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
                     <div class="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-full sm:w-auto overflow-x-auto scrollbar-none" role="tablist" aria-label="Loại đề thi">
                         <button onclick="window.switchBankTab('exam')" id="tabBankExam" role="tab" aria-selected="true" class="flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all btn-season-secondary shadow-2xs whitespace-nowrap text-center">Đề trắc nghiệm</button>
                         <button onclick="window.switchBankTab('homework')" id="tabBankHomework" role="tab" aria-selected="false" class="flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all text-slate-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white border border-transparent whitespace-nowrap text-center">Tự luận</button>
                         <button onclick="window.switchBankTab('mixed')" id="tabBankMixed" role="tab" aria-selected="false" class="flex-1 sm:flex-initial px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-lg transition-all text-slate-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white border border-transparent whitespace-nowrap text-center">Đề hỗn hợp</button>
                     </div>
+                    <button type="button" id="exambankMonthlyQuotaBadge" onclick="window.handleDashboardQuotaClick()" class="hidden px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all cursor-pointer shrink-0">
+                        <i class="fa-solid fa-gauge-high text-[11px]"></i>
+                        <span id="exambankMonthlyQuotaText">...</span>
+                    </button>
                 </div>
 
                 
@@ -3548,7 +3572,7 @@ startup: { typeset: false }
                             <i class="fa-solid fa-copy"></i>
                             <span class="hidden md:inline">Sao chép</span>
                         </button>
-                        <button onclick="window.downloadSingleQuestionTexFile()" class="btn-preview-action px-2.5 py-2 md:px-4 md:py-2 bg-white text-gray-700 hover:text-emerald-700 border border-gray-200 hover:border-emerald-300 text-xs md:text-sm" title="Tải tệp .tex về máy">
+                        <button id="btnDownloadSingleQuestionTex" onclick="window.downloadSingleQuestionTexFile()" class="btn-preview-action px-2.5 py-2 md:px-4 md:py-2 bg-white text-gray-700 hover:text-emerald-700 border border-gray-200 hover:border-emerald-300 text-xs md:text-sm" title="Tải tệp .tex về máy">
                             <i class="fa-solid fa-download"></i>
                             <span class="hidden md:inline">Tải .tex</span>
                         </button>
@@ -4801,6 +4825,38 @@ window.openSidebar = () => window.toggleSidebar(true);
                                     </label>
                                 </div>
                             </div>
+
+                            <!-- Quyền tải .tex & Hạn mức Tạo/Tải đề hàng tháng -->
+                            <div class="pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2.5">
+                                <div class="text-xs font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wide flex items-center gap-1.5">
+                                    <i class="fa-solid fa-gauge-high text-indigo-500"></i>
+                                    Phân quyền tải file .tex &amp; Hạn mức Tạo / Tải đề hàng tháng
+                                </div>
+                                <label class="flex items-center gap-2 p-2.5 rounded-lg border border-indigo-200 dark:border-indigo-800/70 bg-indigo-50/50 dark:bg-indigo-950/30 cursor-pointer">
+                                    <input type="checkbox" id="cfgVipPerm_download_tex" class="accent-indigo-600 rounded">
+                                    <span class="text-[11px] font-bold text-gray-800 dark:text-gray-100">Cho phép Giáo viên VIP tải file mã nguồn .tex (iMath Studio / Soạn đề)</span>
+                                </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div class="p-2.5 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/50 space-y-1">
+                                        <label class="block text-[11px] font-bold text-gray-800 dark:text-gray-200">
+                                            <i class="fa-solid fa-crown text-amber-500 mr-1"></i> Số lần tạo / tải đề mỗi tháng (Giáo viên VIP)
+                                        </label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="cfgVipMonthlyExamQuota" value="-1" min="-1" class="w-24 px-2 py-1 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300">
+                                            <span class="text-[10px] text-slate-500 font-semibold">(-1 = Không giới hạn)</span>
+                                        </div>
+                                    </div>
+                                    <div class="p-2.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/50 space-y-1">
+                                        <label class="block text-[11px] font-bold text-gray-800 dark:text-gray-200">
+                                            <i class="fa-solid fa-user-graduate text-emerald-600 mr-1"></i> Số lần tạo / tải đề mỗi tháng (Giáo viên Free)
+                                        </label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="cfgFreeMonthlyExamQuota" value="100" min="-1" class="w-24 px-2 py-1 text-xs font-bold rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300">
+                                            <span class="text-[10px] text-slate-500 font-semibold">lần/tháng (-1 = KGH)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         
@@ -6011,7 +6067,7 @@ window.openSidebar = () => window.toggleSidebar(true);
     </div>
 
     <script type="module">
-import { formatContent, autoScaleTables, renderTikz, compileTikZToImage, compileTikZBatch, cleanTikzCode, prepareTikzForCompilation } from "./utils.js";
+import { formatContent, autoScaleTables, renderTikz, compileTikZToImage, compileTikZBatch, cleanTikzCode, prepareTikzForCompilation } from "./utils.js?v=20261113-v4";
 window.formatContent = formatContent;
 window.autoScaleTables = autoScaleTables;
 window.renderTikz = renderTikz;
@@ -6115,6 +6171,16 @@ const qs = params.toString();
 return 'exam-editor.html' + (qs ? '?' + qs : '');
 };
 window.openCreateExam = (customType) => {
+if (window.QMathQuota && typeof window.QMathQuota.getStatus === 'function') {
+const qStatus = window.QMathQuota.getStatus();
+if (!qStatus.unlimited && (qStatus.monthlyLimit === 0 || qStatus.used >= qStatus.monthlyLimit)) {
+window.showNotification(
+`Bạn đã sử dụng hết ${qStatus.used}/${qStatus.monthlyLimit} lượt tạo & tải đề trong tháng ${qStatus.monthKey}!`,
+'warning'
+);
+return;
+}
+}
 const tab = window.currentBankTab || 'exam';
 const type = customType !== undefined ? customType : (tab === 'homework' ? 'homework' : (tab === 'mixed' ? 'mixed' : ''));
 window.location.href = window.getCreateExamUrl(type);
@@ -6966,6 +7032,159 @@ bankImportBtnText.textContent = isSuper ? 'Nạp câu hỏi' : 'Tải lên Kho R
 if (typeof window.updateBankVaultBadges === 'function') {
 window.updateBankVaultBadges();
 }
+window.canCurrentUserDownloadTex = () => {
+if (window.QMathQuota && typeof window.QMathQuota.getRoleInfo === 'function') {
+return Boolean(window.QMathQuota.getRoleInfo().canDownloadTex);
+}
+const isSup = typeof window.checkIsSuperAdmin === 'function' ? window.checkIsSuperAdmin() : false;
+const isFr = Boolean(window.isFreeTeacher);
+const vipCan = Boolean(window.teacherPackageConfig && window.teacherPackageConfig.vipAllowTexDownload);
+return isSup || (!isFr && vipCan);
+};
+window.handleDashboardQuotaClick = () => {
+const q = (window.QMathQuota && typeof window.QMathQuota.getDisplaySummary === 'function') ? window.QMathQuota.getDisplaySummary() : null;
+if (!q) return;
+if (q.isFree && typeof window.openTeacherVipUpgradeModal === 'function') {
+window.openTeacherVipUpgradeModal();
+return;
+}
+if (typeof window.showNotification === 'function') {
+window.showNotification(`${q.badgeText}${q.unlimited ? '' : ` (Đã dùng ${q.used}/${q.limit} lượt)`}`, 'info');
+}
+};
+window.refreshDashboardQuotaDisplay = () => {
+const q = (window.QMathQuota && typeof window.QMathQuota.getDisplaySummary === 'function') ? window.QMathQuota.getDisplaySummary() : null;
+const allowTex = window.canCurrentUserDownloadTex();
+['btnExportQuestionTex', 'btnBulkExportLatex', 'btnFloatingBulkExportLatex', 'btnDownloadSingleQuestionTex'].forEach(id => {
+const el = document.getElementById(id);
+if (el) el.style.setProperty('display', allowTex ? '' : 'none', allowTex ? '' : 'important');
+});
+document.querySelectorAll('.btn-bank-export-tex').forEach(el => {
+el.style.setProperty('display', allowTex ? '' : 'none', allowTex ? '' : 'important');
+});
+if (!q) return;
+const sbBox = document.getElementById('teacherQuotaSidebarBox');
+const sbTxt = document.getElementById('teacherQuotaSidebarText');
+const sbTag = document.getElementById('teacherQuotaSidebarTag');
+if (sbBox && sbTxt && sbTag) {
+sbBox.classList.remove('hidden');
+sbTxt.textContent = q.unlimited ? 'Không giới hạn' : `Còn ${q.remaining}/${q.limit} lượt`;
+sbTag.textContent = q.isSuper ? 'ADMIN' : (q.isVip ? 'VIP' : `${q.used}/${q.limit}`);
+sbTag.className = 'px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 ' + (
+q.tone === 'emerald'
+? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+: q.tone === 'rose'
+? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+: q.tone === 'amber'
+? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
+);
+}
+const homeBadge = document.getElementById('homeMonthlyQuotaBadge');
+const homeTxt = document.getElementById('homeMonthlyQuotaText');
+if (homeBadge && homeTxt) {
+homeBadge.classList.remove('hidden');
+homeTxt.textContent = q.badgeText;
+}
+const cardBadge = document.getElementById('homeCardImatchQuotaBadge');
+if (cardBadge) {
+cardBadge.classList.remove('hidden');
+cardBadge.textContent = q.shortText;
+}
+const ebBadge = document.getElementById('exambankMonthlyQuotaBadge');
+const ebTxt = document.getElementById('exambankMonthlyQuotaText');
+if (ebBadge && ebTxt) {
+ebBadge.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-700', 'border-emerald-200', 'bg-blue-50', 'text-blue-700', 'border-blue-200', 'bg-amber-50', 'text-amber-700', 'border-amber-200', 'bg-rose-50', 'text-rose-700', 'border-rose-200', 'dark:bg-emerald-950/50', 'dark:text-emerald-300', 'dark:border-emerald-800', 'dark:bg-blue-950/50', 'dark:text-blue-300', 'dark:border-blue-800', 'dark:bg-amber-950/50', 'dark:text-amber-300', 'dark:border-amber-800', 'dark:bg-rose-950/50', 'dark:text-rose-300', 'dark:border-rose-800');
+const cls = q.tone === 'emerald'
+? ['bg-emerald-50', 'text-emerald-700', 'border-emerald-200', 'dark:bg-emerald-950/50', 'dark:text-emerald-300', 'dark:border-emerald-800']
+: q.tone === 'rose'
+? ['bg-rose-50', 'text-rose-700', 'border-rose-200', 'dark:bg-rose-950/50', 'dark:text-rose-300', 'dark:border-rose-800']
+: q.tone === 'amber'
+? ['bg-amber-50', 'text-amber-700', 'border-amber-200', 'dark:bg-amber-950/50', 'dark:text-amber-300', 'dark:border-amber-800']
+: ['bg-blue-50', 'text-blue-700', 'border-blue-200', 'dark:bg-blue-950/50', 'dark:text-blue-300', 'dark:border-blue-800'];
+ebBadge.classList.add(...cls);
+ebTxt.textContent = q.badgeText;
+}
+};
+if (!window._qmathQuotaDisplayListenerBound) {
+window._qmathQuotaDisplayListenerBound = true;
+window.addEventListener('qmath-quota-updated', () => {
+if (typeof window.refreshDashboardQuotaDisplay === 'function') window.refreshDashboardQuotaDisplay();
+});
+}
+const btnExportQuestionTex = document.getElementById('btnExportQuestionTex');
+if (btnExportQuestionTex) {
+const vipCanTex = Boolean(window.teacherPackageConfig && window.teacherPackageConfig.vipAllowTexDownload);
+const allowSingleTex = isSuper || (!isFree && vipCanTex);
+btnExportQuestionTex.style.display = allowSingleTex ? '' : 'none';
+}
+if (typeof window.QMathQuota !== 'undefined' && typeof window.QMathQuota.saveRoleSnapshot === 'function') {
+const curUid = (window.currentAdminProfile && (window.currentAdminProfile.uid || window.currentAdminProfile.id)) || (auth.currentUser && auth.currentUser.uid) || '';
+const curEmail = (window.currentAdminProfile && window.currentAdminProfile.email) || (auth.currentUser && auth.currentUser.email) || '';
+const pkgCfg = window.teacherPackageConfig || {};
+window.QMathQuota.saveRoleSnapshot({
+uid: curUid,
+email: String(curEmail).toLowerCase().trim(),
+isSuper: !!isSuper,
+isFree: !!isFree,
+isVip: (!isSuper && !isFree),
+vipAllowTexDownload: Boolean(pkgCfg.vipAllowTexDownload),
+vipMonthlyExamQuota: pkgCfg.vipMonthlyExamQuota !== undefined ? parseInt(pkgCfg.vipMonthlyExamQuota, 10) : -1,
+freeMonthlyExamQuota: pkgCfg.freeMonthlyExamQuota !== undefined ? parseInt(pkgCfg.freeMonthlyExamQuota, 10) : 100
+});
+}
+window.refreshDashboardQuotaDisplay();
+if (typeof window.refreshIMathRoleVisibility === 'function') {
+window.refreshIMathRoleVisibility();
+}
+if (typeof window.updateBulkExamUI === 'function') {
+window.updateBulkExamUI();
+}
+if (typeof window._qmathQuotaSyncUsageToCloud !== 'function') {
+window._qmathQuotaSyncUsageToCloud = async (uidArg, monthKey, nextCount) => {
+const targetUid = uidArg || (auth.currentUser && auth.currentUser.uid);
+if (!targetUid || targetUid === 'anonymous_teacher') return;
+try {
+await setDoc(doc(db, "users", targetUid), {
+monthlyExamUsage: { [monthKey]: nextCount },
+updatedAt: new Date().toISOString()
+}, { merge: true });
+} catch (errQSync) {
+console.warn("Lỗi đồng bộ hạn mức tháng lên cloud:", errQSync);
+}
+};
+}
+            const _curUidForPkgSync = (auth.currentUser && auth.currentUser.uid) ? auth.currentUser.uid : 'guest';
+            if (window._qmathPkgSyncedUid !== _curUidForPkgSync) {
+                window._qmathPkgSyncedUid = _curUidForPkgSync;
+                (async () => {
+                    try {
+                        const [pkgSnapSync, userSnapSync] = await Promise.all([
+                            getDoc(doc(db, "configurations", "teacher_package_config")).catch(() => null),
+                            (auth.currentUser && auth.currentUser.uid)
+                                ? getDoc(doc(db, "users", auth.currentUser.uid)).catch(() => null)
+                                : Promise.resolve(null)
+                        ]);
+                        if (pkgSnapSync && pkgSnapSync.exists()) {
+                            const pData = pkgSnapSync.data() || {};
+                            window.teacherPackageConfig = { ...(window.teacherPackageConfig || {}), ...pData };
+                            try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
+                        }
+                        if (userSnapSync && userSnapSync.exists() && window.QMathQuota) {
+                            const uData = userSnapSync.data() || {};
+                            if (uData.monthlyExamUsage) {
+                                window.QMathQuota.syncFromCloudUsage(auth.currentUser.uid, uData.monthlyExamUsage);
+                            }
+                        }
+                        if (typeof window.applyUIPermissions === 'function') {
+                            window.applyUIPermissions();
+                        }
+                        if (typeof window.refreshIMathRoleVisibility === 'function') {
+                            window.refreshIMathRoleVisibility();
+                        }
+                    } catch (_) {}
+                })();
+            }
 };
 window.populateSuperAdminTeacherDropdowns = (teachersList = []) => {
 const isSuper = window.currentAdminProfile?.role === 'super_admin' || ROOT_SUPER_ADMINS.map(e => e.toLowerCase()).includes(((window.currentAdminProfile?.email || (auth.currentUser ? auth.currentUser.email : '')) || '').toLowerCase());
@@ -7136,6 +7355,8 @@ let defPerms = [...(ADMIN_PRESETS.teacher_full || [])];
 let defCourses = [];
 if (pkgSnap.exists()) {
 const pData = pkgSnap.data();
+window.teacherPackageConfig = { ...(window.teacherPackageConfig || {}), ...pData };
+try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
 if (Array.isArray(pData.defaultPermissions) && pData.defaultPermissions.length > 0) defPerms = pData.defaultPermissions;
 if (Array.isArray(pData.defaultAssignedCourseIds) && pData.defaultAssignedCourseIds.length > 0) defCourses = pData.defaultAssignedCourseIds;
 }
@@ -7162,6 +7383,8 @@ try {
 const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config"));
 if (pkgSnap.exists()) {
 const pData = pkgSnap.data();
+window.teacherPackageConfig = { ...(window.teacherPackageConfig || {}), ...pData };
+try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
 const freePerms = Array.isArray(pData.freePermissions) ? pData.freePermissions : [];
 if (!freePerms.includes('bank.use_shared')) {
 perms = perms.filter(p => p !== 'bank.use_shared');
@@ -7217,6 +7440,8 @@ try {
 const pkgSnap = await getDoc(doc(db, "configurations", "teacher_package_config"));
 if (pkgSnap.exists()) {
 const pData = pkgSnap.data();
+window.teacherPackageConfig = { ...(window.teacherPackageConfig || {}), ...pData };
+try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
 const freePerms = Array.isArray(pData.freePermissions) ? pData.freePermissions : [];
 if (!freePerms.includes('bank.use_shared')) {
 perms = perms.filter(p => p !== 'bank.use_shared');
@@ -7655,6 +7880,10 @@ if (document.getElementById('cfgFreePerm_bank')) document.getElementById('cfgFre
 if (document.getElementById('cfgFreePerm_word_importer')) document.getElementById('cfgFreePerm_word_importer').checked = freePerms.includes('word_importer.use');
 if (document.getElementById('cfgFreePerm_exams_assign')) document.getElementById('cfgFreePerm_exams_assign').checked = freePerms.includes('exams.assign');
 if (document.getElementById('cfgFreePerm_bank_shared')) document.getElementById('cfgFreePerm_bank_shared').checked = freePerms.includes('bank.use_shared');
+const pkgDataQ = (typeof snap !== 'undefined' && snap && typeof snap.exists === 'function' && snap.exists()) ? (snap.data() || {}) : {};
+if (document.getElementById('cfgVipPerm_download_tex')) document.getElementById('cfgVipPerm_download_tex').checked = Boolean(pkgDataQ.vipAllowTexDownload);
+if (document.getElementById('cfgVipMonthlyExamQuota')) document.getElementById('cfgVipMonthlyExamQuota').value = pkgDataQ.vipMonthlyExamQuota !== undefined ? pkgDataQ.vipMonthlyExamQuota : -1;
+if (document.getElementById('cfgFreeMonthlyExamQuota')) document.getElementById('cfgFreeMonthlyExamQuota').value = pkgDataQ.freeMonthlyExamQuota !== undefined ? pkgDataQ.freeMonthlyExamQuota : 100;
 const costs = data?.featureCosts || {};
 if (document.getElementById('cfgQpCost_ai_question')) document.getElementById('cfgQpCost_ai_question').value = costs.ai_question !== undefined ? costs.ai_question : 2;
 if (document.getElementById('cfgQpCost_ai_grading')) document.getElementById('cfgQpCost_ai_grading').value = costs.ai_grading !== undefined ? costs.ai_grading : 5;
@@ -7743,7 +7972,17 @@ featureCosts: featureCostsToSave,
 updatedAt: new Date().toISOString(),
 updatedBy: window.currentAdminProfile?.email || 'admin'
 };
+payload.vipAllowTexDownload = Boolean(document.getElementById('cfgVipPerm_download_tex')?.checked);
+const rawVipQ = parseInt(document.getElementById('cfgVipMonthlyExamQuota')?.value ?? '-1', 10);
+payload.vipMonthlyExamQuota = isNaN(rawVipQ) ? -1 : rawVipQ;
+const rawFreeQ = parseInt(document.getElementById('cfgFreeMonthlyExamQuota')?.value ?? '100', 10);
+payload.freeMonthlyExamQuota = isNaN(rawFreeQ) ? 100 : rawFreeQ;
+window.teacherPackageConfig = { ...(window.teacherPackageConfig || {}), ...payload };
+try { localStorage.setItem('qmath_teacher_pkg_cfg', JSON.stringify(window.teacherPackageConfig)); } catch (_) {}
+if (typeof window.applyUIPermissions === 'function') { window.applyUIPermissions(); }
 await setDoc(doc(db, "configurations", "teacher_package_config"), payload, { merge: true });
+if (typeof window.applyUIPermissions === 'function') window.applyUIPermissions();
+if (typeof window.refreshIMathRoleVisibility === 'function') window.refreshIMathRoleVisibility();
 window.cachedTeacherPkgConfig = payload;
 try {
 const rolesRef = doc(db, "configurations", "admin_roles");
@@ -14138,15 +14377,16 @@ const superSysOption = isSuper ? `
 <i class="fa-solid fa-earth-americas w-4 text-center text-blue-600"></i> ${exam.isSystem ? 'Gỡ khỏi Hệ thống' : 'Đặt làm Đề hệ thống'}
 </button>
 ` : '';
+const canTex = window.canCurrentUserDownloadTex ? window.canCurrentUserDownloadTex() : false;
 dropdown.innerHTML = `
 <div class="px-3 py-1.5 border-b border-gray-100 dark:border-gray-700/60 font-bold text-gray-500 dark:text-gray-400 text-[10px] uppercase tracking-wider truncate">
 ${exam.title}
 </div>
 <div class="py-1">
 ${superSysOption}
-<button onclick="window.quickExportSingleLatex('${exam.id}'); window.closeExamActionDropdown();" class="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700/60 text-gray-700 dark:text-gray-200 flex items-center gap-2.5 font-bold transition">
+${canTex ? `<button onclick="window.quickExportSingleLatex('${exam.id}'); window.closeExamActionDropdown();" class="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700/60 text-gray-700 dark:text-gray-200 flex items-center gap-2.5 font-bold transition">
 <i class="fa-solid fa-file-code w-4 text-center text-season-from"></i> Xuất mã nguồn TeX
-</button>
+</button>` : ''}
 <button onclick="window.open('omr-grader.html?examId=${exam.id}', '_blank'); window.closeExamActionDropdown();" class="w-full px-3 py-2 text-left hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center gap-2.5 font-extrabold transition">
 <i class="fa-solid fa-camera-retro w-4 text-center text-amber-600"></i> Chấm phiếu OMR (Mã: ${exam.omrCode || (window.computeOmrExam4DigitCode ? window.computeOmrExam4DigitCode(exam.id) : '')})
 </button>
@@ -14234,6 +14474,7 @@ header.innerHTML = `
 </div>
 </div>
 `;
+const canTexMobile = window.canCurrentUserDownloadTex ? window.canCurrentUserDownloadTex() : false;
 items.innerHTML = `
 <button onclick="window.closeMobileExamActionBottomSheet(); window.promptAssignExamToAnyClass('${exam.id}')" class="w-full p-3 rounded-2xl btn-season-primary text-white font-bold text-xs flex items-center gap-3 shadow-sm active:scale-[0.98] transition">
 <i class="fa-solid fa-paper-plane text-sm w-5 text-center"></i> <span>Giao bài cho lớp ngay</span>
@@ -14250,9 +14491,9 @@ items.innerHTML = `
 <button onclick="window.closeMobileExamActionBottomSheet(); window.openExportWordModal('${exam.id}')" class="w-full p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold text-xs flex items-center gap-3 active:scale-[0.98] transition">
 <i class="fa-solid fa-file-word text-blue-500 text-sm w-5 text-center"></i> <span>Xuất file Word (.docx MathType)</span>
 </button>
-<button onclick="window.closeMobileExamActionBottomSheet(); window.quickExportSingleLatex('${exam.id}')" class="w-full p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold text-xs flex items-center gap-3 active:scale-[0.98] transition">
+${canTexMobile ? `<button onclick="window.closeMobileExamActionBottomSheet(); window.quickExportSingleLatex('${exam.id}')" class="w-full p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold text-xs flex items-center gap-3 active:scale-[0.98] transition">
 <i class="fa-solid fa-file-code text-amber-500 text-sm w-5 text-center"></i> <span>Xuất mã nguồn TeX (.zip)</span>
-</button>
+</button>` : ''}
 <button onclick="window.closeMobileExamActionBottomSheet(); window.openActionDirect('tag', '${exam.id}', 'exam')" class="w-full p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold text-xs flex items-center gap-3 active:scale-[0.98] transition">
 <i class="fa-solid fa-tags text-purple-500 text-sm w-5 text-center"></i> <span>Gán thẻ chuyên đề</span>
 </button>
@@ -14969,6 +15210,11 @@ window.updateBulkExamUI = () => {
 const count = window.selectedExamIds ? window.selectedExamIds.size : 0;
 const bar = document.getElementById('bulkExamActionBar');
 const dock = document.getElementById('bulkExamFloatingDock');
+const allowTex = window.canCurrentUserDownloadTex ? window.canCurrentUserDownloadTex() : false;
+const btnBulkTex = document.getElementById('btnBulkExportLatex');
+const btnFloatTex = document.getElementById('btnFloatingBulkExportLatex');
+if (btnBulkTex) btnBulkTex.style.display = allowTex ? '' : 'none';
+if (btnFloatTex) btnFloatTex.style.display = allowTex ? '' : 'none';
 const countBadge = document.getElementById('selectedExamCountBadge');
 const countText = document.getElementById('selectedExamCountText');
 const floatingBadge = document.getElementById('floatingSelectedExamCountBadge');
@@ -15066,6 +15312,10 @@ window.selectAllExamsInCurrentFolder();
 }
 };
 window.quickExportSingleLatex = async (examId) => {
+if (window.canCurrentUserDownloadTex && !window.canCurrentUserDownloadTex()) {
+if (window.showNotification) window.showNotification("Tài khoản của bạn chưa được cấp quyền xuất/tải file .tex!", "error");
+return;
+}
 if (typeof window.generateLatexForExam !== 'function') {
 window.showNotification("Chưa nạp module xuất LaTeX (latex-exporter.js)!", "error");
 return;
@@ -15094,6 +15344,10 @@ const modal = document.getElementById('modalBulkExportProgress');
 if (modal) modal.classList.add('hidden');
 };
 window.exportBulkLatexExams = async () => {
+if (window.canCurrentUserDownloadTex && !window.canCurrentUserDownloadTex()) {
+if (window.showNotification) window.showNotification("Tài khoản của bạn chưa được cấp quyền xuất/tải file .tex!", "error");
+return;
+}
 if (!window.selectedExamIds || window.selectedExamIds.size === 0) {
 window.showNotification("Vui lòng tích chọn ít nhất 1 đề thi để xuất mã nguồn!", "warning");
 return;
@@ -17077,11 +17331,27 @@ processed = processed.replace(/\\itemch\b/g, '<span class="font-bold text-amber-
 processed = processed.replace(/\\begin\{nx\}([\s\S]*?)\\end\{nx\}/gi, (match, body) => {
 return `<div class="my-3 p-3.5 border-l-4 border-teal-500 bg-teal-50 text-teal-900 rounded-r-xl shadow-2xs"><strong class="block mb-1 text-teal-800 flex items-center gap-1.5"><i class="fa-solid fa-lightbulb text-teal-600"></i>Nhận xét:</strong>${body}</div>`;
 });
-processed = processed.replace(/\\begin\{tabular\}\{[^}]*\}([\s\S]*?)\\end\{tabular\}/gi, (match, body) => {
-const cleanBody = body.replace(/\\hspace\*?\{[^}]*\}/g, ' ')
-.replace(/\\vspace\*?\{[^}]*\}/g, ' ')
-.replace(/&amp;|&/g, ' ');
-return `<div class="flex flex-wrap items-center justify-around gap-4 my-2">${cleanBody}</div>`;
+processed = processed.replace(/\\setlength\s*\{[^}]*\}\s*\{[^}]*\}/g, '').replace(/\\begin\{center\}/g, '<div class="text-center my-2">').replace(/\\end\{center\}/g, '</div>');
+processed = processed.replace(/\\begin\{tabular\}\s*(?:\[[^\]]*\])?\s*\{(?:[^{}]|\{[^{}]*\})*\}([\s\S]*?)\\end\{tabular\}/gi, (match, body) => {
+const rows = body.split(/\\\\(?:\s*\[[^\]]*\])?/);
+let tbl = '<div class="my-2 w-full overflow-x-auto"><table class="mx-auto border-collapse border border-slate-300 bg-white text-sm" style="min-width:max-content;">';
+let rIdx = 0;
+rows.forEach((row) => {
+const cleanRow = row.replace(/\\(?:hline|toprule|midrule|bottomrule)\b/g, '').replace(/\\cline\s*\{[^}]*\}/g, '').replace(/\\centering\b/g, '').trim();
+if (!cleanRow) return;
+const cols = cleanRow.split(/(?<!\\)&/);
+tbl += `<tr class="${rIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}">`;
+cols.forEach((rawCol, cIdx) => {
+let cell = rawCol.trim();
+if (!cell || cell === '$$') cell = '&nbsp;';
+const tag = rIdx === 0 ? 'th' : 'td';
+tbl += `<${tag} class="border border-slate-300 px-3 py-1.5 text-center">${cell}</${tag}>`;
+});
+tbl += '</tr>';
+rIdx++;
+});
+tbl += '</table></div>';
+return tbl;
 });
 processed = processed.replace(/\\\\(?=\s*(?:<br|\n|$))/g, '<br>');
 processed = processed.replace(/\\\\/g, '<br>');
@@ -17589,7 +17859,7 @@ ${checkboxHtml}
 </div>
 ${levelBadgeListHtml}
 <div class="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-<button onclick="event.stopPropagation(); window.exportSingleQuestionTexById('${q.id}')" class="p-1.5 btn-explorer-action" title="Xuất mã TeX câu hỏi"><i class="fa-solid fa-file-code"></i></button>
+<button onclick="event.stopPropagation(); window.exportSingleQuestionTexById('${q.id}')" class="p-1.5 btn-explorer-action btn-bank-export-tex" style="${(window.canCurrentUserDownloadTex && !window.canCurrentUserDownloadTex()) ? 'display:none;' : ''}" title="Xuất mã TeX câu hỏi"><i class="fa-solid fa-file-code"></i></button>
 <button onclick="event.stopPropagation(); window.checkQuestionUsageById('${q.id}')" class="p-1.5 btn-explorer-action" title="Tra cứu nơi sử dụng (Đề thi / Chuyên đề / Khóa học)"><i class="fa-solid fa-sitemap"></i></button>
 </div>
 <button class="shrink-0 p-2 text-slate-500 group-hover:text-primary-600 transition-colors"><i class="fa-solid fa-chevron-right"></i></button>
@@ -17611,7 +17881,7 @@ ${levelBadgeGridHtml}
 <div class="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-gray-100 dark:border-gray-700">
 <span class="text-xs border border-gray-200 dark:border-gray-700 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold"><i class="fa-solid fa-book text-slate-500 mr-1"></i>${subjectText || 'Khác'}</span>
 <div class="flex items-center gap-1">
-<button onclick="event.stopPropagation(); window.exportSingleQuestionTexById('${q.id}')" class="p-1.5 btn-explorer-action" title="Xuất mã TeX câu hỏi"><i class="fa-solid fa-file-code"></i></button>
+<button onclick="event.stopPropagation(); window.exportSingleQuestionTexById('${q.id}')" class="p-1.5 btn-explorer-action btn-bank-export-tex" style="${(window.canCurrentUserDownloadTex && !window.canCurrentUserDownloadTex()) ? 'display:none;' : ''}" title="Xuất mã TeX câu hỏi"><i class="fa-solid fa-file-code"></i></button>
 <button onclick="event.stopPropagation(); window.checkQuestionUsageById('${q.id}')" class="p-1.5 btn-explorer-action" title="Tra cứu nơi sử dụng"><i class="fa-solid fa-sitemap"></i></button>
 </div>
 </div>
@@ -20469,6 +20739,10 @@ if (progressBox) progressBox.classList.add('hidden');
 window.executeQuestionOverwrite = window.compileAndPreviewOverwrite;
 window.currentExportingQuestion = null;
 window.openSingleQuestionTexModal = (targetQ = null) => {
+if (window.canCurrentUserDownloadTex && !window.canCurrentUserDownloadTex()) {
+if (window.showNotification) window.showNotification("Tài khoản của bạn chưa được cấp quyền xem/tải file .tex!", "error");
+return;
+}
 const q = targetQ || window.currentPreviewQuestion || window.currentEditingQuestion;
 if (!q) {
 if (window.showNotification) window.showNotification("Không tìm thấy thông tin câu hỏi để xuất TeX", "warning");
@@ -20499,9 +20773,17 @@ modal.querySelector('.modal-content')?.classList.add('scale-100');
 }
 };
 window.exportSingleQuestionTex = (targetQ = null) => {
+if (window.canCurrentUserDownloadTex && !window.canCurrentUserDownloadTex()) {
+if (window.showNotification) window.showNotification("Tài khoản của bạn chưa được cấp quyền xem/tải file .tex!", "error");
+return;
+}
 window.openSingleQuestionTexModal(targetQ);
 };
 window.exportSingleQuestionTexById = async (id) => {
+if (window.canCurrentUserDownloadTex && !window.canCurrentUserDownloadTex()) {
+if (window.showNotification) window.showNotification("Tài khoản của bạn chưa được cấp quyền xem/tải file .tex!", "error");
+return;
+}
 const isSuper = window.checkIsSuperAdmin ? window.checkIsSuperAdmin() : false;
 const canUseSharedBank = isSuper || (window.hasPermission && (
 window.hasPermission('bank.use_shared') ||
@@ -20565,6 +20847,10 @@ if (window.showNotification) window.showNotification("Đã chọn toàn bộ mã
 }
 };
 window.downloadSingleQuestionTexFile = () => {
+if (window.canCurrentUserDownloadTex && !window.canCurrentUserDownloadTex()) {
+if (window.showNotification) window.showNotification("Tài khoản của bạn chưa được cấp quyền tải file .tex!", "error");
+return;
+}
 const area = document.getElementById('singleQuestionTexArea');
 if (!area || !area.value) return;
 const q = window.currentExportingQuestion;
@@ -24233,7 +24519,7 @@ initTheme();
 
 <script src="/sw-register.js?v=75"></script>
 <script src="/season-theme.js?v=75"></script>
-<script src="/app-installer.js?v=2"></script>
+<script src="/app-installer.js?v=3"></script>
 
 <script>
 (function initDashboardAutoHidingBottomNav() {

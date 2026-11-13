@@ -2352,38 +2352,101 @@ ${inputs}
 \\end{document}`;
 }
 }
+function ensureExamMixerModalStyles() {
+if (typeof document === 'undefined' || document.getElementById('exam-mixer-modal-styles')) return;
+const style = document.createElement('style');
+style.id = 'exam-mixer-modal-styles';
+style.textContent = `
+#examMixerModal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10035 !important;
+  background: rgba(17, 24, 39, 0.62) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  padding: 12px !important;
+  box-sizing: border-box !important;
+}
+#examMixerModal:not(.hidden) {
+  display: flex !important;
+}
+#examMixerModal.hidden {
+  display: none !important;
+}
+#examMixerModal .emx-dialog {
+  width: 95vw;
+  max-width: 1100px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  box-sizing: border-box;
+}
+#examMixerModal .emx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+}
+@media (max-width: 640px) {
+  #examMixerModal {
+    padding: 8px !important;
+  }
+  #examMixerModal .emx-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100vh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+  #examMixerModal .emx-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  #examMixerModal .emx-footer {
+    flex-wrap: wrap !important;
+    justify-content: stretch !important;
+  }
+  #examMixerModal .emx-footer button {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+  }
+}
+`;
+if (document.head) document.head.appendChild(style);
+}
 function openExamMixerModal(defaultData = null) {
+ensureExamMixerModalStyles();
 let modal = document.getElementById('examMixerModal');
 if (!modal) {
 modal = document.createElement('div');
 modal.id = 'examMixerModal';
-modal.className = 'fixed inset-0 z-[170] bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 transition-opacity';
+modal.className = 'fixed inset-0 z-[10035] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 transition-opacity';
+modal.style.setProperty('z-index', '10035', 'important');
 modal.innerHTML = `
-<div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex flex-col" style="width: 95vw; max-width: 1100px; max-height: 90vh;">
+<div class="emx-dialog bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex flex-col">
 <!-- Header Modal -->
-<div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
-<div class="flex items-center gap-2.5">
-<span class="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center text-lg">
+<div class="flex items-start sm:items-center justify-between gap-2 pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
+<div class="flex items-center gap-2.5 min-w-0 flex-1">
+<span class="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center text-lg shrink-0">
 <i class="fa-solid fa-shuffle"></i>
 </span>
-<div>
-<h3 class="font-bold text-gray-800 dark:text-gray-100 text-sm sm:text-base">Trộn Đề Thi Chuyên Nghiệp (TeX &amp; Word)</h3>
+<div class="min-w-0">
+<h3 class="font-bold text-gray-800 dark:text-gray-100 text-sm sm:text-base leading-snug">Trộn Đề Thi Chuyên Nghiệp (TeX &amp; Word)</h3>
 <p class="text-[11px] text-gray-500 dark:text-gray-400">Đảo câu hỏi, đảo phương án, phân nhóm ID6, xuất Đề gốc &amp; Đề con, Excel SmartTest/YoungMix &amp; Mã QR chấm thi</p>
 </div>
 </div>
-<button type="button" onclick="window.closeExamMixerModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg text-lg">
+<button type="button" onclick="window.closeExamMixerModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg text-lg shrink-0">
 <i class="fa-solid fa-xmark"></i>
 </button>
 </div>
 <!-- Tabs chọn nguồn đầu vào -->
-<div class="flex items-center gap-2 pt-3 pb-1 border-b border-gray-100 dark:border-gray-800 shrink-0 text-xs">
-<button type="button" onclick="window.switchMixerInputTab('file')" id="btnMixerTabFile" class="px-3 py-1.5 font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 transition-colors">
+<div class="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-3 pb-2 border-b border-gray-100 dark:border-gray-800 shrink-0 text-[11px] sm:text-xs">
+<button type="button" onclick="window.switchMixerInputTab('file')" id="btnMixerTabFile" class="px-2.5 sm:px-3 py-1.5 font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 transition-colors">
 📁 Tải File (.tex / .docx)
 </button>
-<button type="button" onclick="window.switchMixerInputTab('paste')" id="btnMixerTabPaste" class="px-3 py-1.5 font-medium rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+<button type="button" onclick="window.switchMixerInputTab('paste')" id="btnMixerTabPaste" class="px-2.5 sm:px-3 py-1.5 font-medium rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
 📋 Dán mã LaTeX
 </button>
-<button type="button" onclick="window.switchMixerInputTab('bank')" id="btnMixerTabBank" class="px-3 py-1.5 font-medium rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+<button type="button" onclick="window.switchMixerInputTab('bank')" id="btnMixerTabBank" class="px-2.5 sm:px-3 py-1.5 font-medium rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
 🏛️ Chọn từ Kho đề
 </button>
 </div>
@@ -2465,7 +2528,7 @@ modal.innerHTML = `
 </div>
 </div>
 <!-- 2. Bố cục 2 Cột: Cấu hình Trộn đề & Khung Tiêu Đề -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
+<div class="emx-grid">
 <!-- CỘT TRÁI: Cấu hình Trộn -->
 <div class="space-y-3.5" style="min-width: 0;">
 <div class="p-3.5 bg-gray-50/70 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700/80 space-y-3">
@@ -2482,13 +2545,13 @@ modal.innerHTML = `
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-1">Độ dài mã đề</label>
 <div class="inline-flex w-full rounded-lg border border-gray-300 dark:border-gray-600 p-0.5 bg-gray-100 dark:bg-gray-800 text-[11px]">
 <button type="button" id="btnMixerDigits3" onclick="window.setMixerDigits(3)" class="flex-1 py-1 font-medium rounded-md text-gray-600 dark:text-gray-400 cursor-pointer">3 số</button>
-<button type="button" id="btnMixerDigits4" onclick="window.setMixerDigits(4)" class="flex-1 py-1 font-bold rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-xs cursor-pointer">4 số</button>
+<button type="button" id="btnMixerDigits4" onclick="window.setMixerDigits(4)" class="flex-1 py-1 font-bold rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm cursor-pointer">4 số</button>
 </div>
 </div>
 </div>
 <!-- Quy tắc sinh mã đề & Xem trước -->
 <div>
-<div class="flex items-center justify-between mb-1">
+<div class="flex flex-wrap items-center justify-between gap-2 mb-1">
 <label class="text-[11px] font-bold text-gray-600 dark:text-gray-400">Quy tắc sinh mã đề</label>
 <select id="mixerCodeStyle" onchange="window.updateMixerPreviewCodes()" class="text-[11px] font-medium px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 outline-none">
 <option value="consecutive" selected>Liên tiếp (1001, 1002...)</option>
@@ -2529,18 +2592,18 @@ modal.innerHTML = `
 <!-- CỘT PHẢI: Cấu hình Tiêu đề đề thi -->
 <div class="space-y-3.5" style="min-width: 0;">
 <div class="p-3.5 bg-gray-50/70 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700/80 space-y-3">
-<div class="flex items-center justify-between">
+<div class="flex flex-wrap items-center justify-between gap-2">
 <label class="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
 <i class="fa-solid fa-heading text-gray-600 dark:text-gray-300"></i> Tiêu đề đề thi (Header)
 </label>
-<select id="mixerHeaderStyle" class="text-xs font-bold px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 outline-none">
+<select id="mixerHeaderStyle" class="w-full sm:w-auto text-xs font-bold px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 outline-none">
 <option value="standard_gov" selected>🏛️ Mẫu 1: Chuẩn Sở / Bộ GD</option>
 <option value="brand_center">⭐ Mẫu 2: Trung tâm / QMath</option>
 <option value="compact">📄 Mẫu 3: Tiêu đề Rút gọn</option>
 </select>
 </div>
 <div class="space-y-2 pt-1 border-t border-gray-200 dark:border-gray-700">
-<div class="grid grid-cols-2 gap-2">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
 <div>
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Sở GD / Cơ quan</label>
 <input type="text" id="mixerAgencyName" value="SỞ GD&ĐT HÀ NỘI" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 outline-none">
@@ -2550,7 +2613,7 @@ modal.innerHTML = `
 <input type="text" id="mixerSchoolName" value="TRƯỜNG THPT TRẦN QUANG KHẢI" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 outline-none">
 </div>
 </div>
-<div class="grid grid-cols-2 gap-2">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
 <div>
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Tên đề thi / Bài KT</label>
 <input type="text" id="mixerTitleInput" value="KIỂM TRA HỌC KỲ I" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 outline-none">
@@ -2560,7 +2623,7 @@ modal.innerHTML = `
 <input type="text" id="mixerExamType" value="(ĐỀ CHÍNH THỨC)" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 outline-none">
 </div>
 </div>
-<div class="grid grid-cols-3 gap-2">
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
 <div>
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Môn thi</label>
 <input type="text" id="mixerSubject" value="TOÁN HỌC" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 outline-none">
@@ -2569,7 +2632,7 @@ modal.innerHTML = `
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Khối</label>
 <input type="text" id="mixerGrade" value="9" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 outline-none">
 </div>
-<div>
+<div class="col-span-2 sm:col-span-1">
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Thời gian</label>
 <div class="flex items-center gap-1">
 <input type="number" id="mixerDuration" value="90" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-center font-bold outline-none">
@@ -2602,14 +2665,22 @@ modal.innerHTML = `
 </div>
 </div>
 <!-- Footer Modal -->
-<div class="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-200 dark:border-gray-800 shrink-0">
+<div class="emx-footer flex items-center justify-end gap-2.5 pt-3 border-t border-gray-200 dark:border-gray-800 shrink-0">
 <button type="button" onclick="window.closeExamMixerModal()" class="px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer">Đóng</button>
 <button type="button" id="btnStartMixingExams" onclick="window.startMixingExamsAction()" class="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl transition shadow-md flex items-center gap-1.5 cursor-pointer" style="background-color: var(--primary-color, #ea580c); color: #ffffff;">
 <i class="fa-solid fa-shuffle"></i> Bắt đầu Trộn &amp; Tải ZIP
 </button>
 </div>
 </div>`;
+modal.onclick = (e) => {
+if (e.target === modal) closeExamMixerModal();
+};
 document.body.appendChild(modal);
+} else if (modal.parentElement !== document.body && document.body) {
+document.body.appendChild(modal);
+}
+if (modal.style && typeof modal.style.setProperty === 'function') {
+modal.style.setProperty('z-index', '10035', 'important');
 }
 const bankSelect = document.getElementById('mixerBankSelect');
 if (bankSelect && Array.isArray(window.examData)) {
@@ -2651,8 +2722,8 @@ const bBank = document.getElementById('btnMixerTabBank');
 const aFile = document.getElementById('mixerInputAreaFile');
 const aPaste = document.getElementById('mixerInputAreaPaste');
 const aBank = document.getElementById('mixerInputAreaBank');
-const activeCls = "px-3 py-1.5 font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 transition-colors";
-const inactiveCls = "px-3 py-1.5 font-medium rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors";
+const activeCls = "px-2.5 sm:px-3 py-1.5 font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 transition-colors";
+const inactiveCls = "px-2.5 sm:px-3 py-1.5 font-medium rounded-lg text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors";
 if (bFile) bFile.className = tab === 'file' ? activeCls : inactiveCls;
 if (bPaste) bPaste.className = tab === 'paste' ? activeCls : inactiveCls;
 if (bBank) bBank.className = tab === 'bank' ? activeCls : inactiveCls;
@@ -2667,10 +2738,10 @@ const b3 = document.getElementById('btnMixerDigits3');
 const b4 = document.getElementById('btnMixerDigits4');
 if (b3 && b4) {
 if (digits === 3) {
-b3.className = "flex-1 py-1 font-bold rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-xs cursor-pointer";
+b3.className = "flex-1 py-1 font-bold rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm cursor-pointer";
 b4.className = "flex-1 py-1 font-medium rounded-md text-gray-600 dark:text-gray-400 cursor-pointer";
 } else {
-b4.className = "flex-1 py-1 font-bold rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-xs cursor-pointer";
+b4.className = "flex-1 py-1 font-bold rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm cursor-pointer";
 b3.className = "flex-1 py-1 font-medium rounded-md text-gray-600 dark:text-gray-400 cursor-pointer";
 }
 }
@@ -2713,6 +2784,10 @@ const pBar = document.getElementById('mixerProgressBar');
 const pText = document.getElementById('mixerProgressText');
 const pPct = document.getElementById('mixerProgressPercent');
 const activeTab = window._activeMixerTab || 'file';
+if (typeof window !== 'undefined' && window.QMathQuota && typeof window.QMathQuota.consume === 'function') {
+const qRes = await window.QMathQuota.consume('Trộn đề thi');
+if (!qRes.allowed) return;
+}
 let inputData = null;
 try {
 if (activeTab === 'file') {

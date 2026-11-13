@@ -330,6 +330,21 @@ function convertVietnameseForTikzJax(str) {
 // --- BỘ NHỚ ĐỆM SVG TIKZJAX TRỰC TIẾP TRÊN TRÌNH DUYỆT (0ms HIỂN THỊ TỨC THÌ) ---
 const TIKZJAX_SVG_CACHE_KEY = 'qmath_tikzjax_svg_cache_v3';
 const _tikzSvgMemCache = new Map();
+let _tikzSvgScopeSeq = 0;
+
+function scopeTikzSvgIds(svgHtml) {
+    if (!svgHtml || typeof svgHtml !== 'string' || !svgHtml.includes('id=')) return svgHtml;
+    const prefix = `tz${(++_tikzSvgScopeSeq).toString(36)}_`;
+    const ids = new Set();
+    svgHtml.replace(/\bid=["']([^"']+)["']/g, (_, id) => {
+        if (id && !/^tz[0-9a-z]+_/.test(id)) ids.add(id);
+    });
+    if (ids.size === 0) return svgHtml;
+    let out = svgHtml.replace(/\bid=(["'])([^"']+)\1/g, (m, q, id) => (ids.has(id) ? `id=${q}${prefix}${id}${q}` : m));
+    out = out.replace(/url\(#([^)]+)\)/g, (m, id) => (ids.has(id) ? `url(#${prefix}${id})` : m));
+    out = out.replace(/(href=["'])#([^"']+)(["'])/g, (m, p1, id, p3) => (ids.has(id) ? `${p1}#${prefix}${id}${p3}` : m));
+    return out;
+}
 
 function hashTikzKey(code) {
     const norm = String(code || '').replace(/\s+/g, ' ').trim();
@@ -347,14 +362,14 @@ function hashTikzKey(code) {
 
 export function getCachedTikzSvg(code) {
     const key = hashTikzKey(code);
-    if (_tikzSvgMemCache.has(key)) return _tikzSvgMemCache.get(key);
+    if (_tikzSvgMemCache.has(key)) return scopeTikzSvgIds(_tikzSvgMemCache.get(key));
     try {
         const raw = safeStorageGet(TIKZJAX_SVG_CACHE_KEY, '');
         if (raw) {
             const parsed = JSON.parse(raw);
             if (parsed && parsed[key]) {
                 _tikzSvgMemCache.set(key, parsed[key]);
-                return parsed[key];
+                return scopeTikzSvgIds(parsed[key]);
             }
         }
     } catch (_) {}
@@ -492,11 +507,6 @@ export const compileTikzToSvgViaTikzJax = async (code) => {
         });
 
         let extraPreambles = '';
-        body = body.replace(/\\tikzset\s*\{([\s\S]*?)\}\s*(?=\\begin\{tikzpicture\})/g, (m) => {
-            extraPreambles += m + '\n';
-            return '';
-        });
-
         const preludeData = extractTikzPrelude(body);
         if (preludeData.prelude) {
             extraPreambles += preludeData.prelude + '\n';
@@ -554,7 +564,7 @@ export const compileTikzToSvgViaTikzJax = async (code) => {
             '<svg class="tikzjax-inline-svg" style="max-height:220px;max-width:100%;height:auto;display:block;margin:2px auto;overflow:visible;"'
         );
         setCachedTikzSvg(cleaned, styledSvg);
-        return styledSvg;
+        return scopeTikzSvgIds(styledSvg);
     };
 
     const nextInQueue = _tikzWorkerQueue.then(runTask, runTask);
@@ -825,6 +835,33 @@ export function extractTikzPrelude(text) {
     const src = text;
     while (i < src.length) {
         if (src[i] !== '\\') { rest += src[i++]; continue; }
+        // Keep everything inside tikzpicture / axis environments intact (local \pgfmathsetmacro, \definecolor, \tikzset, etc.)
+        let copiedEnv = false;
+        for (const envName of ['tikzpicture', 'axis']) {
+            const beginTag = `\\begin{${envName}}`;
+            const endTag = `\\end{${envName}}`;
+            if (src.startsWith(beginTag, i)) {
+                let depth = 1;
+                let scan = i + beginTag.length;
+                while (scan < src.length && depth > 0) {
+                    const nextBegin = src.indexOf(beginTag, scan);
+                    const nextEnd = src.indexOf(endTag, scan);
+                    if (nextEnd === -1) { scan = src.length; depth = 0; break; }
+                    if (nextBegin !== -1 && nextBegin < nextEnd) {
+                        depth++;
+                        scan = nextBegin + beginTag.length;
+                    } else {
+                        depth--;
+                        scan = nextEnd + endTag.length;
+                    }
+                }
+                rest += src.slice(i, scan);
+                i = scan;
+                copiedEnv = true;
+                break;
+            }
+        }
+        if (copiedEnv) continue;
         let matched = false;
         for (const spec of TIKZ_PRELUDE_SPECS) {
             const cmd = '\\' + spec.name;
@@ -929,10 +966,10 @@ function processNestedTikz(text) {
 
     // 1. Bảo vệ các <script type="text/tikz"> đã nhúng sẵn (tránh double-wrap)
     const protectedBlocks = [];
-    let textToProcess = text.replace(/<script\s+type="text\/tikz"[^>]*>[\s\S]*?<\/script>/gi, (match) => {
+    let textToProcess = text.replace(/<script\s+type=["']text\/tikz["'][^>]*>[\s\S]*?<\/script>/gi, (match) => {
         const idx = protectedBlocks.length;
         protectedBlocks.push(match);
-        return `%%TIKZ_PROTECTED_${idx}%%`;
+        return `QMTIKZNESTED${idx}QMEND`;
     });
 
     // 2. Xử lý \begin{tikzpicture}...\end{tikzpicture} còn lại (chưa được nhúng)
@@ -965,43 +1002,120 @@ function processNestedTikz(text) {
 
     // 3. Khôi phục các block đã bảo vệ
     protectedBlocks.forEach((block, idx) => {
-        result = result.replace(`%%TIKZ_PROTECTED_${idx}%%`, block);
+        result = result.replace(`QMTIKZNESTED${idx}QMEND`, () => block);
     });
 
     return result;
 }
 
 
+function splitLatexTableCells(row) {
+    const cells = [];
+    let cur = '';
+    let braceDepth = 0;
+    for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (ch === '\\' && i + 1 < row.length) {
+            cur += ch + row[i + 1];
+            i++;
+            continue;
+        }
+        if (ch === '{') braceDepth++;
+        else if (ch === '}' && braceDepth > 0) braceDepth--;
+        if (ch === '&' && braceDepth === 0) {
+            cells.push(cur);
+            cur = '';
+        } else {
+            cur += ch;
+        }
+    }
+    cells.push(cur);
+    return cells;
+}
+
 function processTabular(text) {
     if (!text) return "";
-    let processed = text.replace(/\\begin\{table\}(?:\[.*?\])?[\s\S]*?\\end\{table\}/g, (match) => {
-        // Giữ nội dung tabular, bỏ caption, renewcommand, centering
+    let processed = String(text).replace(/\\begin\{table\}(?:\[.*?\])?[\s\S]*?\\end\{table\}/g, (match) => {
         return match
             .replace(/\\begin\{table\}(?:\[.*?\])?/g, '')
             .replace(/\\end\{table\}/g, '')
             .replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '')
             .replace(/\\renewcommand\s*\{?\s*\\arraystretch\s*\}?\s*\{[^}]+\}/g, '')
+            .replace(/\\setlength\s*\{[^}]*\}\s*\{[^}]*\}/g, '')
             .replace(/\\centering/g, '');
     });
-    // Cũng cleanup ngoài table environment
-    processed = processed.replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '');
-    processed = processed.replace(/\\renewcommand\s*\{?\s*\\arraystretch\s*\}?\s*\{[^}]+\}/g, '');
-    const regex = /(?:<br>\s*)*\\begin\{tabular\}\s*(\{|\[).*?(\}|\])([\s\S]*?)\\end\{tabular\}(?:\s*<br>)*/g;
-    return processed.replace(regex, (match, open, close, body) => {
-        const rows = body.split('\\\\').filter(r => r.trim().length > 0);
-        let html = '<div class="my-0 w-full js-scale-wrapper" style="position: relative; width: 100%; margin: 2px 0;">';
-        html += '<table class="js-scale-table border-collapse border border-gray-300 bg-white text-sm origin-top-left" style="min-width: max-content;">';
-        rows.forEach((row, rIdx) => {
-            let cleanRow = row.replace(/\\hline/g, '').trim();
-            if(cleanRow.length === 0) return;
-            const cols = cleanRow.split('&');
-            html += `<tr class="${rIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">`;
-            cols.forEach(col => { html += `<td class="border border-gray-300 px-3 py-2">${col.trim()}</td>`; });
+    processed = processed
+        .replace(/\\caption\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '')
+        .replace(/\\renewcommand\s*\{?\s*\\arraystretch\s*\}?\s*\{[^}]+\}/g, '')
+        .replace(/\\setlength\s*\{[^}]*\}\s*\{[^}]*\}/g, '');
+
+    let out = '';
+    let cursor = 0;
+    const startToken = '\\begin{tabular}';
+    const endToken = '\\end{tabular}';
+    while (cursor < processed.length) {
+        const idx = processed.indexOf(startToken, cursor);
+        if (idx === -1) { out += processed.slice(cursor); break; }
+        let before = processed.slice(cursor, idx).replace(/(?:<br\s*\/?>\s*)+$/i, '');
+        let p = idx + startToken.length;
+        while (p < processed.length && /\s/.test(processed[p])) p++;
+        if (processed[p] === '[') {
+            const closeBracket = processed.indexOf(']', p);
+            if (closeBracket !== -1) {
+                p = closeBracket + 1;
+                while (p < processed.length && /\s/.test(processed[p])) p++;
+            }
+        }
+        if (processed[p] !== '{') {
+            out += processed.slice(cursor, idx + startToken.length);
+            cursor = idx + startToken.length;
+            continue;
+        }
+        let depth = 0;
+        let specEnd = p;
+        for (; specEnd < processed.length; specEnd++) {
+            if (processed[specEnd] === '\\') { specEnd++; continue; }
+            if (processed[specEnd] === '{') depth++;
+            else if (processed[specEnd] === '}') { depth--; if (depth === 0) break; }
+        }
+        const closeIdx = depth === 0 ? processed.indexOf(endToken, specEnd + 1) : -1;
+        if (depth !== 0 || closeIdx === -1) {
+            out += processed.slice(cursor, idx + startToken.length);
+            cursor = idx + startToken.length;
+            continue;
+        }
+        out += before;
+        const body = processed.slice(specEnd + 1, closeIdx);
+        const rows = body.split(/\\\\(?:\s*\[[^\]]*\])?/);
+        let html = '<div class="my-2 w-full overflow-x-auto js-scale-wrapper" style="position: relative; width: 100%;">';
+        html += '<table class="js-scale-table mx-auto border-collapse border border-slate-300 bg-white text-sm" style="min-width: max-content;">';
+        let rIdx = 0;
+        rows.forEach((row) => {
+            const cleanRow = row
+                .replace(/\\(?:hline|toprule|midrule|bottomrule)\b/g, '')
+                .replace(/\\cline\s*\{[^}]*\}/g, '')
+                .replace(/\\centering\b/g, '')
+                .trim();
+            if (!cleanRow) return;
+            const cols = splitLatexTableCells(cleanRow);
+            html += `<tr class="${rIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}">`;
+            cols.forEach((rawCol, cIdx) => {
+                let cell = rawCol.trim();
+                if (!cell || cell === '$$') cell = '&nbsp;';
+                const cellTag = rIdx === 0 ? 'th' : 'td';
+                const weightCls = rIdx === 0 ? 'font-semibold bg-slate-100 text-slate-800' : (cIdx === 0 ? 'font-medium text-slate-800 bg-slate-50/60' : 'text-slate-700');
+                html += `<${cellTag} class="border border-slate-300 px-3 py-1.5 text-center ${weightCls}">${cell}</${cellTag}>`;
+            });
             html += '</tr>';
+            rIdx++;
         });
         html += '</table></div>';
-        return html;
-    });
+        out += html;
+        cursor = closeIdx + endToken.length;
+        const afterBr = processed.slice(cursor).match(/^(?:\s*<br\s*\/?>)+/i);
+        if (afterBr) cursor += afterBr[0].length;
+    }
+    return out;
 }
 
 function processLatexLists(text) {
@@ -1193,7 +1307,158 @@ const formatContentCore = (text) => {
     // 0.5 Strip question environments
     processed = processed.replace(/\\begin\{(?:ex|bt|vd|cau|question)\}(?:\[.*?\])?/g, '');
     processed = processed.replace(/\\end\{(?:ex|bt|vd|cau|question)\}/g, '');
-    processed = processed.replace(/\\immini(?:\[.*?\])?\s*\{/g, '{'); // Strip \immini but keep the group
+    // Cleanly unwrap \immini[...]{arg1}{arg2} using balanced braces and fold outer TikZ preludes inside \begin{tikzpicture}
+    {
+        const readOptBracket = (s, idx) => {
+            let i = idx;
+            while (i < s.length && /\s/.test(s[i])) i++;
+            if (s[i] !== '[') return null;
+            let b = 0, p = 0;
+            const start = i;
+            while (i < s.length) {
+                const ch = s[i];
+                if (ch === '\\') { i += 2; continue; }
+                if (ch === '{') b++;
+                else if (ch === '}' && b > 0) b--;
+                else if (ch === '[' && b === 0) p++;
+                else if (ch === ']' && b === 0) {
+                    p--;
+                    if (p === 0) return { content: s.slice(start + 1, i), end: i + 1 };
+                }
+                i++;
+            }
+            return null;
+        };
+        const readBraced = (s, idx) => {
+            let i = idx;
+            while (i < s.length && /\s/.test(s[i])) i++;
+            if (s[i] !== '{') return null;
+            let d = 0;
+            const start = i;
+            while (i < s.length) {
+                const ch = s[i];
+                if (ch === '\\') { i += 2; continue; }
+                if (ch === '%') {
+                    while (i < s.length && s[i] !== '\n') i++;
+                    continue;
+                }
+                if (ch === '{') d++;
+                else if (ch === '}') {
+                    d--;
+                    if (d === 0) return { content: s.slice(start + 1, i), end: i + 1 };
+                }
+                i++;
+            }
+            return null;
+        };
+        const unwrapImmini = (s) => {
+            if (!s || !s.includes('\\immini')) return s;
+            let out = '', i = 0;
+            while (i < s.length) {
+                const idx = s.indexOf('\\immini', i);
+                if (idx === -1) { out += s.slice(i); break; }
+                const afterCmd = idx + 7;
+                if (afterCmd < s.length && /[a-zA-Z]/.test(s[afterCmd])) {
+                    out += s.slice(i, afterCmd);
+                    i = afterCmd;
+                    continue;
+                }
+                out += s.slice(i, idx);
+                let cur = afterCmd;
+                const opt = readOptBracket(s, cur);
+                if (opt) cur = opt.end;
+                const a1 = readBraced(s, cur);
+                if (!a1) { out += '\\immini'; i = afterCmd; continue; }
+                const a2 = readBraced(s, a1.end);
+                if (!a2) { out += unwrapImmini(a1.content); i = a1.end; continue; }
+                const c1 = unwrapImmini(a1.content).trim();
+                const c2 = unwrapImmini(a2.content).trim();
+                const cm = /\\(choiceTF|choice|shortans|indapan)(?![a-zA-Z])/.exec(c1);
+                if (cm) {
+                    const before = c1.slice(0, cm.index).trimEnd();
+                    out += (before ? before + '\n' : '') + c2 + '\n' + c1.slice(cm.index);
+                } else {
+                    out += c1 + (c1 && c2 ? '\n' : '') + c2;
+                }
+                i = a2.end;
+            }
+            return out;
+        };
+        processed = unwrapImmini(processed);
+
+        if (processed.includes('\\begin{tikzpicture}') || /\\(definecolor|colorlet|tikzset|tikzstyle|usetikzlibrary|usepgfplotslibrary|pgfplotsset|pgfmathsetmacro|pgfmathtruncatemacro|pgfdeclarelayer|pgfsetlayers)(?![a-zA-Z])/.test(processed)) {
+            const cmds = [];
+            let clean = '', i = 0, tikzDepth = 0;
+            const oneArg = ['tikzset', 'usetikzlibrary', 'usepgfplotslibrary', 'pgfplotsset', 'pgfdeclarelayer', 'pgfsetlayers'];
+            while (i < processed.length) {
+                if (processed.startsWith('\\begin{tikzpicture}', i)) {
+                    tikzDepth++; clean += '\\begin{tikzpicture}'; i += 19; continue;
+                }
+                if (processed.startsWith('\\end{tikzpicture}', i) && tikzDepth > 0) {
+                    tikzDepth--; clean += '\\end{tikzpicture}'; i += 17; continue;
+                }
+                if (processed[i] === '\\' && i + 1 < processed.length && !/[a-zA-Z]/.test(processed[i + 1])) {
+                    clean += processed.slice(i, i + 2); i += 2; continue;
+                }
+                if (tikzDepth === 0 && processed[i] === '\\') {
+                    const m = /^\\(definecolor|colorlet|tikzset|tikzstyle|usetikzlibrary|usepgfplotslibrary|pgfplotsset|pgfmathsetmacro|pgfmathtruncatemacro|pgfdeclarelayer|pgfsetlayers)(?![a-zA-Z])/.exec(processed.slice(i));
+                    if (m) {
+                        const name = m[1];
+                        let cur = i + m[0].length, ok = false;
+                        if (name === 'definecolor') {
+                            const g1 = readBraced(processed, cur), g2 = g1 && readBraced(processed, g1.end), g3 = g2 && readBraced(processed, g2.end);
+                            if (g3) { cur = g3.end; ok = true; }
+                        } else if (name === 'colorlet') {
+                            const g1 = readBraced(processed, cur), g2 = g1 && readBraced(processed, g1.end);
+                            if (g2) { cur = g2.end; ok = true; }
+                        } else if (oneArg.includes(name)) {
+                            const g1 = readBraced(processed, cur);
+                            if (g1) { cur = g1.end; ok = true; }
+                        } else if (name === 'pgfmathsetmacro' || name === 'pgfmathtruncatemacro') {
+                            while (cur < processed.length && /\s/.test(processed[cur])) cur++;
+                            let tEnd = cur;
+                            if (processed[cur] === '{') { const g1 = readBraced(processed, cur); if (g1) tEnd = g1.end; }
+                            else if (processed[cur] === '\\') { const vm = /^\\[a-zA-Z@]+/.exec(processed.slice(cur)); if (vm) tEnd = cur + vm[0].length; }
+                            if (tEnd > cur) { const g2 = readBraced(processed, tEnd); if (g2) { cur = g2.end; ok = true; } }
+                        } else if (name === 'tikzstyle') {
+                            while (cur < processed.length && /\s/.test(processed[cur])) cur++;
+                            const nm = /^(?:\{[^}]+\}|[a-zA-Z0-9_.\-/\s]+?)\s*=/.exec(processed.slice(cur));
+                            if (nm) { const br = readOptBracket(processed, cur + nm[0].length); if (br) { cur = br.end; ok = true; } }
+                        }
+                        if (ok) {
+                            const cmdText = processed.slice(i, cur).trim();
+                            if (!/^\\use(tikz|pgfplots)library\b/.test(cmdText)) cmds.push(cmdText);
+                            while (cur < processed.length && (processed[cur] === ' ' || processed[cur] === '\t')) cur++;
+                            if (processed[cur] === '\r') cur++;
+                            if (processed[cur] === '\n') cur++;
+                            i = cur;
+                            continue;
+                        }
+                    }
+                }
+                clean += processed[i];
+                i++;
+            }
+            if (cmds.length > 0 && clean.includes('\\begin{tikzpicture}')) {
+                const seen = new Set();
+                const uniq = cmds.filter(c => { const n = c.replace(/\s+/g, ' '); if (seen.has(n)) return false; seen.add(n); return true; });
+                const block = uniq.join('\n');
+                let attached = '', j = 0;
+                while (j < clean.length) {
+                    const tidx = clean.indexOf('\\begin{tikzpicture}', j);
+                    if (tidx === -1) { attached += clean.slice(j); break; }
+                    let tcur = tidx + 19;
+                    const topt = readOptBracket(clean, tcur);
+                    if (topt) tcur = topt.end;
+                    attached += clean.slice(j, tcur) + '\n' + block;
+                    j = tcur;
+                }
+                processed = attached;
+            } else {
+                processed = clean;
+            }
+        }
+    }
     processed = processed.replace(/\\loigiai\s*\{/gi, '');
 
     // 1. Clean Text (Math-safe replacements)
@@ -1218,9 +1483,25 @@ const formatContentCore = (text) => {
 
     // 2. Structure
     processed = convertArrayToMatrix(processed);
-    processed = processNestedTikz(processed); 
-    processed = processTabular(processed);    
-    processed = processLatexLists(processed); 
+    processed = processNestedTikz(processed);
+
+    // Protect embedded TikZ scripts & HTML tags before stripping LaTeX comments / layout commands / lone braces
+    const tikzProtected = [];
+    processed = processed.replace(/<script\s+type=["']text\/tikz["'][^>]*>[\s\S]*?<\/script>/gi, (m) => {
+        const idx = tikzProtected.length;
+        tikzProtected.push(m);
+        return `QMUTILSTIKZPROTECT${idx}QMEND`;
+    });
+    processed = processed
+        .replace(/\\setlength\s*\{[^}]*\}\s*\{[^}]*\}/g, '')
+        .replace(/((?:^|[^\\])(?:\\\\)*)%(?![0-9A-Fa-f]{2}\b)[^\r\n]*/g, '$1')
+        .replace(/\\begin\{center\}/g, '<div class="text-center my-2">')
+        .replace(/\\end\{center\}/g, '</div>')
+        .replace(/\\begin\{minipage\}(?:\[[^\]]*\])?\{[^}]*\}/g, '<div>')
+        .replace(/\\end\{minipage\}/g, '</div>');
+
+    processed = processTabular(processed);
+    processed = processLatexLists(processed);
 
     // 3. Placeholder & Clean Rác
     processed = processed.replace(/Click đúp để tải file|hoặc Ctrl \+ V để dán ảnh|ẢNH TỪ IMMINI|VỊ TRÍ HÌNH TIKZ/gi, '');
@@ -1229,9 +1510,14 @@ const formatContentCore = (text) => {
     // Xóa cặp ngoặc nhọn {} nếu nó bao bọc toàn bộ chuỗi (thường gặp trong parse mệnh đề Đúng/Sai)
     processed = processed.trim().replace(/^\{([\s\S]*)\}$/, '$1');
 
-    // 4. Regex Bảo Vệ MathJax, TikZ Script & HTML (Loại trừ enumEX, listEX, enumerate, itemize khỏi MathJax block detection)
+    // Khôi phục TikZ sau bước dọn rác (tránh xóa nhầm dấu "}" đóng của \newcommand / \foreach)
+    tikzProtected.forEach((m, idx) => {
+        processed = processed.replace(`QMUTILSTIKZPROTECT${idx}QMEND`, () => m);
+    });
+
+    // 4. Regex Bảo Vệ MathJax, TikZ Script & HTML (Loại trừ enumEX, listEX, enumerate, itemize, center, table khỏi MathJax block detection)
     const tagWhitelist = "script|style|div|span|p|br|img|table|tbody|thead|tr|td|th|ul|ol|li|b|i|u|strong|em|mark|label|input|button|a|h1|h2|h3|h4";
-    const regex = new RegExp(`(<script\\s+type=["']text\\/tikz["'][^>]*>[\\s\\S]*?<\\/script>|\\\\begin\\{(?!(?:enumEX|listEX|enumerate|itemize|itemchoice)\\b)[a-zA-Z*]+\\}[\\s\\S]*?\\\\end\\{[a-zA-Z*]+\\}|\\$\\$[\\s\\S]*?\\$\\$|\\\\\\[[\\s\\S]*?\\\\\\]|\\\\\\([\\s\\S]*?\\\\\\)|(?:\\$[\\s\\S]*?\\$)|<\\/?(?:${tagWhitelist})[^>]*>)`, 'gi');
+    const regex = new RegExp(`(<script\\s+type=["']text\\/tikz["'][^>]*>[\\s\\S]*?<\\/script>|\\\\begin\\{(?!(?:enumEX|listEX|enumerate|itemize|itemchoice|center|minipage|table|figure)\\b)[a-zA-Z*]+\\}[\\s\\S]*?\\\\end\\{[a-zA-Z*]+\\}|\\$\\$[\\s\\S]*?\\$\\$|\\\\\\[[\\s\\S]*?\\\\\\]|\\\\\\([\\s\\S]*?\\\\\\)|(?:\\$[\\s\\S]*?\\$)|<\\/?(?:${tagWhitelist})[^>]*>)`, 'gi');
     
     const parts = processed.split(regex);
     
@@ -1246,18 +1532,21 @@ const formatContentCore = (text) => {
         if (isMath) {
             let mathType = trimmed.substring(0, 2);
             if (trimmed.startsWith('$') && !trimmed.startsWith('$$')) mathType = '$';
-            let cleanedMath = part;
+            const brToken = '%%UTILS_MATH_BR%%';
+            let cleanedMath = part.replace(/<br\s*\/?>/gi, brToken);
+            cleanedMath = cleanedMath.replace(/</g, ' &lt; ').replace(/>/g, ' &gt; ');
             if (mathType === '$' || mathType === '$$') {
-                cleanedMath = cleanedMath.replace(/<br\s*\/?>/gi, ` ${mathType} <br> ${mathType} `);
+                cleanedMath = cleanedMath.split(brToken).join(` ${mathType} <br> ${mathType} `);
             } else {
-                cleanedMath = cleanedMath.replace(/<br\s*\/?>/gi, ' \\\\ ');
+                cleanedMath = cleanedMath.split(brToken).join(' \\\\ ');
             }
-            return cleanedMath.replace(/</g, ' &lt; ');
+            return cleanedMath;
         } else if (isTag) {
             return part; // Giữ nguyên tag HTML
         } else {
-            let cleanPart = part.replace(/</g, '&lt;'); // Mã hóa text thường trước
+            let cleanPart = part.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // Mã hóa < > trong text thường
             cleanPart = cleanPart.replace(/\\%/g, '%'); // Chỉ unescape \% thành % khi ở ngoài công thức toán MathJax
+            cleanPart = cleanPart.replace(/\\vdots(?![a-zA-Z])/g, '&#8942;');
             cleanPart = cleanPart.replace(/\\textbf\{([^}]+)\}/g, '<b class="font-bold">$1</b>');
             cleanPart = cleanPart.replace(/\\textit\{([^}]+)\}/g, '<i class="italic">$1</i>');
             cleanPart = cleanPart.replace(/\\rightarrow/g, '→').replace(/\\Rightarrow/g, '⇒');

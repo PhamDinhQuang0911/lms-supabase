@@ -14,7 +14,7 @@
  * (network-first) nhÆ°ng nÃªn tÄƒng khi Ä‘á»•i styles.css/utils.js Ä‘á»ƒ cháº¯c cháº¯n.
  */
 
-const VERSION = 'qmath-v157-omr-tf-custom-score';
+const VERSION = 'qmath-v175-qmath-prod-20261113';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const CDN_CACHE = `${VERSION}-cdn`;

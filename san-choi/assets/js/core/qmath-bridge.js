@@ -579,7 +579,7 @@ Quãng đường vật đi được là $S = \\int_0^5 4t\\,dt = 2 \\cdot 5^2 = 
       </div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-        <b style="font-size:12.5px;color:#1e293b">Mẫu văn bản chuẩn (có thể sao chép dán vào Word):</b>
+        <b style="font-size:12.5px;color:#1e293b">Mẫu văn bản chuẩn (Word .docx) · Hỗ trợ cả LaTeX (.tex) chuẩn <code>ex_test</code> (<code>\\begin{ex}...\\choice / \\choiceTF / \\shortans\\end{ex}</code>):</b>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button type="button" class="btn btn-sm btn-ghost" id="wgCopyBtn">📋 Sao chép văn bản mẫu</button>
           <a href="../mau_de_tron_chuan.docx" download="De_Mau_Game_QMath.docx" class="btn btn-sm btn-primary" style="text-decoration:none">⬇️ Tải file Word (.docx) mẫu</a>
@@ -597,7 +597,7 @@ Quãng đường vật đi được là $S = \\int_0^5 4t\\,dt = 2 \\cdot 5^2 = 
     const actions = [{ label: "Đóng", cls: "btn-ghost" }];
     if (typeof onUploadClick === "function") {
       actions.push({
-        label: "📄 Chọn file Word (.docx) từ máy tính ngay",
+        label: "📄 Chọn file (.docx / .tex) từ máy tính ngay",
         cls: "btn-primary",
         onClick: () => {
           onUploadClick();
@@ -607,12 +607,32 @@ Quãng đường vật đi được là $S = \\int_0^5 4t\\,dt = 2 \\cdot 5^2 = 
     }
 
     return U.modal({
-      title: "📘 Hướng Dẫn Đưa Câu Hỏi File Word (.docx) Lên Game",
+      title: "📘 Hướng Dẫn Đưa Câu Hỏi Word (.docx) & LaTeX (.tex) Lên Game",
       size: "lg",
       body,
       actions
     });
   };
+
+  QB.quickImportWordForGame = async (game, onDone, opts = {}) => {
+    const accept = opts.accept || ".docx,.tex,.txt,.json,.js,.xlsx,.xls,.csv";
+    const file = await U.pickFile(accept);
+    if (!file) return;
+    try {
+      U.toast(`Đang đọc file ${file.name}...`, "info", 2000);
+      const list = await IO.parseFile(file);
+      if (!Array.isArray(list) || !list.length) {
+        U.toast("Không tìm thấy câu hỏi hợp lệ trong file đã chọn!", "warn", 3500);
+        return;
+      }
+      const playable = Quiz.countPlayable ? Quiz.countPlayable(list) : list.length;
+      if (typeof onDone === "function") onDone(list, file);
+      U.toast(`Đã nạp ${list.length} câu hỏi (${playable} câu chơi được) từ ${file.name}!`, "ok", 3800);
+    } catch (e) {
+      U.toast("Không đọc được file: " + (e && e.message ? e.message : String(e)), "err", 4500);
+    }
+  };
+  QB.quickImportFileForGame = QB.quickImportWordForGame;
 
   /* ---------- 5. Tải dữ liệu Cây Kiến Thức & Kho Ngân Hàng Câu Hỏi QMath ---------- */
   async function loadMapIdTree() {
@@ -1982,7 +2002,7 @@ Quãng đường vật đi được là $S = \\int_0^5 4t\\,dt = 2 \\cdot 5^2 = 
   function injectQMathToolsIntoGameSetup(view, gameId) {
     const g = window.Games && Games.get(gameId);
     const setupGrid = view.querySelector(".setup-grid");
-    if (!g || !setupGrid) return;
+    if (!g || !setupGrid || view.querySelector("#qmPickBankBtn")) return;
 
     const bannerHost = U.h(`<div></div>`);
     setupGrid.parentNode.insertBefore(bannerHost, setupGrid);
@@ -2006,14 +2026,14 @@ Quãng đường vật đi được là $S = \\int_0^5 4t\\,dt = 2 \\cdot 5^2 = 
           <button type="button" class="qm-src-card word-card" id="qmUploadWordQuickBtn">
             <div class="qm-src-ic">📄</div>
             <div class="qm-src-txt">
-              <b>Tải đề từ file Word (.docx)</b>
-              <small>Nhận diện công thức Toán MathType, gạch chân & hình ảnh</small>
+              <b>Tải đề từ Word (.docx) / LaTeX (.tex)</b>
+              <small>Nhận diện công thức MathType, LaTeX ex_test &amp; hình ảnh</small>
             </div>
           </button>
         </div>
         <div class="qm-word-help-row">
-          <span>💡 <b>Mẹo đưa câu hỏi file Word (.docx) lên Game:</b> Hỗ trợ công thức MathType, LaTeX <code>$...$</code>, hình vẽ & gạch chân đáp án đúng.</span>
-          <button type="button" class="qm-link-btn" id="qmOpenWordGuideBtn">📘 Xem hướng dẫn chuẩn & Tải file Word mẫu</button>
+          <span>💡 <b>Mẹo đưa file Word (.docx) &amp; LaTeX (.tex) lên Game:</b> Hỗ trợ công thức MathType, LaTeX <code>ex_test</code>, hình vẽ &amp; gạch chân đáp án đúng.</span>
+          <button type="button" class="qm-link-btn" id="qmOpenWordGuideBtn">📘 Xem hướng dẫn chuẩn (.docx / .tex) &amp; Tải mẫu</button>
         </div>
       </div>`);
 

@@ -70,18 +70,25 @@ neq: [0x86, 0x2260, 185, true],
 approx: [0x86, 0x2248, 187, true],
 equiv: [0x86, 0x2261, 186, true],
 sim: [0x86, 0x223C, 126, true],
+backsim: [0x86, 0x223D, 126, true],
+simeq: [0x86, 0x2243, 64, true],
+cong: [0x86, 0x2245, 64, true],
 pm: [0x86, 0x00B1, 177, true],
 mp: [0x86, 0x2213, 177, true],
 cdot: [0x86, 0x22C5, 215, true],
 times: [0x86, 0x00D7, 180, true],
 div: [0x86, 0x00F7, 184, true],
+frown: [0x96, 0x2322, 0x22, true],
 ast: [0x86, 0x2217, 42, true],
 circ: [0x86, 0x00B0, 176, false],
 degree: [0x86, 0x00B0, 176, false],
 in: [0x86, 0x2208, 206, true],
 notin: [0x86, 0x2209, 207, true],
+ni: [0x86, 0x220B, 39, true],
 subset: [0x86, 0x2282, 204, true],
 subseteq: [0x86, 0x2286, 205, true],
+supset: [0x86, 0x2283, 201, true],
+supseteq: [0x86, 0x2287, 202, true],
 cup: [0x86, 0x222A, 200, true],
 cap: [0x86, 0x2229, 199, true],
 setminus: [0x86, 0x2216, 92, true],
@@ -90,7 +97,13 @@ varnothing: [0x86, 0x2205, 198, false],
 infty: [0x86, 0x221E, 165, false],
 forall: [0x86, 0x2200, 34, false],
 exists: [0x86, 0x2203, 36, false],
+partial: [0x86, 0x2202, 182, false],
+nabla: [0x86, 0x2207, 209, false],
 perp: [0x86, 0x22A5, 94, true],
+bot: [0x86, 0x22A5, 94, true],
+mid: [0x86, 0x2223, 124, true],
+nmid: [0x86, 0x2224, 124, true],
+nsubset: [0x86, 0x2284, 203, true],
 parallel: [0x8B, 0x2225, 80, true],
 Rightarrow: [0x86, 0x21D2, 222, true],
 implies: [0x86, 0x21D2, 222, true],
@@ -100,12 +113,22 @@ iff: [0x86, 0x21D4, 219, true],
 rightarrow: [0x86, 0x2192, 174, true],
 to: [0x86, 0x2192, 174, true],
 leftarrow: [0x86, 0x2190, 172, true],
+longmapsto: [0x86, 0x2192, 174, true],
+mapsto: [0x86, 0x2192, 174, true],
+triangle: [0x86, 0x2206, 68, false],
+bigtriangleup: [0x86, 0x2206, 68, false],
+angle: [0x86, 0x2220, 208, false],
 dots: [0x86, 0x2026, 188, false],
 ldots: [0x86, 0x2026, 188, false],
 cdots: [0x86, 0x2026, 188, false],
+vdots: [0x8B, 0x22EE, 77, false],
+ddots: [0x8B, 0x22F1, 79, false],
+prime: [0x86, 0x2032, 162, false],
 int: [0x86, 0x222B, 242, false],
+oint: [0x86, 0x222B, 242, false],
 sum: [0x86, 0x2211, 229, false],
-prod: [0x86, 0x220F, 213, false]
+prod: [0x86, 0x220F, 213, false],
+colon: [0x82, 0x003A, 58, false]
 };
 function packMtefChar(opt, tf, mtcode, enc) {
 if ((opt & 0x04) && enc !== undefined && enc !== null) {
@@ -206,7 +229,7 @@ const nodes = [];
 const n = tokens.length;
 while (pos < n) {
 const tok = tokens[pos];
-if (stopTokens.has(tok) || tok === '}' || tok === '\\right' || tok.startsWith('\\end')) {
+if (stopTokens.has(tok) || tok === '}' || (tok === '\\right' && stopTokens.has('\\right')) || tok.startsWith('\\end')) {
 break;
 }
 const res = this.parseAtom(tokens, pos);
@@ -324,7 +347,11 @@ pos = envRes.pos;
 if (pos < tokens.length && tokens[pos] === '}') pos++;
 envName = envRes.nodes.map(n => n.ch || '').join('');
 }
-if (['array', 'cases'].includes(envName)) {
+if (pos < tokens.length && tokens[pos] === '[') {
+const optRes = this.parseExpr(tokens, pos + 1, new Set([']']));
+pos = optRes.pos;
+if (pos < tokens.length && tokens[pos] === ']') pos++;
+}
 if (envName === 'array' && pos < tokens.length && tokens[pos] === '{') {
 const colRes = this.parseExpr(tokens, pos + 1, new Set(['}']));
 pos = colRes.pos;
@@ -332,8 +359,46 @@ if (pos < tokens.length && tokens[pos] === '}') pos++;
 }
 const envRows = this.parseEnvRows(tokens, pos);
 pos = envRows.pos;
-return { node: { type: 'system', kind: envName === 'cases' ? 'heva' : 'hoac', rows: envRows.rows }, pos };
+if (envName === 'cases') {
+return { node: { type: 'system', kind: 'heva', rows: envRows.rows }, pos };
+} else if (envName === 'pmatrix') {
+return { node: { type: 'fence', left: '(', right: ')', body: [{ type: 'pile', rows: envRows.rows }] }, pos };
+} else if (envName === 'bmatrix') {
+return { node: { type: 'fence', left: '[', right: ']', body: [{ type: 'pile', rows: envRows.rows }] }, pos };
+} else if (envName === 'vmatrix') {
+return { node: { type: 'fence', left: '|', right: '|', body: [{ type: 'pile', rows: envRows.rows }] }, pos };
 }
+return { node: { type: 'pile', rows: envRows.rows }, pos };
+}
+if (tok === '\\right') {
+let rd = '.';
+if (pos < tokens.length) {
+rd = tokens[pos];
+pos++;
+}
+if (rd === '.') return { node: null, pos };
+if (['\\{', '\\}', '\\|'].includes(rd)) {
+return { node: { type: 'char', ch: rd.substring(1) }, pos };
+}
+return { node: { type: 'char', ch: rd }, pos };
+}
+if (tok === '\\not') {
+if (pos < tokens.length) {
+const nxt = tokens[pos];
+const notMap = {
+'\\in': 'notin',
+'=': 'ne',
+'\\equiv': 'ne',
+'\\subset': 'nsubset',
+'\\mid': 'nmid',
+'|': 'nmid'
+};
+if (nxt in notMap) {
+pos++;
+return { node: { type: 'sym', name: notMap[nxt] }, pos };
+}
+}
+return { node: null, pos };
 }
 if (tok === '\\left') {
 const ld = pos < tokens.length ? tokens[pos] : '(';
@@ -353,12 +418,21 @@ return { node: { type: 'fence', left: ld, right: rd, body: innerRes.nodes }, pos
 if (['\\,', '\\;', '\\:', '\\ ', '\\quad', '\\qquad', '~'].includes(tok)) {
 return { node: { type: 'space' }, pos };
 }
+if (tok === '\\!') {
+return { node: null, pos };
+}
 if (tok.startsWith('\\')) {
 const cmd = tok.substring(1);
+if (cmd === 'colon') return { node: { type: 'char', ch: ':' }, pos };
 if (KNOWN_MATH_FUNCS.has(cmd)) return { node: { type: 'func', name: cmd }, pos };
 if (cmd in LC_GREEK) return { node: { type: 'lcgreek', name: cmd }, pos };
 if (cmd in UC_GREEK) return { node: { type: 'ucgreek', name: cmd }, pos };
 if (cmd in SYMBOL_MAP) return { node: { type: 'sym', name: cmd }, pos };
+if (['{', '}', '|'].includes(cmd)) return { node: { type: 'char', ch: cmd }, pos };
+if (['mathbb', 'mathcal', 'mathfrak', 'mathbf', 'mathsf', 'mathtt', 'mathit'].includes(cmd)) {
+const fArg = this.parseScriptArg(tokens, pos);
+return { node: { type: 'group', body: fArg.nodes }, pos: fArg.pos };
+}
 return { node: { type: 'char', ch: cmd }, pos };
 }
 if (tok in SYMBOL_MAP) return { node: { type: 'sym', name: tok }, pos };
@@ -681,6 +755,23 @@ new Uint8Array([0x00, 0x02, 0x00, 0x96, 0x5b, 0x00, 0x00])
 }
 continue;
 }
+if (ntype === 'pile') {
+const rowMtefs = [];
+for (const rAst of nd.rows) {
+const rm = this.compileNodes(rAst, false);
+rowMtefs.push(concatUint8Arrays([
+new Uint8Array([0x01, 0x00]),
+rm,
+new Uint8Array([0x00])
+]));
+}
+mtefParts.push(concatUint8Arrays([
+new Uint8Array([0x04, 0x00, 0x01, 0x02]),
+concatUint8Arrays(rowMtefs),
+new Uint8Array([0x00])
+]));
+continue;
+}
 }
 return concatUint8Arrays(mtefParts);
 }
@@ -693,6 +784,7 @@ else if (norm.startsWith('\\(') && norm.endsWith('\\)')) norm = norm.substring(2
 if (norm.endsWith('\\\\')) norm = norm.substring(0, norm.length - 2).trim();
 if (norm.startsWith('\\True')) norm = norm.substring(5).trim();
 norm = norm.replace(/\{,\}/g, ',');
+norm = norm.replace(/\\widehat([A-Z])(?![a-zA-Z])/g, '\\widehat{$1}');
 if (this.cache.has(norm)) {
 return this.cache.get(norm);
 }
@@ -1074,6 +1166,25 @@ rowBoxes, braceW, scale
 });
 continue;
 }
+if (ntype === 'pile') {
+let maxW = 0;
+let totalH = 0;
+const rowBoxes = [];
+for (const rAst of nd.rows) {
+const rb = layoutNodes(rAst, scale, false);
+rowBoxes.push(rb);
+maxW = Math.max(maxW, rb.width);
+totalH += rb.ascent + rb.descent + 3.0 * scale;
+}
+boxes.push({
+width: maxW,
+ascent: totalH * 0.55 + 2.0 * scale,
+descent: totalH * 0.45,
+kind: 'pile',
+rowBoxes, scale
+});
+continue;
+}
 }
 let cursorX = 0;
 let asc = 8.0 * scale;
@@ -1256,6 +1367,16 @@ let curRowTop = topY;
 for (const rb of box.rowBoxes) {
 const rowBaseY = curRowTop - rb.ascent;
 drawNode(rb, ctx, x + box.braceW + 1.0 * box.scale, y - rowBaseY, ptScale);
+curRowTop -= rb.ascent + rb.descent + 3.2 * box.scale;
+}
+break;
+}
+case 'pile': {
+const topY = box.ascent;
+let curRowTop = topY;
+for (const rb of box.rowBoxes) {
+const rowBaseY = curRowTop - rb.ascent;
+drawNode(rb, ctx, x, y - rowBaseY, ptScale);
 curRowTop -= rb.ascent + rb.descent + 3.2 * box.scale;
 }
 break;
@@ -1714,6 +1835,11 @@ out += `<m:r><m:rPr><m:nor/></m:rPr><m:t>${cmd}</m:t></m:r>`;
 i = end;
 continue;
 }
+if (cmd === 'colon') {
+out += '<m:r><m:t>:</m:t></m:r>';
+i = end;
+continue;
+}
 if (SYMBOL_MAP[cmd]) {
 out += `<m:r><m:t>${escapeXml(String.fromCharCode(SYMBOL_MAP[cmd][1]))}</m:t></m:r>`;
 i = end;
@@ -1757,6 +1883,7 @@ let cleanedRow = rawRow.replace(/\\(hline|toprule|midrule|bottomrule)/g, '').rep
 if (!cleanedRow) continue;
 const cells = cleanedRow.split('&').map(c => {
 let cell = c.trim().replace(/\{,\}/g, ',');
+if (cell === '$$') cell = '';
 const mCol = cell.match(/\\multicolumn\{\d+\}\{[^}]*\}\{(.*?)\}/i);
 if (mCol) cell = mCol[1];
 return cell;
@@ -1826,16 +1953,146 @@ s = s.replace(/\{,\}/g, ',');
 s = s.replace(/\\lq\\lq/g, '“').replace(/\\rq\\rq/g, '”');
 s = s.replace(/\\lq/g, '‘').replace(/\\rq/g, '’');
 s = s.replace(/``/g, '“').replace(/''/g, '”');
+s = s.replace(/\\widehat([A-Z])(?![a-zA-Z])/g, '\\widehat{$1}');
 s = s.replace(/\\quad/g, '  ').replace(/\\qquad/g, '    ');
 return s.trim();
+}
+function findUnescapedDollarPos(text, startIdx) {
+const n = text.length;
+let i = startIdx;
+while (i < n) {
+const ch = text[i];
+if (ch === '\\') {
+i += 2;
+continue;
+}
+if (ch === '$') return i;
+i++;
+}
+return -1;
+}
+function findEscapedDelimPos(text, startIdx, closeTok) {
+const n = text.length;
+let i = startIdx;
+while (i < n) {
+if (text.startsWith('\\\\', i)) {
+i += 2;
+continue;
+}
+if (text.startsWith(closeTok, i)) return i;
+i++;
+}
+return -1;
+}
+function splitRichWordTokens(text) {
+const out = [];
+const n = text.length;
+let i = 0;
+let bufStart = 0;
+const flushPlain = (endIdx) => {
+if (endIdx > bufStart) out.push({ kind: 'plain', raw: text.slice(bufStart, endIdx) });
+};
+const cmdRegex = /^(\\(?:textbf|textit|underline)\{[^{}]*\}|<img\s+[^>]*src=["'][^"']+["'][^>]*>|\\includegraphics(?:\[.*?\])?\{[^}]+\}|\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/i;
+while (i < n) {
+const ch = text[i];
+if (ch === '\\') {
+if (i + 1 < n && (text[i + 1] === '\\' || text[i + 1] === '$')) {
+i += 2;
+continue;
+}
+if (text.startsWith('\\[', i) || text.startsWith('\\(', i)) {
+const closeTok = text.startsWith('\\[', i) ? '\\]' : '\\)';
+const endPos = findEscapedDelimPos(text, i + 2, closeTok);
+if (endPos !== -1 && text.slice(i + 2, endPos).trim()) {
+flushPlain(i);
+out.push({ kind: 'math', raw: text.slice(i, endPos + 2) });
+i = endPos + 2;
+bufStart = i;
+continue;
+}
+}
+const sub = text.slice(i);
+const mCmd = cmdRegex.exec(sub);
+if (mCmd) {
+flushPlain(i);
+out.push({ kind: 'tag', raw: mCmd[0] });
+i += mCmd[0].length;
+bufStart = i;
+continue;
+}
+i++;
+continue;
+}
+if (ch === '<') {
+const sub = text.slice(i);
+const mImgTag = /^<img\s+[^>]*src=["'][^"']+["'][^>]*>/i.exec(sub);
+if (mImgTag) {
+flushPlain(i);
+out.push({ kind: 'tag', raw: mImgTag[0] });
+i += mImgTag[0].length;
+bufStart = i;
+continue;
+}
+}
+if (ch === '$') {
+if (text.startsWith('$$', i)) {
+const endPos = text.indexOf('$$', i + 2);
+if (endPos !== -1 && text.slice(i + 2, endPos).trim()) {
+flushPlain(i);
+out.push({ kind: 'math', raw: text.slice(i, endPos + 2) });
+i = endPos + 2;
+bufStart = i;
+continue;
+}
+flushPlain(i);
+i += 2;
+bufStart = i;
+continue;
+}
+const endPos = findUnescapedDollarPos(text, i + 1);
+if (endPos !== -1) {
+const inner = text.slice(i + 1, endPos);
+flushPlain(i);
+if (inner.trim()) {
+out.push({ kind: 'math', raw: text.slice(i, endPos + 1) });
+} else if (inner) {
+out.push({ kind: 'plain', raw: inner });
+}
+i = endPos + 1;
+bufStart = i;
+continue;
+}
+}
+i++;
+}
+flushPlain(n);
+return out;
+}
+function cleanMathRawForExporter(rawMath) {
+let s = String(rawMath || '');
+s = s.replace(/\t(?=(?:ext(?:bf|it|rm|tt)?|frac|imes|riangle|heta|au|op|an(?![a-zA-Z])|o(?![a-zA-Z])))/g, '\\t');
+s = s.replace(/\s*[\r\n\t]+\s*/g, ' ');
+return s.replace(/\\widehat([A-Z])(?![a-zA-Z])/g, '\\widehat{$1}').trim();
 }
 function parseRunsFromText(rawText, baseBold = false, baseItalic = false, formulaRegistry = null, formulaMode = 'mathtype') {
 if (!rawText) return [];
 const text = String(rawText);
-const tokens = text.split(/(\\textbf\{[^{}]*\}|\\textit\{[^{}]*\}|\\underline\{[^{}]*\}|\$\$[\s\S]*?\$\$|\$[^\$]+?\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\<img\s+[^>]*src=["'](?:[^"']+)["'][^>]*\>|\\includegraphics(?:\[.*?\])?\{[^}]+\}|\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\})/g);
+const items = splitRichWordTokens(text);
 const runs = [];
-for (const tok of tokens) {
+for (const item of items) {
+const tok = item.raw;
 if (!tok) continue;
+if (item.kind === 'math') {
+const mathTok = cleanMathRawForExporter(tok);
+if (!mathTok || mathTok === '$$') continue;
+if (formulaMode === 'mathtype' && formulaRegistry) {
+const oleEntry = formulaRegistry.register(mathTok);
+runs.push({ isMath: true, isMathType: true, entry: oleEntry });
+} else {
+runs.push({ isMath: true, isMathType: false, ommlXml: parseLatexToOmml(mathTok) });
+}
+continue;
+}
 const mImg = tok.match(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/i) || tok.match(/\\includegraphics(?:\[.*?\])?\{([^}]+)\}/i);
 if (mImg) {
 runs.push({ isImage: true, src: mImg[1] });
@@ -1843,15 +2100,6 @@ continue;
 }
 if (tok.startsWith('\\begin{tikzpicture}')) {
 runs.push({ isImage: true, src: tok });
-continue;
-}
-if (tok.startsWith('$') || tok.startsWith('\\[') || tok.startsWith('\\(')) {
-if (formulaMode === 'mathtype' && formulaRegistry) {
-const oleEntry = formulaRegistry.register(tok);
-runs.push({ isMath: true, isMathType: true, entry: oleEntry });
-} else {
-runs.push({ isMath: true, isMathType: false, ommlXml: parseLatexToOmml(tok) });
-}
 continue;
 }
 const mB = tok.match(/^\\textbf\{(.*)\}$/);
@@ -1929,8 +2177,35 @@ res += `
 }
 return res;
 }
-function buildCandidateInfoXml(examCode = '101') {
+function buildCandidateInfoXml(examCode = '101', includeExamCode = true) {
 const cleanCode = String(examCode || '101').trim();
+const showCode = includeExamCode !== false && cleanCode.length > 0;
+if (!showCode) {
+return `
+<w:tbl>
+<w:tblPr>
+<w:tblW w:w="10773" w:type="dxa"/>
+<w:tblBorders>
+<w:top w:val="none"/><w:left w:val="none"/><w:bottom w:val="none"/><w:right w:val="none"/>
+<w:insideH w:val="none"/><w:insideV w:val="none"/>
+</w:tblBorders>
+</w:tblPr>
+<w:tblGrid>
+<w:gridCol w:w="10773"/>
+</w:tblGrid>
+<w:tr>
+<w:tc>
+<w:tcPr><w:tcW w:w="10773" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>
+<w:p>
+<w:pPr><w:spacing w:before="60" w:after="60"/></w:pPr>
+<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>
+<w:t xml:space="preserve">Họ và tên thí sinh: ........................................................................ Số báo danh: ........................</w:t>
+</w:r>
+</w:p>
+</w:tc>
+</w:tr>
+</w:tbl>`;
+}
 return `
 <w:tbl>
 <w:tblPr>
@@ -2153,6 +2428,7 @@ grade = '9',
 examCode = '1001',
 duration = 90,
 includeCandidateInfo = true,
+includeExamCode = true,
 includeDottedLines = false,
 dottedLinesCount = 4,
 dottedLinesScope = 'essay_short',
@@ -2160,6 +2436,8 @@ includeAnswerTable = true,
 includeCccd = false,
 underlineCorrect = false
 } = options;
+const cleanGrade = String(grade || '').replace(/^(?:môn\s*)?toán\s*/i, '').trim();
+const showExamCode = includeExamCode !== false && String(examCode || '').trim() !== '';
 let bodyXml = '';
 if (headerStyle === 'standard_gov') {
 bodyXml += `
@@ -2205,7 +2483,7 @@ bodyXml += `
 </w:p>
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="20"/></w:pPr>
-<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>MÔN THI: ${escapeXml(subject.toUpperCase())}${grade ? ' - KHỐI ' + escapeXml(grade) : ''}</w:t></w:r>
+<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>MÔN THI: ${escapeXml(subject.toUpperCase())}${cleanGrade ? ' - KHỐI ' + escapeXml(cleanGrade) : ''}</w:t></w:r>
 </w:p>
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="40"/></w:pPr>
@@ -2215,9 +2493,13 @@ bodyXml += `
 </w:tr>
 </w:tbl>`;
 if (includeCandidateInfo) {
-bodyXml += buildCandidateInfoXml(examCode);
+bodyXml += buildCandidateInfoXml(examCode, showExamCode);
 }
 } else if (headerStyle === 'brand_center') {
+const brandParts = [`Môn: ${escapeXml(subject)}`];
+if (cleanGrade) brandParts.push(`Khối ${escapeXml(cleanGrade)}`);
+brandParts.push(`Thời gian làm bài: ${duration} phút`);
+if (showExamCode) brandParts.push(`Mã đề: ${escapeXml(examCode)}`);
 bodyXml += `
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="40"/></w:pPr>
@@ -2229,12 +2511,14 @@ bodyXml += `
 </w:p>
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="160"/></w:pPr>
-<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:i/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>Môn: ${escapeXml(subject)} | Khối ${escapeXml(grade)} | Thời gian làm bài: ${duration} phút | Mã đề: ${escapeXml(examCode)}</w:t></w:r>
+<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:i/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>${brandParts.join(' | ')}</w:t></w:r>
 </w:p>`;
 if (includeCandidateInfo) {
-bodyXml += buildCandidateInfoXml(examCode);
+bodyXml += buildCandidateInfoXml(examCode, showExamCode);
 }
 } else if (headerStyle === 'compact') {
+const compactParts = [`Môn: ${escapeXml(subject)}`, `Thời gian: ${duration} phút`];
+if (showExamCode) compactParts.push(`Mã đề: ${escapeXml(examCode)}`);
 bodyXml += `
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="60"/></w:pPr>
@@ -2242,10 +2526,10 @@ bodyXml += `
 </w:p>
 <w:p>
 <w:pPr><w:jc w:val="center"/><w:spacing w:after="160"/></w:pPr>
-<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:i/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>Môn: ${escapeXml(subject)} - Thời gian: ${duration} phút - Mã đề: ${escapeXml(examCode)}</w:t></w:r>
+<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:i/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr><w:t>${compactParts.join(' - ')}</w:t></w:r>
 </w:p>`;
 if (includeCandidateInfo) {
-bodyXml += buildCandidateInfoXml(examCode);
+bodyXml += buildCandidateInfoXml(examCode, showExamCode);
 }
 }
 const part1 = [];
@@ -3191,7 +3475,7 @@ return pyodideInitPromise;
 pyodideInitPromise = new Promise((resolve, reject) => {
 try {
 if (!pyodideExporterWorker) {
-pyodideExporterWorker = new Worker("tex2mathtype-worker.js?v=20261016_V6");
+pyodideExporterWorker = new Worker("tex2mathtype-worker.js?v=20261113_V7");
 }
 const initTimeout = setTimeout(() => {
 if (!isPyodideExporterReady) {
@@ -3278,6 +3562,7 @@ s = s.replace(/<b>(.*?)<\/b>/gi, '\\textbf{$1}');
 s = s.replace(/<strong>(.*?)<\/strong>/gi, '\\textbf{$1}');
 s = s.replace(/<i>(.*?)<\/i>/gi, '\\textit{$1}');
 s = s.replace(/<em>(.*?)<\/em>/gi, '\\textit{$1}');
+s = s.replace(/&nbsp;/g, ' ');
 s = s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 s = s.replace(/<\/?(?:div|span|script)[^>]*>/gi, '');
 return s.trim();
@@ -3305,7 +3590,15 @@ const m2 = txt.matchAll(/\\includegraphics(?:\[.*?\])?\{([^}]+)\}/gi);
 for (const m of m2) res.push(m[1]);
 return res;
 };
+const scanTikz = (txt) => {
+if (!txt) return [];
+const res = [];
+const mt = txt.matchAll(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/gi);
+for (const m of mt) res.push(m[0]);
+return res;
+};
 const allSources = [];
+const allTikzPy = [];
 questions.forEach(q => {
 if (q.image) allSources.push(q.image);
 if (q.img) allSources.push(q.img);
@@ -3314,13 +3607,17 @@ if (q.image_url) allSources.push(q.image_url);
 if (Array.isArray(q.images)) allSources.push(...q.images);
 allSources.push(...scanImgs(q.content));
 allSources.push(...scanImgs(q.solution || q.explain));
+allTikzPy.push(...scanTikz(q.content));
+allTikzPy.push(...scanTikz(q.solution || q.explain));
 (q.options || []).forEach(opt => {
 if (typeof opt === 'object') {
 if (opt.image) allSources.push(opt.image);
 if (opt.img) allSources.push(opt.img);
-allSources.push(...scanImgs(opt.text));
+allSources.push(...scanImgs(opt.text || opt.content));
+allTikzPy.push(...scanTikz(opt.text || opt.content));
 } else {
 allSources.push(...scanImgs(opt));
+allTikzPy.push(...scanTikz(opt));
 }
 });
 (q.statements || []).forEach(st => {
@@ -3328,11 +3625,30 @@ if (typeof st === 'object') {
 if (st.image) allSources.push(st.image);
 if (st.img) allSources.push(st.img);
 allSources.push(...scanImgs(st.text || st.content));
+allTikzPy.push(...scanTikz(st.text || st.content));
 } else {
 allSources.push(...scanImgs(st));
+allTikzPy.push(...scanTikz(st));
 }
 });
 });
+const tikzRenderedUrlMap = {};
+const uniqueTikzPy = Array.from(new Set(allTikzPy.filter(Boolean)));
+if (uniqueTikzPy.length > 0 && typeof window !== 'undefined' && typeof window.compileTikZToImage === 'function') {
+setStatus(20, `Đang biên dịch ${uniqueTikzPy.length} hình TikZ sang ảnh...`);
+for (const tkCode of uniqueTikzPy) {
+try {
+const prepared = typeof window.prepareTikzForCompilation === 'function' ? window.prepareTikzForCompilation(tkCode) : tkCode;
+const renderedUrl = await window.compileTikZToImage(prepared);
+if (renderedUrl && !renderedUrl.includes('Image+Error')) {
+tikzRenderedUrlMap[tkCode] = renderedUrl;
+allSources.push(renderedUrl);
+}
+} catch (tErr) {
+console.warn('[PyodideExport] Lỗi biên dịch TikZ:', tErr);
+}
+}
+}
 const uniqueSources = Array.from(new Set(allSources.filter(Boolean)));
 const imagesList = [];
 const imageMap = {};
@@ -3350,6 +3666,19 @@ imagesList.push({ filename: fname, data: bytes });
 console.warn('[PyodideExport] Không thể nạp ảnh:', src, e);
 }
 }
+const replaceTikzAndImages = (raw) => {
+let s = String(raw || '');
+for (const [tkCode, rUrl] of Object.entries(tikzRenderedUrlMap)) {
+const fname = imageMap[rUrl];
+if (fname && s.includes(tkCode)) {
+s = s.split(tkCode).join(`\\includegraphics{${fname}}`);
+}
+}
+for (const [sUrl, fName] of Object.entries(imageMap)) {
+if (s.includes(sUrl)) s = s.split(sUrl).join(fName);
+}
+return cleanHtmlToLatex(s);
+};
 setStatus(30, "Đang chuẩn hóa đề thi sang LaTeX...");
 const p1List = [];
 const p2List = [];
@@ -3371,11 +3700,7 @@ let currentRomanPy = 1;
 const romanNumeralsPy = ['I', 'II', 'III', 'IV'];
 const formatQuestionLatex = (q) => {
 let res = '';
-let content = q.content || '';
-for (const [sUrl, fName] of Object.entries(imageMap)) {
-if (content.includes(sUrl)) content = content.split(sUrl).join(fName);
-}
-content = cleanHtmlToLatex(content);
+let content = replaceTikzAndImages(q.content || '');
 const env = q.env || (q.type === 'essay' || q.type === 'tl' ? 'bt' : 'ex');
 const cccd = q.cccd || q.bankId || q.id || '';
 res += `\\begin{${env}}[${cccd}]\n${content}\n`;
@@ -3389,11 +3714,7 @@ res += `\\begin{center}\n\\includegraphics{${imageMap[cand]}}\n\\end{center}\n`;
 if (q.type === 'tf' || (Array.isArray(q.statements) && q.statements.length > 0)) {
 const stmts = Array.isArray(q.statements) ? q.statements : q.options;
 const tfItems = (stmts || []).map((st, sIdx) => {
-let stText = typeof st === 'object' ? (st.content || st.text || '') : st;
-for (const [sUrl, fName] of Object.entries(imageMap)) {
-if (stText.includes(sUrl)) stText = stText.split(sUrl).join(fName);
-}
-stText = cleanHtmlToLatex(stText);
+let stText = replaceTikzAndImages(typeof st === 'object' ? (st.content || st.text || '') : st);
 const isTrue = (getTfAnswerChar(q, sIdx) === 'Đ');
 return `\t{${isTrue ? '\\True ' : ''}${stText}}`;
 }).join('\n');
@@ -3401,11 +3722,7 @@ res += `\\choiceTF\n${tfItems}\n`;
 } else if (Array.isArray(q.options) && q.options.length > 0) {
 const correctIdx = getChoiceCorrectIndex(q);
 const choiceItems = q.options.map((opt, i) => {
-let optText = typeof opt === 'object' ? (opt.text || '') : opt;
-for (const [sUrl, fName] of Object.entries(imageMap)) {
-if (optText.includes(sUrl)) optText = optText.split(sUrl).join(fName);
-}
-optText = cleanHtmlToLatex(optText);
+let optText = replaceTikzAndImages(typeof opt === 'object' ? (opt.text || opt.content || '') : opt);
 const isCorrect = (i === correctIdx);
 return `\t{${isCorrect ? '\\True ' : ''}${optText}}`;
 }).join('\n');
@@ -3415,16 +3732,12 @@ const ans = getShortAnswerText(q);
 if (ans) {
 const ansLatex = formatShortAnswerForLatex(ans);
 if (customOptions.underlineCorrect || mode === 'full') {
-res += `\\textbf{Đáp án: }${ansLatex}\n\n`;
+res += `\\textbf{Đáp số: }${ansLatex}\n\n`;
 }
 }
 }
 if (q.solution || q.explain) {
-let sol = q.solution || q.explain || '';
-for (const [sUrl, fName] of Object.entries(imageMap)) {
-if (sol.includes(sUrl)) sol = sol.split(sUrl).join(fName);
-}
-sol = cleanHtmlToLatex(sol);
+let sol = replaceTikzAndImages(q.solution || q.explain || '');
 res += `\\loigiai{\n${sol}\n}\n`;
 }
 res += `\\end{${env}}\n\n`;
@@ -3524,6 +3837,8 @@ worker.removeEventListener('message', messageHandler);
 reject(new Error(error));
 }
 };
+const cleanGradePy = String(customOptions.grade || '9').replace(/^(?:môn\s*)?toán\s*/i, '').trim() || '9';
+const includeExamCodePy = customOptions.includeExamCode !== false;
 const headerConfig = {
 style: customOptions.headerStyle || 'standard_gov',
 agency: customOptions.agencyName || 'SỞ GD&ĐT HÀ NỘI',
@@ -3531,9 +3846,11 @@ school: customOptions.schoolName || 'TRƯỜNG THPT TRẦN QUANG KHẢI',
 exam_type: customOptions.examType || '(ĐỀ CHÍNH THỨC)',
 title: customOptions.examTitle || exam.title || 'ĐỀ THI',
 subject: customOptions.subject || 'TOÁN HỌC',
-grade: customOptions.grade || '9',
+grade: cleanGradePy,
 duration: customOptions.duration || 90,
-exam_code: customOptions.examCode || '1001',
+exam_code: includeExamCodePy ? (customOptions.examCode || '1001') : '',
+include_exam_code: includeExamCodePy,
+total_questions: questions.length,
 candidate_info: customOptions.includeCandidateInfo !== false,
 underline_correct: customOptions.underlineCorrect === true
 };
@@ -3554,6 +3871,10 @@ header_config: headerConfig
 }
 async function exportExamToWord(exam, customOptions = {}) {
 if (!exam) throw new Error('Không có dữ liệu đề thi');
+if (!customOptions.skipQuota && typeof window !== 'undefined' && window.QMathQuota && typeof window.QMathQuota.consume === 'function') {
+const qRes = await window.QMathQuota.consume('Xuất file Word');
+if (!qRes.allowed) return null;
+}
 const questions = exam.questions || [];
 const baseName = sanitizeFilename(customOptions.examTitle || exam.title || 'De_Thi');
 const mode = customOptions.mode || 'questions';
@@ -3599,33 +3920,101 @@ options: customOptions
 triggerDownload(blob, `${baseName}_De_Bai.docx`);
 }
 }
+function ensureExportWordModalStyles() {
+if (typeof document === 'undefined' || document.getElementById('export-word-modal-styles')) return;
+const style = document.createElement('style');
+style.id = 'export-word-modal-styles';
+style.textContent = `
+#exportWordModal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10040 !important;
+  background: rgba(17, 24, 39, 0.62) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px !important;
+  box-sizing: border-box !important;
+}
+#exportWordModal:not(.hidden) {
+  display: flex !important;
+}
+#exportWordModal.hidden {
+  display: none !important;
+}
+#exportWordModal .ew-dialog {
+  width: 95vw;
+  max-width: 1050px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  box-sizing: border-box;
+}
+#exportWordModal .ew-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+}
+@media (max-width: 640px) {
+  #exportWordModal {
+    padding: 8px !important;
+  }
+  #exportWordModal .ew-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100vh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+  #exportWordModal .ew-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  #exportWordModal .ew-footer {
+    flex-wrap: wrap !important;
+    justify-content: stretch !important;
+  }
+  #exportWordModal .ew-footer button {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+  }
+}
+`;
+if (document.head) document.head.appendChild(style);
+}
 function openExportWordModal(examOrId, preloadedQuestions = null) {
 try { getPyodideExporterWorker(); } catch(e) {}
+ensureExportWordModalStyles();
 let modal = document.getElementById('exportWordModal');
 if (!modal) {
 modal = document.createElement('div');
 modal.id = 'exportWordModal';
-modal.className = 'fixed inset-0 z-[160] bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 transition-opacity';
+modal.className = 'fixed inset-0 z-[10040] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 transition-opacity';
+modal.style.setProperty('z-index', '10040', 'important');
+modal.onclick = (e) => {
+if (e.target === modal) closeExportWordModal();
+};
 modal.innerHTML = `
-<div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex flex-col" style="width: 95vw; max-width: 1050px; max-height: 90vh;">
+<div class="ew-dialog bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex flex-col">
 <!-- Header Modal -->
-<div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
-<div class="flex items-center gap-2.5">
-<span class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center justify-center text-lg">
+<div class="flex items-start sm:items-center justify-between gap-2 pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
+<div class="flex items-center gap-2.5 min-w-0 flex-1">
+<span class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center justify-center text-lg shrink-0">
 <i class="fa-solid fa-file-word"></i>
 </span>
-<div>
-<h3 class="font-bold text-gray-800 dark:text-gray-100 text-sm sm:text-base">Tùy chọn Xuất file Word (.docx)</h3>
+<div class="min-w-0">
+<h3 class="font-bold text-gray-800 dark:text-gray-100 text-sm sm:text-base leading-snug">Tùy chọn Xuất file Word (.docx)</h3>
 <p class="text-[11px] text-gray-500 dark:text-gray-400">Công thức MathType / Equation, Tùy biến khung tiêu đề đề thi &amp; Bảng đáp án</p>
 </div>
 </div>
-<button type="button" onclick="window.closeExportWordModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg text-lg">
+<button type="button" onclick="window.closeExportWordModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg text-lg shrink-0">
 <i class="fa-solid fa-xmark"></i>
 </button>
 </div>
 <!-- Body Modal (Scrollable, 2 Cột trên màn hình ngang) -->
-<div class="py-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
+<div class="py-3 sm:py-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
+<div class="ew-grid">
 <!-- CỘT TRÁI: Định dạng & Chế độ xuất -->
 <div class="space-y-3.5" style="min-width: 0;">
 <!-- 1. Định dạng công thức Toán -->
@@ -3703,11 +4092,11 @@ Dòng kẻ chấm làm bài / nháp
 <!-- CỘT PHẢI: Cấu hình Khung Tiêu Đề Đề Thi -->
 <div class="space-y-3.5" style="min-width: 0;">
 <div class="p-3.5 bg-gray-50/70 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700/80 space-y-3">
-<div class="flex items-center justify-between">
+<div class="flex flex-wrap items-center justify-between gap-2">
 <label class="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
 <i class="fa-solid fa-heading text-gray-600 dark:text-gray-300"></i> Khung tiêu đề đề thi (Header)
 </label>
-<select id="exportWordHeaderStyle" class="text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 outline-none cursor-pointer">
+<select id="exportWordHeaderStyle" class="w-full sm:w-auto text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 outline-none cursor-pointer">
 <option value="standard_gov" selected>🏛️ Mẫu 1: Chuẩn Sở / Bộ GD (2 cột)</option>
 <option value="brand_center">⭐ Mẫu 2: Trung tâm / QMath (Trang trọng)</option>
 <option value="compact">📄 Mẫu 3: Tiêu đề Rút gọn</option>
@@ -3736,7 +4125,7 @@ Dòng kẻ chấm làm bài / nháp
 <input type="text" id="exportWordExamType" value="(ĐỀ CHÍNH THỨC)" class="w-full px-2.5 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 outline-none">
 </div>
 </div>
-<div class="grid grid-cols-3 gap-2">
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
 <div>
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Môn thi</label>
 <input type="text" id="exportWordSubject" value="TOÁN HỌC" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 outline-none">
@@ -3745,7 +4134,7 @@ Dòng kẻ chấm làm bài / nháp
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Khối</label>
 <input type="text" id="exportWordGrade" value="9" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 outline-none">
 </div>
-<div>
+<div class="col-span-2 sm:col-span-1">
 <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-400 mb-0.5">Thời gian</label>
 <div class="flex items-center gap-1">
 <input type="number" id="exportWordDuration" value="90" class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-center font-bold text-gray-800 dark:text-gray-200 outline-none">
@@ -3753,15 +4142,18 @@ Dòng kẻ chấm làm bài / nháp
 </div>
 </div>
 </div>
-<!-- Mã đề thi gọn gàng (Mặc định 4 số) -->
-<div class="pt-2 border-t border-gray-200 dark:border-gray-700">
-<div class="flex items-center justify-between">
-<label class="text-[11px] font-bold text-gray-700 dark:text-gray-300">Mã đề thi (Mặc định 4 chữ số)</label>
-<div class="flex items-center gap-2">
+<!-- Mã đề thi gọn gàng (Tùy chọn hiển thị / ẩn, mặc định 4 số) -->
+<div class="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
+<div class="flex flex-wrap items-center justify-between gap-2">
+<label class="flex items-center gap-2 cursor-pointer">
+<input type="checkbox" id="exportWordIncludeExamCode" checked class="rounded text-primary-600 focus:ring-primary-500">
+<span class="text-[11px] font-bold text-gray-700 dark:text-gray-300">Hiển thị Mã đề thi (Mặc định 4 số)</span>
+</label>
+<div id="exportWordExamCodeControls" class="flex items-center gap-2 transition-opacity">
 <input type="text" id="exportWordExamCode" value="1001" maxlength="6" class="w-24 px-2 py-1.5 text-xs font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-center text-gray-800 dark:text-gray-200 outline-none focus:ring-1 focus:ring-primary-500">
 <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-0.5 bg-gray-100 dark:bg-gray-800 text-[11px]" role="group">
 <button type="button" id="btnExamCode3Digits" onclick="window.setWordExamCodeDigits(3)" class="px-2 py-1 font-medium rounded-md transition-all text-gray-600 dark:text-gray-400 cursor-pointer">3 số</button>
-<button type="button" id="btnExamCode4Digits" onclick="window.setWordExamCodeDigits(4)" class="px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-xs cursor-pointer">4 số</button>
+<button type="button" id="btnExamCode4Digits" onclick="window.setWordExamCodeDigits(4)" class="px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm cursor-pointer">4 số</button>
 </div>
 </div>
 </div>
@@ -3769,7 +4161,7 @@ Dòng kẻ chấm làm bài / nháp
 <div class="pt-1">
 <label class="flex items-center gap-2 cursor-pointer">
 <input type="checkbox" id="exportWordCandidateInfo" checked class="rounded text-primary-600 focus:ring-primary-500">
-<span class="text-xs text-gray-700 dark:text-gray-300 font-medium">Khung thông tin thí sinh (Họ tên, SBD) &amp; Ô Mã đề thi</span>
+<span class="text-xs text-gray-700 dark:text-gray-300 font-medium">Khung thông tin thí sinh (Họ tên, SBD)</span>
 </label>
 </div>
 </div>
@@ -3778,7 +4170,7 @@ Dòng kẻ chấm làm bài / nháp
 </div>
 </div>
 <!-- Footer Modal -->
-<div class="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-200 dark:border-gray-800 shrink-0">
+<div class="ew-footer flex items-center justify-end gap-2.5 pt-3 border-t border-gray-200 dark:border-gray-800 shrink-0">
 <button type="button" onclick="window.closeExportWordModal()" class="px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer">Hủy</button>
 <button type="button" id="btnConfirmExportWord" class="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold rounded-xl transition shadow-md flex items-center gap-2 cursor-pointer" style="background-color: var(--primary-color, #ea580c); color: #ffffff;">
 <i class="fa-solid fa-file-arrow-down"></i> Tải file Word (.docx)
@@ -3824,16 +4216,36 @@ subjectInput.value = examObj.subject;
 }
 const gradeInput = document.getElementById('exportWordGrade');
 if (gradeInput && examObj && examObj.grade) {
-gradeInput.value = examObj.grade;
+const normGrade = String(examObj.grade).replace(/^(?:môn\s*)?toán\s*/i, '').trim();
+gradeInput.value = normGrade || examObj.grade;
 }
 const durInput = document.getElementById('exportWordDuration');
 if (durInput && examObj && examObj.duration) {
 durInput.value = examObj.duration;
 }
+const incCodeCheck = document.getElementById('exportWordIncludeExamCode');
+const codeControls = document.getElementById('exportWordExamCodeControls');
 const codeInput = document.getElementById('exportWordExamCode');
+const syncExamCodeUi = () => {
+const enabled = !incCodeCheck || incCodeCheck.checked;
+if (codeInput) codeInput.disabled = !enabled;
+const b3 = document.getElementById('btnExamCode3Digits');
+const b4 = document.getElementById('btnExamCode4Digits');
+if (b3) b3.disabled = !enabled;
+if (b4) b4.disabled = !enabled;
+if (codeControls) {
+codeControls.classList.toggle('opacity-40', !enabled);
+codeControls.classList.toggle('pointer-events-none', !enabled);
+}
+};
+if (incCodeCheck) {
+incCodeCheck.checked = !(examObj && examObj.includeExamCode === false);
+incCodeCheck.onchange = syncExamCodeUi;
+}
 if (codeInput) {
 codeInput.value = examObj && examObj.examCode ? examObj.examCode : '1001';
 }
+syncExamCodeUi();
 const btnConfirm = document.getElementById('btnConfirmExportWord');
 if (btnConfirm) {
 btnConfirm.onclick = async () => {
@@ -3865,9 +4277,10 @@ const sName = document.getElementById('exportWordSchoolName')?.value || 'TRƯỜ
 const eType = document.getElementById('exportWordExamType')?.value || '(ĐỀ CHÍNH THỨC)';
 const eTitle = document.getElementById('exportWordTitleInput')?.value || fullExam.title || 'Đề thi';
 const subj = document.getElementById('exportWordSubject')?.value || 'TOÁN HỌC';
-const grd = document.getElementById('exportWordGrade')?.value || '9';
+const grd = (document.getElementById('exportWordGrade')?.value || '9').replace(/^(?:môn\s*)?toán\s*/i, '').trim() || '9';
 const dur = parseInt(document.getElementById('exportWordDuration')?.value || 90);
-const code = document.getElementById('exportWordExamCode')?.value || '1001';
+const incExamCode = document.getElementById('exportWordIncludeExamCode')?.checked !== false;
+const code = incExamCode ? (document.getElementById('exportWordExamCode')?.value || '1001') : '';
 const cInfo = document.getElementById('exportWordCandidateInfo')?.checked !== false;
 const hasDotted = document.getElementById('exportWordIncludeDottedLines')?.checked === true;
 const dotCount = parseInt(document.getElementById('exportWordDottedCount')?.value || 4);
@@ -3887,6 +4300,7 @@ subject: subj,
 grade: grd,
 duration: dur,
 examCode: code,
+includeExamCode: incExamCode,
 includeCandidateInfo: cInfo,
 includeDottedLines: hasDotted,
 dottedLinesCount: dotCount,
@@ -3906,6 +4320,12 @@ btnConfirm.disabled = false;
 btnConfirm.innerHTML = '<i class="fa-solid fa-file-arrow-down"></i> Tải file Word (.docx)';
 }
 };
+}
+if (modal.parentElement !== document.body && document.body) {
+document.body.appendChild(modal);
+}
+if (modal.style && typeof modal.style.setProperty === 'function') {
+modal.style.setProperty('z-index', '10040', 'important');
 }
 modal.classList.remove('hidden');
 }
@@ -3937,6 +4357,10 @@ return;
 }
 const confirmOk = confirm(`Bạn có chắc muốn xuất ${selectedIds.length} đề thi đã chọn sang Word MathType (.docx)?`);
 if (!confirmOk) return;
+if (typeof window !== 'undefined' && window.QMathQuota && typeof window.QMathQuota.consume === 'function') {
+const qRes = await window.QMathQuota.consume('Xuất hàng loạt đề Word');
+if (!qRes.allowed) return;
+}
 try {
 if (typeof window.showNotification === 'function') {
 window.showNotification(`Đang chuẩn bị xuất ${selectedIds.length} file Word...`, 'info');
@@ -3994,10 +4418,10 @@ const b4 = document.getElementById('btnExamCode4Digits');
 window._wordExamCodeDigits = digits;
 if (b3 && b4) {
 if (digits === 3) {
-b3.className = "px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-xs cursor-pointer";
+b3.className = "px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm cursor-pointer";
 b4.className = "px-2 py-1 font-medium rounded-md transition-all text-gray-600 dark:text-gray-400 cursor-pointer";
 } else {
-b4.className = "px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-xs cursor-pointer";
+b4.className = "px-2 py-1 font-bold rounded-md transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm cursor-pointer";
 b3.className = "px-2 py-1 font-medium rounded-md transition-all text-gray-600 dark:text-gray-400 cursor-pointer";
 }
 }
@@ -4010,4 +4434,240 @@ input.value = String(num).padStart(digits, '0');
 window.openExportWordModal = openExportWordModal;
 window.closeExportWordModal = closeExportWordModal;
 window.exportExamToWord = exportExamToWord;
+
+const QMathQuota = (function () {
+const STORAGE_USAGE_KEY = 'qmath_exam_monthly_usage_v1';
+const STORAGE_ROLE_CFG_KEY = 'qmath_role_quota_cfg';
+const STORAGE_PKG_CFG_KEY = 'qmath_teacher_pkg_cfg';
+const ROOT_EMAILS = [
+'phamdinhquang0911@gmail.com',
+'phamquang09112001@gmail.com',
+'phamngockhanh.942001@gmail.com',
+'phamngockhanh.942002@gmail.com'
+];
+
+function safeJsonParse(raw) {
+if (!raw) return null;
+try { return JSON.parse(raw); } catch (_) { return null; }
+}
+
+function getMonthKey() {
+const d = new Date();
+return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function notifyQuotaError(msg) {
+if (typeof window.showNotification === 'function') {
+window.showNotification(msg, 'warning');
+} else if (typeof window.showToast === 'function') {
+window.showToast(msg, 'warning');
+} else if (typeof window.customAlert === 'function') {
+window.customAlert(msg, 'warning');
+} else {
+alert(msg);
+}
+}
+
+function getRoleInfo() {
+const cachedRole = safeJsonParse(typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_ROLE_CFG_KEY) : null) || {};
+const cachedPkg = safeJsonParse(typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_PKG_CFG_KEY) : null) || {};
+const pkg = (typeof window !== 'undefined' && window.teacherPackageConfig) ? window.teacherPackageConfig : cachedPkg;
+const prof = (typeof window !== 'undefined' && window.currentAdminProfile) ? window.currentAdminProfile : null;
+
+const email = String(
+(prof && prof.email) ||
+cachedRole.email ||
+(typeof window !== 'undefined' && window.currentUserEmail) ||
+''
+).toLowerCase().trim();
+
+const uid = String(
+(prof && (prof.uid || prof.id)) ||
+cachedRole.uid ||
+(typeof window !== 'undefined' && window.currentUserId) ||
+email ||
+'anonymous_teacher'
+).trim();
+
+const isRootEmail = Boolean(email && ROOT_EMAILS.includes(email));
+const hasWindowSuperFlag = typeof window !== 'undefined' && (window.isSuperAdmin === true || (prof && (prof.role === 'super_admin' || prof.isRoot === true)));
+const isSuper = Boolean(isRootEmail || hasWindowSuperFlag || (prof === null && cachedRole.isSuper === true));
+
+let isFree = false;
+let isVip = false;
+if (!isSuper) {
+if (typeof window !== 'undefined' && typeof window.isFreeTeacher === 'boolean') {
+isFree = window.isFreeTeacher;
+isVip = !isFree;
+} else if (prof) {
+isFree = prof.teacherTier === 'free' || prof.role === 'teacher_free' || (!prof.teacherTier && typeof cachedRole.isFree === 'boolean' && cachedRole.isFree);
+isVip = !isFree;
+} else if (typeof cachedRole.isFree === 'boolean') {
+isFree = cachedRole.isFree;
+isVip = !isFree;
+} else {
+isVip = true;
+}
+}
+
+const vipAllowTexDownload = Boolean(
+pkg && pkg.vipAllowTexDownload !== undefined ? pkg.vipAllowTexDownload : cachedRole.vipAllowTexDownload
+);
+
+const rawVipQuota = (pkg && pkg.vipMonthlyExamQuota !== undefined)
+? parseInt(pkg.vipMonthlyExamQuota, 10)
+: (cachedRole.vipMonthlyExamQuota !== undefined ? parseInt(cachedRole.vipMonthlyExamQuota, 10) : -1);
+const vipMonthlyExamQuota = isNaN(rawVipQuota) ? -1 : rawVipQuota;
+
+const rawFreeQuota = (pkg && pkg.freeMonthlyExamQuota !== undefined)
+? parseInt(pkg.freeMonthlyExamQuota, 10)
+: (cachedRole.freeMonthlyExamQuota !== undefined ? parseInt(cachedRole.freeMonthlyExamQuota, 10) : 100);
+const freeMonthlyExamQuota = isNaN(rawFreeQuota) ? 100 : rawFreeQuota;
+
+const canDownloadTex = isSuper || (isVip && vipAllowTexDownload);
+const monthlyLimit = isSuper ? -1 : (isFree ? freeMonthlyExamQuota : vipMonthlyExamQuota);
+
+return {
+uid,
+email,
+userKey: (uid || email || 'anonymous_teacher').toLowerCase().replace(/[^a-z0-9_@.-]/g, '_'),
+isSuper,
+isFree,
+isVip,
+vipAllowTexDownload,
+vipMonthlyExamQuota,
+freeMonthlyExamQuota,
+canDownloadTex,
+monthlyLimit,
+unlimited: monthlyLimit < 0
+};
+}
+
+function readUsageMap() {
+if (typeof localStorage === 'undefined') return {};
+return safeJsonParse(localStorage.getItem(STORAGE_USAGE_KEY)) || {};
+}
+
+function writeUsageMap(map) {
+if (typeof localStorage === 'undefined') return;
+try { localStorage.setItem(STORAGE_USAGE_KEY, JSON.stringify(map)); } catch (_) {}
+}
+
+function getStatus() {
+const role = getRoleInfo();
+const monthKey = getMonthKey();
+const map = readUsageMap();
+const used = Number((map[role.userKey] && map[role.userKey][monthKey]) || 0);
+const unlimited = role.monthlyLimit < 0;
+const remaining = unlimited ? -1 : Math.max(0, role.monthlyLimit - used);
+const roleLabel = role.isSuper ? 'Super Admin' : (role.isFree ? 'Giáo viên Free' : 'Giáo viên VIP');
+return { ...role, limit: role.monthlyLimit, roleLabel, monthKey, used, remaining, unlimited };
+}
+
+function emitQuotaUpdated() {
+try {
+if (typeof window !== 'undefined' && typeof window.refreshIMathRoleVisibility === 'function') {
+window.refreshIMathRoleVisibility();
+}
+if (typeof window !== 'undefined' && typeof window.refreshDashboardQuotaDisplay === 'function') {
+window.refreshDashboardQuotaDisplay();
+}
+if (typeof window !== 'undefined' && typeof window.applyEditorRoleVisibility === 'function') {
+window.applyEditorRoleVisibility();
+}
+if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+window.dispatchEvent(new CustomEvent('qmath-quota-updated'));
+}
+} catch (_) {}
+}
+
+function getDisplaySummary() {
+const st = getStatus();
+if (st.isSuper) {
+return { ...st, shortText: 'Không giới hạn (Super Admin)', badgeText: 'Không giới hạn (Admin)', tone: 'emerald' };
+}
+if (st.unlimited) {
+return { ...st, shortText: 'Gói VIP • Không giới hạn', badgeText: `${st.roleLabel} • Không giới hạn lượt/tháng`, tone: 'emerald' };
+}
+const tone = st.remaining <= 0 ? 'rose' : (st.remaining <= 10 ? 'amber' : 'blue');
+return {
+...st,
+shortText: `Còn ${st.remaining}/${st.limit} lượt/tháng`,
+badgeText: `Lượt tạo & tải đề tháng ${st.monthKey}: Còn ${st.remaining}/${st.limit} lượt`,
+tone
+};
+}
+
+function syncFromCloudUsage(uidOrKey, cloudMonthlyUsage) {
+if (!cloudMonthlyUsage || typeof cloudMonthlyUsage !== 'object') return;
+const role = getRoleInfo();
+const uKey = String(uidOrKey || role.userKey || 'anonymous_teacher').toLowerCase().replace(/[^a-z0-9_@.-]/g, '_');
+const map = readUsageMap();
+if (!map[uKey]) map[uKey] = {};
+if (cloudMonthlyUsage.monthKey && cloudMonthlyUsage.count !== undefined) {
+const mk = String(cloudMonthlyUsage.monthKey);
+const n = Number(cloudMonthlyUsage.count || 0);
+if (!isNaN(n) && n > Number(map[uKey][mk] || 0)) map[uKey][mk] = n;
+}
+Object.entries(cloudMonthlyUsage).forEach(([mk, cnt]) => {
+if (!/^\d{4}-\d{2}$/.test(mk)) return;
+const n = Number(cnt || 0);
+if (!isNaN(n) && n > Number(map[uKey][mk] || 0)) map[uKey][mk] = n;
+});
+writeUsageMap(map);
+emitQuotaUpdated();
+}
+
+async function consume(actionLabel = 'Tạo / tải đề') {
+const st = getStatus();
+if (st.unlimited) {
+return { allowed: true, unlimited: true, used: st.used, limit: st.monthlyLimit, remaining: -1 };
+}
+if (st.monthlyLimit === 0 || st.used >= st.monthlyLimit) {
+notifyQuotaError(
+`Bạn đã dùng hết ${st.used}/${st.monthlyLimit} lượt tạo & tải đề trong tháng ${st.monthKey}. ` +
+(st.isFree ? 'Hãy nâng cấp Giáo viên VIP để mở khóa không giới hạn!' : 'Vui lòng liên hệ Quản trị viên để tăng hạn mức.')
+);
+return { allowed: false, unlimited: false, used: st.used, limit: st.monthlyLimit, remaining: 0 };
+}
+const nextUsed = st.used + 1;
+const map = readUsageMap();
+if (!map[st.userKey]) map[st.userKey] = {};
+map[st.userKey][st.monthKey] = nextUsed;
+writeUsageMap(map);
+emitQuotaUpdated();
+if (typeof window._qmathQuotaSyncUsageToCloud === 'function') {
+try {
+await Promise.resolve(window._qmathQuotaSyncUsageToCloud(st.uid, st.monthKey, nextUsed, actionLabel));
+} catch (_) {}
+}
+return {
+allowed: true,
+unlimited: false,
+used: nextUsed,
+limit: st.monthlyLimit,
+remaining: Math.max(0, st.monthlyLimit - nextUsed)
+};
+}
+
+function saveRoleSnapshot(snapshot) {
+if (typeof localStorage === 'undefined' || !snapshot || typeof snapshot !== 'object') return;
+try {
+const prev = safeJsonParse(localStorage.getItem(STORAGE_ROLE_CFG_KEY)) || {};
+localStorage.setItem(STORAGE_ROLE_CFG_KEY, JSON.stringify({ ...prev, ...snapshot, updatedAt: Date.now() }));
+emitQuotaUpdated();
+} catch (_) {}
+}
+
+return {
+getMonthKey,
+getRoleInfo,
+getStatus,
+getDisplaySummary,
+syncFromCloudUsage,
+consume,
+saveRoleSnapshot
+};
+})();
+window.QMathQuota = QMathQuota;
 })(typeof window !== 'undefined' ? window : this);
