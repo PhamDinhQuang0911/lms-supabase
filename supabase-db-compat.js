@@ -172,73 +172,151 @@ export function onAuthStateChanged(auth, callback) {
     };
 }
 
-export async function signInWithEmailAndPassword(auth, email, password) {
-    const cleanEmail = (email || '').trim().toLowerCase();
-    const usernamePart = cleanEmail.split('@')[0];
-    const hocsinhEmail = `${usernamePart}@hocsinh.com`;
-    const cleanPass = (password !== undefined && password !== null) ? String(password).trim() : '';
+function escapeSqlLike(str) {
+    return String(str || '').replace(/[\\%_]/g, '\\$&');
+}
 
-    // 1. Tìm trong bảng users (hỗ trợ cả email chuẩn, email dạng @hocsinh.com, và id)
-    let userRow = null;
+function getRowExpectedPassword(row) {
+    if (!row) return null;
+    const raw = (row.raw_data && typeof row.raw_data === 'object') ? row.raw_data : null;
+    return row.password || (raw && raw.password) || null;
+}
+
+function mergeLoginCandidate(candidateMap, entry) {
+    if (!entry) return;
+    const emailKey = (entry.email || '').trim().toLowerCase();
+    const idKey = (entry.id || '').trim();
+    const key = emailKey || idKey;
+    if (!key) return;
+
+    const existing = candidateMap.get(key);
+    if (!existing) {
+        candidateMap.set(key, {
+            id: idKey || ('admin_' + emailKey.replace(/[^a-zA-Z0-9]/g, '_')),
+            email: emailKey || idKey,
+            display_name: entry.display_name || (emailKey ? emailKey.split('@')[0] : idKey),
+            role: entry.role || 'student',
+            password: entry.password || null,
+            raw_data: entry.raw_data || null,
+            photo_url: entry.photo_url || null,
+            phone: entry.phone || null,
+            qpoints: entry.qpoints || 0,
+            sbd: entry.sbd || '',
+            source: entry.source || 'users',
+            isStaff: !!entry.isStaff || ['admin', 'teacher', 'super_admin'].includes(entry.role)
+        });
+        return;
+    }
+
+    if (!existing.id && idKey) existing.id = idKey;
+    if (!existing.password && entry.password) existing.password = entry.password;
+    if (!existing.raw_data && entry.raw_data) existing.raw_data = entry.raw_data;
+    if (!existing.display_name && entry.display_name) existing.display_name = entry.display_name;
+    if (!existing.photo_url && entry.photo_url) existing.photo_url = entry.photo_url;
+    if (!existing.phone && entry.phone) existing.phone = entry.phone;
+    if (!existing.qpoints && entry.qpoints) existing.qpoints = entry.qpoints;
+    if (!existing.sbd && entry.sbd) existing.sbd = entry.sbd;
+    if (entry.isStaff || ['admin', 'teacher', 'super_admin'].includes(entry.role)) {
+        existing.isStaff = true;
+        if (existing.role === 'student' || !existing.role) {
+            existing.role = entry.role || 'teacher';
+        }
+    }
+}
+
+async function runCandidateQuery(promise, candidateMap, mapRow, filterFn) {
     try {
-        const { data: users, error } = await supabase
-            .from('users')
-            .select('*')
-            .or(`email.ilike.${cleanEmail},email.ilike.${hocsinhEmail},id.eq.${cleanEmail},id.eq.${usernamePart}`);
-
-        if (!error && users && users.length > 0) {
-            // Nếu có nhiều hơn 1 tài khoản (do lịch sử di chuyển), ưu tiên tài khoản khớp chính xác mật khẩu
-            if (users.length > 1 && cleanPass) {
-                const passMatch = users.find(u => {
-                    const expected = u.password || (u.raw_data && u.raw_data.password);
-                    return expected && String(expected).trim() === cleanPass;
-                });
-                userRow = passMatch || users[0];
-            } else {
-                userRow = users[0];
+        const { data } = await promise;
+        if (!Array.isArray(data)) return;
+        for (const row of data) {
+            if (!filterFn || filterFn(row)) {
+                mergeLoginCandidate(candidateMap, mapRow(row));
             }
         }
-    } catch(e) {
-        console.warn("Lỗi tìm người dùng:", e);
+    } catch (_) {}
+}
+
+export async function signInWithEmailAndPassword(auth, email, password) {
+    const cleanInput = (email || '').trim().toLowerCase();
+    const hasAt = cleanInput.includes('@');
+    const usernamePart = hasAt ? cleanInput.split('@')[0] : cleanInput;
+    const hocsinhEmail = usernamePart ? `${usernamePart}@hocsinh.com` : '';
+    const giaovienEmail = usernamePart ? `${usernamePart}@giaovien.com` : '';
+    const qmathEmail = usernamePart ? `${usernamePart}@qmath.io.vn` : '';
+    const cleanPass = (password !== undefined && password !== null) ? String(password).trim() : '';
+
+    if (!cleanInput) {
+        throw new Error("Tài khoản không tồn tại trên hệ thống!");
     }
 
-    // 2. Nếu chưa thấy, tìm tiếp theo số điện thoại (phòng trường hợp người dùng nhập SĐT trực tiếp)
-    if (!userRow && cleanEmail) {
-        try {
-            const { data: usersByPhone } = await supabase
-                .from('users')
-                .select('*')
-                .eq('phone', cleanEmail)
-                .limit(1);
-            if (usersByPhone && usersByPhone.length > 0) {
-                userRow = usersByPhone[0];
-            }
-        } catch(e) {}
+    const candidateMap = new Map();
+    const safeLikeUser = escapeSqlLike(usernamePart);
+    const safeLikeExact = escapeSqlLike(cleanInput);
+    const emailPattern = hasAt ? safeLikeExact : `${safeLikeUser}@%`;
+    const lookupLimit = hasAt ? 10 : 20;
+    const lookupId = hasAt ? cleanInput : usernamePart;
+
+    const mapUserRow = (fallbackEmail) => (u) => ({
+        ...u,
+        email: (u.email || fallbackEmail).toLowerCase(),
+        password: getRowExpectedPassword(u),
+        source: 'users'
+    });
+    const mapAdminRow = (fallbackEmail) => (a) => ({
+        id: a.id,
+        email: (a.email || fallbackEmail).toLowerCase(),
+        display_name: a.display_name,
+        role: a.role || 'admin',
+        isStaff: true,
+        password: getRowExpectedPassword(a),
+        source: 'admin_accounts'
+    });
+    const matchesUsernameEmail = (row) => {
+        if (hasAt) return true;
+        const rowLocal = (row.email || '').trim().toLowerCase().split('@')[0];
+        return rowLocal === usernamePart;
+    };
+
+    const tasks = [
+        runCandidateQuery(
+            supabase.from('users').select('*').ilike('email', emailPattern).limit(lookupLimit),
+            candidateMap, mapUserRow(hasAt ? cleanInput : hocsinhEmail), matchesUsernameEmail
+        ),
+        runCandidateQuery(
+            supabase.from('users').select('*').eq('id', lookupId).limit(5),
+            candidateMap, mapUserRow(hasAt ? cleanInput : hocsinhEmail)
+        ),
+        runCandidateQuery(
+            supabase.from('admin_accounts').select('*').ilike('email', emailPattern).limit(lookupLimit),
+            candidateMap, mapAdminRow(hasAt ? cleanInput : giaovienEmail), matchesUsernameEmail
+        ),
+        runCandidateQuery(
+            supabase.from('admin_accounts').select('*').eq('id', lookupId).limit(5),
+            candidateMap, mapAdminRow(hasAt ? cleanInput : giaovienEmail)
+        )
+    ];
+
+    if (!hasAt && usernamePart) {
+        tasks.push(
+            runCandidateQuery(
+                supabase.from('users').select('*').ilike('raw_data->>username', safeLikeUser).limit(20),
+                candidateMap,
+                mapUserRow(hocsinhEmail),
+                (u) => ((u.raw_data && u.raw_data.username) || '').trim().toLowerCase() === usernamePart
+            )
+        );
     }
 
-    // 3. Nếu vẫn chưa thấy, kiểm tra trong bảng admin_accounts
-    if (!userRow && cleanEmail) {
-        try {
-            const { data: admins } = await supabase
-                .from('admin_accounts')
-                .select('*')
-                .or(`email.ilike.${cleanEmail},id.eq.${cleanEmail}`)
-                .limit(1);
-            if (admins && admins.length > 0) {
-                const a = admins[0];
-                userRow = {
-                    id: a.id,
-                    email: a.email,
-                    display_name: a.display_name,
-                    role: a.role || 'admin',
-                    password: a.password || (a.raw_data && a.raw_data.password) || null
-                };
-            }
-        } catch(e) {}
+    if (/^\d+$/.test(cleanInput) || !hasAt) {
+        tasks.push(
+            runCandidateQuery(
+                supabase.from('users').select('*').eq('phone', cleanInput).limit(5),
+                candidateMap, mapUserRow(hocsinhEmail)
+            )
+        );
     }
 
-    // 3.5. Kiểm tra trong configurations/admin_roles nếu vẫn chưa thấy
-    if (!userRow && cleanEmail) {
+    tasks.push((async () => {
         try {
             const { data: cfgDoc } = await supabase
                 .from('configurations')
@@ -246,33 +324,64 @@ export async function signInWithEmailAndPassword(auth, email, password) {
                 .eq('id', 'admin_roles')
                 .maybeSingle();
             if (cfgDoc && cfgDoc.raw_data && Array.isArray(cfgDoc.raw_data.accounts)) {
-                const foundAdmin = cfgDoc.raw_data.accounts.find(a => (a.email || '').toLowerCase() === cleanEmail || (a.id || '').toLowerCase() === cleanEmail);
-                if (foundAdmin) {
-                    userRow = {
-                        id: foundAdmin.id || ('admin_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')),
-                        email: foundAdmin.email || cleanEmail,
-                        display_name: foundAdmin.displayName || cleanEmail.split('@')[0],
-                        role: foundAdmin.role === 'super_admin' ? 'admin' : 'teacher',
-                        password: foundAdmin.password || null
-                    };
+                for (const a of cfgDoc.raw_data.accounts) {
+                    const accEmail = (a.email || '').trim().toLowerCase();
+                    const accId = (a.id || '').trim().toLowerCase();
+                    const accUser = (a.username || '').trim().toLowerCase();
+                    const accLocal = accEmail.includes('@') ? accEmail.split('@')[0] : accEmail;
+                    const matched = hasAt
+                        ? (accEmail === cleanInput || accId === cleanInput)
+                        : (accLocal === usernamePart || accUser === usernamePart || accId === usernamePart ||
+                            accEmail === giaovienEmail || accEmail === qmathEmail || accEmail === hocsinhEmail);
+                    if (matched) {
+                        const resolvedEmail = accEmail || giaovienEmail || cleanInput;
+                        mergeLoginCandidate(candidateMap, {
+                            id: a.id || ('admin_' + resolvedEmail.replace(/[^a-zA-Z0-9]/g, '_')),
+                            email: resolvedEmail,
+                            display_name: a.displayName || resolvedEmail.split('@')[0],
+                            role: a.role === 'super_admin' ? 'admin' : 'teacher',
+                            isStaff: true,
+                            password: a.password || null,
+                            source: 'admin_roles'
+                        });
+                    }
                 }
             }
-        } catch(e) {}
+        } catch (_) {}
+    })());
+
+    await Promise.allSettled(tasks);
+
+    // Fallback đặc biệt cho Root Admin
+    for (const rootEmail of ROOT_ADMIN_EMAILS) {
+        const cleanRoot = rootEmail.toLowerCase();
+        const rootMatch = hasAt ? (cleanRoot === cleanInput) : (cleanRoot.split('@')[0] === usernamePart);
+        if (rootMatch && !candidateMap.has(cleanRoot)) {
+            mergeLoginCandidate(candidateMap, {
+                id: 'admin_' + cleanRoot.replace(/[^a-zA-Z0-9]/g, '_'),
+                email: cleanRoot,
+                display_name: 'Phạm Đình Quang (Admin)',
+                role: 'admin',
+                isStaff: true,
+                password: null,
+                source: 'root_admin'
+            });
+        }
     }
 
-    // 4. Fallback đặc biệt cho tài khoản Quản trị viên hệ thống (Admin)
-    const ADMIN_EMAILS = ROOT_ADMIN_EMAILS;
-    if (!userRow && ADMIN_EMAILS.includes(cleanEmail)) {
-        userRow = {
-            id: 'admin_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'),
-            email: cleanEmail,
-            display_name: 'Phạm Đình Quang (Admin)',
-            role: 'admin',
-            password: null
-        };
+    // Bổ sung mật khẩu từ bảng 'users' cho tài khoản chỉ mới tìm thấy trong admin_accounts/admin_roles
+    const missingPassEmails = Array.from(candidateMap.values())
+        .filter(c => !c.password && c.email && c.email.includes('@'))
+        .map(c => c.email);
+    if (missingPassEmails.length > 0) {
+        await runCandidateQuery(
+            supabase.from('users').select('*').in('email', missingPassEmails),
+            candidateMap, mapUserRow(cleanInput)
+        );
     }
 
-    if (!userRow) {
+    const candidates = Array.from(candidateMap.values());
+    if (candidates.length === 0) {
         throw new Error("Tài khoản không tồn tại trên hệ thống!");
     }
 
@@ -280,18 +389,39 @@ export async function signInWithEmailAndPassword(auth, email, password) {
         throw new Error("Vui lòng nhập mật khẩu!");
     }
 
-    // 5. Kiểm tra mật khẩu (bắt buộc có mật khẩu; tự động khóa mật khẩu ở lần đăng nhập đầu nếu tài khoản di chuyển từ Firebase chưa lưu mật khẩu)
-    const expectedPass = userRow.password || (userRow.raw_data && userRow.raw_data.password);
-    if (expectedPass) {
-        if (String(expectedPass).trim() !== cleanPass) {
-            throw new Error("Mật khẩu không chính xác!");
+    // Chọn ứng viên khớp chính xác mật khẩu (xử lý khi trùng prefix username giữa HS và GV)
+    const passMatched = candidates.filter(c => {
+        const exp = getRowExpectedPassword(c);
+        return exp && String(exp).trim() === cleanPass;
+    });
+
+    let userRow = null;
+    if (passMatched.length === 1) {
+        userRow = passMatched[0];
+    } else if (passMatched.length > 1) {
+        if (hasAt) {
+            userRow = passMatched.find(c => (c.email || '').toLowerCase() === cleanInput) || passMatched[0];
+        } else {
+            const distinctRoles = new Set(passMatched.map(c => c.isStaff ? 'staff' : 'student'));
+            if (distinctRoles.size > 1) {
+                throw new Error("Có nhiều tài khoản cùng tên đăng nhập này. Vui lòng nhập đầy đủ Email (ví dụ: ten@giaovien.com)!");
+            }
+            userRow = passMatched.find(c => (c.email || '').toLowerCase() === giaovienEmail) ||
+                      passMatched.find(c => (c.email || '').toLowerCase() === qmathEmail) ||
+                      passMatched[0];
         }
     } else {
+        const hasAnyPasswordSet = candidates.some(c => !!getRowExpectedPassword(c));
+        if (hasAnyPasswordSet) {
+            throw new Error("Mật khẩu không chính xác!");
+        }
+        // Fallback cho tài khoản di chuyển từ Firebase chưa lưu mật khẩu
+        userRow = candidates.find(c => hasAt ? (c.email || '').toLowerCase() === cleanInput : c.isStaff) || candidates[0];
         if (cleanPass.length < 4) {
             throw new Error("Mật khẩu không chính xác!");
         }
         try {
-            if (userRow.id) {
+            if (userRow.id && userRow.source === 'users') {
                 await supabase.from('users').update({ password: cleanPass }).eq('id', userRow.id);
             }
         } catch (_) {}
@@ -300,10 +430,10 @@ export async function signInWithEmailAndPassword(auth, email, password) {
     const userObj = {
         uid: userRow.id,
         id: userRow.id,
-        email: userRow.email || `${userRow.id}@hocsinh.com`,
+        email: (userRow.email || (hasAt ? cleanInput : `${usernamePart}@hocsinh.com`)).toLowerCase(),
         displayName: userRow.display_name || userRow.email,
         photoURL: userRow.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(userRow.display_name || userRow.email)}&background=random`,
-        role: userRow.role || 'student',
+        role: userRow.role || (userRow.isStaff ? 'teacher' : 'student'),
         phone: userRow.phone,
         qpoints: userRow.qpoints || 0,
         sbd: userRow.sbd || ''
@@ -561,6 +691,15 @@ export async function signOut(auth) {
     if (!auth || auth.isDefault !== false) {
         if (auth) auth.currentUser = null;
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        try {
+            localStorage.removeItem('qmath_role_mode');
+            sessionStorage.removeItem('isTeacherRegistering');
+            sessionStorage.removeItem('isRegistering');
+            if (typeof window !== 'undefined') {
+                window.isTeacherRegistering = false;
+                window.isRegistering = false;
+            }
+        } catch (_) {}
         if (auth && auth._notify) auth._notify();
     }
     return Promise.resolve();

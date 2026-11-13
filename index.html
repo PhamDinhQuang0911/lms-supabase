@@ -1319,7 +1319,7 @@ function toggleMobileMenu() { document.getElementById('mobile-menu').classList.t
 import {
 supabase, initializeApp, getAuth, signInWithEmailAndPassword, signInWithQrToken, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile, onAuthStateChanged, sendPasswordResetEmail,
 getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, getDocs, query, where, orderBy, onSnapshot, increment
-} from "./supabase-db-compat.js?v=31";
+} from "./supabase-db-compat.js?v=32";
 let app = initializeApp({});
 let auth = getAuth(app);
 let db = getFirestore(app);
@@ -1328,7 +1328,13 @@ loadHeroSettings();
 renderCoursesFromDB();
 onAuthStateChanged(auth, async (user) => {
 if (user) {
-if (window.isRegistering || window.isTeacherRegistering || sessionStorage.getItem('isTeacherRegistering')) {
+const tRegModalEl = document.getElementById('teacherRegisterModal');
+const isTRegModalOpen = tRegModalEl && !tRegModalEl.classList.contains('hidden');
+if (!isTRegModalOpen) {
+window.isTeacherRegistering = false;
+try { sessionStorage.removeItem('isTeacherRegistering'); } catch (_) {}
+}
+if (window.isRegistering || window.isTeacherRegistering || (isTRegModalOpen && sessionStorage.getItem('isTeacherRegistering'))) {
 console.log("Đang trong quá trình lưu hồ sơ đăng ký tài khoản / thanh toán giáo viên, tạm hoãn chuyển hướng...");
 return;
 }
@@ -1921,6 +1927,12 @@ const password = passwordInput.value;
 if(!inputVal || !password) return showMessage("Vui lòng nhập đủ thông tin", "error");
 submitBtn.disabled = true;
 submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+window.isRegistering = false;
+window.isTeacherRegistering = false;
+try {
+sessionStorage.removeItem('isTeacherRegistering');
+localStorage.removeItem('qmath_role_mode');
+} catch (_) {}
 try {
 let targetEmail = "";
 if (/^\d+$/.test(inputVal)) {
@@ -1929,25 +1941,31 @@ const querySnapshot = await getDocs(q);
 if (querySnapshot.empty) throw new Error("SĐT này chưa đăng ký!");
 const userData = querySnapshot.docs[0].data();
 targetEmail = userData.email || `${userData.username}@hocsinh.com`;
-} else if (inputVal.includes('@')) {
-targetEmail = inputVal;
 } else {
-const cleanUser = inputVal.trim().toLowerCase();
-const qUser = query(collection(db, "users"), where("username", "==", cleanUser));
-const snapUser = await getDocs(qUser);
-if (!snapUser.empty) {
-targetEmail = snapUser.docs[0].data().email || `${cleanUser}@hocsinh.com`;
-} else {
-targetEmail = `${cleanUser}@hocsinh.com`;
-}
+targetEmail = inputVal.trim().toLowerCase();
 }
 const userCredential = await signInWithEmailAndPassword(auth, targetEmail, password);
 showMessage("Đăng nhập thành công!", "success");
-saveUserData(userCredential.user, "email");
+const signedUser = userCredential.user;
+const isStaffQuick = ['admin', 'teacher', 'super_admin'].includes(signedUser?.role) ||
+ADMIN_EMAILS.map(e => e.toLowerCase()).includes((signedUser?.email || '').toLowerCase());
+await Promise.race([
+saveUserData(signedUser, "email").catch(() => {}),
+new Promise(r => setTimeout(r, 600))
+]);
+setTimeout(() => {
+const pendingUrl = sessionStorage.getItem('pendingExamUrl');
+if (pendingUrl) {
+sessionStorage.removeItem('pendingExamUrl');
+window.location.href = pendingUrl;
+return;
+}
+window.location.href = isStaffQuick ? "dashboard.html" : "student.html";
+}, isStaffQuick ? 1000 : 2500);
 } catch (error) {
 console.error(error);
 let msg = "Sai thông tin đăng nhập!";
-if(error.message.includes("SĐT")) msg = error.message;
+if (error.message && (error.message.includes("SĐT") || error.message.includes("nhiều tài khoản"))) msg = error.message;
 showMessage(msg, "error");
 submitBtn.disabled = false; submitBtn.innerHTML = 'Đăng nhập ngay';
 }
@@ -3684,6 +3702,8 @@ if (submitText) submitText.innerHTML = `<span>Tiếp tục thanh toán VietQR ($
 }
 };
 window.backToTeacherRegStep1 = () => {
+window.isTeacherRegistering = false;
+try { sessionStorage.removeItem('isTeacherRegistering'); } catch (_) {}
 if (tRegQrCountdownInterval) { clearInterval(tRegQrCountdownInterval); tRegQrCountdownInterval = null; }
 if (tRegRecheckTimer) { clearInterval(tRegRecheckTimer); tRegRecheckTimer = null; }
 if (tRegAutoScanTimer) { clearInterval(tRegAutoScanTimer); tRegAutoScanTimer = null; }
@@ -3897,6 +3917,11 @@ try {
 const cleanId = (authEmail || user.uid).replace(/[@.]/g, '_');
 await setDoc(doc(db, "admin_accounts", cleanId), teacherRecord, { merge: true });
 } catch(e) {}
+window.isTeacherRegistering = false;
+try {
+sessionStorage.removeItem('isTeacherRegistering');
+localStorage.setItem('qmath_role_mode', 'teacher');
+} catch (_) {}
 document.getElementById('tRegStep1')?.classList.add('hidden');
 document.getElementById('tRegFreeSuccessBox')?.classList.remove('hidden');
 if (window.showNotification) {
@@ -4341,6 +4366,11 @@ approvedAt: new Date().toISOString()
 } catch(eUpd) {}
 }
 await window.grantTeacherRoleToNewAccount();
+window.isTeacherRegistering = false;
+try {
+sessionStorage.removeItem('isTeacherRegistering');
+localStorage.setItem('qmath_role_mode', 'teacher');
+} catch (_) {}
 document.getElementById('tRegPaymentStatusBox')?.classList.add('hidden');
 document.getElementById('tRegSuccessBox')?.classList.remove('hidden');
 if (window.showNotification) {
