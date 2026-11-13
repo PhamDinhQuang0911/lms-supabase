@@ -522,9 +522,24 @@
         const apiUrl = await window.QMathBridge.getMathTypeApiUrl();
         if (apiUrl) {
           U.toast("⏳ Đang chuyển công thức MathType sang LaTeX...", "info", 2500);
+          let uploadBlob = fileObj || new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+          if (window.JSZip) {
+            try {
+              const zip = await JSZip.loadAsync(buf);
+              const compressed = await zip.generateAsync({
+                type: "blob",
+                compression: "DEFLATE",
+                compressionOptions: { level: 6 }
+              });
+              if (compressed.size < uploadBlob.size) {
+                uploadBlob = compressed;
+              }
+            } catch (zErr) {
+              console.warn("[Word Import] Lỗi nén lại docx:", zErr);
+            }
+          }
           const fd = new FormData();
-          const uploadFile = fileObj || new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-          fd.append("file", uploadFile, (fileObj && fileObj.name) || "questions.docx");
+          fd.append("file", uploadBlob, (fileObj && fileObj.name) || "questions.docx");
           const resp = await fetch(apiUrl, { method: "POST", body: fd });
           if (resp.ok) {
             arrayBuffer = await resp.arrayBuffer();

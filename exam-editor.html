@@ -5447,8 +5447,28 @@ const mathTypeApiUrl = await getMathTypeApiUrl();
 if (mathTypeApiUrl) {
 try {
 window.showToast('Đang chuyển công thức MathType sang LaTeX...', 'info');
+let fileToSend = file;
+if (window.JSZip) {
+try {
+const zip = await JSZip.loadAsync(arrayBuffer);
+const compressedBlob = await zip.generateAsync({
+type: 'blob',
+compression: 'DEFLATE',
+compressionOptions: { level: 6 }
+});
+if (compressedBlob.size < file.size) {
+console.log(`[Word import] Đã tối ưu nén tệp từ ${(file.size / 1024 / 1024).toFixed(2)}MB xuống ${(compressedBlob.size / 1024 / 1024).toFixed(2)}MB`);
+fileToSend = new File([compressedBlob], file.name, { type: file.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+}
+} catch (zipErr) {
+console.warn('[Word import] Lỗi nén lại docx bằng JSZip:', zipErr);
+}
+}
+if (fileToSend.size > 4.2 * 1024 * 1024) {
+throw new Error(`Tệp Word (${(fileToSend.size / 1024 / 1024).toFixed(1)}MB) vượt quá giới hạn 4.5MB của máy chủ chuyển đổi MathType.`);
+}
 const formData = new FormData();
-formData.append('file', file);
+formData.append('file', fileToSend);
 const response = await fetch(mathTypeApiUrl, { method: 'POST', body: formData });
 if (!response.ok) {
 let message = `HTTP ${response.status}`;
