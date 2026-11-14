@@ -506,6 +506,55 @@ updatedAt: raw.updatedAt || raw.createdAt || null,
 createdAt: raw.createdAt || new Date().toISOString()
 };
 }
+function hasStoredKeyData(k) {
+if (!k || typeof k !== 'object' || k.isSample) return false;
+if (k.userModified || k.fromLms) return true;
+const hasP1 = typeof k.answers === 'string' && /[ABCD]/i.test(k.answers);
+const hasP2 = Array.isArray(k.part2) && k.part2.some(chunk => typeof chunk === 'string' && /[ĐS]/i.test(chunk));
+const hasP3 = Array.isArray(k.part3) && k.part3.some(v => v !== undefined && v !== null && String(v).trim() !== '');
+const hasBonus = [k.bonus_p1, k.bonus_p2, k.bonus_p3].some(b => b && typeof b === 'object' && Object.values(b).some(Boolean));
+return hasP1 || hasP2 || hasP3 || hasBonus;
+}
+function mergeNormalizedLmsExamInto(exam, fullData) {
+if (!fullData) return exam || null;
+const prevClassIds = exam && Array.isArray(exam.classIds) ? [...exam.classIds] : null;
+const prevFolderId = exam ? exam.folderId : undefined;
+const prevCodes = exam && Array.isArray(exam.codes) && exam.codes.length > 0 ? [...exam.codes] : null;
+const prevBarem = exam ? {
+question_count: exam.question_count,
+part2_count: exam.part2_count,
+part3_count: exam.part3_count,
+part1_point: exam.part1_point,
+part2_points: Array.isArray(exam.part2_points) ? [...exam.part2_points] : null,
+part2_mode: exam.part2_mode,
+part3_point: exam.part3_point,
+_hasOmrBaremOverride: exam._hasOmrBaremOverride
+} : null;
+const normalized = normalizeLmsExam({
+...fullData,
+sheet_template: (exam && exam.sheet_template) || fullData.sheet_template || 'qmcv1239',
+classId: (exam && exam.classId) || fullData.classId || '',
+classIds: prevClassIds || fullData.classIds,
+className: (exam && exam.className) || fullData.className || ''
+});
+if (!exam) return normalized;
+Object.assign(exam, normalized);
+if (prevBarem && (prevBarem._hasOmrBaremOverride || (!fullData.part2_points && prevBarem.part2_points))) {
+if (prevBarem.part1_point !== undefined) exam.part1_point = prevBarem.part1_point;
+if (prevBarem.part2_points) exam.part2_points = prevBarem.part2_points;
+if (prevBarem.part2_mode) exam.part2_mode = prevBarem.part2_mode;
+if (prevBarem.part3_point !== undefined) exam.part3_point = prevBarem.part3_point;
+if (prevBarem._hasOmrBaremOverride) {
+exam.question_count = prevBarem.question_count;
+exam.part2_count = prevBarem.part2_count;
+exam.part3_count = prevBarem.part3_count;
+if (prevCodes) exam.codes = Array.from(new Set([...(normalized.codes || []).map(String), ...prevCodes.map(String)]));
+exam._hasOmrBaremOverride = true;
+}
+}
+if (prevFolderId !== undefined && normalized.folderId === undefined) exam.folderId = prevFolderId;
+return exam;
+}
 function autoFillKeysFromLmsQuestions(ex, forceOverwrite = false) {
 if (!ex) return false;
 const hasQuestions = Array.isArray(ex.questions) && ex.questions.length > 0;
@@ -517,7 +566,9 @@ for (const [mCode, mData] of Object.entries(ex.mixedExams)) {
 const qArr = Array.isArray(mData) ? mData : (Array.isArray(mData?.questions) ? mData.questions : []);
 if (qArr.length > 0) {
 const { p1Ans, p2Ans, p3Ans } = extractKeysFromQuestionArray(qArr);
-if (forceOverwrite || !state.keys[mCode] || state.keys[mCode].isSample) {
+const existingMixed = state.keys[mCode];
+const shouldWriteMixed = !hasStoredKeyData(existingMixed) || (forceOverwrite && !existingMixed?.userModified);
+if (shouldWriteMixed) {
 state.keys[mCode] = {
 id: `key_${ex.id}_${mCode}`,
 examId: ex.id,
@@ -536,13 +587,15 @@ updated = true;
 }
 if (hasQuestions) {
 const { p1Ans, p2Ans, p3Ans, mcCount, tfCount, shortCount } = extractKeysFromQuestionArray(ex.questions);
+if (!ex._hasOmrBaremOverride) {
 if (mcCount > 0) ex.question_count = mcCount;
 if (tfCount > 0) ex.part2_count = tfCount;
 if (shortCount > 0) ex.part3_count = shortCount;
+}
 const targetCodes = (Array.isArray(ex.codes) && ex.codes.length > 0) ? ex.codes : ['101'];
-targetCodes.forEach((code, idx) => {
+targetCodes.forEach((code) => {
 const existing = state.keys[code];
-const shouldWrite = forceOverwrite || !existing || existing.isSample || (idx === 0 && !existing.fromLms);
+const shouldWrite = !hasStoredKeyData(existing) || (forceOverwrite && !existing?.userModified);
 if (shouldWrite) {
 state.keys[code] = {
 id: `key_${ex.id}_${code}`,
@@ -964,42 +1017,9 @@ let exam = state.exams.find(e => e.id === examId);
 if (!exam) return;
 if (exam.isLmsExam && (!Array.isArray(exam.questions) || exam.questions.length === 0)) {
 try {
-const prevClassIds = Array.isArray(exam.classIds) ? [...exam.classIds] : null;
-const prevFolderId = exam.folderId;
-const prevBarem = {
-question_count: exam.question_count,
-part2_count: exam.part2_count,
-part3_count: exam.part3_count,
-part1_point: exam.part1_point,
-part2_points: Array.isArray(exam.part2_points) ? [...exam.part2_points] : null,
-part2_mode: exam.part2_mode,
-part3_point: exam.part3_point,
-_hasOmrBaremOverride: exam._hasOmrBaremOverride
-};
 const fullDoc = await getDoc(doc(db, "exams", exam.id));
 if (fullDoc.exists()) {
-const fullData = { id: fullDoc.id, ...fullDoc.data() };
-const normalized = normalizeLmsExam({
-...fullData,
-sheet_template: exam.sheet_template || fullData.sheet_template || 'qmcv1239',
-classId: exam.classId || fullData.classId || '',
-classIds: prevClassIds || fullData.classIds,
-className: exam.className || fullData.className || ''
-});
-Object.assign(exam, normalized);
-if (prevBarem._hasOmrBaremOverride || (!fullData.part2_points && prevBarem.part2_points)) {
-if (prevBarem.part1_point !== undefined) exam.part1_point = prevBarem.part1_point;
-if (prevBarem.part2_points) exam.part2_points = prevBarem.part2_points;
-if (prevBarem.part2_mode) exam.part2_mode = prevBarem.part2_mode;
-if (prevBarem.part3_point !== undefined) exam.part3_point = prevBarem.part3_point;
-if (prevBarem._hasOmrBaremOverride) {
-exam.question_count = prevBarem.question_count;
-exam.part2_count = prevBarem.part2_count;
-exam.part3_count = prevBarem.part3_count;
-exam._hasOmrBaremOverride = true;
-}
-}
-if (prevFolderId !== undefined && normalized.folderId === undefined) exam.folderId = prevFolderId;
+mergeNormalizedLmsExamInto(exam, { id: fullDoc.id, ...fullDoc.data() });
 }
 } catch(e) {
 console.warn("Không tải được chi tiết câu hỏi đề LMS:", e);
@@ -4256,12 +4276,12 @@ try {
 if (matchedExamInBank.isLmsExam && (!Array.isArray(matchedExamInBank.questions) || matchedExamInBank.questions.length === 0)) {
 const fullDoc = await getDoc(doc(db, "exams", matchedExamInBank.id));
 if (fullDoc.exists()) {
-Object.assign(matchedExamInBank, normalizeLmsExam({ id: fullDoc.id, ...fullDoc.data() }));
+mergeNormalizedLmsExamInto(matchedExamInBank, { id: fullDoc.id, ...fullDoc.data() });
 }
 }
 await selectExam(matchedExamInBank.id);
 if (state.exam) {
-autoFillKeysFromLmsQuestions(state.exam, true);
+autoFillKeysFromLmsQuestions(state.exam, false);
 if (prevClassId && !state.exam.classId) {
 state.exam.classId = prevClassId;
 state.exam.className = prevClassName;
@@ -9406,6 +9426,8 @@ part3: p3Answers,
 bonus_p1,
 bonus_p2,
 bonus_p3,
+userModified: true,
+fromLms: false,
 updatedAt: new Date().toISOString()
 };
 state.keys[code] = keyObj;
@@ -10671,6 +10693,8 @@ code: String(code),
 answers: k.answers || '',
 part2: k.part2 || [],
 part3: k.part3 || [],
+userModified: true,
+fromLms: false,
 updatedAt: new Date().toISOString()
 };
 state.keys[code] = keyObj;
@@ -10928,6 +10952,8 @@ code: code,
 answers: k.answers || '',
 part2: k.part2 || [],
 part3: k.part3 || [],
+userModified: true,
+fromLms: false,
 updatedAt: new Date().toISOString()
 };
 state.keys[code] = keyObj;
@@ -11872,6 +11898,10 @@ window.closeCreateExamModal = () => {
 document.getElementById('createExamModal').classList.add('hidden');
 };
 window.applyTemplatePresetCounts = (mode = 'create') => {
+if (mode !== 'create') {
+window.calcExamScorePreview(mode);
+return;
+}
 const prefix = mode === 'create' ? 'newExam' : 'editExam';
 const tpl = document.getElementById(`${prefix}Template`)?.value || 'qmcv1239';
 const p1El = document.getElementById(`${prefix}CountP1`);
@@ -12254,6 +12284,10 @@ Swal.fire('Lỗi', 'Đã xảy ra lỗi khi tính lại điểm: ' + (err.messag
 }
 };
 let editExamCurrentCode = '101';
+window.markModalKeyDirty = () => {
+state._modalCurrentCodeKeyDirty = true;
+state._keysModifiedInModal = true;
+};
 window.switchExamSettingsTab = (tab) => {
 const btnInfo = document.getElementById('tabBtnExamSettingsInfo');
 const btnKeys = document.getElementById('tabBtnExamSettingsKeys');
@@ -12269,11 +12303,14 @@ if (btnInfo) btnInfo.className = 'px-4 py-2.5 font-bold text-xs border-b-2 borde
 if (btnKeys) btnKeys.className = 'px-4 py-2.5 font-bold text-xs border-b-2 border-amber-600 text-amber-600 dark:text-amber-400 cursor-pointer flex items-center gap-1.5 transition-all';
 if (panelInfo) panelInfo.classList.add('hidden');
 if (panelKeys) panelKeys.classList.remove('hidden');
+if (!state._modalCurrentCodeKeyDirty) {
 window.renderEditExamModalKeys(editExamCurrentCode);
+}
 }
 };
 window.openEditExamSettingsModal = () => {
 state._keysModifiedInModal = false;
+state._modalCurrentCodeKeyDirty = false;
 if (!state.exam) return;
 const modal = document.getElementById('editExamSettingsModal');
 if (!modal) return;
@@ -12313,7 +12350,10 @@ window.calcExamScorePreview('edit');
 window.renderEditExamModalKeys(editExamCurrentCode);
 };
 window.handleEditExamModalCodeChange = (code) => {
+if (state._modalCurrentCodeKeyDirty) {
 window.saveCurrentEditModalKey(editExamCurrentCode);
+}
+state._modalCurrentCodeKeyDirty = false;
 editExamCurrentCode = code;
 window.renderEditExamModalKeys(code);
 };
@@ -12332,7 +12372,7 @@ return `
 <div class="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border ${isBonus ? 'border-amber-400 bg-amber-50/40 dark:bg-amber-950/20' : 'border-slate-200 dark:border-slate-700'} flex items-center justify-between gap-1">
 <span class="font-bold text-slate-600 dark:text-slate-300 text-xs shrink-0">Câu ${i + 1}:</span>
 <div class="flex items-center gap-1.5">
-<select data-modal-p1="${i}" class="w-16 h-7 pl-2 pr-5 py-0.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-black text-emerald-600 dark:text-emerald-400 outline-none text-xs text-center cursor-pointer shadow-2xs hover:border-emerald-500 transition-all">
+<select data-modal-p1="${i}" onchange="window.markModalKeyDirty && window.markModalKeyDirty()" class="w-16 h-7 pl-2 pr-5 py-0.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-black text-emerald-600 dark:text-emerald-400 outline-none text-xs text-center cursor-pointer shadow-2xs hover:border-emerald-500 transition-all">
 <option value="-" ${currentAns==='-'?'selected':''}>-</option>
 <option value="A" ${currentAns==='A'?'selected':''}>A</option>
 <option value="B" ${currentAns==='B'?'selected':''}>B</option>
@@ -12340,7 +12380,7 @@ return `
 <option value="D" ${currentAns==='D'?'selected':''}>D</option>
 </select>
 <label class="inline-flex items-center gap-1 cursor-pointer select-none text-[11px] font-bold ${isBonus ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 hover:text-amber-600'}" title="Tất cả học sinh đều được điểm câu này">
-<input type="checkbox" data-modal-bonus-p1="${i}" ${isBonus ? 'checked' : ''} onchange="this.closest('.p-2').classList.toggle('border-amber-400', this.checked); this.closest('.p-2').classList.toggle('bg-amber-50/40', this.checked)" class="rounded text-amber-500 w-3.5 h-3.5 border-slate-300 focus:ring-0">
+<input type="checkbox" data-modal-bonus-p1="${i}" ${isBonus ? 'checked' : ''} onchange="window.markModalKeyDirty && window.markModalKeyDirty(); this.closest('.p-2').classList.toggle('border-amber-400', this.checked); this.closest('.p-2').classList.toggle('bg-amber-50/40', this.checked)" class="rounded text-amber-500 w-3.5 h-3.5 border-slate-300 focus:ring-0">
 <span class="text-[10px]">Cho điểm</span>
 </label>
 </div>
@@ -12359,7 +12399,7 @@ return `
 <div class="flex items-center justify-between">
 <b class="text-xs text-slate-700 dark:text-slate-200">Câu ${q + 1} (Đúng / Sai)</b>
 <label class="inline-flex items-center gap-1 cursor-pointer select-none text-[11px] font-bold ${isQBonus ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 hover:text-amber-600'}" title="Tất cả học sinh đều được điểm câu này">
-<input type="checkbox" data-modal-bonus-p2="${q}" ${isQBonus ? 'checked' : ''} onchange="this.closest('.p-3').classList.toggle('border-amber-400', this.checked)" class="rounded text-amber-500 w-3.5 h-3.5 border-slate-300 focus:ring-0">
+<input type="checkbox" data-modal-bonus-p2="${q}" ${isQBonus ? 'checked' : ''} onchange="window.markModalKeyDirty && window.markModalKeyDirty(); this.closest('.p-3').classList.toggle('border-amber-400', this.checked)" class="rounded text-amber-500 w-3.5 h-3.5 border-slate-300 focus:ring-0">
 <span>Cho điểm cả câu</span>
 </label>
 </div>
@@ -12392,11 +12432,11 @@ return `
 <div class="flex items-center justify-between">
 <label class="block font-bold text-slate-500 text-xs">Câu ${i + 1}:</label>
 <label class="inline-flex items-center gap-1 cursor-pointer select-none text-[10px] font-bold ${isBonus ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 hover:text-amber-600'}" title="Tất cả học sinh đều được điểm câu này">
-<input type="checkbox" data-modal-bonus-p3="${i}" ${isBonus ? 'checked' : ''} onchange="this.closest('.p-2.5').classList.toggle('border-amber-400', this.checked)" class="rounded text-amber-500 w-3 h-3 border-slate-300 focus:ring-0">
+<input type="checkbox" data-modal-bonus-p3="${i}" ${isBonus ? 'checked' : ''} onchange="window.markModalKeyDirty && window.markModalKeyDirty(); this.closest('.p-2.5').classList.toggle('border-amber-400', this.checked)" class="rounded text-amber-500 w-3 h-3 border-slate-300 focus:ring-0">
 <span>Cho điểm</span>
 </label>
 </div>
-<input type="text" data-modal-p3="${i}" value="${val}" placeholder="VD: -4,5" class="w-full px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-mono font-bold text-center outline-none text-xs">
+<input type="text" data-modal-p3="${i}" value="${val}" oninput="window.markModalKeyDirty && window.markModalKeyDirty()" placeholder="VD: -4,5" class="w-full px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-mono font-bold text-center outline-none text-xs">
 </div>
 `;
 }).join('');
@@ -12411,6 +12451,7 @@ btn.className = val === 'Đ'
 ? "p2-modal-btn px-2 py-0.5 rounded text-xs font-bold border transition-all bg-emerald-600 text-white border-emerald-600"
 : "p2-modal-btn px-2 py-0.5 rounded text-xs font-bold border transition-all bg-rose-600 text-white border-rose-600";
 btn.dataset.val = val;
+if (typeof window.markModalKeyDirty === 'function') window.markModalKeyDirty();
 };
 window.applyModalBulkKey = () => {
 const text = document.getElementById('editExamModalBulkInput')?.value || '';
@@ -12419,9 +12460,16 @@ try {
 const qCount = parseSafeIntCount(document.getElementById('editExamCountP1')?.value, 12);
 const res = window.parseQuickAnswers ? window.parseQuickAnswers(text, qCount) : { answers: text.toUpperCase().replace(/[^ABCD]/g, '') };
 const ansStr = res.answers || '';
+let appliedAny = false;
 document.querySelectorAll('[data-modal-p1]').forEach((sel, i) => {
-if (ansStr[i]) sel.value = ansStr[i];
+if (ansStr[i]) {
+sel.value = ansStr[i];
+appliedAny = true;
+}
 });
+if (appliedAny && typeof window.markModalKeyDirty === 'function') {
+window.markModalKeyDirty();
+}
 Swal.fire({
 icon: 'success',
 title: 'Đã áp dụng chuỗi đáp án!',
@@ -12488,6 +12536,8 @@ part3: p3Answers,
 bonus_p1,
 bonus_p2,
 bonus_p3,
+userModified: true,
+fromLms: false,
 updatedAt: new Date().toISOString()
 };
 state.keys[code] = keyObj;
@@ -12525,9 +12575,10 @@ confirmButtonColor: '#ef4444'
 if (!confirmOver.isConfirmed) return;
 }
 const codeSelect = document.getElementById('editExamModalCodeSelect');
-if (codeSelect && codeSelect.value) {
+if (state._modalCurrentCodeKeyDirty && codeSelect && codeSelect.value) {
 window.saveCurrentEditModalKey(codeSelect.value);
 }
+state._modalCurrentCodeKeyDirty = false;
 const newSheetTemplate = document.getElementById('editExamTemplate')?.value || state.exam.sheet_template;
 const p2Cfg = readPart2ConfigFromModal('edit');
 state.exam.name = name;
@@ -12542,6 +12593,16 @@ state.exam.part3_count = parseSafeIntCount(document.getElementById('editExamCoun
 state.exam.part3_point = parseSafeScorePoint(document.getElementById('editExamPointP3')?.value, 0.5);
 state.exam.folderId = document.getElementById('editExamFolderSelect')?.value || null;
 state.exam._hasOmrBaremOverride = true;
+try {
+const prevClassMetaRaw = localStorage.getItem(`omr_exam_class_${state.exam.id}`);
+const prevClassMeta = prevClassMetaRaw ? JSON.parse(prevClassMetaRaw) : {};
+localStorage.setItem(`omr_exam_class_${state.exam.id}`, JSON.stringify({
+...prevClassMeta,
+classId: state.exam.classId || prevClassMeta.classId || '',
+className: state.exam.className || prevClassMeta.className || '',
+sheet_template: newSheetTemplate
+}));
+} catch (_) {}
 saveExamBaremMeta(state.exam);
 saveLocalExams(state.exams);
 if (typeof storage !== 'undefined' && storage.saveExams) {
@@ -13498,10 +13559,10 @@ try {
 const fullDoc = await getDoc(doc(db, "exams", examId));
 if (fullDoc.exists()) {
 const fullData = { id: fullDoc.id, ...fullDoc.data() };
-const normalized = normalizeLmsExam(fullData);
-if (ex) Object.assign(ex, normalized);
-else {
-ex = normalized;
+if (ex) {
+mergeNormalizedLmsExamInto(ex, fullData);
+} else {
+ex = normalizeLmsExam(fullData);
 state.exams.unshift(ex);
 }
 }
@@ -13521,10 +13582,13 @@ sheet_template: pickedTemplate
 }
 await selectExam(examId);
 if (state.exam && state.exam.isLmsExam) {
-autoFillKeysFromLmsQuestions(state.exam, true);
-if (state.teacherUid) {
-for (const kObj of Object.values(state.keys)) {
+const prevKeysSnapshot = { ...state.keys };
+const didAutoFill = autoFillKeysFromLmsQuestions(state.exam, false);
+if (didAutoFill && state.teacherUid) {
+for (const [code, kObj] of Object.entries(state.keys)) {
+if (!hasStoredKeyData(prevKeysSnapshot[code]) && hasStoredKeyData(kObj)) {
 try { await setDoc(doc(db, "omr_keys", kObj.id), kObj); } catch(e) {}
+}
 }
 }
 }
