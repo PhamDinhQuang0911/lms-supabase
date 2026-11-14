@@ -333,11 +333,15 @@ document.documentElement.setAttribute('data-season', s);
             overflow: visible !important;
         }
         #cameraA4Guide.live-locked {
-            opacity: 0.18;
-            border-color: rgba(34, 230, 195, 0.35);
+            border-color: rgba(16, 185, 129, 0.72);
+            box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.25);
+        }
+        #cameraA4Guide.live-locked .hud-center-hint {
+            opacity: 0.12;
         }
         #cameraA4Guide.live-locked .camera-corner-bracket {
-            opacity: 0.12;
+            opacity: 0.38;
+            border-color: rgba(52, 211, 153, 0.85);
         }
         .camera-corner-bracket.detected {
             border-color: #10b981 !important;
@@ -2413,7 +2417,7 @@ if (ov) ov.classList.add('hidden');
             <div id="cameraA4Guide" class="relative z-10 h-[85%] max-h-full max-w-[86vw] aspect-[100/138] landscape:h-[82%] landscape:aspect-[138/100] border-2 border-white/35 border-dashed rounded-2xl flex items-center justify-center pointer-events-none select-none transition-all duration-200">
                 <div class="hud-scan-line"></div>
 
-                <div class="text-white/25 flex flex-col items-center gap-1 pointer-events-none select-none bg-black/25 px-3 py-1.5 rounded-xl">
+                <div class="hud-center-hint text-white/25 flex flex-col items-center gap-1 pointer-events-none select-none bg-black/25 px-3 py-1.5 rounded-xl transition-opacity duration-150">
                     <i class="fa-solid fa-expand text-xl text-emerald-400/75"></i>
                     <span class="text-[10px] font-extrabold tracking-wider uppercase text-white/85">Đưa 4 ô đen vào 4 ô vuông góc</span>
                 </div>
@@ -2984,18 +2988,18 @@ if (ov) ov.classList.add('hidden');
     </div>
 
     
-    <script src="./omr/reference-omr.js?v=20261108_v149"></script>
+    <script src="./omr/reference-omr.js?v=20261114_beta4"></script>
     <script src="./omr/reference-templates.js?v=20261108_v149"></script>
     <script src="./omr/qm-cv1239-sheet.js?v=20261108_v149"></script>
     <script src="./omr/bgd-original-sheet.js?v=20261108_v149"></script>
     <script src="./omr/tnmaker-sheet.js?v=20261108_v149"></script>
     <script src="./omr/phu-tho-sheet.js?v=20261108_v149"></script>
-    <script src="./omr/qm-sheet.js?v=20261114_beta1"></script>
+    <script src="./omr/qm-sheet.js?v=20261114_beta4"></script>
     <script src="./omr/custom-hybrid-sheets.js?v=20261108_v149"></script>
     <script src="./omr/answer-import.js?v=20261108_v149"></script>
 
     
-    <script type="module" src="./omr-grader.js?v=20261114_beta1"></script>
+    <script type="module" src="./omr-grader.js?v=20261114_beta4"></script>
 
     
     <div id="importExamCandidatesModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">

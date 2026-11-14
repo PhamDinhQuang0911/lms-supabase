@@ -11,7 +11,8 @@ function khuBong(G) {
 if (!G || !G.d || G._daKhuBong) return G;
 var w = G.w, h = G.h, d = G.d;
 if (w < 64 || h < 64) return G;
-var B = Math.max(12, Math.min(20, Math.round(Math.min(w, h) / 48)));
+// Use a block ~3-4x larger than any bubble diameter so shaded bubbles never pull local paper p90 down.
+var B = Math.max(44, Math.min(84, Math.round(Math.min(w, h) / 11)));
 var gw = Math.ceil(w / B), gh = Math.ceil(h / B);
 var grid = new Float32Array(gw * gh);
 var bx, by, x, y;
@@ -25,10 +26,10 @@ var row = y * w;
 for (x = x0; x < x1; x++) {
 var v = d[row + x];
 total++;
-if (v > 80) { _kbHist[v]++; cnt++; }
+if (v > 65) { _kbHist[v]++; cnt++; }
 }
 }
-if (cnt < total * 0.42) {
+if (cnt < total * 0.25) {
 grid[by * gw + bx] = 0;
 } else {
 var target = (cnt * 0.10) | 0, acc = 0, p90 = 220;
@@ -36,7 +37,7 @@ for (var val = 255; val >= 0; val--) {
 acc += _kbHist[val];
 if (acc > target) { p90 = val; break; }
 }
-grid[by * gw + bx] = Math.max(70, p90);
+grid[by * gw + bx] = Math.max(65, p90);
 }
 }
 }
@@ -62,19 +63,17 @@ var sm = new Float32Array(gw * gh);
 for (by = 0; by < gh; by++) {
 for (bx = 0; bx < gw; bx++) {
 var sum = 0, wsum = 0;
-for (var dy2 = -2; dy2 <= 2; dy2++) {
+for (var dy2 = -1; dy2 <= 1; dy2++) {
 var ny2 = by + dy2 < 0 ? 0 : (by + dy2 >= gh ? gh - 1 : by + dy2);
-var wy2 = 3 - (dy2 < 0 ? -dy2 : dy2);
-for (var dx2 = -2; dx2 <= 2; dx2++) {
+var wy2 = dy2 === 0 ? 3 : 1;
+for (var dx2 = -1; dx2 <= 1; dx2++) {
 var nx2 = bx + dx2 < 0 ? 0 : (bx + dx2 >= gw ? gw - 1 : bx + dx2);
-var wt = wy2 * (3 - (dx2 < 0 ? -dx2 : dx2));
+var wt = wy2 * (dx2 === 0 ? 3 : 1);
 sum += grid[ny2 * gw + nx2] * wt;
 wsum += wt;
 }
 }
-var rawB = grid[by * gw + bx];
-var smoothB = sum / wsum;
-sm[by * gw + bx] = smoothB > rawB * 1.03 ? rawB * 1.03 : smoothB;
+sm[by * gw + bx] = sum / wsum;
 }
 }
 var invB = 1 / B, maxBx = gw - 1, maxBy = gh - 1;
@@ -95,8 +94,8 @@ var bg0 = sm[r0 + bx0] * (1 - wx) + sm[r0 + bx1] * wx;
 var bg1 = sm[r1 + bx0] * (1 - wx) + sm[r1 + bx1] * wx;
 var bg = bg0 * (1 - wy) + bg1 * wy;
 var pxVal = d[rowOff + x];
-var norm = ((pxVal * 248) / (bg < 45 ? 45 : bg) + 0.5) | 0;
-d[rowOff + x] = norm >= 224 ? 255 : (norm > 255 ? 255 : norm);
+var norm = ((pxVal * 245) / (bg < 45 ? 45 : bg) + 0.5) | 0;
+d[rowOff + x] = norm > 255 ? 255 : norm;
 }
 }
 G._daKhuBong = true;
@@ -497,10 +496,10 @@ if (x <= 0 || y <= 0) return 0;
 var w = G.w, h = G.h, d = G.d;
 var c = ap(H, x, y), e = ap(H, x + r, y), f = ap(H, x, y + r);
 var rp = (Math.hypot(e[0] - c[0], e[1] - c[1]) + Math.hypot(f[0] - c[0], f[1] - c[1])) / 2;
-var ri = 0.66 * rp, ri2 = ri * ri, cx = c[0], cy = c[1], px, py;
-var rTim = Math.min(4.5, Math.max(1.5, 0.88 * rp)), rTim2 = rTim * rTim;
+var ri = 0.56 * rp, ri2 = ri * ri, cx = c[0], cy = c[1], px, py;
+var rTim = Math.min(3.2, Math.max(rp >= 2.3 ? 1.0 : 0.42 * rp, 0.38 * rp)), rTim2 = rTim * rTim;
 var buocTim = rp > 8 ? 2 : 1, limTim = Math.ceil(rTim);
-var bestMean = 256, n = 0;
+var bestMean = 256, bestScore = 256, n = 0;
 for (var oy = -limTim; oy <= limTim; oy += buocTim) {
 for (var ox = -limTim; ox <= limTim; ox += buocTim) {
 if (ox * ox + oy * oy > rTim2) continue;
@@ -517,7 +516,8 @@ if (dx * dx + dy2 <= ri2) { ss += d[rowOff + px]; sn++; }
 }
 if (sn > 0) {
 var mean = ss / sn;
-if (mean < bestMean) { bestMean = mean; n = sn; }
+var score = mean + (rp > 0 ? 2.5 * Math.hypot(ox, oy) / rp : 0);
+if (score < bestScore) { bestScore = score; bestMean = mean; n = sn; }
 }
 }
 }
@@ -537,35 +537,37 @@ var x = fs.map(function (v, i) { return [v, i]; }).sort(function (a, b) { return
 var nen = (x[n - 1][0] + x[n - 2][0]) / 2;
 var d1 = x[0][0] - nen, d2 = x[1][0] - nen;
 if (d1 < Math.max(0.08, 0.35 * ng.thap, 0.2 * (ng.F || 0))) return { i: -1, nghi: d1 >= 0.06, cac: [] };
-var cac = x.filter(function (o) { var v = o[0] - nen; return v >= ng.cao || (v >= 0.6 * d1 && v >= ng.thap); }).map(function (o) { return o[1]; });
-if (cac.length > 1) return { i: -2, nghi: d2 < 0.9 * d1, cac: cac };
-return { i: x[0][1], nghi: d1 < 0.6 * ng.thap || d2 >= 0.45 * d1, cac: [x[0][1]] };
+// Require relative dominance alongside absolute ng.cao so incomplete erasures beside a dark fill don't read as double marks.
+var cac = x.filter(function (o) { var v = o[0] - nen; return (v >= ng.cao && v >= 0.45 * d1) || (v >= 0.62 * d1 && v >= ng.thap); }).map(function (o) { return o[1]; });
+if (cac.length > 1) return { i: -2, nghi: d2 < 0.85 * d1, cac: cac };
+return { i: x[0][1], nghi: d1 < 0.6 * ng.thap || d2 >= 0.42 * d1, cac: [x[0][1]] };
 }
 function chon(fs, ng, motO) {
 if (motO === 3 && fs.length >= 3) return chonP1(fs, ng);
 var top = 0, it = -1, nhi = 0, i;
 for (i = 0; i < fs.length; i++) if (fs[i] > top) { nhi = top; top = fs[i]; it = i; } else if (fs[i] > nhi) nhi = fs[i];
 if (top < ng.thap) {
-if (motO === 0 && top >= Math.max(0.105, 0.50 * ng.thap) && top >= 2.35 * Math.max(nhi, 0.025)) return { i: it, nghi: false, cac: [it] };
+if (motO === 0 && top >= Math.max(0.175, 0.72 * ng.thap) && top >= 2.45 * Math.max(nhi, 0.028)) return { i: it, nghi: false, cac: [it] };
 if (motO && top >= (motO === 2 ? 0.75 : 0.6) * ng.thap && top >= 2.5 * Math.max(nhi, 0.03)) return { i: it, nghi: top < 0.85 * ng.thap, cac: [it] };
 return { i: -1, nghi: top > ng.thap * 0.9, cac: [] };
 }
 var giua = (ng.thap + ng.cao) / 2, dem = 0, nghi = (top < giua && top < 2.2 * Math.max(nhi, 0.04)), cac = [];
 for (i = 0; i < fs.length; i++) {
-if (fs[i] >= ng.cao || (fs[i] >= ng.thap && fs[i] >= 0.72 * top)) { dem++; cac.push(i); }
+if ((fs[i] >= ng.cao && fs[i] >= 0.45 * top) || (fs[i] >= ng.thap && fs[i] >= 0.68 * top)) { dem++; cac.push(i); }
 else if (i !== it && fs[i] >= ng.thap * 0.9) nghi = true;
 }
 return { i: dem === 1 ? it : -2, nghi: nghi, cac: cac };
 }
 function nguong(tat, Fdu) {
 var v = Array.prototype.slice.call(tat).filter(function (x) { return x > 0.001; }).sort(function (a, b) { return a - b; }), n = v.length;
-if (!n) return { nen: 0, cao: 0.24, thap: 0.17, F: Fdu || 0.75 };
-var nen = v[Math.floor(n * 0.3)];
-if (nen > 0.22) nen = 0.22;
+if (!n) return { nen: 0, cao: 0.24, thap: 0.17, F: Fdu || 0.75, toN: 0 };
+var rawNen = v[Math.floor(n * 0.35)];
+var nen = rawNen > 0.22 ? 0.22 : rawNen;
+var baseF = rawNen > 0.65 ? 0.65 : rawNen;
 var to = [];
-for (var i = 0; i < n; i++) if (v[i] - nen > 0.22) to.push(v[i] - nen);
+for (var i = 0; i < n; i++) if (v[i] - baseF > 0.22) to.push(v[i] - baseF);
 var F = to.length >= 4 ? to[to.length >> 1] : (Fdu || 0.75);
-return { nen: nen, cao: Math.min(0.5, Math.max(0.24, 0.6 * F)), thap: Math.min(0.3, Math.max(0.17, 0.4 * F)), F: F };
+return { nen: nen, cao: Math.min(0.5, Math.max(0.24, 0.6 * F)), thap: Math.min(0.3, Math.max(0.17, 0.4 * F)), F: F, toN: to.length };
 }
 function vung(loai) { return loai === 'SBD.' || loai === 'Mã đề.' ? 'ID' : loai; }
 function doCacO(G, H, tpl, den) {
@@ -579,18 +581,99 @@ for (i = 0; i < tpl.sbd.length; i++) them(tpl.sbd[i], 'SBD.', i + 1);
 for (i = 0; i < tpl.made.length; i++) them(tpl.made[i], 'Mã đề.', i + 1);
 var fs = new Float32Array(ds.length);
 for (i = 0; i < ds.length; i++) fs[i] = doO(G, H, ds[i][0], ds[i][1], r, den);
-var ng = nguong(fs);
-var NGV = {}, gt = {};
-for (i = 0; i < nh.length; i++) { var vv = vung(nh[i][0]); gt[vv] = gt[vv] || []; for (j = 0; j < nh[i][3]; j++) gt[vv].push(fs[nh[i][2] + j]); }
-for (var tv in gt) NGV[tv] = nguong(gt[tv], ng.F);
-var g3 = NGV['III.'];
-if (g3) { g3.thap = Math.max(g3.thap, 0.46 * g3.F); g3.cao = Math.max(g3.cao, 1.25 * g3.thap); }
+var gt = {}, fsNoP3 = [];
+for (i = 0; i < nh.length; i++) {
+var vv = vung(nh[i][0]);
+gt[vv] = gt[vv] || [];
+for (j = 0; j < nh[i][3]; j++) {
+var fv = fs[nh[i][2] + j];
+gt[vv].push(fv);
+if (vv !== 'III.') fsNoP3.push(fv);
+}
+}
+var ng = nguong(fsNoP3.length >= 20 ? fsNoP3 : fs);
+var NGV = {};
+for (var tv in gt) if (tv !== 'III.') NGV[tv] = nguong(gt[tv], ng.F);
+var fRef = Math.max(
+(NGV['I.'] && NGV['I.'].toN >= 4) ? NGV['I.'].F : 0,
+(NGV['ID'] && NGV['ID'].toN >= 4) ? NGV['ID'].F : 0
+) || ng.F;
+if (gt['III.']) {
+var g3 = nguong(gt['III.'], fRef * 0.84);
+if (g3.toN < 4 || g3.F < fRef * 0.75) {
+var f3 = Math.max(g3.F, fRef * 0.80);
+g3.F = f3;
+g3.cao = Math.min(0.5, Math.max(0.24, 0.6 * f3));
+g3.thap = Math.min(0.3, Math.max(0.17, 0.4 * f3));
+}
+g3.thap = Math.max(g3.thap, 0.46 * g3.F);
+g3.cao = Math.max(g3.cao, 1.25 * g3.thap);
+NGV['III.'] = g3;
+}
 return { nh: nh, fs: fs, NGV: NGV, F: ng.F };
+}
+function pctSorted(arr, q) {
+if (!arr.length) return 0;
+var idx = Math.min(arr.length - 1, Math.max(0, Math.floor(arr.length * q)));
+return arr[idx];
+}
+function estimateP2Stats(nh, fs, ng2) {
+var u0 = [], u1 = [], uAll = [], diffs = [], p1U = [], i, j;
+var paperNen = ng2 ? ng2.nen : 0;
+for (i = 0; i < nh.length; i++) {
+if (nh[i][0] === 'I.' && nh[i][3] >= 3) {
+var s = [];
+for (j = 0; j < nh[i][3]; j++) s.push(fs[nh[i][2] + j]);
+s.sort(function (a, b) { return a - b; });
+if (s[1] > 0.01 && s[s.length - 1] - s[1] >= 0.16) p1U.push((s[0] + s[1]) / 2);
+}
+}
+p1U.sort(function (a, b) { return a - b; });
+var uP1 = p1U.length ? p1U[p1U.length >> 1] : Math.min(0.30, paperNen + 0.14);
+for (i = 0; i < nh.length; i++) {
+if (nh[i][0] !== 'II.' || nh[i][3] < 2) continue;
+var v0 = fs[nh[i][2]], v1 = fs[nh[i][2] + 1];
+var hi = v0 > v1 ? v0 : v1, lo = v0 > v1 ? v1 : v0, df = hi - lo;
+if (df >= 0.14 && hi >= 0.22 && (lo >= 0.03 || !p1U.length)) {
+if (p1U.length && uP1 > 0.12 && lo < 0.40 * uP1) continue;
+if (v1 > v0) u0.push(v0); else u1.push(v1);
+uAll.push(lo);
+diffs.push(df);
+}
+}
+u0.sort(function (a, b) { return a - b; });
+u1.sort(function (a, b) { return a - b; });
+uAll.sort(function (a, b) { return a - b; });
+diffs.sort(function (a, b) { return a - b; });
+var baseAll = uAll.length ? Math.min(pctSorted(uAll, 0.65), pctSorted(uAll, 0.25) + 0.14) : uP1;
+var b0 = u0.length >= 2 ? Math.min(pctSorted(u0, 0.65), pctSorted(u0, 0.25) + 0.14) : (u0.length === 1 ? Math.min(baseAll + 0.08, (u0[0] + baseAll) / 2) : baseAll);
+var b1 = u1.length >= 2 ? Math.min(pctSorted(u1, 0.65), pctSorted(u1, 0.25) + 0.14) : (u1.length === 1 ? Math.min(baseAll + 0.08, (u1[0] + baseAll) / 2) : baseAll);
+var rawF = ng2 && ng2.F ? ng2.F : 0.75;
+var typFill = diffs.length >= 2 ? diffs[Math.floor(diffs.length * 0.5)] : (diffs.length === 1 ? diffs[0] : Math.max(0.35, rawF));
+return { u0: b0, u1: b1, typFill: typFill, sheetF: Math.max(rawF, typFill) };
+}
+function chonP2(v0, v1, st, he) {
+var d0 = Math.max(0, v0 - st.u0), d1 = Math.max(0, v1 - st.u1);
+var dTop = d0 > d1 ? d0 : d1, dBot = d0 > d1 ? d1 : d0;
+var it = d0 >= d1 ? 0 : 1;
+var minMark = Math.max(0.11, 0.22 * Math.min(st.typFill, st.sheetF), 0.16 * st.sheetF) * he;
+if (dTop < minMark) return { i: -1, nghi: dTop >= minMark * 0.75, cac: [] };
+var dblMin = Math.max(0.18, 0.34 * st.typFill, 0.25 * st.sheetF) * he;
+if (dBot >= dblMin && dBot >= 0.45 * dTop) {
+return { i: -2, nghi: dBot < 0.85 * dTop, cac: [0, 1] };
+}
+return { i: it, nghi: dTop < 1.35 * minMark || dBot >= 0.30 * dTop, cac: [it] };
 }
 function quyetDinh(M, tpl, he) {
 he = he || 1;
 var nh = M.nh, fs = M.fs, kq = [], cac = [], ngh = [], i, j;
+var p2Stats = M.NGV['II.'] ? estimateP2Stats(nh, fs, M.NGV['II.']) : null;
 for (i = 0; i < nh.length; i++) {
+if (nh[i][0] === 'II.' && nh[i][3] >= 2 && p2Stats) {
+var c2 = chonP2(fs[nh[i][2]], fs[nh[i][2] + 1], p2Stats, he);
+kq.push(c2.i); cac.push(c2.cac); ngh.push(!!c2.nghi);
+continue;
+}
 var heV = nh[i][0] === 'III.' ? Math.max(1, he) : he;
 var f = [], g = M.NGV[vung(nh[i][0])], ngv = heV === 1 ? g : { nen: g.nen, cao: g.cao * heV, thap: g.thap * heV, F: g.F };
 var colNen = ngv.nen;
@@ -599,7 +682,8 @@ var vals = [];
 for (j = 0; j < nh[i][3]; j++) { var vj = fs[nh[i][2] + j]; if (vj > 0.001) vals.push(vj); }
 if (vals.length >= 4) {
 vals.sort(function (a, b) { return a - b; });
-colNen = Math.max(ngv.nen, vals[Math.floor(vals.length * 0.45)]);
+var pctCol = nh[i][0] === 'III.' ? 0.65 : 0.45;
+colNen = Math.max(ngv.nen, vals[Math.floor(vals.length * pctCol)]);
 }
 }
 for (j = 0; j < nh[i][3]; j++) {

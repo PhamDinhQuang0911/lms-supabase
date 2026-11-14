@@ -4236,7 +4236,7 @@ window.prompt("Sao chép nội dung gửi Zalo bên dưới:", zaloMessage);
 }
 };
 async function processSingleSheet(source, options = {}) {
-const rawResult = await recognizeSheetWithOMR(source, options);
+const rawResult = options.preRawResult || await recognizeSheetWithOMR(source, options);
 if (!rawResult) throw new Error("Không tìm đủ 4 mốc đen góc phiếu!");
 const scannedCode = (rawResult.code || '').replace(/\D/g, '');
 if (scannedCode && scannedCode.length >= 3 && state.exam) {
@@ -4464,10 +4464,14 @@ const p1AnsCount = (result.p1 || '').replace(/[\-\*\?]/g, '').length;
 const p2AnsCount = (result.p2 || '').replace(/[\-\*\?]/g, '').length;
 const p3AnsCount = Array.isArray(result.p3) ? result.p3.filter(x => x && !/^\*+$/.test(x)).length : 0;
 const ansCount = p1AnsCount + p2AnsCount + p3AnsCount;
+const starCount = ((result.sbd || '').match(/\*/g) || []).length
++ ((result.made || '').match(/\*/g) || []).length
++ ((result.p1 || '').match(/\*/g) || []).length
++ ((result.p2 || '').match(/\*/g) || []).length;
 const isActiveFamily = (tplKey === activeTpl) ||
 (activeTpl === 'bgd2025original' && tplKey === 'bgd2') ||
 (activeTpl === 'bgd2' && tplKey === 'bgd2025original');
-let score = mocRatio * 140 + Math.min(soMoc, 20) * 2.5 + ((result.soGoc || 4) === 4 ? 30 : 0);
+let score = mocRatio * 140 + Math.min(soMoc, 28) * 2.0 + ((result.soGoc || 4) === 4 ? 30 : 0);
 if (mocRatio >= 0.85) score += 35;
 if (codeDigits >= 3) score += 20;
 else if (codeDigits >= 2) score += 10;
@@ -4475,11 +4479,16 @@ if (sbdDigits >= 2) score += 15;
 if (ansCount >= 2) score += 20;
 if (result.doDam) score += Math.min(25, result.doDam * 30);
 if (isActiveFamily) score += (mocRatio >= 0.75 ? 28 : 10);
-if (ratioErr > 0.14) {
+if (starCount > 3) score -= Math.min(90, (starCount - 3) * 4.5);
+if (ratioErr > 0.30) {
 score -= 260;
-} else if (ratioErr <= 0.05) {
+} else if (ratioErr > 0.16) {
+score -= 35;
+} else if (ratioErr > 0.085) {
+score -= 15;
+} else if (ratioErr <= 0.03) {
 score += 55;
-} else if (ratioErr <= 0.09) {
+} else if (ratioErr <= 0.055) {
 score += 25;
 }
 if (score > bestScore) {
@@ -4487,7 +4496,7 @@ bestScore = score;
 bestResult = result;
 matchedTplKey = tplKey;
 }
-if (mocRatio >= 0.88 && ratioErr <= 0.04 && soMoc >= 10) {
+if (mocRatio >= 0.88 && ratioErr <= 0.03 && soMoc >= 10 && starCount <= 3) {
 break;
 }
 }
@@ -4503,8 +4512,10 @@ const tplKey = matchedTplKey || activeTpl;
 const tpl = (window.MAU && window.MAU[tplKey]) ? window.MAU[tplKey] : window.MAU.qmcv1239;
 const rectW = 1552;
 const outH = getSheetHeight(tplKey, tpl, rectW);
+let outCanvas = null;
+if (!options.skipRectify) {
 const target = getSheetTransform(tplKey, tpl, outH, rectW);
-const outCanvas = document.createElement('canvas');
+outCanvas = document.createElement('canvas');
 outCanvas.width = rectW;
 outCanvas.height = outH;
 const outCtx = outCanvas.getContext('2d');
@@ -4669,7 +4680,8 @@ const lumBuf = new Uint8Array(totalPx);
 for (let p = 0, idx = 0; p < totalPx; p++, idx += 4) {
 lumBuf[p] = (dst[idx] * 38 + dst[idx + 1] * 75 + dst[idx + 2] * 15) >> 7;
 }
-const B = 16;
+// B=56 (~2x bubble diameter at rectW~1552) ensures graphite fills stay dark instead of getting bleached like B=16.
+const B = 56;
 const gridW = Math.ceil(rectW / B);
 const gridH = Math.ceil(outH / B);
 const bgGrid = new Float32Array(gridW * gridH);
@@ -4688,13 +4700,13 @@ const row = y * rectW;
 for (let x = x0; x < x1; x++) {
 const v = lumBuf[row + x];
 totalCnt++;
-if (v > 80) {
+if (v > 65) {
 hist[v]++;
 validCnt++;
 }
 }
 }
-if (validCnt < totalCnt * 0.42) {
+if (validCnt < totalCnt * 0.28) {
 bgGrid[by * gridW + bx] = 0;
 } else {
 const targetCnt = (validCnt * 0.10) | 0;
@@ -4731,23 +4743,31 @@ const bgSmooth = new Float32Array(gridW * gridH);
 for (let by = 0; by < gridH; by++) {
 for (let bx = 0; bx < gridW; bx++) {
 let sum = 0, wsum = 0;
-for (let dy = -2; dy <= 2; dy++) {
+for (let dy = -1; dy <= 1; dy++) {
 const ny = by + dy < 0 ? 0 : (by + dy >= gridH ? gridH - 1 : by + dy);
-const wy = 3 - (dy < 0 ? -dy : dy);
-for (let dx = -2; dx <= 2; dx++) {
+const wy = dy === 0 ? 3 : 1;
+for (let dx = -1; dx <= 1; dx++) {
 const nx = bx + dx < 0 ? 0 : (bx + dx >= gridW ? gridW - 1 : bx + dx);
-const wt = wy * (3 - (dx < 0 ? -dx : dx));
+const wt = wy * (dx === 0 ? 3 : 1);
 sum += bgGrid[ny * gridW + nx] * wt;
 wsum += wt;
 }
 }
-const rawB = bgGrid[by * gridW + bx];
-const smoothB = sum / wsum;
-bgSmooth[by * gridW + bx] = smoothB > rawB * 1.025 ? rawB * 1.025 : smoothB;
+bgSmooth[by * gridW + bx] = sum / wsum;
 }
 }
-const normLumaBuf = new Uint8Array(totalPx);
-const normHist = new Int32Array(256);
+const toneLut = new Uint8Array(256);
+for (let i = 0; i < 256; i++) {
+if (i <= 50) {
+toneLut[i] = Math.round((i / 50) * 14);
+} else if (i <= 205) {
+toneLut[i] = Math.round(14 + Math.pow((i - 50) / 155, 1.48) * 184);
+} else if (i < 230) {
+toneLut[i] = Math.round(198 + Math.pow((i - 205) / 25, 0.85) * 57);
+} else {
+toneLut[i] = 255;
+}
+}
 const invB = 1 / B;
 const maxBx = gridW - 1;
 const maxBy = gridH - 1;
@@ -4770,84 +4790,34 @@ const wx = fx - bx0 < 0 ? 0 : (fx - bx0 > 1 ? 1 : fx - bx0);
 const bg0 = bgSmooth[r0 + bx0] * (1 - wx) + bgSmooth[r0 + bx1] * wx;
 const bg1 = bgSmooth[r1 + bx0] * (1 - wx) + bgSmooth[r1 + bx1] * wx;
 let bg = bg0 * (1 - wy) + bg1 * wy;
-const nearB = bgGrid[(fy + 0.5 | 0 < maxBy ? (fy + 0.5 < 0 ? 0 : fy + 0.5 | 0) : maxBy) * gridW + (fx + 0.5 | 0 < maxBx ? (fx + 0.5 < 0 ? 0 : fx + 0.5 | 0) : maxBx)];
-if (bg > nearB * 1.03) bg = nearB * 1.03;
-if (bg < 40) bg = 40;
-const invBg = 255.0 / bg;
-const nr = dst[idx] * invBg;
-const ng = dst[idx + 1] * invBg;
-const nb = dst[idx + 2] * invBg;
-dst[idx] = nr >= 255 ? 255 : (nr + 0.5) | 0;
-dst[idx + 1] = ng >= 255 ? 255 : (ng + 0.5) | 0;
-dst[idx + 2] = nb >= 255 ? 255 : (nb + 0.5) | 0;
-const nLuma = (dst[idx] * 38 + dst[idx + 1] * 75 + dst[idx + 2] * 15) >> 7;
-normLumaBuf[p] = nLuma;
-normHist[nLuma]++;
-}
-}
-let lowClip = 52;
-let accLow = 0;
-const lowTarget = (totalPx * 0.0015) | 0;
-for (let i = 0; i < 65; i++) {
-accLow += normHist[i];
-if (accLow >= lowTarget) { lowClip = Math.max(48, Math.min(78, i + 18)); break; }
-}
-const highClip = 238;
-const toneLut = new Uint8Array(256);
-const span = Math.max(1, highClip - lowClip);
-for (let i = 0; i < 256; i++) {
-if (i <= lowClip) {
-toneLut[i] = Math.round((i / Math.max(1, lowClip)) * 10);
-} else if (i >= highClip) {
-toneLut[i] = 255;
-} else {
-const norm = (i - lowClip) / span;
-const curved = Math.pow(norm, 1.48);
-toneLut[i] = Math.min(255, Math.max(0, Math.round(curved * 245.0 + 10.0)));
-}
-}
-const maxY = outH - 1;
-const maxX = rectW - 1;
-for (let y = 0; y < outH; y++) {
-const isInnerY = y > 0 && y < maxY;
-let p = y * rectW;
-let idx = p << 2;
-for (let x = 0; x < rectW; x++, p++, idx += 4) {
-const nLuma = normLumaBuf[p];
-let diff = 0;
-if (isInnerY && x > 0 && x < maxX) {
-const blur = (
-4 * nLuma +
-2 * (normLumaBuf[p - 1] + normLumaBuf[p + 1] + normLumaBuf[p - rectW] + normLumaBuf[p + rectW]) +
-normLumaBuf[p - rectW - 1] + normLumaBuf[p - rectW + 1] + normLumaBuf[p + rectW - 1] + normLumaBuf[p + rectW + 1]
-) >> 4;
-diff = nLuma - blur;
-}
-if (nLuma >= highClip && diff >= -7) {
-dst[idx] = 255;
-dst[idx + 1] = 255;
-dst[idx + 2] = 255;
-} else {
-const sharpN = diff < -6 ? Math.max(0, (nLuma + diff * 1.85) | 0) : (diff < 0 ? Math.max(0, (nLuma + diff * 1.15) | 0) : Math.min(255, (nLuma + diff * 0.35) | 0));
-let mappedY = toneLut[sharpN];
-const nr = dst[idx], ng = dst[idx + 1], nb = dst[idx + 2];
+if (bg < 45) bg = 45;
+const invBg = 252.0 / bg;
+const r = dst[idx] * invBg;
+const gg = dst[idx + 1] * invBg;
+const b = dst[idx + 2] * invBg;
+const nr = r >= 255 ? 255 : (r + 0.5) | 0;
+const ng = gg >= 255 ? 255 : (gg + 0.5) | 0;
+const nb = b >= 255 ? 255 : (b + 0.5) | 0;
+const nLuma = (nr * 38 + ng * 75 + nb * 15) >> 7;
+const mappedY = toneLut[nLuma];
 const maxC = nr > ng ? (nr > nb ? nr : nb) : (ng > nb ? ng : nb);
 const minC = nr < ng ? (nr < nb ? nr : nb) : (ng < nb ? ng : nb);
 const chroma = maxC - minC;
-if (chroma < 24) {
+const isWarmPaperCast = (nr >= ng && ng >= nb && nLuma >= 120 && chroma <= maxC * 0.40);
+if (chroma < 28 || nLuma >= 208 || isWarmPaperCast) {
 dst[idx] = mappedY;
 dst[idx + 1] = mappedY;
 dst[idx + 2] = mappedY;
 } else {
-dst[idx] = Math.min(255, Math.max(0, Math.round(mappedY + (nr - nLuma) * 1.35)));
-dst[idx + 1] = Math.min(255, Math.max(0, Math.round(mappedY + (ng - nLuma) * 1.35)));
-dst[idx + 2] = Math.min(255, Math.max(0, Math.round(mappedY + (nb - nLuma) * 1.35)));
-}
+dst[idx] = Math.min(255, Math.max(0, Math.round(mappedY + (nr - nLuma) * 1.15)));
+dst[idx + 1] = Math.min(255, Math.max(0, Math.round(mappedY + (ng - nLuma) * 1.15)));
+dst[idx + 2] = Math.min(255, Math.max(0, Math.round(mappedY + (nb - nLuma) * 1.15)));
 }
 }
 }
 }
 outCtx.putImageData(outData, 0, 0);
+}
 const p2Count = state.exam?.part2_count ?? 4;
 const formattedP2 = Array.from({ length: p2Count }, (_, i) => {
 const chunk = (bestResult.p2 || '').slice(i * 4, i * 4 + 4);
@@ -4862,7 +4832,7 @@ part3: [],
 part3Text: bestResult.p3 || [],
 calibrated: true,
 rectifiedCanvas: outCanvas,
-rectifiedImage: options.deferSave ? '' : outCanvas.toDataURL('image/jpeg', 0.88),
+rectifiedImage: (options.deferSave || !outCanvas) ? '' : outCanvas.toDataURL('image/jpeg', 0.88),
 uncertain: bestResult.nghi || [],
 H: bestResult.H,
 template: tpl,
@@ -6983,14 +6953,19 @@ let _liveScanCanvas = null;
 let _liveScanCtx = null;
 let _liveOverlayRaf = null;
 const _liveScanState = {
-  targetPaper: null,
-  smoothPaper: null,
   targetCorners: null,
   smoothCorners: null,
   cornerEstimated: null,
-  lastPaperAt: 0,
   lastCornersAt: 0,
-  locked: false
+  locked: false,
+  peakSharpness: 0,
+  gradedLock: null,
+  lastAutoZoomAt: 0,
+  smallSheetFrames: 0,
+  autoSwitchedMain: false,
+  autoZoomBlocked: false,
+  lastZoomTryVal: null,
+  lastZoomTrySameCount: 0
 };
 function showCameraHUDMessage(htmlMsg, durationMs = 2200) {
 const badge = document.getElementById('cameraScanStatus');
@@ -7175,11 +7150,26 @@ function lerpQuadPoints(smoothPts, targetPts, factor) {
     const d = Math.hypot(targetPts[i][0] - smoothPts[i][0], targetPts[i][1] - smoothPts[i][1]);
     if (d > maxJump) maxJump = d;
   }
-  const k = maxJump > 0.22 ? 0.85 : factor;
+  const k = maxJump > 0.14 ? 0.92 : factor;
   return smoothPts.map((p, i) => [
     p[0] + (targetPts[i][0] - p[0]) * k,
     p[1] + (targetPts[i][1] - p[1]) * k
   ]);
+}
+
+function drawRoundedRectPath(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w * 0.5, h * 0.5);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x + rr, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
+  ctx.closePath();
 }
 
 function renderLiveOverlayFrame() {
@@ -7215,107 +7205,80 @@ function renderLiveOverlayFrame() {
       const mapH = vr.height || rect.height;
       const toPx = ([nx, ny]) => [mapLeft + nx * mapW, mapTop + ny * mapH];
 
-      const paperAge = now - _liveScanState.lastPaperAt;
-      const paperAlpha = paperAge <= 260 ? 1 : Math.max(0, 1 - (paperAge - 260) / 180);
-      if (paperAlpha <= 0) {
-        _liveScanState.smoothPaper = null;
-      } else if (_liveScanState.targetPaper) {
-        _liveScanState.smoothPaper = lerpQuadPoints(_liveScanState.smoothPaper, _liveScanState.targetPaper, 0.44);
-      }
-
       const cornerAge = now - _liveScanState.lastCornersAt;
-      const cornerAlpha = cornerAge <= 220 ? 1 : Math.max(0, 1 - (cornerAge - 220) / 160);
+      const cornerAlpha = cornerAge <= 220 ? 1 : Math.max(0, 1 - (cornerAge - 220) / 140);
       if (cornerAlpha <= 0) {
         _liveScanState.smoothCorners = null;
       } else if (_liveScanState.targetCorners) {
-        _liveScanState.smoothCorners = lerpQuadPoints(_liveScanState.smoothCorners, _liveScanState.targetCorners, 0.56);
+        _liveScanState.smoothCorners = lerpQuadPoints(_liveScanState.smoothCorners, _liveScanState.targetCorners, 0.78);
       }
 
-      const paperPts = (_liveScanState.smoothPaper && paperAlpha > 0.02)
-        ? _liveScanState.smoothPaper.map(toPx)
-        : null;
       const cornerPts = (_liveScanState.smoothCorners && cornerAlpha > 0.02)
         ? _liveScanState.smoothCorners.map(toPx)
         : null;
 
-      if (paperPts) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(paperPts[0][0], paperPts[0][1]);
-        for (let i = 1; i < 4; i++) ctx.lineTo(paperPts[i][0], paperPts[i][1]);
-        ctx.closePath();
-        ctx.fillStyle = `rgba(34, 230, 195, ${(0.10 * paperAlpha).toFixed(3)})`;
-        ctx.fill();
-        ctx.shadowColor = `rgba(34, 230, 195, ${(0.72 * paperAlpha).toFixed(3)})`;
-        ctx.shadowBlur = 12;
-        ctx.strokeStyle = `rgba(34, 230, 195, ${(0.95 * paperAlpha).toFixed(3)})`;
-        ctx.lineWidth = 3.0;
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = `rgba(34, 230, 195, ${(0.95 * paperAlpha).toFixed(3)})`;
-        for (const [px, py] of paperPts) {
-          ctx.beginPath();
-          ctx.arc(px, py, 4.2, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-
       if (cornerPts) {
         const w0 = Math.hypot(cornerPts[1][0] - cornerPts[0][0], cornerPts[1][1] - cornerPts[0][1]);
         const h0 = Math.hypot(cornerPts[3][0] - cornerPts[0][0], cornerPts[3][1] - cornerPts[0][1]);
-        const boxHalf = Math.max(11, Math.min(22, Math.min(w0, h0) * 0.052));
-        const tickLen = boxHalf * 0.72;
+        const minSide = Math.min(w0, h0);
+        // 4 large corner squares snapping smoothly onto the 4 detected black fiducials
+        const boxHalf = Math.max(18, Math.min(34, minSide * 0.088));
+        const innerHalf = boxHalf * 0.56;
         const estFlags = _liveScanState.cornerEstimated || [false, false, false, false];
+
+        ctx.save();
+        ctx.strokeStyle = `rgba(16, 185, 129, ${(0.55 * cornerAlpha).toFixed(3)})`;
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash([7, 6]);
+        ctx.beginPath();
+        ctx.moveTo(cornerPts[0][0], cornerPts[0][1]);
+        for (let i = 1; i < 4; i++) ctx.lineTo(cornerPts[i][0], cornerPts[i][1]);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+
         for (let i = 0; i < 4; i++) {
           const [cx, cy] = cornerPts[i];
           const isEst = Boolean(estFlags[i]);
           const rgb = isEst ? '245, 158, 11' : '16, 185, 129';
-          const prev = cornerPts[(i + 3) % 4];
           const next = cornerPts[(i + 1) % 4];
           const ux = (next[0] - cx) / Math.max(1, Math.hypot(next[0] - cx, next[1] - cy));
           const uy = (next[1] - cy) / Math.max(1, Math.hypot(next[0] - cx, next[1] - cy));
-          const vx = (prev[0] - cx) / Math.max(1, Math.hypot(prev[0] - cx, prev[1] - cy));
-          const vy = (prev[1] - cy) / Math.max(1, Math.hypot(prev[0] - cx, prev[1] - cy));
-          const nx = -uy, ny = ux;
           ctx.save();
           ctx.translate(cx, cy);
-          const angle = Math.atan2(uy, ux);
-          ctx.rotate(angle);
-          ctx.fillStyle = `rgba(${rgb}, ${(0.20 * cornerAlpha).toFixed(3)})`;
-          ctx.fillRect(-boxHalf, -boxHalf, boxHalf * 2, boxHalf * 2);
-          ctx.shadowColor = `rgba(${rgb}, ${(0.85 * cornerAlpha).toFixed(3)})`;
-          ctx.shadowBlur = 10;
-          ctx.strokeStyle = `rgba(${rgb}, ${(0.96 * cornerAlpha).toFixed(3)})`;
-          ctx.lineWidth = 2.6;
-          ctx.lineJoin = 'round';
-          if (isEst) ctx.setLineDash([4, 3]);
-          ctx.strokeRect(-boxHalf, -boxHalf, boxHalf * 2, boxHalf * 2);
-          ctx.setLineDash([]);
-          ctx.restore();
+          ctx.rotate(Math.atan2(uy, ux));
 
-          ctx.save();
-          ctx.strokeStyle = `rgba(255, 255, 255, ${(0.92 * cornerAlpha).toFixed(3)})`;
+          drawRoundedRectPath(ctx, -boxHalf, -boxHalf, boxHalf * 2, boxHalf * 2, 10);
+          ctx.fillStyle = `rgba(${rgb}, ${(0.22 * cornerAlpha).toFixed(3)})`;
+          ctx.fill();
+          ctx.shadowColor = `rgba(${rgb}, ${(0.85 * cornerAlpha).toFixed(3)})`;
+          ctx.shadowBlur = 12;
+          ctx.strokeStyle = isEst
+            ? `rgba(251, 191, 36, ${(0.95 * cornerAlpha).toFixed(3)})`
+            : `rgba(255, 255, 255, ${(0.96 * cornerAlpha).toFixed(3)})`;
+          ctx.lineWidth = 3.0;
+          if (isEst) ctx.setLineDash([5, 3]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.shadowBlur = 0;
+          drawRoundedRectPath(ctx, -innerHalf, -innerHalf, innerHalf * 2, innerHalf * 2, 6);
+          ctx.fillStyle = `rgba(52, 211, 153, ${(0.28 * cornerAlpha).toFixed(3)})`;
+          ctx.fill();
+          ctx.strokeStyle = `rgba(${rgb}, ${(0.98 * cornerAlpha).toFixed(3)})`;
           ctx.lineWidth = 2.0;
-          ctx.beginPath();
-          ctx.moveTo(cx + ux * tickLen, cy + uy * tickLen);
-          ctx.lineTo(cx, cy);
-          ctx.lineTo(cx + vx * tickLen, cy + vy * tickLen);
           ctx.stroke();
 
-          ctx.fillStyle = `rgba(${rgb}, ${cornerAlpha.toFixed(3)})`;
+          ctx.fillStyle = `rgba(236, 253, 245, ${cornerAlpha.toFixed(3)})`;
           ctx.beginPath();
-          ctx.arc(cx, cy, 3.3, 0, Math.PI * 2);
+          ctx.arc(0, 0, 4.0, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
-          void nx; void ny;
         }
       }
 
       if (guide) {
-        guide.classList.toggle('live-locked', Boolean(paperPts || cornerPts));
+        guide.classList.toggle('live-locked', Boolean(cornerPts));
       }
       ctx.restore();
     }
@@ -7351,11 +7314,179 @@ function isQuadConvexAndValidRatio(cNorm, viewW, viewH, matchedTpl) {
   return isTplLandscape ? (ratio >= 0.45 && ratio <= 0.96) : (ratio >= 1.05 && ratio <= 1.85);
 }
 
+function measureGrayFocusSharpness(gray, cornersNorm) {
+  if (!gray || !gray.d || !cornersNorm || cornersNorm.length !== 4) return 0;
+  const w = gray.w, h = gray.h, d = gray.d;
+  let minX = 1, maxX = 0, minY = 1, maxY = 0;
+  for (let i = 0; i < 4; i++) {
+    if (cornersNorm[i][0] < minX) minX = cornersNorm[i][0];
+    if (cornersNorm[i][0] > maxX) maxX = cornersNorm[i][0];
+    if (cornersNorm[i][1] < minY) minY = cornersNorm[i][1];
+    if (cornersNorm[i][1] > maxY) maxY = cornersNorm[i][1];
+  }
+  const padX = (maxX - minX) * 0.10, padY = (maxY - minY) * 0.10;
+  const x0 = Math.max(3, Math.floor((minX + padX) * w));
+  const x1 = Math.min(w - 4, Math.ceil((maxX - padX) * w));
+  const y0 = Math.max(3, Math.floor((minY + padY) * h));
+  const y1 = Math.min(h - 4, Math.ceil((maxY - padY) * h));
+  if (x1 <= x0 + 8 || y1 <= y0 + 8) return 0;
+  const step = Math.max(3, Math.round(Math.min(x1 - x0, y1 - y0) / 42));
+  let sum = 0, cnt = 0;
+  for (let y = y0; y <= y1; y += step) {
+    const row = y * w;
+    for (let x = x0; x <= x1; x += step) {
+      const p = row + x;
+      const gx = Math.abs(d[p + 2] - d[p - 2]);
+      const gy = Math.abs(d[p + w * 2] - d[p - w * 2]);
+      sum += gx + gy;
+      cnt++;
+    }
+  }
+  return cnt ? (sum / cnt) : 0;
+}
+
+function computeSheetSignature(gray, cornersNorm) {
+  if (!gray || !gray.d || !cornersNorm || cornersNorm.length !== 4) return null;
+  const [tl, tr, br, bl] = cornersNorm;
+  const cols = 10, rows = 8;
+  const w = gray.w, h = gray.h, d = gray.d;
+  const raw = new Float32Array(cols * rows);
+  let sum = 0;
+  for (let r = 0; r < rows; r++) {
+    const v = 0.08 + (r / (rows - 1)) * 0.84;
+    const lx = tl[0] + (bl[0] - tl[0]) * v;
+    const ly = tl[1] + (bl[1] - tl[1]) * v;
+    const rx = tr[0] + (br[0] - tr[0]) * v;
+    const ry = tr[1] + (br[1] - tr[1]) * v;
+    for (let c = 0; c < cols; c++) {
+      const u = 0.08 + (c / (cols - 1)) * 0.84;
+      const sx = Math.max(0, Math.min(w - 1, Math.round((lx + (rx - lx) * u) * w)));
+      const sy = Math.max(0, Math.min(h - 1, Math.round((ly + (ry - ly) * u) * h)));
+      const val = d[sy * w + sx];
+      raw[r * cols + c] = val;
+      sum += val;
+    }
+  }
+  const mean = sum / raw.length;
+  let sq = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const dv = raw[i] - mean;
+    sq += dv * dv;
+  }
+  const std = Math.max(8, Math.sqrt(sq / raw.length));
+  for (let i = 0; i < raw.length; i++) raw[i] = (raw[i] - mean) / std;
+  return raw;
+}
+
+function compareSheetSignature(sigA, sigB) {
+  if (!sigA || !sigB || sigA.length !== sigB.length) return 1;
+  let mad = 0;
+  for (let i = 0; i < sigA.length; i++) mad += Math.abs(sigA[i] - sigB[i]);
+  return mad / sigA.length;
+}
+
+async function applyAutoCameraZoom(currNorm, info, nowMs) {
+  if (!currNorm || currNorm.length !== 4 || state.userSelectedCamera || _liveScanState.gradedLock?.active) return false;
+  if (!state.currentCameraStream) return false;
+  const [track] = state.currentCameraStream.getVideoTracks();
+  if (!track) return false;
+
+  let sMinX = 1, sMaxX = 0, sMinY = 1, sMaxY = 0;
+  for (let i = 0; i < 4; i++) {
+    const px = currNorm[i][0], py = currNorm[i][1];
+    if (px < sMinX) sMinX = px;
+    if (px > sMaxX) sMaxX = px;
+    if (py < sMinY) sMinY = py;
+    if (py > sMaxY) sMaxY = py;
+  }
+  let fillRatio = Math.max(sMaxX - sMinX, sMaxY - sMinY);
+  if (info?.guideHints?.length === 4) {
+    const gW = Math.max(0.1, info.guideHints[1][0] - info.guideHints[0][0]);
+    const gH = Math.max(0.1, info.guideHints[2][1] - info.guideHints[0][1]);
+    fillRatio = Math.max((sMaxX - sMinX) / gW, (sMaxY - sMinY) / gH);
+  }
+  const clippedEdge = sMinX < 0.03 || sMaxX > 0.97 || sMinY < 0.03 || sMaxY > 0.97 || fillRatio > 1.06;
+
+  const caps = state.cameraCapabilities || (track.getCapabilities ? track.getCapabilities() : {});
+  const hasZoom = Boolean(caps.zoom && typeof caps.zoom.min === 'number' && typeof caps.zoom.max === 'number' && caps.zoom.max > caps.zoom.min + 0.05);
+
+  if (hasZoom && !_liveScanState.autoZoomBlocked && track.applyConstraints) {
+    if ((nowMs - _liveScanState.lastAutoZoomAt) < 420) return false;
+    const settings = track.getSettings ? track.getSettings() : {};
+    const currZ = (typeof settings.zoom === 'number' && settings.zoom > 0) ? settings.zoom : (state.cameraZoom || 1.0);
+    const zMin = caps.zoom.min;
+    const zMax = Math.min(caps.zoom.max, 3.2);
+    let targetZ = currZ;
+
+    if (clippedEdge && currZ > zMin + 0.05) {
+      targetZ = currZ * (fillRatio > 1.06 ? Math.min(0.88, 0.92 / fillRatio) : 0.84);
+    } else if (!clippedEdge && fillRatio < 0.78 && currZ < zMax - 0.06) {
+      const idealScale = 0.90 / Math.max(0.32, fillRatio);
+      const stepScale = Math.min(1.42, Math.max(1.08, idealScale));
+      targetZ = currZ * stepScale;
+    }
+
+    targetZ = Math.max(zMin, Math.min(zMax, targetZ));
+    if (caps.zoom.step && caps.zoom.step > 0) {
+      targetZ = zMin + Math.round((targetZ - zMin) / caps.zoom.step) * caps.zoom.step;
+      targetZ = Math.max(zMin, Math.min(zMax, targetZ));
+    }
+
+    if (Math.abs(targetZ - currZ) >= 0.07) {
+      if (_liveScanState.lastZoomTryVal !== null && Math.abs(currZ - _liveScanState.lastZoomTryVal) < 0.02) {
+        _liveScanState.lastZoomTrySameCount++;
+        if (_liveScanState.lastZoomTrySameCount >= 3) {
+          _liveScanState.autoZoomBlocked = true;
+          return false;
+        }
+      } else {
+        _liveScanState.lastZoomTrySameCount = 0;
+      }
+      _liveScanState.lastZoomTryVal = currZ;
+      _liveScanState.lastAutoZoomAt = nowMs;
+      try {
+        await track.applyConstraints({ advanced: [{ zoom: targetZ }] });
+        state.cameraZoom = targetZ;
+        updateZoomUI(targetZ, caps);
+        state.consecutiveCornerDetections = 0;
+        state._lastDetectedCornersNorm = null;
+        return true;
+      } catch (e) {
+        _liveScanState.autoZoomBlocked = true;
+        return false;
+      }
+    }
+  }
+
+  // Fallback for dual-lens phones where ultraWide has no hardware zoom and sheet appears far away
+  if (
+    !_liveScanState.autoSwitchedMain &&
+    state.ultraWideCamera &&
+    state.mainCamera &&
+    state.currentCameraDeviceId === state.ultraWideCamera.deviceId &&
+    state.mainCamera.deviceId !== state.ultraWideCamera.deviceId &&
+    fillRatio < 0.62
+  ) {
+    _liveScanState.smallSheetFrames++;
+    if (_liveScanState.smallSheetFrames >= 4) {
+      _liveScanState.autoSwitchedMain = true;
+      state.currentCameraDeviceId = state.mainCamera.deviceId;
+      state.activeCameraIndex = state.backCameras.findIndex(c => c.deviceId === state.mainCamera.deviceId);
+      showCameraHUDMessage('<i class="fa-solid fa-magnifying-glass-plus text-emerald-400"></i> Tự chuyển Camera 1x khớp 4 ô góc...');
+      window.startCameraStream();
+      return true;
+    }
+  } else {
+    _liveScanState.smallSheetFrames = 0;
+  }
+  return false;
+}
+
 function startAutoScanLoop() {
   stopAutoScanLoop();
   if (!state.currentCameraStream) return;
   startLiveOverlayRaf();
-  const intervalMs = state.autoScanSpeed === 'turbo' ? 55 : (state.autoScanSpeed === 'fast' ? 75 : (state.autoScanSpeed === 'slow' ? 165 : 95));
+  const intervalMs = state.autoScanSpeed === 'turbo' ? 65 : (state.autoScanSpeed === 'fast' ? 85 : (state.autoScanSpeed === 'slow' ? 165 : 100));
   autoScanInterval = setInterval(async () => {
     const video = document.getElementById('cameraVideo');
     const guide = document.getElementById('cameraA4Guide');
@@ -7366,7 +7497,7 @@ function startAutoScanLoop() {
     try {
       state.isAutoScanning = true;
       const info = getVideoViewportInfo(video, guide);
-      const scale = Math.min(1, 500 / Math.max(info.sw || 1, info.sh || 1));
+      const scale = Math.min(1, 640 / Math.max(info.sw || 1, info.sh || 1));
       const lw = Math.max(1, Math.round((info.sw || 1) * scale));
       const lh = Math.max(1, Math.round((info.sh || 1) * scale));
       const { canvas: liveCanvas, ctx: liveCtx } = getLiveScanCanvas(lw, lh);
@@ -7400,7 +7531,6 @@ function startAutoScanLoop() {
           }
         }
         track = {
-          paperQuad: bestFound?.projectedPaperNorm ? { cornersNorm: bestFound.projectedPaperNorm, fromHomography: true } : null,
           found: bestFound,
           tplKey: bestKey,
           matchedTpl: bestTpl,
@@ -7412,11 +7542,6 @@ function startAutoScanLoop() {
       }
 
       const now = performance.now();
-      if (track?.paperQuad?.cornersNorm?.length === 4) {
-        _liveScanState.targetPaper = track.paperQuad.cornersNorm;
-        _liveScanState.lastPaperAt = now;
-      }
-
       const found = track?.found || null;
       const matchedTpl = track?.matchedTpl || null;
       const matchedKey = track?.tplKey || (state.exam?.sheet_template || 'qmcv1239');
@@ -7442,6 +7567,7 @@ function startAutoScanLoop() {
           : [false, false, false, false];
         _liveScanState.lastCornersAt = now;
         _liveScanState.locked = isValidSheet;
+        await applyAutoCameraZoom(track.cornersNorm, info, now);
       } else {
         _liveScanState.locked = false;
       }
@@ -7450,34 +7576,94 @@ function startAutoScanLoop() {
       if (isValidSheet) {
         const currNorm = track.cornersNorm;
         const prevNorm = state._lastDetectedCornersNorm;
-        let isStable = false;
+        let maxDrift = 1;
         if (prevNorm && prevNorm.length === 4) {
-          let maxDrift = 0;
+          maxDrift = 0;
           for (let i = 0; i < 4; i++) {
             const d = Math.hypot(currNorm[i][0] - prevNorm[i][0], currNorm[i][1] - prevNorm[i][1]);
             if (d > maxDrift) maxDrift = d;
           }
-          if (maxDrift < 0.045) isStable = true;
         }
+        const driftLimit = state.autoScanSpeed === 'turbo' ? 0.024 : (state.autoScanSpeed === 'fast' ? 0.020 : 0.016);
+        const isStable = prevNorm ? (maxDrift < driftLimit) : false;
+        const sharp = measureGrayFocusSharpness(liveGray, currNorm);
+        if (sharp > _liveScanState.peakSharpness) {
+          _liveScanState.peakSharpness = sharp;
+        } else {
+          _liveScanState.peakSharpness = _liveScanState.peakSharpness * 0.96 + sharp * 0.04;
+        }
+        const sharpMin = Math.max(7.5, _liveScanState.peakSharpness * 0.56);
+        const isSharp = sharp >= sharpMin;
+        const isZoomSettling = (now - _liveScanState.lastAutoZoomAt) < 280;
+
         state._lastDetectedCornersNorm = currNorm;
-        state.consecutiveCornerDetections = isStable ? ((state.consecutiveCornerDetections || 0) + 1) : 1;
+
+        // Same-sheet withdrawal & identity lock prevents repeated re-grading of held paper
+        const gLock = _liveScanState.gradedLock;
+        if (gLock && gLock.active) {
+          gLock.absentFrames = 0;
+          const sigNow = computeSheetSignature(liveGray, currNorm);
+          const sigDiff = (gLock.sig && sigNow) ? compareSheetSignature(gLock.sig, sigNow) : 0;
+          let centerShift = 0;
+          if (gLock.cornersNorm && gLock.cornersNorm.length === 4) {
+            const cx0 = (gLock.cornersNorm[0][0] + gLock.cornersNorm[2][0]) * 0.5;
+            const cy0 = (gLock.cornersNorm[0][1] + gLock.cornersNorm[2][1]) * 0.5;
+            const cx1 = (currNorm[0][0] + currNorm[2][0]) * 0.5;
+            const cy1 = (currNorm[0][1] + currNorm[2][1]) * 0.5;
+            centerShift = Math.hypot(cx1 - cx0, cy1 - cy0);
+          }
+          const elapsedLockMs = Date.now() - gLock.at;
+          if (isStable && isSharp && ((sigDiff >= 0.34 && elapsedLockMs >= 1600) || (centerShift >= 0.24 && elapsedLockMs >= 2000))) {
+            gLock.diffFrames = (gLock.diffFrames || 0) + 1;
+          } else {
+            gLock.diffFrames = 0;
+          }
+          if (gLock.diffFrames >= 2) {
+            _liveScanState.gradedLock = null;
+          } else {
+            state.consecutiveCornerDetections = 0;
+            document.querySelectorAll('.camera-corner-bracket').forEach(b => b.classList.add('detected'));
+            if (statusText) {
+              const sbdBadge = gLock.sbd ? `SBD ${gLock.sbd} · ` : '';
+              const scBadge = typeof gLock.score === 'number' ? gLock.score.toFixed(2) : gLock.score;
+              statusText.innerHTML = `<span class="text-sky-300 font-extrabold">✓ Đã chấm (${sbdBadge}${scBadge}đ) — Rút phiếu ra hoặc đưa phiếu mới vào</span>`;
+            }
+            return;
+          }
+        }
+
+        if (isZoomSettling || !isSharp) {
+          state.consecutiveCornerDetections = Math.max(0, (state.consecutiveCornerDetections || 0) - 1);
+        } else if (isStable) {
+          state.consecutiveCornerDetections = (state.consecutiveCornerDetections || 0) + 1;
+        } else {
+          state.consecutiveCornerDetections = 1;
+        }
+
+        const reqFrames = state.autoScanSpeed === 'turbo'
+          ? 2
+          : (state.autoScanSpeed === 'fast' ? (mocRatio >= 0.78 ? 2 : 3) : (state.autoScanSpeed === 'slow' ? 4 : 3));
 
         document.querySelectorAll('.camera-corner-bracket').forEach(b => b.classList.add('detected'));
         const tplLabel = TEMPLATE_SPECS[matchedKey]?.name || matchedKey;
         if (statusText) {
           if (!state.autoScanEnabled) {
             statusText.innerHTML = `<span class="text-emerald-400 font-extrabold">✓ Khớp ${tplLabel} (${soMoc}/${totalM} mốc) — Bấm chụp</span>`;
+          } else if (isZoomSettling) {
+            statusText.innerHTML = `<span class="text-sky-300 font-bold">Đang tự thu phóng khớp 4 ô góc...</span>`;
+          } else if (!isSharp) {
+            statusText.innerHTML = `<span class="text-amber-300 font-bold">Đã bắt ${tplLabel} — Giữ yên để lấy nét...</span>`;
+          } else if (state.consecutiveCornerDetections < reqFrames) {
+            statusText.innerHTML = `<span class="text-emerald-300 font-bold">✓ Giữ vững phiếu (${state.consecutiveCornerDetections}/${reqFrames})...</span>`;
           } else {
-            statusText.innerHTML = `<span class="text-emerald-400 font-extrabold">✓ Khớp ${tplLabel} (${soMoc}/${totalM} mốc)! Đang chụp...</span>`;
+            statusText.innerHTML = `<span class="text-emerald-400 font-extrabold">✓ Khóa nét ${tplLabel} (${soMoc}/${totalM} mốc)! Đang xác thực...</span>`;
           }
         }
 
         const inCooldown = (Date.now() - lastAutoScanTime) < state.autoScanCooldown;
-        const reqFrames = state.autoScanSpeed === 'turbo'
-          ? 1
-          : (state.autoScanSpeed === 'fast' ? (mocRatio >= 0.72 ? 1 : 2) : (state.autoScanSpeed === 'slow' ? (mocRatio >= 0.72 ? 2 : 3) : (mocRatio >= 0.80 ? 1 : 2)));
-
-        if (state.autoScanEnabled && !inCooldown && state.consecutiveCornerDetections >= reqFrames) {
+        if (state.autoScanEnabled && !inCooldown && !isZoomSettling && isSharp && isStable && state.consecutiveCornerDetections >= reqFrames) {
+          const capturedCornersNorm = currNorm.map(pt => [pt[0], pt[1]]);
+          const capturedSheetSig = computeSheetSignature(liveGray, currNorm);
           state.consecutiveCornerDetections = 0;
           state._lastDetectedCornersNorm = null;
           const hiResCanvas = drawVideoRegionToCanvas(video, info.sx, info.sy, info.sw, info.sh, 1920);
@@ -7496,24 +7682,34 @@ function startAutoScanLoop() {
           };
           lastAutoScanTime = Date.now();
           await window.captureCameraFrame({
+            isAutoScan: true,
+            sheetSig: capturedSheetSig,
+            cornersNorm: capturedCornersNorm,
             preCaptured: {
               canvas: detCanvas,
               hiResCanvas,
               gray: detGray,
               found: scaledFound,
-              guideHints: info.guideHints
+              guideHints: info.guideHints,
+              sharpness: sharp
             }
           });
         }
       } else {
         state.consecutiveCornerDetections = 0;
         state._lastDetectedCornersNorm = null;
+        if (_liveScanState.gradedLock && _liveScanState.gradedLock.active) {
+          _liveScanState.gradedLock.absentFrames = (_liveScanState.gradedLock.absentFrames || 0) + 1;
+          if (_liveScanState.gradedLock.absentFrames >= 4) {
+            _liveScanState.gradedLock = null;
+          }
+        }
         document.querySelectorAll('.camera-corner-bracket').forEach(b => b.classList.remove('detected'));
         if (statusText && !sheetArea?.classList.contains('hidden')) {
-          if (track?.paperQuad) {
-            statusText.innerHTML = '<span class="text-teal-300 font-bold">Đã bắt khung giấy — đang khóa 4 ô đen...</span>';
+          if (cornerHits >= 3) {
+            statusText.innerHTML = '<span class="text-emerald-300 font-bold">Đang căn chỉnh 4 ô vuông góc...</span>';
           } else {
-            statusText.innerHTML = '<span>Hướng camera vào phiếu thi để tự động bắt khung</span>';
+            statusText.innerHTML = '<span>Đưa 4 ô đen vào 4 ô vuông góc để tự động quét</span>';
           }
         }
       }
@@ -7533,14 +7729,18 @@ function stopAutoScanLoop() {
     cancelAnimationFrame(_liveOverlayRaf);
     _liveOverlayRaf = null;
   }
-  _liveScanState.targetPaper = null;
-  _liveScanState.smoothPaper = null;
   _liveScanState.targetCorners = null;
   _liveScanState.smoothCorners = null;
   _liveScanState.cornerEstimated = null;
-  _liveScanState.lastPaperAt = 0;
   _liveScanState.lastCornersAt = 0;
   _liveScanState.locked = false;
+  _liveScanState.peakSharpness = 0;
+  _liveScanState.gradedLock = null;
+  _liveScanState.lastAutoZoomAt = 0;
+  _liveScanState.smallSheetFrames = 0;
+  _liveScanState.autoZoomBlocked = false;
+  _liveScanState.lastZoomTryVal = null;
+  _liveScanState.lastZoomTrySameCount = 0;
   state._lastDetectedCornersNorm = null;
   state.consecutiveCornerDetections = 0;
   state.isAutoScanning = false;
@@ -7710,6 +7910,7 @@ state.isTorchOn = false;
 };
 window.closeCameraScanner = () => {
 state.userSelectedCamera = false;
+_liveScanState.autoSwitchedMain = false;
 window.stopCameraStream();
 window.dismissCameraResultSheet();
 const cameraArea = document.getElementById('scanCameraArea');
@@ -7942,13 +8143,12 @@ card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 window.captureCameraFrame = async (opts = {}) => {
 if (state.isCapturingCamera) return;
 state.isCapturingCamera = true;
+const tempCanvasesToFree = [];
 try {
 const video = document.getElementById('cameraVideo');
 const guide = document.getElementById('cameraA4Guide');
 if (!video || !state.currentCameraStream) return;
 const info = getVideoViewportInfo(video, guide);
-const candidates = [];
-const tempCanvasesToFree = [];
 const deriveDetectionCanvas = (hiCanvas, maxDim) => {
 const sc = Math.min(1, maxDim / Math.max(1, hiCanvas.width, hiCanvas.height));
 const c = document.createElement('canvas');
@@ -7961,8 +8161,154 @@ const hiResViewportCanvas = (opts && opts.preCaptured && opts.preCaptured.hiResC
 ? opts.preCaptured.hiResCanvas
 : drawVideoRegionToCanvas(video, info.sx, info.sy, info.sw, info.sh, 2000);
 tempCanvasesToFree.push(hiResViewportCanvas);
-if (opts && opts.preCaptured && opts.preCaptured.gray) {
+
+const statusBadge = document.getElementById('cameraScanStatus');
+const statusText = document.getElementById('cameraStatusText');
+if (statusBadge) {
+statusBadge.innerHTML = opts.isAutoScan
+  ? '<i class="fa-solid fa-shield-check text-emerald-400"></i> Đang đối chiếu đa khung hình...'
+  : '<i class="fa-solid fa-bolt text-emerald-400"></i> Đang chấm tốc độ cao...';
+statusBadge.classList.remove('hidden', 'opacity-0');
+}
+if (statusText) {
+statusText.innerHTML = opts.isAutoScan
+  ? '<span class="text-emerald-300 font-bold"><i class="fa-solid fa-shield-halved"></i> Đang xác nhận độ ổn định phiếu...</span>'
+  : '<span class="text-emerald-300 font-bold"><i class="fa-solid fa-bolt"></i> Đang chấm phiếu...</span>';
+}
+
+let consensusPreRaw = null;
+const candidates = [];
+
+// Multi-frame verification when triggered automatically so camera never commits a blurry/transient read
+if (opts && opts.isAutoScan && opts.preCaptured && opts.preCaptured.gray && video.readyState >= 2) {
 if (opts.preCaptured.canvas && typeof opts.preCaptured.canvas.width === 'number') {
+tempCanvasesToFree.push(opts.preCaptured.canvas);
+}
+const autoFrames = [{
+sharp: opts.preCaptured.sharpness || 10,
+gray: opts.preCaptured.gray,
+hiRes: hiResViewportCanvas,
+found: opts.preCaptured.found,
+guideHints: opts.preCaptured.guideHints
+}];
+const grabFollowupFrame = async (waitMs) => {
+await new Promise(r => setTimeout(r, waitMs));
+if (!state.currentCameraStream || video.readyState < 2 || video.videoWidth <= 0) return null;
+const fInfo = getVideoViewportInfo(video, guide);
+const hiC = drawVideoRegionToCanvas(video, fInfo.sx, fInfo.sy, fInfo.sw, fInfo.sh, 1920);
+const detC = deriveDetectionCanvas(hiC, 960);
+tempCanvasesToFree.push(hiC, detC);
+const g = window.OMR.xam(detC.getImageData(0, 0, detC.width, detC.height));
+const sharp = measureGrayFocusSharpness(g, opts.cornersNorm || _liveScanState.targetCorners || [[0.1,0.1],[0.9,0.1],[0.9,0.9],[0.1,0.9]]);
+return { sharp, gray: g, hiRes: hiC, found: null, guideHints: fInfo.guideHints };
+};
+const frame2 = await grabFollowupFrame(65);
+if (frame2) autoFrames.push(frame2);
+const dryReads = [];
+for (const fr of autoFrames) {
+try {
+const dr = recognizeSheetFromGray(fr.gray, {
+guideHints: fr.guideHints,
+preFound: fr.found,
+skipRectify: true,
+deferSave: true
+});
+if (dr) dryReads.push({ fr, dr });
+} catch (_) {}
+}
+const sameReading = (a, b) => Boolean(
+a && b &&
+(a.templateKey === b.templateKey) &&
+((a.student_no || '') === (b.student_no || '')) &&
+((a.code || '') === (b.code || '')) &&
+((a.part1 || '') === (b.part1 || '')) &&
+((a.part2 || []).join('|') === (b.part2 || []).join('|')) &&
+((a.part3Text || []).join('|') === (b.part3Text || []).join('|'))
+);
+if (dryReads.length === 2 && !sameReading(dryReads[0].dr, dryReads[1].dr)) {
+const frame3 = await grabFollowupFrame(65);
+if (frame3) {
+try {
+const dr3 = recognizeSheetFromGray(frame3.gray, {
+guideHints: frame3.guideHints,
+skipRectify: true,
+deferSave: true
+});
+if (dr3) dryReads.push({ fr: frame3, dr: dr3 });
+} catch (_) {}
+}
+}
+if (dryReads.length >= 1) {
+dryReads.sort((a, b) => (b.fr.sharp || 0) - (a.fr.sharp || 0));
+const voteValue = (vals, preferCleanRe) => {
+const counts = {};
+for (let idx = 0; idx < vals.length; idx++) {
+const v = vals[idx] || '';
+const cleanBonus = (!preferCleanRe || preferCleanRe.test(v)) ? 0.15 : 0;
+counts[v] = (counts[v] || 0) + 1 + cleanBonus - idx * 0.01;
+}
+let bestV = vals[0] || '', bestC = -1;
+for (const k in counts) {
+if (counts[k] > bestC) { bestC = counts[k]; bestV = k; }
+}
+return bestV;
+};
+const allDr = dryReads.map(x => x.dr);
+const chosenTpl = voteValue(allDr.map(d => d.templateKey || ''), /\S/);
+const matchingEntries = dryReads.filter(x => x.dr.templateKey === chosenTpl);
+const voteDrs = (matchingEntries.length ? matchingEntries : dryReads).map(x => x.dr);
+const bestEntry = matchingEntries.length ? matchingEntries[0] : dryReads[0];
+
+const maxP1Len = Math.max(...voteDrs.map(d => (d.part1 || '').length));
+let votedP1 = '';
+for (let qi = 0; qi < maxP1Len; qi++) {
+votedP1 += voteValue(voteDrs.map(d => (d.part1 && d.part1[qi]) || '-'), /^[ABCD]$/);
+}
+const p2Len = voteDrs[0].part2 ? voteDrs[0].part2.length : 0;
+const votedP2 = [];
+for (let pi = 0; pi < p2Len; pi++) {
+let chunk = '';
+for (let subi = 0; subi < 4; subi++) {
+chunk += voteValue(voteDrs.map(d => (d.part2[pi] && d.part2[pi][subi]) || '-'), /^[ĐS]$/);
+}
+votedP2.push(chunk);
+}
+const p3Len = voteDrs[0].part3Text ? voteDrs[0].part3Text.length : 0;
+const votedP3 = [];
+for (let p3i = 0; p3i < p3Len; p3i++) {
+votedP3.push(voteValue(voteDrs.map(d => (d.part3Text && d.part3Text[p3i]) || ''), /^[-,0-9]+$/));
+}
+const votedSbd = voteValue(voteDrs.map(d => d.student_no || ''), /^\d{3,}$/);
+const votedCode = voteValue(voteDrs.map(d => d.code || ''), /^\d{3,}$/);
+
+consensusPreRaw = recognizeSheetFromGray(bestEntry.fr.gray, {
+guideHints: bestEntry.fr.guideHints,
+preFound: bestEntry.fr.found,
+sourceImg: bestEntry.fr.hiRes,
+sourceScale: (bestEntry.fr.gray.w || 960) / Math.max(1, bestEntry.fr.hiRes.width),
+sourceSx: 0,
+sourceSy: 0
+});
+if (consensusPreRaw) {
+if (votedP1) consensusPreRaw.part1 = votedP1;
+if (votedP2.length) consensusPreRaw.part2 = votedP2;
+if (votedP3.length) consensusPreRaw.part3Text = votedP3;
+if (votedSbd) consensusPreRaw.student_no = votedSbd;
+if (votedCode) consensusPreRaw.code = votedCode;
+if (consensusPreRaw.raw) {
+consensusPreRaw.raw.p1 = votedP1;
+consensusPreRaw.raw.p2 = votedP2.join('').replace(/Đ/g, 'D').replace(/\?/g, '*');
+consensusPreRaw.raw.p3 = votedP3;
+if (votedSbd) consensusPreRaw.raw.sbd = votedSbd;
+if (votedCode) consensusPreRaw.raw.made = votedCode;
+}
+}
+}
+}
+
+if (!consensusPreRaw) {
+if (opts && opts.preCaptured && opts.preCaptured.gray) {
+if (opts.preCaptured.canvas && typeof opts.preCaptured.canvas.width === 'number' && !tempCanvasesToFree.includes(opts.preCaptured.canvas)) {
 tempCanvasesToFree.push(opts.preCaptured.canvas);
 }
 const detW = opts.preCaptured.gray.w || 880;
@@ -8023,6 +8369,8 @@ sourceSx: 0,
 sourceSy: 0
 }
 });
+}
+
 if (navigator.vibrate) {
 try { navigator.vibrate(35); } catch(e) {}
 }
@@ -8036,23 +8384,19 @@ flash.classList.remove('opacity-80');
 flash.classList.add('opacity-0');
 }, 110);
 }
-const statusBadge = document.getElementById('cameraScanStatus');
-const statusText = document.getElementById('cameraStatusText');
-if (statusBadge) {
-statusBadge.innerHTML = '<i class="fa-solid fa-bolt text-emerald-400"></i> Đang chấm tốc độ cao...';
-statusBadge.classList.remove('hidden', 'opacity-0');
-}
-if (statusText) {
-statusText.innerHTML = '<span class="text-emerald-300 font-bold"><i class="fa-solid fa-bolt"></i> Đang chấm phiếu...</span>';
-}
+
 let sub = null;
 let lastErr = null;
+if (consensusPreRaw) {
+sub = await processSingleSheet(null, { preRawResult: consensusPreRaw });
+} else {
 for (const cand of candidates) {
 try {
 sub = await processSingleSheet(cand.source, cand.options);
 if (sub) break;
 } catch (err) {
 lastErr = err;
+}
 }
 }
 tempCanvasesToFree.forEach(c => {
@@ -8062,20 +8406,38 @@ if (!sub) {
 throw lastErr || new Error("Không tìm đủ 4 mốc đen góc phiếu!");
 }
 lastAutoScanTime = Date.now();
+if (opts && opts.isAutoScan) {
+_liveScanState.gradedLock = {
+active: true,
+sbd: sub.student_no || '',
+code: sub.code || '',
+score: sub.score,
+cornersNorm: opts.cornersNorm || _liveScanState.targetCorners || null,
+sig: opts.sheetSig || null,
+at: Date.now(),
+absentFrames: 0,
+diffFrames: 0
+};
+}
 document.querySelectorAll('.camera-corner-bracket').forEach(b => b.classList.add('detected'));
 if (statusBadge) {
 statusBadge.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i> Đã chấm xong!';
 setTimeout(() => statusBadge.classList.add('hidden'), 1800);
 }
 if (statusText) {
-statusText.innerHTML = `<span class="text-emerald-300 font-bold">✓ Đã chấm xong: ${(typeof sub.score === 'number' ? sub.score.toFixed(2) : sub.score)} điểm · Mời đưa phiếu tiếp theo vào!</span>`;
+statusText.innerHTML = `<span class="text-emerald-300 font-bold">✓ Đã chấm xong: ${(typeof sub.score === 'number' ? sub.score.toFixed(2) : sub.score)} điểm · Rút phiếu ra để chấm phiếu tiếp!</span>`;
 setTimeout(() => {
-if (statusText) statusText.textContent = 'Canh 4 ô đen góc phiếu vào 4 góc khung ngắm để tự động chấm.';
+if (statusText && !(_liveScanState.gradedLock && _liveScanState.gradedLock.active)) {
+statusText.textContent = 'Canh 4 ô đen góc phiếu vào 4 góc khung ngắm để tự động chấm.';
+}
 }, 3500);
 }
 triggerCameraGradedCelebration(sub);
 showCameraResultSheet(sub);
 } catch(err) {
+tempCanvasesToFree.forEach(c => {
+if (c) { c.width = 1; c.height = 1; }
+});
 console.warn("Scan frame error:", err);
 document.querySelectorAll('.camera-corner-bracket').forEach(b => b.classList.remove('detected'));
 const statusBadge = document.getElementById('cameraScanStatus');
