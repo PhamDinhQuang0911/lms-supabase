@@ -332,6 +332,13 @@ document.documentElement.setAttribute('data-season', s);
         #cameraA4Guide {
             overflow: visible !important;
         }
+        #cameraA4Guide.live-locked {
+            opacity: 0.18;
+            border-color: rgba(34, 230, 195, 0.35);
+        }
+        #cameraA4Guide.live-locked .camera-corner-bracket {
+            opacity: 0.12;
+        }
         .camera-corner-bracket.detected {
             border-color: #10b981 !important;
             background-color: rgba(16, 185, 129, 0.3) !important;
@@ -2380,6 +2387,7 @@ if (ov) ov.classList.add('hidden');
         
         <div id="cameraViewportContainer" class="relative z-10 flex-1 w-full overflow-hidden flex items-center justify-center bg-black p-3 sm:p-4 touch-none select-none">
             <video id="cameraVideo" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"></video>
+            <canvas id="cameraLiveOverlayCanvas" class="absolute inset-0 w-full h-full z-20 pointer-events-none select-none"></canvas>
 
             
             <div id="cameraSuccessSplash" class="hidden absolute inset-0 z-30 flex items-center justify-center bg-emerald-950/45 backdrop-blur-[2px] pointer-events-none p-4">
@@ -2982,12 +2990,12 @@ if (ov) ov.classList.add('hidden');
     <script src="./omr/bgd-original-sheet.js?v=20261108_v149"></script>
     <script src="./omr/tnmaker-sheet.js?v=20261108_v149"></script>
     <script src="./omr/phu-tho-sheet.js?v=20261108_v149"></script>
-    <script src="./omr/qm-sheet.js?v=20261108_v149"></script>
+    <script src="./omr/qm-sheet.js?v=20261114_beta1"></script>
     <script src="./omr/custom-hybrid-sheets.js?v=20261108_v149"></script>
     <script src="./omr/answer-import.js?v=20261108_v149"></script>
 
     
-    <script type="module" src="./omr-grader.js?v=20261112_v157"></script>
+    <script type="module" src="./omr-grader.js?v=20261114_beta1"></script>
 
     
     <div id="importExamCandidatesModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">

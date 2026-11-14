@@ -4313,6 +4313,8 @@ _original_part2: rawResult.part2,
 _original_part3: rawResult.part3Text || rawResult.part3,
 flags: rawResult.uncertain || [],
 template_key: rawResult.templateKey || state.exam?.sheet_template || 'qmcv1239',
+sbdm: rawResult.sbdm || null,
+madem: rawResult.madem || null,
 p3m: rawResult.p3m || null,
 clean_image: '',
 image_data: rawResult.rectifiedImage,
@@ -4865,6 +4867,8 @@ uncertain: bestResult.nghi || [],
 H: bestResult.H,
 template: tpl,
 templateKey: tplKey,
+sbdm: bestResult.sbdm || null,
+madem: bestResult.madem || null,
 p1m: bestResult.p1m,
 p2m: bestResult.p2m,
 p3m: bestResult.p3m,
@@ -5403,6 +5407,152 @@ if (svgOverlay) svgOverlay.innerHTML = '';
 }
 card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
+function resolveAssignedClassStudentForSbd(sbdInput, exam = state.exam) {
+  if (!exam) return null;
+  const assignedClasses = (typeof getExamAssignedClasses === 'function') ? getExamAssignedClasses(exam) : [];
+  if (!Array.isArray(assignedClasses) || assignedClasses.length === 0) return null;
+  if (!sbdInput && sbdInput !== 0) return null;
+  const clean = String(sbdInput).trim().replace(/\D/g, '');
+  const num = clean ? String(parseInt(clean, 10)) : '';
+  if (!clean && !num) return null;
+  const isDemoStudent = (st) => !st || st.isSample || st.id?.includes('st_demo') || st.id?.includes('omr_cls_demo') || (st.name === 'Nguyễn Văn An' && st.class_name === '12A1');
+  const getStClean = (st) => {
+    const raw = st.student_no || st.sbd || (/^\d+$/.test(String(st.id || '').trim()) ? st.id : '') || '';
+    return String(raw).trim().replace(/\D/g, '');
+  };
+  const isMatch = (st, exactOnly) => {
+    if (isDemoStudent(st)) return false;
+    const stClean = getStClean(st);
+    if (!stClean) return false;
+    if (exactOnly) return Boolean(clean && clean === stClean);
+    const stNum = String(parseInt(stClean, 10));
+    return Boolean(num && stNum && num === stNum);
+  };
+  const pools = assignedClasses.map(cls => {
+    const rawId = String(cls.id || '').replace(/^lms_/, '');
+    const normClsName = String(cls.name || '').trim().replace(/^Lớp\s+/i, '').toLowerCase();
+    const clsStudents = Array.isArray(cls.students) ? cls.students : [];
+    const stateLinked = Array.isArray(state.students)
+      ? state.students.filter(st => {
+          if (!st) return false;
+          const sid = String(st.class_id || '').replace(/^lms_/, '');
+          const sname = String(st.class_name || '').trim().replace(/^Lớp\s+/i, '').toLowerCase();
+          return (rawId && sid && sid === rawId) || (normClsName && sname && sname === normClsName);
+        })
+      : [];
+    return { cls, list: [...clsStudents, ...stateLinked] };
+  });
+  for (const exactOnly of [true, false]) {
+    for (const pool of pools) {
+      const m = pool.list.find(st => isMatch(st, exactOnly));
+      if (m) {
+        return {
+          student: m,
+          cls: pool.cls,
+          canonicalSbd: getStClean(m) || clean
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function computeSbdRingMarks(tpl, sub, rawResult, measureBubbleContrastFn = null) {
+  if (!tpl || !Array.isArray(tpl.sbd) || tpl.sbd.length === 0) return [];
+  const sbdLookup = String(sub?.student_no || rawResult?.student_no || '').trim().replace(/\D/g, '');
+  const assignedMatch = resolveAssignedClassStudentForSbd(sbdLookup, state.exam);
+  if (!assignedMatch) return [];
+
+  const canonicalSbd = String(assignedMatch.canonicalSbd || sbdLookup).replace(/\D/g, '');
+  if (!canonicalSbd) return [];
+
+  const N = tpl.sbd.length;
+  const sbdm = Array.isArray(rawResult?.sbdm) ? rawResult.sbdm : (Array.isArray(sub?.sbdm) ? sub.sbdm : null);
+  const digits = canonicalSbd.slice(0, N).split('').map(ch => parseInt(ch, 10)).filter(d => !Number.isNaN(d));
+
+  let expectedCols;
+  if (digits.length >= N) {
+    expectedCols = digits.slice(0, N);
+  } else {
+    const leftAligned = Array.from({ length: N }, (_, c) => (c < digits.length ? digits[c] : -1));
+    const zeroPadded = Array.from({ length: N }, (_, c) => {
+      const idx = c - (N - digits.length);
+      return idx >= 0 ? digits[idx] : 0;
+    });
+    const rightAligned = Array.from({ length: N }, (_, c) => {
+      const idx = c - (N - digits.length);
+      return idx >= 0 ? digits[idx] : -1;
+    });
+    if (sbdm) {
+      const cands = [leftAligned, zeroPadded, rightAligned];
+      let bestCand = leftAligned;
+      let bestScore = -1e9;
+      for (const cand of cands) {
+        let sc = 0;
+        for (let c = 0; c < N; c++) {
+          const det = sbdm[c];
+          const exp = cand[c];
+          if (exp >= 0 && det === exp) sc += 3;
+          else if (exp === -1 && det === -1) sc += 1;
+          else if (exp === -1 && det >= 0) sc -= 2;
+          else if (c < N - digits.length && exp === 0 && det === -1) sc -= 1;
+        }
+        if (sc > bestScore) {
+          bestScore = sc;
+          bestCand = cand;
+        }
+      }
+      expectedCols = bestCand;
+    } else if (sbdLookup.length === N && parseInt(sbdLookup, 10) === parseInt(canonicalSbd, 10)) {
+      expectedCols = sbdLookup.split('').map(ch => parseInt(ch, 10));
+    } else {
+      expectedCols = leftAligned;
+    }
+  }
+
+  const rings = [];
+  for (let col = 0; col < N; col++) {
+    const colPts = tpl.sbd[col];
+    if (!Array.isArray(colPts)) continue;
+    const exp = expectedCols[col];
+    const det = (sbdm && sbdm[col] !== undefined) ? sbdm[col] : (exp >= 0 ? exp : -1);
+    if (exp >= 0 && exp <= 9) {
+      if (det === exp) {
+        if (colPts[exp]) rings.push({ pt: colPts[exp], color: '#10b981', lineW: 3.0, r: 12.2, dashed: false });
+      } else if (det >= 0 && det <= 9) {
+        if (colPts[det]) rings.push({ pt: colPts[det], color: '#ef4444', lineW: 3.0, r: 12.2, dashed: false });
+        if (colPts[exp]) rings.push({ pt: colPts[exp], color: '#f59e0b', lineW: 2.8, r: 12.2, dashed: true });
+      } else if (det === -2) {
+        if (typeof measureBubbleContrastFn === 'function') {
+          for (let d = 0; d <= 9; d++) {
+            if (d === exp || !colPts[d] || colPts[d][0] <= 0) continue;
+            const m = measureBubbleContrastFn(colPts[d], 0, 0, 4);
+            if (m && m.conf >= 0.45) {
+              rings.push({ pt: colPts[d], color: '#ef4444', lineW: 3.0, r: 12.2, dashed: false });
+            }
+          }
+        }
+        if (colPts[exp]) rings.push({ pt: colPts[exp], color: '#f59e0b', lineW: 2.8, r: 12.2, dashed: true });
+      } else {
+        if (colPts[exp]) rings.push({ pt: colPts[exp], color: '#f59e0b', lineW: 2.8, r: 12.2, dashed: true });
+      }
+    } else {
+      if (det >= 0 && det <= 9 && colPts[det]) {
+        rings.push({ pt: colPts[det], color: '#ef4444', lineW: 3.0, r: 12.2, dashed: false });
+      } else if (det === -2 && typeof measureBubbleContrastFn === 'function') {
+        for (let d = 0; d <= 9; d++) {
+          if (!colPts[d] || colPts[d][0] <= 0) continue;
+          const m = measureBubbleContrastFn(colPts[d], 0, 0, 4);
+          if (m && m.conf >= 0.45) {
+            rings.push({ pt: colPts[d], color: '#ef4444', lineW: 3.0, r: 12.2, dashed: false });
+          }
+        }
+      }
+    }
+  }
+  return rings;
+}
+
 async function generateStampedGradedSheet(sub, rawResult) {
 if (!rawResult || (!rawResult.rectifiedCanvas && !rawResult.rectifiedImage)) return null;
 const tplKey = sub?.template_key || rawResult?.templateKey || state.exam?.sheet_template || 'qmcv1239';
@@ -5812,8 +5962,9 @@ const filledSeedPts = [];
 if (rectGray) {
 if (tpl.sbd && Array.isArray(tpl.sbd)) {
 const sbdStr = String(sub.student_no || '').trim();
+const sbdSrc = Array.isArray(rawResult?.sbdm) ? rawResult.sbdm : (Array.isArray(sub?.sbdm) ? sub.sbdm : null);
 for (let col = 0; col < tpl.sbd.length; col++) {
-let d = (rawResult?.sbdm && rawResult.sbdm[col] >= 0) ? rawResult.sbdm[col] : (col < sbdStr.length ? parseInt(sbdStr[col], 10) : -1);
+let d = (sbdSrc && sbdSrc[col] >= 0) ? sbdSrc[col] : (col < sbdStr.length ? parseInt(sbdStr[col], 10) : -1);
 if (d >= 0 && d <= 9 && tpl.sbd[col]?.[d]?.[0] > 0) filledSeedPts.push(tpl.sbd[col][d]);
 }
 }
@@ -5931,6 +6082,10 @@ ctx.arc(pos.cx, pos.cy, r, 0, Math.PI * 2);
 ctx.stroke();
 ctx.restore();
 };
+const sbdRings = computeSbdRingMarks(tpl, sub, rawResult, measureBubbleContrast);
+for (const sr of sbdRings) {
+drawRingOnCanvas(sr.pt, sr.color, sr.lineW, sr.r, sr.dashed);
+}
 if (tpl.made && Array.isArray(tpl.made)) {
 const studentCodeStr = String(sub.code || '').trim();
 for (let col = 0; col < tpl.made.length; col++) {
@@ -6209,6 +6364,11 @@ const y = pt[1] * 100;
 const dashAttr = dashed ? 'stroke-dasharray="4 3"' : '';
 return `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" ${dashAttr} />`;
 };
+const svgSub = state.lastSubmission || { student_no: rawResult.student_no, sbdm: rawResult.sbdm };
+const sbdRingsSvg = computeSbdRingMarks(tpl, svgSub, rawResult, null);
+for (const sr of sbdRingsSvg) {
+marks += ring(sr.pt, sr.color, sr.lineW * 0.85, sr.r * 0.9, sr.dashed);
+}
 if (tpl.p1 && tpl.p1.length) {
 const qCount = Math.min(tpl.p1.length, state.exam?.question_count ?? 12);
 for (let q = 0; q < qCount; q++) {
@@ -6819,6 +6979,19 @@ state.strictFiducials = localStorage.getItem('omr_strict_fiducials') !== 'false'
 state.consecutiveCornerDetections = 0;
 let autoScanInterval = null;
 let lastAutoScanTime = 0;
+let _liveScanCanvas = null;
+let _liveScanCtx = null;
+let _liveOverlayRaf = null;
+const _liveScanState = {
+  targetPaper: null,
+  smoothPaper: null,
+  targetCorners: null,
+  smoothCorners: null,
+  cornerEstimated: null,
+  lastPaperAt: 0,
+  lastCornersAt: 0,
+  locked: false
+};
 function showCameraHUDMessage(htmlMsg, durationMs = 2200) {
 const badge = document.getElementById('cameraScanStatus');
 const textEl = document.getElementById('cameraScanStatusText');
@@ -6862,10 +7035,11 @@ btn.className = state.autoScanEnabled
 ? 'px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shadow-sm cursor-pointer'
 : 'px-2.5 py-1 rounded-xl bg-slate-800 text-slate-400 border border-slate-700 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer';
 }
-if (state.autoScanEnabled) {
-startAutoScanLoop();
+state.consecutiveCornerDetections = 0;
+if (state.currentCameraStream) {
+  startAutoScanLoop();
 } else {
-stopAutoScanLoop();
+  stopAutoScanLoop();
 }
 };
 window.openAutoScanSettings = () => {
@@ -6969,155 +7143,408 @@ const ctx = canvas.getContext('2d', { willReadFrequently: true });
 ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 return canvas;
 }
+function getLiveScanCanvas(w, h) {
+  if (!_liveScanCanvas) {
+    _liveScanCanvas = document.createElement('canvas');
+    _liveScanCtx = _liveScanCanvas.getContext('2d', { willReadFrequently: true });
+  }
+  if (_liveScanCanvas.width !== w || _liveScanCanvas.height !== h) {
+    _liveScanCanvas.width = w;
+    _liveScanCanvas.height = h;
+  }
+  return { canvas: _liveScanCanvas, ctx: _liveScanCtx };
+}
+
+function clearLiveOverlayCanvas() {
+  const overlay = document.getElementById('cameraLiveOverlayCanvas');
+  if (overlay) {
+    const ctx = overlay.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
+  }
+  const guide = document.getElementById('cameraA4Guide');
+  if (guide) guide.classList.remove('live-locked');
+}
+
+function lerpQuadPoints(smoothPts, targetPts, factor) {
+  if (!targetPts || targetPts.length !== 4) return smoothPts;
+  if (!smoothPts || smoothPts.length !== 4) {
+    return targetPts.map(p => [p[0], p[1]]);
+  }
+  let maxJump = 0;
+  for (let i = 0; i < 4; i++) {
+    const d = Math.hypot(targetPts[i][0] - smoothPts[i][0], targetPts[i][1] - smoothPts[i][1]);
+    if (d > maxJump) maxJump = d;
+  }
+  const k = maxJump > 0.22 ? 0.85 : factor;
+  return smoothPts.map((p, i) => [
+    p[0] + (targetPts[i][0] - p[0]) * k,
+    p[1] + (targetPts[i][1] - p[1]) * k
+  ]);
+}
+
+function renderLiveOverlayFrame() {
+  const sheetArea = document.getElementById('scanCameraArea');
+  const overlay = document.getElementById('cameraLiveOverlayCanvas');
+  const video = document.getElementById('cameraVideo');
+  const guide = document.getElementById('cameraA4Guide');
+  if (!overlay || !video || !state.currentCameraStream || sheetArea?.classList.contains('hidden')) {
+    clearLiveOverlayCanvas();
+    _liveOverlayRaf = null;
+    return;
+  }
+  const rect = overlay.getBoundingClientRect();
+  if (rect.width > 10 && rect.height > 10) {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const pw = Math.round(rect.width * dpr);
+    const ph = Math.round(rect.height * dpr);
+    if (overlay.width !== pw || overlay.height !== ph) {
+      overlay.width = pw;
+      overlay.height = ph;
+    }
+    const ctx = overlay.getContext('2d');
+    if (ctx) {
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      const now = performance.now();
+      const vr = video.getBoundingClientRect();
+      const mapLeft = vr.left - rect.left;
+      const mapTop = vr.top - rect.top;
+      const mapW = vr.width || rect.width;
+      const mapH = vr.height || rect.height;
+      const toPx = ([nx, ny]) => [mapLeft + nx * mapW, mapTop + ny * mapH];
+
+      const paperAge = now - _liveScanState.lastPaperAt;
+      const paperAlpha = paperAge <= 260 ? 1 : Math.max(0, 1 - (paperAge - 260) / 180);
+      if (paperAlpha <= 0) {
+        _liveScanState.smoothPaper = null;
+      } else if (_liveScanState.targetPaper) {
+        _liveScanState.smoothPaper = lerpQuadPoints(_liveScanState.smoothPaper, _liveScanState.targetPaper, 0.44);
+      }
+
+      const cornerAge = now - _liveScanState.lastCornersAt;
+      const cornerAlpha = cornerAge <= 220 ? 1 : Math.max(0, 1 - (cornerAge - 220) / 160);
+      if (cornerAlpha <= 0) {
+        _liveScanState.smoothCorners = null;
+      } else if (_liveScanState.targetCorners) {
+        _liveScanState.smoothCorners = lerpQuadPoints(_liveScanState.smoothCorners, _liveScanState.targetCorners, 0.56);
+      }
+
+      const paperPts = (_liveScanState.smoothPaper && paperAlpha > 0.02)
+        ? _liveScanState.smoothPaper.map(toPx)
+        : null;
+      const cornerPts = (_liveScanState.smoothCorners && cornerAlpha > 0.02)
+        ? _liveScanState.smoothCorners.map(toPx)
+        : null;
+
+      if (paperPts) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(paperPts[0][0], paperPts[0][1]);
+        for (let i = 1; i < 4; i++) ctx.lineTo(paperPts[i][0], paperPts[i][1]);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(34, 230, 195, ${(0.10 * paperAlpha).toFixed(3)})`;
+        ctx.fill();
+        ctx.shadowColor = `rgba(34, 230, 195, ${(0.72 * paperAlpha).toFixed(3)})`;
+        ctx.shadowBlur = 12;
+        ctx.strokeStyle = `rgba(34, 230, 195, ${(0.95 * paperAlpha).toFixed(3)})`;
+        ctx.lineWidth = 3.0;
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = `rgba(34, 230, 195, ${(0.95 * paperAlpha).toFixed(3)})`;
+        for (const [px, py] of paperPts) {
+          ctx.beginPath();
+          ctx.arc(px, py, 4.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      if (cornerPts) {
+        const w0 = Math.hypot(cornerPts[1][0] - cornerPts[0][0], cornerPts[1][1] - cornerPts[0][1]);
+        const h0 = Math.hypot(cornerPts[3][0] - cornerPts[0][0], cornerPts[3][1] - cornerPts[0][1]);
+        const boxHalf = Math.max(11, Math.min(22, Math.min(w0, h0) * 0.052));
+        const tickLen = boxHalf * 0.72;
+        const estFlags = _liveScanState.cornerEstimated || [false, false, false, false];
+        for (let i = 0; i < 4; i++) {
+          const [cx, cy] = cornerPts[i];
+          const isEst = Boolean(estFlags[i]);
+          const rgb = isEst ? '245, 158, 11' : '16, 185, 129';
+          const prev = cornerPts[(i + 3) % 4];
+          const next = cornerPts[(i + 1) % 4];
+          const ux = (next[0] - cx) / Math.max(1, Math.hypot(next[0] - cx, next[1] - cy));
+          const uy = (next[1] - cy) / Math.max(1, Math.hypot(next[0] - cx, next[1] - cy));
+          const vx = (prev[0] - cx) / Math.max(1, Math.hypot(prev[0] - cx, prev[1] - cy));
+          const vy = (prev[1] - cy) / Math.max(1, Math.hypot(prev[0] - cx, prev[1] - cy));
+          const nx = -uy, ny = ux;
+          ctx.save();
+          ctx.translate(cx, cy);
+          const angle = Math.atan2(uy, ux);
+          ctx.rotate(angle);
+          ctx.fillStyle = `rgba(${rgb}, ${(0.20 * cornerAlpha).toFixed(3)})`;
+          ctx.fillRect(-boxHalf, -boxHalf, boxHalf * 2, boxHalf * 2);
+          ctx.shadowColor = `rgba(${rgb}, ${(0.85 * cornerAlpha).toFixed(3)})`;
+          ctx.shadowBlur = 10;
+          ctx.strokeStyle = `rgba(${rgb}, ${(0.96 * cornerAlpha).toFixed(3)})`;
+          ctx.lineWidth = 2.6;
+          ctx.lineJoin = 'round';
+          if (isEst) ctx.setLineDash([4, 3]);
+          ctx.strokeRect(-boxHalf, -boxHalf, boxHalf * 2, boxHalf * 2);
+          ctx.setLineDash([]);
+          ctx.restore();
+
+          ctx.save();
+          ctx.strokeStyle = `rgba(255, 255, 255, ${(0.92 * cornerAlpha).toFixed(3)})`;
+          ctx.lineWidth = 2.0;
+          ctx.beginPath();
+          ctx.moveTo(cx + ux * tickLen, cy + uy * tickLen);
+          ctx.lineTo(cx, cy);
+          ctx.lineTo(cx + vx * tickLen, cy + vy * tickLen);
+          ctx.stroke();
+
+          ctx.fillStyle = `rgba(${rgb}, ${cornerAlpha.toFixed(3)})`;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 3.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          void nx; void ny;
+        }
+      }
+
+      if (guide) {
+        guide.classList.toggle('live-locked', Boolean(paperPts || cornerPts));
+      }
+      ctx.restore();
+    }
+  }
+  _liveOverlayRaf = requestAnimationFrame(renderLiveOverlayFrame);
+}
+
+function startLiveOverlayRaf() {
+  if (_liveOverlayRaf) cancelAnimationFrame(_liveOverlayRaf);
+  _liveOverlayRaf = requestAnimationFrame(renderLiveOverlayFrame);
+}
+
+function isQuadConvexAndValidRatio(cNorm, viewW, viewH, matchedTpl) {
+  if (!cNorm || cNorm.length !== 4) return false;
+  const pts = cNorm.map(([nx, ny]) => [nx * viewW, ny * viewH]);
+  const cross = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  const c0 = cross(pts[0], pts[1], pts[2]);
+  const c1 = cross(pts[1], pts[2], pts[3]);
+  const c2 = cross(pts[2], pts[3], pts[0]);
+  const c3 = cross(pts[3], pts[0], pts[1]);
+  const sameSign = (c0 > 0 && c1 > 0 && c2 > 0 && c3 > 0) || (c0 < 0 && c1 < 0 && c2 < 0 && c3 < 0);
+  if (!sameSign) return false;
+  const topW = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]);
+  const botW = Math.hypot(pts[2][0] - pts[3][0], pts[2][1] - pts[3][1]);
+  const leftH = Math.hypot(pts[3][0] - pts[0][0], pts[3][1] - pts[0][1]);
+  const rightH = Math.hypot(pts[2][0] - pts[1][0], pts[2][1] - pts[1][1]);
+  const avgW = (topW + botW) / 2;
+  const avgH = (leftH + rightH) / 2;
+  const minDim = Math.min(viewW, viewH);
+  if (avgW <= minDim * 0.24 || avgH <= minDim * 0.24) return false;
+  const ratio = avgH / Math.max(1, avgW);
+  const isTplLandscape = (matchedTpl?.khung?.[2] || 0) > (matchedTpl?.khung?.[3] || 0);
+  return isTplLandscape ? (ratio >= 0.45 && ratio <= 0.96) : (ratio >= 1.05 && ratio <= 1.85);
+}
+
 function startAutoScanLoop() {
-stopAutoScanLoop();
-if (!state.autoScanEnabled) return;
-const intervalMs = state.autoScanSpeed === 'turbo' ? 140 : (state.autoScanSpeed === 'fast' ? 240 : (state.autoScanSpeed === 'slow' ? 750 : 400));
-autoScanInterval = setInterval(async () => {
-const video = document.getElementById('cameraVideo');
-const guide = document.getElementById('cameraA4Guide');
-const sheetArea = document.getElementById('scanCameraArea');
-const resSheet = document.getElementById('cameraResultSheet');
-if (!video || !state.currentCameraStream || sheetArea?.classList.contains('hidden')) return;
-if (state.isAutoScanning || video.readyState < 2 || video.videoWidth <= 0 || video.videoHeight <= 0) return;
-if (Date.now() - lastAutoScanTime < state.autoScanCooldown) {
-return;
+  stopAutoScanLoop();
+  if (!state.currentCameraStream) return;
+  startLiveOverlayRaf();
+  const intervalMs = state.autoScanSpeed === 'turbo' ? 55 : (state.autoScanSpeed === 'fast' ? 75 : (state.autoScanSpeed === 'slow' ? 165 : 95));
+  autoScanInterval = setInterval(async () => {
+    const video = document.getElementById('cameraVideo');
+    const guide = document.getElementById('cameraA4Guide');
+    const sheetArea = document.getElementById('scanCameraArea');
+    if (!video || !state.currentCameraStream || sheetArea?.classList.contains('hidden')) return;
+    if (state.isAutoScanning || state.isCapturingCamera || video.readyState < 2 || video.videoWidth <= 0 || video.videoHeight <= 0) return;
+
+    try {
+      state.isAutoScanning = true;
+      const info = getVideoViewportInfo(video, guide);
+      const scale = Math.min(1, 500 / Math.max(info.sw || 1, info.sh || 1));
+      const lw = Math.max(1, Math.round((info.sw || 1) * scale));
+      const lh = Math.max(1, Math.round((info.sh || 1) * scale));
+      const { canvas: liveCanvas, ctx: liveCtx } = getLiveScanCanvas(lw, lh);
+      liveCtx.drawImage(video, info.sx, info.sy, info.sw, info.sh, 0, 0, lw, lh);
+      const imgData = liveCtx.getImageData(0, 0, lw, lh);
+      const liveGray = window.OMR.xam(imgData);
+      const candidateKeys = getCompatibleTemplatesForExam(state.exam);
+
+      let track = null;
+      if (window.trackOMRLiveFrame) {
+        track = window.trackOMRLiveFrame(liveGray, imgData.data, candidateKeys, { guideHints: info.guideHints });
+      } else if (window.findQMCorners && window.MAU) {
+        let bestRatio = -1;
+        let bestFound = null;
+        let bestKey = candidateKeys[0] || 'qmcv1239';
+        let bestTpl = window.MAU[bestKey];
+        for (const candKey of candidateKeys) {
+          const candTpl = window.MAU[candKey];
+          if (!candTpl) continue;
+          const candFound = window.findQMCorners(liveGray, candTpl, info.guideHints);
+          if (candFound && candFound.refined) {
+            const totalM = (candTpl.moc && candTpl.moc.length) ? candTpl.moc.length : 12;
+            const r = (candFound.refined.soMoc || 0) / totalM;
+            if (r > bestRatio) {
+              bestRatio = r;
+              bestFound = candFound;
+              bestFound.tplKey = candKey;
+              bestKey = candKey;
+              bestTpl = candTpl;
+            }
+          }
+        }
+        track = {
+          paperQuad: bestFound?.projectedPaperNorm ? { cornersNorm: bestFound.projectedPaperNorm, fromHomography: true } : null,
+          found: bestFound,
+          tplKey: bestKey,
+          matchedTpl: bestTpl,
+          soMoc: bestFound?.refined?.soMoc || 0,
+          totalMoc: bestTpl?.moc?.length || 12,
+          cornerHits: bestFound?.refined?.soGoc || (bestFound ? 4 : 0),
+          cornersNorm: bestFound?.origCorners ? bestFound.origCorners.map(([x, y]) => [x / lw, y / lh]) : null
+        };
+      }
+
+      const now = performance.now();
+      if (track?.paperQuad?.cornersNorm?.length === 4) {
+        _liveScanState.targetPaper = track.paperQuad.cornersNorm;
+        _liveScanState.lastPaperAt = now;
+      }
+
+      const found = track?.found || null;
+      const matchedTpl = track?.matchedTpl || null;
+      const matchedKey = track?.tplKey || (state.exam?.sheet_template || 'qmcv1239');
+      const totalM = track?.totalMoc || (matchedTpl?.moc?.length || 12);
+      const soMoc = track?.soMoc || found?.refined?.soMoc || 0;
+      const mocRatio = soMoc / Math.max(1, totalM);
+      const cornerHits = track?.cornerHits || found?.refined?.soGoc || 0;
+      const cornerReq = state.strictFiducials ? 4 : 3;
+
+      const isValidSheet = Boolean(
+        found &&
+        found.origCorners &&
+        found.origCorners.length === 4 &&
+        isQuadConvexAndValidRatio(track.cornersNorm, lw, lh, matchedTpl) &&
+        cornerHits >= cornerReq &&
+        (soMoc >= 5 || (soMoc >= 4 && mocRatio >= 0.45))
+      );
+
+      if (track?.cornersNorm?.length === 4 && (isValidSheet || cornerHits >= 3)) {
+        _liveScanState.targetCorners = track.cornersNorm;
+        _liveScanState.cornerEstimated = Array.isArray(found?.corners)
+          ? found.corners.map(c => Boolean(c && c._estimated))
+          : [false, false, false, false];
+        _liveScanState.lastCornersAt = now;
+        _liveScanState.locked = isValidSheet;
+      } else {
+        _liveScanState.locked = false;
+      }
+
+      const statusText = document.getElementById('cameraStatusText');
+      if (isValidSheet) {
+        const currNorm = track.cornersNorm;
+        const prevNorm = state._lastDetectedCornersNorm;
+        let isStable = false;
+        if (prevNorm && prevNorm.length === 4) {
+          let maxDrift = 0;
+          for (let i = 0; i < 4; i++) {
+            const d = Math.hypot(currNorm[i][0] - prevNorm[i][0], currNorm[i][1] - prevNorm[i][1]);
+            if (d > maxDrift) maxDrift = d;
+          }
+          if (maxDrift < 0.045) isStable = true;
+        }
+        state._lastDetectedCornersNorm = currNorm;
+        state.consecutiveCornerDetections = isStable ? ((state.consecutiveCornerDetections || 0) + 1) : 1;
+
+        document.querySelectorAll('.camera-corner-bracket').forEach(b => b.classList.add('detected'));
+        const tplLabel = TEMPLATE_SPECS[matchedKey]?.name || matchedKey;
+        if (statusText) {
+          if (!state.autoScanEnabled) {
+            statusText.innerHTML = `<span class="text-emerald-400 font-extrabold">✓ Khớp ${tplLabel} (${soMoc}/${totalM} mốc) — Bấm chụp</span>`;
+          } else {
+            statusText.innerHTML = `<span class="text-emerald-400 font-extrabold">✓ Khớp ${tplLabel} (${soMoc}/${totalM} mốc)! Đang chụp...</span>`;
+          }
+        }
+
+        const inCooldown = (Date.now() - lastAutoScanTime) < state.autoScanCooldown;
+        const reqFrames = state.autoScanSpeed === 'turbo'
+          ? 1
+          : (state.autoScanSpeed === 'fast' ? (mocRatio >= 0.72 ? 1 : 2) : (state.autoScanSpeed === 'slow' ? (mocRatio >= 0.72 ? 2 : 3) : (mocRatio >= 0.80 ? 1 : 2)));
+
+        if (state.autoScanEnabled && !inCooldown && state.consecutiveCornerDetections >= reqFrames) {
+          state.consecutiveCornerDetections = 0;
+          state._lastDetectedCornersNorm = null;
+          const hiResCanvas = drawVideoRegionToCanvas(video, info.sx, info.sy, info.sw, info.sh, 1920);
+          const detScale = Math.min(1, 960 / Math.max(1, hiResCanvas.width, hiResCanvas.height));
+          const detCanvas = document.createElement('canvas');
+          detCanvas.width = Math.max(1, Math.round(hiResCanvas.width * detScale));
+          detCanvas.height = Math.max(1, Math.round(hiResCanvas.height * detScale));
+          const detCtx = detCanvas.getContext('2d', { willReadFrequently: true });
+          detCtx.drawImage(hiResCanvas, 0, 0, detCanvas.width, detCanvas.height);
+          const detGray = window.OMR.xam(detCtx.getImageData(0, 0, detCanvas.width, detCanvas.height));
+          const sxScale = detCanvas.width / Math.max(1, lw);
+          const syScale = detCanvas.height / Math.max(1, lh);
+          const scaledFound = {
+            ...found,
+            origCorners: found.origCorners.map(([x, y]) => [x * sxScale, y * syScale])
+          };
+          lastAutoScanTime = Date.now();
+          await window.captureCameraFrame({
+            preCaptured: {
+              canvas: detCanvas,
+              hiResCanvas,
+              gray: detGray,
+              found: scaledFound,
+              guideHints: info.guideHints
+            }
+          });
+        }
+      } else {
+        state.consecutiveCornerDetections = 0;
+        state._lastDetectedCornersNorm = null;
+        document.querySelectorAll('.camera-corner-bracket').forEach(b => b.classList.remove('detected'));
+        if (statusText && !sheetArea?.classList.contains('hidden')) {
+          if (track?.paperQuad) {
+            statusText.innerHTML = '<span class="text-teal-300 font-bold">Đã bắt khung giấy — đang khóa 4 ô đen...</span>';
+          } else {
+            statusText.innerHTML = '<span>Hướng camera vào phiếu thi để tự động bắt khung</span>';
+          }
+        }
+      }
+    } catch (e) {
+    } finally {
+      state.isAutoScanning = false;
+    }
+  }, intervalMs);
 }
-try {
-state.isAutoScanning = true;
-const info = getVideoViewportInfo(video, guide);
-const hiResCanvas = drawVideoRegionToCanvas(video, info.sx, info.sy, info.sw, info.sh, 1850);
-const testScale = Math.min(1, 880 / Math.max(hiResCanvas.width, hiResCanvas.height));
-const testCanvas = document.createElement('canvas');
-testCanvas.width = Math.max(1, Math.round(hiResCanvas.width * testScale));
-testCanvas.height = Math.max(1, Math.round(hiResCanvas.height * testScale));
-const tCtx = testCanvas.getContext('2d', { willReadFrequently: true });
-tCtx.drawImage(hiResCanvas, 0, 0, testCanvas.width, testCanvas.height);
-const gray = window.OMR.xam(tCtx.getImageData(0, 0, testCanvas.width, testCanvas.height));
-const tplKey = state.exam?.sheet_template || 'qmcv1239';
-const tpl = (window.MAU && window.MAU[tplKey]) ? window.MAU[tplKey] : window.MAU.qmcv1239;
-let found = null;
-let matchedTpl = tpl;
-let matchedKey = tplKey;
-if (window.findQMCorners && window.MAU) {
-const candidateKeys = getCompatibleTemplatesForExam(state.exam);
-let bestMocRatio = -1;
-for (const candKey of candidateKeys) {
-const candTpl = window.MAU[candKey];
-if (!candTpl) continue;
-const candFound = window.findQMCorners(gray, candTpl, info.guideHints);
-if (candFound && candFound.refined) {
-const totalM = (candTpl.moc && candTpl.moc.length) ? candTpl.moc.length : 12;
-const mRatio = (candFound.refined.soMoc || 0) / totalM;
-if (mRatio > bestMocRatio) {
-bestMocRatio = mRatio;
-found = candFound;
-found.tplKey = candKey;
-matchedTpl = candTpl;
-matchedKey = candKey;
-if (mRatio >= 0.85) break;
-}
-}
-}
-}
-let isValidSheet = false;
-if (found && found.corners && found.corners.length === 4) {
-const c = found.corners;
-const [tl, tr, br, bl] = c;
-if (tr.x > tl.x && br.x > bl.x && bl.y > tl.y && br.y > tr.y) {
-const topW = Math.hypot(tr.x - tl.x, tr.y - tl.y);
-const botW = Math.hypot(br.x - bl.x, br.y - bl.y);
-const leftH = Math.hypot(bl.x - tl.x, bl.y - tl.y);
-const rightH = Math.hypot(br.x - tr.x, br.y - tr.y);
-const avgW = (topW + botW) / 2;
-const avgH = (leftH + rightH) / 2;
-const minDim = Math.min(testCanvas.width, testCanvas.height);
-const isBigEnough = avgW > minDim * 0.40 && avgH > minDim * 0.40;
-const ratio = avgH / Math.max(1, avgW);
-const isTplLandscape = (matchedTpl?.khung?.[2] || 0) > (matchedTpl?.khung?.[3] || 0);
-const isRatioValid = isTplLandscape
-? (ratio >= 0.50 && ratio <= 0.92)
-: (ratio >= 1.10 && ratio <= 1.75);
-const soMoc = found.refined?.soMoc || 0;
-if (isBigEnough && isRatioValid && (soMoc >= 6 || (soMoc >= 4 && isBigEnough))) {
-isValidSheet = true;
-}
-}
-}
-if (isValidSheet) {
-const currCorners = found.corners;
-const prev = state._lastDetectedCorners;
-let isStable = false;
-if (prev && prev.length === 4) {
-let maxDrift = 0;
-for (let i = 0; i < 4; i++) {
-const d = Math.hypot(currCorners[i].x - prev[i].x, currCorners[i].y - prev[i].y);
-if (d > maxDrift) maxDrift = d;
-}
-if (maxDrift < 45) isStable = true;
-}
-state._lastDetectedCorners = currCorners;
-if (isStable) {
-state.consecutiveCornerDetections = (state.consecutiveCornerDetections || 0) + 1;
-} else {
-state.consecutiveCornerDetections = 1;
-}
-document.querySelectorAll('.camera-corner-bracket').forEach(b => {
-b.classList.add('detected');
-});
-const statusText = document.getElementById('cameraStatusText');
-const totalM = (matchedTpl?.moc && matchedTpl.moc.length) ? matchedTpl.moc.length : 12;
-const soMoc = found.refined?.soMoc || 4;
-const mocRatio = soMoc / totalM;
-if (statusText) {
-const tplLabel = TEMPLATE_SPECS[matchedKey]?.name || matchedKey;
-statusText.innerHTML = `<span class="text-emerald-400 font-extrabold">✓ Khớp ${tplLabel} (${soMoc}/${totalM} mốc)! Đang chụp...</span>`;
-}
-const reqFrames = state.autoScanSpeed === 'turbo'
-? 1
-: (state.autoScanSpeed === 'fast' ? (mocRatio >= 0.78 ? 1 : 2) : (state.autoScanSpeed === 'slow' ? 3 : 2));
-if (state.consecutiveCornerDetections >= reqFrames) {
-state.consecutiveCornerDetections = 0;
-state._lastDetectedCorners = null;
-lastAutoScanTime = Date.now();
-await window.captureCameraFrame({
-preCaptured: {
-canvas: testCanvas,
-hiResCanvas,
-gray,
-found,
-guideHints: info.guideHints
-}
-});
-} else {
-hiResCanvas.width = 1;
-hiResCanvas.height = 1;
-}
-} else {
-hiResCanvas.width = 1;
-hiResCanvas.height = 1;
-state.consecutiveCornerDetections = 0;
-state._lastDetectedCorners = null;
-document.querySelectorAll('.camera-corner-bracket').forEach(b => {
-b.classList.remove('detected');
-});
-const statusText = document.getElementById('cameraStatusText');
-if (statusText && !sheetArea?.classList.contains('hidden')) {
-statusText.innerHTML = '<span>Hướng camera vuông góc vào phiếu thi để quét tự động</span>';
-}
-}
-} catch(e) {
-} finally {
-state.isAutoScanning = false;
-}
-}, intervalMs);
-}
+
 function stopAutoScanLoop() {
-if (autoScanInterval) {
-clearInterval(autoScanInterval);
-autoScanInterval = null;
-}
-state.isAutoScanning = false;
+  if (autoScanInterval) {
+    clearInterval(autoScanInterval);
+    autoScanInterval = null;
+  }
+  if (_liveOverlayRaf) {
+    cancelAnimationFrame(_liveOverlayRaf);
+    _liveOverlayRaf = null;
+  }
+  _liveScanState.targetPaper = null;
+  _liveScanState.smoothPaper = null;
+  _liveScanState.targetCorners = null;
+  _liveScanState.smoothCorners = null;
+  _liveScanState.cornerEstimated = null;
+  _liveScanState.lastPaperAt = 0;
+  _liveScanState.lastCornersAt = 0;
+  _liveScanState.locked = false;
+  state._lastDetectedCornersNorm = null;
+  state.consecutiveCornerDetections = 0;
+  state.isAutoScanning = false;
+  clearLiveOverlayCanvas();
 }
 async function getAvailableCameras() {
 try {
@@ -7264,9 +7691,7 @@ showCameraHUDMessage(`📷 ${w}×${h} · ${ratioTxt}${z ? ' · zoom ' + Number(z
 }
 const isUltraWideActive = state.ultraWideCamera && state.currentCameraDeviceId === state.ultraWideCamera.deviceId;
 updateZoomUI(isUltraWideActive ? 0.5 : 1.0, state.cameraCapabilities || {});
-if (state.autoScanEnabled) {
 startAutoScanLoop();
-}
 } catch(err) {
 console.error("Không mở được camera:", err);
 Swal.fire('Lỗi Camera', 'Không thể truy cập camera. Vui lòng cấp quyền camera trong cài đặt trình duyệt hoặc chuyển sang chế độ tải ảnh phiếu!', 'error');
@@ -7537,6 +7962,9 @@ const hiResViewportCanvas = (opts && opts.preCaptured && opts.preCaptured.hiResC
 : drawVideoRegionToCanvas(video, info.sx, info.sy, info.sw, info.sh, 2000);
 tempCanvasesToFree.push(hiResViewportCanvas);
 if (opts && opts.preCaptured && opts.preCaptured.gray) {
+if (opts.preCaptured.canvas && typeof opts.preCaptured.canvas.width === 'number') {
+tempCanvasesToFree.push(opts.preCaptured.canvas);
+}
 const detW = opts.preCaptured.gray.w || 880;
 candidates.push({
 label: 'auto-locked',
@@ -11324,6 +11752,8 @@ const newStamped = await generateStampedGradedSheet(sub, {
 rectifiedCanvas: bodyCanvas,
 template: tpl,
 templateKey: tplKey,
+sbdm: sub.sbdm || null,
+madem: sub.madem || null,
 onlyHeaderUpgrade: false
 });
 if (newStamped) {
