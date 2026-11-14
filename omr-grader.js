@@ -3792,6 +3792,14 @@ input.value = '';
 input.click();
 }
 };
+window.triggerPdfFilePicker = (e) => {
+if (e) e.stopPropagation();
+const input = document.getElementById('pdfPickerInput') || document.getElementById('filePickerInput');
+if (input) {
+input.value = '';
+input.click();
+}
+};
 window.triggerZipFilePicker = (e) => {
 if (e) e.stopPropagation();
 const input = document.getElementById('zipPickerInput') || document.getElementById('filePickerInput');
@@ -3800,6 +3808,144 @@ input.value = '';
 input.click();
 }
 };
+const PDFJS_SOURCES = [
+{
+lib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+worker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+},
+{
+lib: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+worker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
+}
+];
+let _pdfJsInitPromise = null;
+let _pdfWorkerBlobUrl = null;
+let _pdfDisableWorker = false;
+function loadExternalScript(src) {
+return new Promise((resolve, reject) => {
+const script = document.createElement('script');
+script.src = src;
+script.async = true;
+script.onload = () => resolve();
+script.onerror = () => reject(new Error(`Không tải được thư viện: ${src}`));
+document.head.appendChild(script);
+});
+}
+async function ensurePdfJsReady() {
+if (window.pdfjsLib && _pdfWorkerBlobUrl) return window.pdfjsLib;
+if (_pdfJsInitPromise) return _pdfJsInitPromise;
+_pdfJsInitPromise = (async () => {
+if (!window.pdfjsLib) {
+let loaded = false;
+for (const srcObj of PDFJS_SOURCES) {
+try {
+await loadExternalScript(srcObj.lib);
+if (window.pdfjsLib) {
+loaded = true;
+break;
+}
+} catch (_) {}
+}
+if (!loaded || !window.pdfjsLib) {
+throw new Error('Thư viện đọc PDF (PDF.js) chưa sẵn sàng. Vui lòng kiểm tra kết nối mạng và thử lại!');
+}
+}
+if (!_pdfWorkerBlobUrl && window.pdfjsLib.GlobalWorkerOptions) {
+let workerConfigured = false;
+for (const srcObj of PDFJS_SOURCES) {
+try {
+const res = await fetch(srcObj.worker);
+if (res && res.ok) {
+const code = await res.text();
+const blob = new Blob([code], { type: 'application/javascript' });
+_pdfWorkerBlobUrl = URL.createObjectURL(blob);
+window.pdfjsLib.GlobalWorkerOptions.workerSrc = _pdfWorkerBlobUrl;
+workerConfigured = true;
+break;
+}
+} catch (_) {}
+}
+if (!workerConfigured) {
+window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_SOURCES[0].worker;
+_pdfDisableWorker = true;
+}
+}
+return window.pdfjsLib;
+})();
+try {
+return await _pdfJsInitPromise;
+} catch (err) {
+_pdfJsInitPromise = null;
+throw err;
+}
+}
+async function appendPdfPageDescriptors(pdfFile, destItems, openedPdfDocs, onStatus) {
+const pdfjsLib = await ensurePdfJsReady();
+const fileName = pdfFile.name || 'file.pdf';
+if (onStatus) onStatus(`Đang mở file PDF: ${fileName}...`);
+const buf = await pdfFile.arrayBuffer();
+let pdfDoc;
+try {
+pdfDoc = await pdfjsLib.getDocument({ data: buf, disableWorker: _pdfDisableWorker }).promise;
+} catch (err) {
+if (err && (err.name === 'PasswordException' || String(err.message || '').toLowerCase().includes('password'))) {
+throw new Error(`File PDF "${fileName}" đang đặt mật khẩu bảo vệ. Vui lòng gỡ mật khẩu trước khi chấm!`);
+}
+throw new Error(`Không thể đọc file PDF "${fileName}": ${err?.message || 'File bị hỏng hoặc không đúng định dạng PDF'}`);
+}
+const totalPages = pdfDoc.numPages || 0;
+if (totalPages === 0) {
+try { await pdfDoc.destroy(); } catch (_) {}
+return;
+}
+if (Array.isArray(openedPdfDocs)) openedPdfDocs.push(pdfDoc);
+const baseName = fileName.replace(/\.pdf$/i, '') || 'phieu';
+const padLen = Math.max(2, String(totalPages).length);
+for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+destItems.push({
+isPdfPage: true,
+pdfDoc,
+pageNum,
+totalPages,
+sourcePdfName: fileName,
+pageFileName: `${baseName}_trang_${String(pageNum).padStart(padLen, '0')}.jpg`
+});
+}
+}
+async function renderPdfPageToImageFile(desc, targetMaxDim = 2000) {
+const page = await desc.pdfDoc.getPage(desc.pageNum);
+let canvas = null;
+try {
+const baseVp = page.getViewport({ scale: 1 });
+const maxSide = Math.max(baseVp.width || 1, baseVp.height || 1);
+const scale = Math.min(4.0, Math.max(0.5, targetMaxDim / maxSide));
+const viewport = page.getViewport({ scale });
+canvas = document.createElement('canvas');
+canvas.width = Math.max(1, Math.round(viewport.width));
+canvas.height = Math.max(1, Math.round(viewport.height));
+const ctx = canvas.getContext('2d');
+if (!ctx) throw new Error('Trình duyệt không cấp được canvas để xuất trang PDF');
+// Nền giấy trắng tránh trang PDF nền trong suốt bị biến thành màu đen khi xuất JPEG
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+await page.render({ canvasContext: ctx, viewport }).promise;
+const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+if (!blob) throw new Error(`Không xuất được ảnh từ trang ${desc.pageNum}/${desc.totalPages}`);
+return new File([blob], desc.pageFileName, { type: 'image/jpeg' });
+} finally {
+try { page.cleanup(); } catch (_) {}
+if (canvas) {
+canvas.width = 1;
+canvas.height = 1;
+canvas = null;
+}
+}
+}
+function isPdfFileCandidate(file) {
+if (!file) return false;
+const nameLower = (file.name || '').toLowerCase();
+return nameLower.endsWith('.pdf') || Boolean(file.type && file.type.includes('pdf'));
+}
 function initUploadDropZone() {
 const dropZone = document.getElementById('dropZone');
 if (!dropZone || dropZone._boundDrag) return;
@@ -3833,7 +3979,7 @@ document.addEventListener('DOMContentLoaded', initUploadDropZone);
 } else {
 initUploadDropZone();
 }
-async function extractImagesFromFilesOrZips(rawFiles, onStatus) {
+async function extractImagesFromFilesOrZips(rawFiles, onStatus, openedPdfDocs = []) {
 const imageItems = [];
 const imgExtRegex = /\.(jpe?g|png|webp|bmp)$/i;
 for (const file of rawFiles) {
@@ -3849,7 +3995,7 @@ const entries = [];
 zip.forEach((relPath, zipEntry) => {
 if (zipEntry.dir) return;
 if (relPath.includes('__MACOSX') || relPath.startsWith('.') || /\/\./.test(relPath)) return;
-if (imgExtRegex.test(relPath)) {
+if (imgExtRegex.test(relPath) || /\.pdf$/i.test(relPath)) {
 entries.push(zipEntry);
 }
 });
@@ -3858,10 +4004,17 @@ for (const entry of entries) {
 const blob = await entry.async('blob');
 const shortName = entry.name.split('/').pop() || entry.name;
 const ext = (shortName.split('.').pop() || 'jpg').toLowerCase();
+if (ext === 'pdf') {
+const nestedPdf = new File([blob], shortName, { type: 'application/pdf' });
+await appendPdfPageDescriptors(nestedPdf, imageItems, openedPdfDocs, onStatus);
+} else {
 const mime = ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : 'image/jpeg');
 const imgFile = new File([blob], shortName, { type: mime });
 imageItems.push(imgFile);
 }
+}
+} else if (isPdfFileCandidate(file)) {
+await appendPdfPageDescriptors(file, imageItems, openedPdfDocs, onStatus);
 } else if ((file.type && file.type.startsWith('image/')) || imgExtRegex.test(nameLower)) {
 imageItems.push(file);
 }
@@ -3884,21 +4037,25 @@ if (progressCard) progressCard.classList.remove('hidden');
 if (progressFill) progressFill.style.width = '5%';
 if (progressPercent) progressPercent.textContent = 'Chuẩn bị...';
 if (progressLabel) {
-progressLabel.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang chuẩn bị ảnh chấm...`;
+progressLabel.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang chuẩn bị phiếu chấm...`;
 }
+const openedPdfDocs = [];
 let fileList = [];
 try {
 fileList = await extractImagesFromFilesOrZips(rawList, (msg) => {
-if (progressLabel) progressLabel.innerHTML = `<i class="fa-solid fa-file-zipper fa-bounce"></i> ${msg}`;
-});
-} catch (zipErr) {
-Swal.fire('Lỗi đọc file nén (.ZIP)', zipErr.message || 'Không thể giải nén file .zip này.', 'error');
+if (progressLabel) progressLabel.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${msg}`;
+}, openedPdfDocs);
+} catch (readErr) {
+await Promise.allSettled(openedPdfDocs.map(d => d.destroy()));
+const hasPdfInput = rawList.some(isPdfFileCandidate);
+Swal.fire(hasPdfInput ? 'Lỗi đọc file (.PDF / .ZIP)' : 'Lỗi đọc file nén (.ZIP)', readErr.message || 'Không thể đọc tệp vừa chọn.', 'error');
 if (progressCard) progressCard.classList.add('hidden');
 return;
 }
 if (fileList.length === 0) {
+await Promise.allSettled(openedPdfDocs.map(d => d.destroy()));
 if (progressCard) progressCard.classList.add('hidden');
-Swal.fire('Không tìm thấy ảnh hợp lệ', 'Vui lòng chọn file ảnh (.JPG, .PNG, .WebP) hoặc file .ZIP có chứa ảnh phiếu trả lời trắc nghiệm.', 'warning');
+Swal.fire('Không tìm thấy phiếu hợp lệ', 'Vui lòng chọn file ảnh (.JPG, .PNG, .WebP), file .PDF (mỗi trang 1 phiếu) hoặc file .ZIP chứa ảnh/PDF phiếu trả lời trắc nghiệm.', 'warning');
 return;
 }
 state.failedBatchFiles = [];
@@ -3913,13 +4070,17 @@ const activeRolePolicy = getTelegramRoleSchedulingPolicy(rawConfiguredBotsCount)
 const configuredBotsCount = Math.max(1, activeRolePolicy.maxConcurrentWorkers || rawConfiguredBotsCount);
 let botsLeftInCurrentWave = Math.min(configuredBotsCount, fileList.length);
 state._isBatchGrading = true;
+try {
 for (let i = 0; i < fileList.length; i++) {
-const file = fileList[i];
+const rawItem = fileList[i];
+let file = rawItem;
 const pct = Math.round(((i + 1) / fileList.length) * 100);
 if (progressPercent) progressPercent.textContent = `${i + 1}/${fileList.length} (${pct}%)`;
 if (progressFill) progressFill.style.width = `${pct}%`;
 if (progressLabel) {
-if (state.telegramConfig?.enabled && (_activeBotWorkers.size > 0 || pendingAlbumBuffer.length > 0)) {
+if (rawItem && rawItem.isPdfPage) {
+progressLabel.innerHTML = `<i class="fa-solid fa-file-pdf text-rose-500"></i> Đang đọc trang ${rawItem.pageNum}/${rawItem.totalPages} (${rawItem.sourcePdfName}) • Phiếu ${i + 1}/${fileList.length}...`;
+} else if (state.telegramConfig?.enabled && (_activeBotWorkers.size > 0 || pendingAlbumBuffer.length > 0)) {
 const savedCountNow = (state.submissions || []).filter(s => s.telegram_photo_url || s.telegram_file_id).length;
 progressLabel.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang chấm phiếu ${i + 1}/${fileList.length} • <span class="text-sky-600 dark:text-sky-400">Kho Telegram: ${savedCountNow} bài (${Math.max(1, _activeBotWorkers.size)}/${configuredBotsCount} Bot đang gửi...)</span>`;
 } else {
@@ -3928,6 +4089,13 @@ progressLabel.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang ch�
 }
 await new Promise(r => setTimeout(r, 8));
 try {
+if (rawItem && rawItem.isPdfPage) {
+file = await renderPdfPageToImageFile(rawItem);
+if (progressLabel && state.telegramConfig?.enabled && (_activeBotWorkers.size > 0 || pendingAlbumBuffer.length > 0)) {
+const savedCountNow = (state.submissions || []).filter(s => s.telegram_photo_url || s.telegram_file_id).length;
+progressLabel.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang chấm phiếu ${i + 1}/${fileList.length} • <span class="text-sky-600 dark:text-sky-400">Kho Telegram: ${savedCountNow} bài (${Math.max(1, _activeBotWorkers.size)}/${configuredBotsCount} Bot đang gửi...)</span>`;
+}
+}
 const sub = await processSingleSheet(file, {
 isUploadedFile: true,
 silentInspector: true,
@@ -3986,7 +4154,8 @@ await new Promise(r => setTimeout(r, 15));
 }
 }
 } catch(err) {
-console.error("Lỗi chấm bài:", file.name, err);
+const failedName = file?.name || rawItem?.pageFileName || `Ảnh #${i + 1}`;
+console.error("Lỗi chấm bài:", failedName, err);
 failCount++;
 let previewUrl = '';
 try {
@@ -3995,15 +4164,18 @@ previewUrl = URL.createObjectURL(file);
 }
 } catch (_) {}
 state.failedBatchFiles.push({
-file,
-name: file.name || `Ảnh #${i + 1}`,
+file: (file instanceof Blob || file instanceof File) ? file : null,
+name: failedName,
 error: err.message || 'Không nhận diện được 4 góc đen định vị',
 previewUrl,
 timestamp: Date.now()
 });
 }
 }
+} finally {
 state._isBatchGrading = false;
+await Promise.allSettled(openedPdfDocs.map(d => d.destroy()));
+}
 if (state.telegramConfig?.enabled && pendingAlbumBuffer.length > 0) {
 dispatchChunkToTelegram(pendingAlbumBuffer.splice(0, pendingAlbumBuffer.length));
 }
@@ -4048,7 +4220,7 @@ html: `
 <span>Cao nhất: <b class="font-mono text-base">${maxBatch}đ</b></span>
 </div>
 ${state.telegramConfig?.enabled ? `<div class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center justify-center gap-1.5"><i class="fa-solid fa-cloud-arrow-up"></i> Kho bài thi: Đang lưu <b>${successCount}</b> bài chấm an toàn.</div>` : ''}
-${failCount > 0 ? `<p class="text-rose-500 font-semibold text-xs">⚠️ Có ${failCount}/${fileList.length} ảnh không nhận diện được (đã đưa vào Hàng đợi xử lý lại bên dưới).</p>` : ''}
+${failCount > 0 ? `<p class="text-rose-500 font-semibold text-xs">⚠️ Có ${failCount}/${fileList.length} phiếu không nhận diện được (đã đưa vào Hàng đợi xử lý lại bên dưới).</p>` : ''}
 <div class="pt-2">
 <button type="button" onclick="window.copyClassSummaryToZalo(); Swal.close();" class="w-full py-2.5 px-4 rounded-xl btn-season-primary font-bold text-xs flex items-center justify-center gap-2 cursor-pointer">
 <i class="fa-solid fa-share-nodes"></i> Sao chép Bảng điểm gửi Zalo Lớp ngay
@@ -4063,7 +4235,7 @@ confirmButtonColor: '#059669'
 Swal.fire({
 icon: 'warning',
 title: 'Chưa nhận diện được phiếu',
-text: `Cả ${fileList.length} ảnh tải lên đều bị mờ hoặc thiếu 4 ô vuông đen ở 4 góc phiếu. Vui lòng kiểm tra lại ảnh chụp hoặc đổi đúng Loại phiếu chấm!`
+text: `Cả ${fileList.length} phiếu tải lên đều bị mờ hoặc thiếu 4 ô vuông đen ở 4 góc phiếu. Vui lòng kiểm tra lại ảnh chụp/PDF hoặc đổi đúng Loại phiếu chấm!`
 });
 }
 };

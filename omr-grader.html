@@ -79,6 +79,7 @@ brand: {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -689,17 +690,22 @@ if (ov) ov.classList.add('hidden');
 
                                 
                                 <div class="grid grid-cols-12 gap-2 sm:gap-3">
-                                    <button type="button" onclick="window.setScanMode('camera')" class="col-span-12 sm:col-span-6 h-12 rounded-xl btn-season-primary font-bold text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer shadow-sm">
+                                    <button type="button" onclick="window.setScanMode('camera')" class="col-span-12 sm:col-span-5 h-12 rounded-xl btn-season-primary font-bold text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer shadow-sm">
                                         <i class="fa-solid fa-camera text-base sm:text-lg"></i>
                                         <span>Quét Camera Trực Tiếp</span>
                                     </button>
 
-                                    <button type="button" onclick="window.triggerImageFilePicker(event)" class="col-span-8 sm:col-span-4 h-12 rounded-xl btn-season-secondary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer" title="Mở Album ảnh trên điện thoại để chọn nhiều ảnh phiếu">
+                                    <button type="button" onclick="window.triggerImageFilePicker(event)" class="col-span-6 sm:col-span-3 h-12 rounded-xl btn-season-secondary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer" title="Mở Album ảnh trên điện thoại để chọn nhiều ảnh phiếu">
                                         <i class="fa-regular fa-images text-emerald-600 dark:text-emerald-400 text-sm sm:text-base"></i>
                                         <span>Chọn ảnh (Album)</span>
                                     </button>
 
-                                    <button type="button" onclick="window.triggerZipFilePicker(event)" class="col-span-4 sm:col-span-2 h-12 rounded-xl btn-season-secondary font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all cursor-pointer shrink-0" title="Tải file nén .ZIP chứa hàng loạt ảnh phiếu">
+                                    <button type="button" onclick="window.triggerPdfFilePicker(event)" class="col-span-3 sm:col-span-2 h-12 rounded-xl btn-season-secondary font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all cursor-pointer shrink-0" title="Tải file .PDF (mỗi trang là 1 phiếu tô)">
+                                        <i class="fa-solid fa-file-pdf text-rose-500 dark:text-rose-400 text-sm"></i>
+                                        <span>.PDF</span>
+                                    </button>
+
+                                    <button type="button" onclick="window.triggerZipFilePicker(event)" class="col-span-3 sm:col-span-2 h-12 rounded-xl btn-season-secondary font-bold text-xs flex items-center justify-center gap-1.5 active:scale-98 transition-all cursor-pointer shrink-0" title="Tải file nén .ZIP chứa hàng loạt ảnh/PDF phiếu">
                                         <i class="fa-solid fa-file-zipper text-emerald-600 dark:text-emerald-400 text-sm"></i>
                                         <span>.ZIP</span>
                                     </button>
@@ -707,6 +713,7 @@ if (ov) ov.classList.add('hidden');
 
                                 
                                 <input type="file" id="filePickerInput" accept="image/*" multiple class="hidden" onchange="window.handleFilesSelected(this.files)">
+                                <input type="file" id="pdfPickerInput" accept=".pdf,application/pdf" multiple class="hidden" onchange="window.handleFilesSelected(this.files)">
                                 <input type="file" id="zipPickerInput" accept=".zip,application/zip,application/x-zip-compressed" multiple class="hidden" onchange="window.handleFilesSelected(this.files)">
 
                                 
@@ -2999,7 +3006,7 @@ if (ov) ov.classList.add('hidden');
     <script src="./omr/answer-import.js?v=20261108_v149"></script>
 
     
-    <script type="module" src="./omr-grader.js?v=20261114_beta5"></script>
+    <script type="module" src="./omr-grader.js?v=20261114_beta6"></script>
 
     
     <div id="importExamCandidatesModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
